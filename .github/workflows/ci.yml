@@ -1,0 +1,49 @@
+name: StarGate CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt 2>/dev/null || pip install pyyaml pydantic pytest httpx
+
+      - name: Unit tests
+        run: python -m pytest tests/ -q --tb=short
+
+      - name: Validate remediation catalog
+        run: |
+          python3 -c "
+          from engine.catalog_loader import load_catalog
+          entries = load_catalog()
+          print(f'Catalog: {len(entries)} entries loaded')
+          launchpad = [e for e in entries if e.id.startswith('launchpad_')]
+          print(f'Launchpad entries: {len(launchpad)}')
+          assert len(launchpad) >= 3, f'Expected 3+ Launchpad entries, got {len(launchpad)}'
+          print('Catalog validation: PASSED')
+          "
+
+      - name: Validate rubrics
+        run: |
+          python3 -c "
+          import yaml
+          from pathlib import Path
+          rubrics = list(Path('rubrics').rglob('*.yaml'))
+          print(f'Rubrics: {len(rubrics)} files')
+          for r in rubrics:
+              data = yaml.safe_load(r.read_text())
+              assert 'name' in data or 'id' in data, f'Invalid rubric: {r}'
+          print('Rubric validation: PASSED')
+          "
