@@ -188,9 +188,38 @@ def _update_audit(db, audit_id, status):
         pass
 
 
+def _is_rhdp_action(action_type: str, parameters: Dict[str, Any]) -> bool:
+    """Check if this action should be routed through RHDP APIs."""
+    method = parameters.get("execution_method", "kubernetes")
+    return method.startswith("rhdp_")
+
+
+def _preflight_check(target: str, parameters: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Check RHDP state before executing — skip if mid-provision."""
+    try:
+        from engine.rhdp_client import get_anarchy_state
+        from api.routers._shared import EXECUTOR_KUBECONFIG
+        state = get_anarchy_state(target, kubeconfig=EXECUTOR_KUBECONFIG)
+        if state in ("provisioning", "starting"):
+            logger.info(f"PRE-FLIGHT: {target} is {state} — skipping remediation")
+            return {"executed": False, "reason": "provisioning_in_progress", "anarchy_state": state}
+    except Exception:
+        pass
+    return None
+
+
 def _do_execute(action_type, target, parameters):
-    """Execute the action based on configured execution target."""
+    """Execute the action based on configured execution target and method."""
     from api.routers._shared import EXECUTION_TARGET, EXECUTOR_KUBECONFIG, TEST_NAMESPACE
+
+    preflight = _preflight_check(target, parameters)
+    if preflight:
+        return preflight
+
+    if _is_rhdp_action(action_type, parameters):
+        from engine.rhdp_client import execute_rhdp_action
+        logger.info(f"RHDP EXECUTE: {action_type} on {target}")
+        return execute_rhdp_action(action_type, target, parameters, kubeconfig=EXECUTOR_KUBECONFIG)
 
     if EXECUTION_TARGET == "test" and EXECUTOR_KUBECONFIG:
         from engine.oc_executor import execute_oc_action

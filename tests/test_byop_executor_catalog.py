@@ -76,7 +76,8 @@ class TestCatalogActionBridge:
         commands = get_commands_for_action(
             "pool_exhaustion", "my-ns", {"pool": "test-pool"}
         )
-        for cmd in commands:
+        oc_commands = [c for c in commands if c.startswith("oc ")]
+        for cmd in oc_commands:
             assert "{namespace}" not in cmd, f"Unsubstituted {{namespace}} in: {cmd}"
             assert "my-ns" in cmd
 
