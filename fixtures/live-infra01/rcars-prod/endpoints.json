@@ -1,0 +1,206 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-04-29T11:43:00Z",
+        "labels": {
+          "app": "rcars",
+          "component": "api"
+        },
+        "name": "rcars-api",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699135574",
+        "uid": "88d92141-3298-44be-83c0-7c167d9b136f"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.3.26",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "rcars-api-74567d69bc-x9vzb",
+                "namespace": "rcars-prod",
+                "uid": "62a10586-2068-4b26-8449-eebe47325785"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-04-29T11:43:01Z",
+        "labels": {
+          "app": "rcars",
+          "component": "frontend"
+        },
+        "name": "rcars-frontend-service",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699122100",
+        "uid": "4b524b79-7ff8-4bfa-9fe5-0bd230f9479a"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.2.164",
+              "nodeName": "ocp-infra01-ceph00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "rcars-frontend-658756f48f-49gjv",
+                "namespace": "rcars-prod",
+                "uid": "a119bc61-1ca1-4a73-b097-9d231ee07da7"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-04-29T11:43:14Z"
+        },
+        "creationTimestamp": "2026-04-29T11:43:03Z",
+        "labels": {
+          "app": "rcars",
+          "component": "oauth-proxy"
+        },
+        "name": "rcars-oauth-proxy-service",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211947",
+        "uid": "dad3c9e2-bfd1-40a8-acb9-997c7fa93dfe"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.2.243",
+              "nodeName": "ocp-infra01-ceph00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "rcars-oauth-proxy-85cbf5c6b-r2fh9",
+                "namespace": "rcars-prod",
+                "uid": "7fec0d7a-4423-44a2-a8d3-bd942cfc113d"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-04-29T11:41:07Z"
+        },
+        "creationTimestamp": "2026-04-29T11:40:56Z",
+        "labels": {
+          "app": "rcars",
+          "component": "postgresql"
+        },
+        "name": "rcars-postgresql",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677207565",
+        "uid": "633b3c46-8182-4b83-8155-7cd0551d729b"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "hostname": "rcars-postgresql-0",
+              "ip": "10.128.2.37",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "rcars-postgresql-0",
+                "namespace": "rcars-prod",
+                "uid": "5a00abe3-4d56-44f8-8a4b-ad3f266c9441"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 5432,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-04-29T11:41:08Z"
+        },
+        "creationTimestamp": "2026-04-29T11:40:57Z",
+        "labels": {
+          "app": "rcars",
+          "component": "redis"
+        },
+        "name": "rcars-redis",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677207605",
+        "uid": "c3a2c7a7-1a70-40ed-851e-af7638e42027"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "hostname": "rcars-redis-0",
+              "ip": "10.128.2.38",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "rcars-redis-0",
+                "namespace": "rcars-prod",
+                "uid": "555f32d6-022c-4493-9f19-78197de1e35e"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 6379,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

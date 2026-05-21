@@ -1,0 +1,10 @@
+{
+  "type": "phase-a-shadow",
+  "phase": "A",
+  "gate": "Shadow mode \u2014 emulator state transform",
+  "generated_at": "2026-05-12T16:08:59.624198+00:00",
+  "passed": 43,
+  "failed": 0,
+  "gate_passed": true,
+  "evidence": "All 7 scenarios resolve after simulated action. Before state has failures, after state passes all rubrics."
+}

@@ -1,0 +1,192 @@
+version: "1.0"
+
+constraint_to_stage:
+  workload_not_deployed: deployment-ready
+  operator_version_drift: deployment-ready
+  showroom_wrong_content: showroom-healthy
+  resource_below_spec: vm-runtime-ready
+  showroom_wrong_ref: showroom-healthy
+
+rules:
+  - id: provision_blocked_lab
+    scope: lab
+    urgency: critical
+    condition: "sessions > 0 AND instances_started == 0 AND provisioned == 0 AND capacity == 0"
+    confidence_score: 0.95
+    confidence_reason: "Sessions confirmed in Labagator, zero provisioning detected across Babylon/Poolboy"
+    evidence_sources:
+      - labagator
+      - babylon
+      - poolboy
+      - agnosticv
+
+  - id: cleanup_stuck
+    scope: lab
+    urgency: high
+    condition: "instances_failed > 0"
+    confidence_score: 0.90
+    confidence_reason_template: "{failed} instances in failed state confirmed via Babylon AnarchySubject API"
+    evidence_sources:
+      - babylon
+      - labagator
+      - cluster
+
+  - id: pool_exhaustion
+    scope: pool
+    urgency: high
+    condition: "min_required > 0 AND available <= 1"
+    thresholds:
+      available_max: 1
+    confidence_rules:
+      - when: "available == 0"
+        score: 0.95
+      - default: 0.80
+    evidence_sources:
+      - poolboy
+      - babylon
+      - platform
+
+  - id: cluster_capacity
+    scope: cluster
+    condition: "avg_cpu > 70 OR vms_per_node > 80"
+    thresholds:
+      avg_cpu_warn: 70
+      avg_cpu_critical: 80
+      vms_per_node_warn: 80
+    urgency_rules:
+      - when: "avg_cpu >= 80"
+        urgency: high
+      - default: medium
+    confidence_rules:
+      - when: "avg_cpu > 80"
+        score: 0.85
+      - default: 0.70
+    evidence_sources:
+      - cluster_scanner
+      - node_metrics
+      - labs
+      - comparison
+
+  - id: smoke_test_failing
+    scope: lab
+    condition: "demolition_status == fail AND sessions > 0"
+    urgency_rules:
+      - when: "has_summit_days"
+        urgency: high
+      - default: medium
+    confidence_rules:
+      - when: "total_count >= 10"
+        score: 0.90
+      - default: 0.65
+    evidence_sources:
+      - demolition
+      - labagator
+      - babylon
+      - agnosticv
+
+  - id: substrate_routing
+    scope: cluster
+    urgency: medium
+    condition: "routing in (xeon6_fallback, rebalance_to_xeon6)"
+    confidence_score: 0.80
+    evidence_sources:
+      - substrate_router
+
+  - id: showroom_unreachable
+    scope: lab
+    urgency: high
+    condition: "showroom_healthy == fail AND sessions > 0"
+    confidence_score: 0.90
+    confidence_reason: "Showroom HTTP check failing for lab with scheduled sessions"
+    evidence_sources:
+      - cluster_scanner
+      - labagator
+
+  - id: route_not_created
+    scope: lab
+    urgency: medium
+    condition: "namespace_ready == pass AND route_ready == fail"
+    confidence_score: 0.85
+    confidence_reason: "Namespace exists but route is missing — deployment blocker"
+    evidence_sources:
+      - cluster_scanner
+
+  - id: provision_timeout
+    scope: lab
+    urgency: high
+    condition: "instances_total > 0 AND instances_started == 0"
+    confidence_score: 0.80
+    confidence_reason: "Instances requested but none have started — provisioning may be stuck"
+    evidence_sources:
+      - babylon
+
+  - id: guest_agent_disconnected
+    scope: lab
+    urgency: low
+    condition: "vm_runtime_ready == warn AND guest_agent_connected == false"
+    confidence_score: 0.70
+    confidence_reason: "VM running but guest agent not connected — optional but impacts usability"
+    evidence_sources:
+      - cluster_scanner
+
+  - id: aap_provision_failing
+    scope: lab
+    urgency: critical
+    condition: "aap_provision_failures > 0"
+    confidence_score: 0.95
+    confidence_reason: "AAP provisioning job failed with task-level error detail from Tower"
+    evidence_sources:
+      - aap
+      - babylon
+
+  - id: aap_destroy_failing
+    scope: lab
+    urgency: high
+    condition: "aap_destroy_failures > 0"
+    confidence_score: 0.90
+    confidence_reason: "AAP destroy job failed — resources may not be cleaned up"
+    evidence_sources:
+      - aap
+
+  - id: aap_sli_breach
+    scope: platform
+    urgency: critical
+    condition: "provision_success_rate < sli_target"
+    confidence_score: 0.95
+    confidence_reason: "Provision SLI below 93% target — platform reliability at risk"
+    evidence_sources:
+      - aap
+
+  - id: sandbox_api_degraded
+    scope: platform
+    urgency: high
+    condition: "sandbox_api_replicas_ready < sandbox_api_replicas_desired"
+    confidence_score: 0.90
+    confidence_reason: "Sandbox API deployment health from pod readiness"
+    evidence_sources:
+      - sandbox_api
+
+  - id: pool_depletion_predicted
+    scope: pool
+    urgency: high
+    condition: "pool_velocity < -1 AND estimated_exhaustion_hours < 3"
+    thresholds:
+      velocity_warn: -0.5
+      exhaustion_hours_warn: 4
+    confidence_rules:
+      - when: "estimated_exhaustion_hours < 1"
+        score: 0.95
+      - default: 0.75
+    evidence_sources:
+      - poolboy
+      - pool_velocity
+
+  - id: workload_exceeds_capacity
+    scope: lab
+    urgency: high
+    condition: "complexity_score > 0.7 AND cluster_cpu > 70"
+    confidence_score: 0.80
+    confidence_reason: "High-complexity lab on capacity-constrained cluster"
+    evidence_sources:
+      - agnosticv
+      - cluster_scanner

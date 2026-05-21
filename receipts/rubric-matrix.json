@@ -1,0 +1,11 @@
+{
+  "type": "rubric-matrix",
+  "generated_at": "2026-05-12T16:09:08.032905+00:00",
+  "scenarios": 7,
+  "stages": 11,
+  "cells": 77,
+  "evaluated": 63,
+  "skipped": 14,
+  "failed": 0,
+  "all_match": true
+}

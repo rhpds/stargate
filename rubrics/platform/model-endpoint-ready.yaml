@@ -1,0 +1,45 @@
+id: model-endpoint-ready
+version: v0.1.0
+stage: model-endpoint-ready
+timeout_seconds: 900
+entry_criteria:
+  - name: namespace_exists
+    required: true
+exit_criteria:
+  - name: inferenceservice_exists
+    required: true
+  - name: inferenceservice_ready
+    required: true
+  - name: test_inference_succeeded
+    required: true
+  - name: inference_latency_acceptable
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  inferenceservice_missing:
+    when:
+      - inferenceservice_exists == false
+    recommended_action: check_inferenceservice_manifest
+  inferenceservice_not_ready:
+    when:
+      - inferenceservice_exists == true
+      - inferenceservice_ready == false
+    recommended_action: inspect_inferenceservice_status
+  inference_failed:
+    when:
+      - inferenceservice_exists == true
+      - inferenceservice_ready == true
+      - test_inference_succeeded == false
+    recommended_action: inspect_model_serving_logs
+allowed_remediations:
+  - check_inferenceservice_manifest
+  - inspect_inferenceservice_status
+  - inspect_model_serving_logs
+forbidden_remediations:
+  - delete_namespace

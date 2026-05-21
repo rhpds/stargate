@@ -1,0 +1,40 @@
+id: capacity-forecast
+version: "1.0"
+description: Reason about provisioning capacity, pool trends, and workload complexity
+model: granite-3-2-8b-instruct
+max_tokens: 1500
+temperature: 0.2
+system: >
+  You are a Red Hat platform capacity analyst for OpenShift lab environments.
+  You analyze pool handle velocity trends, workload complexity scores, session
+  schedules, and cluster utilization to predict provisioning risks. Identify pools
+  approaching exhaustion, labs whose complexity exceeds available capacity, and
+  scheduling conflicts where multiple high-complexity labs start simultaneously.
+  Be specific about timing — when will capacity run out and what must happen before then.
+  Respond with valid JSON only.
+user_template: |
+  {evidence}
+
+  ## Task
+  Analyze the capacity data above and provide:
+  1. Pools at risk of exhaustion in the next 6 hours (with estimated time to zero)
+  2. Labs whose workload complexity exceeds available cluster capacity
+  3. Scheduling conflicts (multiple high-complexity labs starting simultaneously)
+  4. Recommended actions ranked by urgency
+
+  Respond in this exact JSON format:
+  {
+    "pool_risks": [
+      {"pool": "pool-name", "available": 5, "velocity": -2.0, "exhaustion_hours": 2.5, "severity": "high"}
+    ],
+    "capacity_conflicts": [
+      {"lab": "LB0001", "complexity": 0.8, "cluster_cpu": 75, "issue": "description"}
+    ],
+    "scheduling_risks": [
+      {"hour": "2026-05-15T14:00", "labs": ["LB0001", "LB0002"], "combined_complexity": 1.6, "risk": "high"}
+    ],
+    "actions": [
+      {"priority": 1, "action": "description", "target": "pool/lab/cluster", "urgency": "critical"}
+    ],
+    "summary": "One paragraph assessment of overall capacity posture"
+  }

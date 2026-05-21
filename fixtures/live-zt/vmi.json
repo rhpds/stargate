@@ -1,0 +1,1257 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T10:46:22Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 9,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "control"
+        },
+        "name": "control",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "control",
+            "uid": "1bf10219-6105-4d2a-8384-35a69ed0ef80"
+          }
+        ],
+        "resourceVersion": "1329857628",
+        "uid": "e9194300-3302-48ee-8c32-86f708f11070"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 4,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "control-zz95m"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              },
+              {
+                "bridge": {},
+                "macAddress": "2c:c2:60:cc:57:90",
+                "model": "virtio",
+                "name": "secondaryzz95m"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "e9c4137b-55b5-40f6-977c-fa93baa9bae1",
+            "uuid": "e214e425-afdb-580b-9728-75607218a17b"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "32G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "control",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          },
+          {
+            "multus": {
+              "networkName": "secondaryzz95m"
+            },
+            "name": "secondaryzz95m"
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "control-zz95m"
+            },
+            "name": "control-zz95m"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIGVjaG8gIlBhc3N3b3JkQXV0aGVudGljYXRpb24geWVzIiA+IC9ldGMvc3NoL3NzaGRfY29uZmlnLmQvNTAtY2xvdWQtaW5pdC5jb25mCiAgLSBzeXN0ZW1jdGwgcmVsb2FkIHNzaGQ="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "d89e6a9a-e582-4f2e-8ee0-f0085bfa80ec": "ocp-virt6-host12"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:26Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 4
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.128.43.4",
+            "ipAddresses": [
+              "10.128.43.4"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:80:2b:04",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "domain, multus-status",
+            "linkState": "up",
+            "mac": "2c:c2:60:cc:57:90",
+            "name": "secondaryzz95m",
+            "podInterfaceName": "pode888e8f205f",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "32G",
+          "guestCurrent": "31250000Ki",
+          "guestRequested": "32G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host12",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:22Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:22Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:26Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:28Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c488,c618",
+        "virtualMachineRevisionName": "revision-start-vm-1bf10219-6105-4d2a-8384-35a69ed0ef80-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "control-zz95m",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "50Gi"
+              },
+              "claimName": "control-zz95m",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "50Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T20:15:15Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 9,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host8",
+          "vm.cnv.io/name": "dbserver"
+        },
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "dbserver",
+            "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+          }
+        ],
+        "resourceVersion": "1331516549",
+        "uid": "0e578838-a789-45bc-8641-05997361c3c2"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 4,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "dbserver-zz95m"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "e1000e",
+                "name": "default"
+              },
+              {
+                "bridge": {},
+                "macAddress": "2c:c2:60:c1:d7:88",
+                "model": "e1000e",
+                "name": "secondaryzz95m"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "9cacd878-1580-4725-aab5-5e736c5f59d8",
+            "uuid": "853e116c-7e35-522a-8bbd-d8662261ca6b"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "16G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "dbserver",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          },
+          {
+            "multus": {
+              "networkName": "secondaryzz95m"
+            },
+            "name": "secondaryzz95m"
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "dbserver-zz95m"
+            },
+            "name": "dbserver-zz95m"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQo="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "adc50522-6711-43bb-a841-bf3f4a898aa1": "ocp-virt6-host8"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:25Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 4
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.130.38.165",
+            "ipAddresses": [
+              "10.130.38.165"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:26:a5",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "domain, multus-status",
+            "linkState": "up",
+            "mac": "2c:c2:60:c1:d7:88",
+            "name": "secondaryzz95m",
+            "podInterfaceName": "pode888e8f205f",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "16G",
+          "guestCurrent": "15625000Ki",
+          "guestRequested": "16G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host8",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T20:15:15Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T20:15:15Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T20:15:25Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T20:15:27Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c35,c568",
+        "virtualMachineRevisionName": "revision-start-vm-80923046-8a4e-41ed-b9c3-343195219933-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "dbserver-zz95m",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "65Gi"
+              },
+              "claimName": "dbserver-zz95m",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "65Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T10:47:29Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 157,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "haproxy"
+        },
+        "name": "haproxy",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "haproxy",
+            "uid": "3596671e-ceb3-46d1-99be-decb474d2083"
+          }
+        ],
+        "resourceVersion": "1331548501",
+        "uid": "b3e25eb0-1c55-4991-8d9c-2537cad8e0e4"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 2,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "haproxy-zz95m"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              },
+              {
+                "bridge": {},
+                "macAddress": "2c:c2:60:95:0c:bf",
+                "model": "virtio",
+                "name": "secondaryzz95m"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "28ebd8bf-8605-4947-a2c4-cf4753e9d0b5",
+            "uuid": "a4b95da8-7e7c-5767-8a23-dc763f657926"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "2G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "haproxy",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          },
+          {
+            "multus": {
+              "networkName": "secondaryzz95m"
+            },
+            "name": "secondaryzz95m"
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "haproxy-zz95m"
+            },
+            "name": "haproxy-zz95m"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIGVjaG8gIlBhc3N3b3JkQXV0aGVudGljYXRpb24geWVzIiA+IC9ldGMvc3NoL3NzaGRfY29uZmlnLmQvNTAtY2xvdWQtaW5pdC5jb25mCiAgLSBzeXN0ZW1jdGwgcmVsb2FkIHNzaGQ="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "c6af62ba-6857-4a39-b6e4-7b1450e41e1d": "ocp-virt6-host12"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:43Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T10:48:05Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 2
+        },
+        "guestOSInfo": {
+          "id": "rhel",
+          "kernelRelease": "5.14.0-503.11.1.el9_5.x86_64",
+          "kernelVersion": "#1 SMP PREEMPT_DYNAMIC Mon Sep 30 11:54:45 EDT 2024",
+          "machine": "x86_64",
+          "name": "Red Hat Enterprise Linux",
+          "prettyName": "Red Hat Enterprise Linux 9.5 (Plow)",
+          "version": "9.5 (Plow)",
+          "versionId": "9.5"
+        },
+        "interfaces": [
+          {
+            "infoSource": "domain, guest-agent",
+            "interfaceName": "eth0",
+            "ipAddress": "10.128.43.8",
+            "ipAddresses": [
+              "10.128.43.8"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:80:2b:08",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "domain, guest-agent, multus-status",
+            "interfaceName": "eth1",
+            "ipAddress": "fe80::d462:be8b:98c7:54b7",
+            "ipAddresses": [
+              "fe80::d462:be8b:98c7:54b7"
+            ],
+            "linkState": "up",
+            "mac": "2c:c2:60:95:0c:bf",
+            "name": "secondaryzz95m",
+            "podInterfaceName": "pode888e8f205f",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "2G",
+          "guestCurrent": "1953128Ki",
+          "guestRequested": "2G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host12",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:29Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:29Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:43Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:45Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c44,c880",
+        "virtualMachineRevisionName": "revision-start-vm-3596671e-ceb3-46d1-99be-decb474d2083-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "haproxy-zz95m",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "30Gi"
+              },
+              "claimName": "haproxy-zz95m",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "30Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T10:46:50Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 158,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "node01"
+        },
+        "name": "node01",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "node01",
+            "uid": "4d6b6cb7-c3f6-4aad-8d34-6f5735d99a33"
+          }
+        ],
+        "resourceVersion": "1331556411",
+        "uid": "fb304f80-1214-4c51-a58a-e1e55813e476"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 2,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "node01-zz95m"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              },
+              {
+                "bridge": {},
+                "macAddress": "2c:c2:60:63:18:54",
+                "model": "virtio",
+                "name": "secondaryzz95m"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "1f4b09c4-165c-46aa-8ada-13a7769217c2",
+            "uuid": "38d4356c-8b7a-5926-836d-033bf711b970"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "2G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "node01",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          },
+          {
+            "multus": {
+              "networkName": "secondaryzz95m"
+            },
+            "name": "secondaryzz95m"
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "node01-zz95m"
+            },
+            "name": "node01-zz95m"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9ICAKcnVuY21kOgogIC0gZWNobyAiUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMiID4gL2V0Yy9zc2gvc3NoZF9jb25maWcuZC81MC1jbG91ZC1pbml0LmNvbmYKICAtIHN5c3RlbWN0bCByZWxvYWQgc3NoZA=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "4aca8f1e-a554-43df-811c-4ccdb4ceb8d8": "ocp-virt6-host12"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:01Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T10:47:21Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 2
+        },
+        "guestOSInfo": {
+          "id": "rhel",
+          "kernelRelease": "5.14.0-503.11.1.el9_5.x86_64",
+          "kernelVersion": "#1 SMP PREEMPT_DYNAMIC Mon Sep 30 11:54:45 EDT 2024",
+          "machine": "x86_64",
+          "name": "Red Hat Enterprise Linux",
+          "prettyName": "Red Hat Enterprise Linux 9.5 (Plow)",
+          "version": "9.5 (Plow)",
+          "versionId": "9.5"
+        },
+        "interfaces": [
+          {
+            "infoSource": "domain, guest-agent",
+            "interfaceName": "eth0",
+            "ipAddress": "10.128.43.5",
+            "ipAddresses": [
+              "10.128.43.5"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:80:2b:05",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "domain, guest-agent, multus-status",
+            "interfaceName": "eth1",
+            "linkState": "up",
+            "mac": "2c:c2:60:63:18:54",
+            "name": "secondaryzz95m",
+            "podInterfaceName": "pode888e8f205f",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "2G",
+          "guestCurrent": "1953128Ki",
+          "guestRequested": "2G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host12",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:50Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T10:46:50Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:01Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T10:47:03Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c932,c944",
+        "virtualMachineRevisionName": "revision-start-vm-4d6b6cb7-c3f6-4aad-8d34-6f5735d99a33-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "node01-zz95m",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "30Gi"
+              },
+              "claimName": "node01-zz95m",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "30Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T19:58:07Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 9,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host8",
+          "vm.cnv.io/name": "windows"
+        },
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "windows",
+            "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+          }
+        ],
+        "resourceVersion": "1331462380",
+        "uid": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 6,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "windows-zz95m"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "e1000e",
+                "name": "default"
+              },
+              {
+                "bridge": {},
+                "macAddress": "2c:c2:60:2f:f1:66",
+                "model": "e1000e",
+                "name": "secondaryzz95m"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "e2d61947-b8d0-480b-b1b3-035ab2ebdca9",
+            "uuid": "9f6f4bcc-ae3b-5cfb-96d4-0a6b201a6762"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "32G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "windows",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          },
+          {
+            "multus": {
+              "networkName": "secondaryzz95m"
+            },
+            "name": "secondaryzz95m"
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "windows-zz95m"
+            },
+            "name": "windows-zz95m"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQo="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "1d1ed228-5625-40f9-8db9-e4dd4b251fec": "ocp-virt6-host8"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:15Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 6
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.130.38.163",
+            "ipAddresses": [
+              "10.130.38.163"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:26:a3",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "domain, multus-status",
+            "linkState": "up",
+            "mac": "2c:c2:60:2f:f1:66",
+            "name": "secondaryzz95m",
+            "podInterfaceName": "pode888e8f205f",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "32G",
+          "guestCurrent": "31250000Ki",
+          "guestRequested": "32G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host8",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T19:58:07Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T19:58:07Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T19:58:15Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T19:58:18Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c132,c526",
+        "virtualMachineRevisionName": "revision-start-vm-7ae7ab3b-7973-4f9c-902e-b55732b8e595-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "windows-zz95m",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "65Gi"
+              },
+              "claimName": "windows-zz95m",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "65Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,55 @@
+run:
+  run_id: local-demo-002
+  demo_id: demo-simple-container
+  namespace: summit-demo-002
+  requested_by: test-user
+  rubric_version: v0.1.0
+stages:
+  - stage_id: cluster-health
+    evidence:
+      cluster_reachable: true
+      cpu_usage_acceptable: true
+      memory_usage_acceptable: true
+      no_critical_alerts: true
+      nodes_healthy: true
+    expected_outcome: pass
+  - stage_id: run-created
+    evidence:
+      run_id_present: true
+      demo_id_present: true
+      namespace_present: true
+      rubric_version_present: true
+    expected_outcome: pass
+  - stage_id: provision-complete
+    evidence:
+      anarchysubject_exists: true
+      provision_job_succeeded: true
+      state_is_started: true
+      no_error_conditions: true
+    expected_outcome: pass
+  - stage_id: namespace-ready
+    evidence:
+      namespace_exists: true
+    expected_outcome: pass
+  - stage_id: deployment-ready
+    evidence:
+      namespace_exists: true
+      deployment_exists: true
+      desired_replicas_ready: true
+      no_crashloop_pods: true
+    expected_outcome: pass
+  - stage_id: route-ready
+    evidence:
+      service_exists: true
+      route_exists: true
+      service_has_ready_endpoints: false
+      health_endpoint_returns_200: false
+      ready_endpoint_count: 0
+    expected_outcome: fail
+    expected_failure_class: service_has_no_endpoints
+  - stage_id: smoke-test-ready
+    evidence:
+      route_reachable: false
+      smoke_test_passed: false
+      expected_response_received: false
+    expected_outcome: fail

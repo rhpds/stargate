@@ -1,0 +1,37 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "openshift.io/sa.scc.mcs": "s0:c94,c4",
+      "openshift.io/sa.scc.supplemental-groups": "1008750000/10000",
+      "openshift.io/sa.scc.uid-range": "1008750000/10000",
+      "security.openshift.io/MinimallySufficientPodSecurityStandard": "restricted"
+    },
+    "creationTimestamp": "2026-05-06T13:09:54Z",
+    "labels": {
+      "cost_management_optimizations": "true",
+      "created-by": "sandbox-api",
+      "guid": "2cf6p",
+      "kubernetes.io/metadata.name": "sandbox-2cf6p-ocp4-cluster",
+      "mutatepods.kubemacpool.io": "ignore",
+      "mutatevirtualmachines.kubemacpool.io": "ignore",
+      "pod-security.kubernetes.io/audit": "restricted",
+      "pod-security.kubernetes.io/audit-version": "latest",
+      "pod-security.kubernetes.io/warn": "restricted",
+      "pod-security.kubernetes.io/warn-version": "latest",
+      "serviceUuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+    },
+    "name": "sandbox-2cf6p-ocp4-cluster",
+    "resourceVersion": "1330315564",
+    "uid": "d40be32b-6259-448d-968b-962a2f4702a5"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

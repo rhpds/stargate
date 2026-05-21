@@ -1,0 +1,21 @@
+id: classify
+version: "1.0"
+description: Propose failure classification for unclassified evaluation results
+model: granite-3-2-8b-instruct
+max_tokens: 500
+temperature: 0.1
+system: >
+  You are a failure classification expert for OpenShift lab environments.
+  Respond with valid JSON only.
+user_template: |
+  {evidence}
+
+  ## Task
+  Using the failure message, criteria results, similar past classifications,
+  and lab/cluster failure history above, propose:
+  1. The most likely failure_class from the known list (or a new class name if none fit)
+  2. The conditions that would match this failure (as key == value pairs)
+  3. Your confidence level (0.0 to 1.0) — higher if similar past classifications match, lower if this is novel
+
+  Respond in this exact JSON format:
+  {{"proposed_class": "class_name", "conditions": ["criterion == value"], "confidence": 0.85, "reasoning": "brief explanation"}}

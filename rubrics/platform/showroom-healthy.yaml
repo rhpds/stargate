@@ -1,0 +1,45 @@
+id: showroom-healthy
+version: v0.1.0
+stage: showroom-healthy
+timeout_seconds: 60
+entry_criteria:
+  - name: showroom_route_reachable
+    required: true
+exit_criteria:
+  - name: showroom_pod_running
+    required: true
+  - name: readyz_returns_200
+    required: true
+  - name: content_loaded
+    required: true
+  - name: response_time_acceptable
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  showroom_pod_down:
+    when:
+      - showroom_pod_running == false
+    recommended_action: inspect_showroom_pod
+  showroom_not_ready:
+    when:
+      - showroom_pod_running == true
+      - readyz_returns_200 == false
+    recommended_action: inspect_showroom_health
+  showroom_content_missing:
+    when:
+      - showroom_pod_running == true
+      - readyz_returns_200 == true
+      - content_loaded == false
+    recommended_action: check_showroom_content
+allowed_remediations:
+  - inspect_showroom_pod
+  - inspect_showroom_health
+  - check_showroom_content
+forbidden_remediations:
+  - delete_namespace

@@ -1,0 +1,650 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:03Z",
+        "name": "control",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858454",
+        "uid": "cdb6dcd3-69d6-4946-b125-796b38d19105"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "control-https",
+            "port": 443,
+            "protocol": "TCP",
+            "targetPort": 443
+          },
+          {
+            "name": "control-ssh",
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "control"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:16Z",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859014",
+        "uid": "a2b2797a-9d91-4b1a-a53f-61e5ed8d2069"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dbserver",
+            "port": 5986,
+            "protocol": "TCP",
+            "targetPort": 5986
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "dbserver"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:18Z",
+        "name": "dbserver-rdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859047",
+        "uid": "31bdec3e-6bbb-49e0-ac29-0cc7f9ac3344"
+      },
+      "spec": {
+        "clusterIP": "172.30.196.3",
+        "clusterIPs": [
+          "172.30.196.3"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dbserver-rdp",
+            "port": 3389,
+            "protocol": "TCP",
+            "targetPort": 3389
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "dbserver"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:46:05Z",
+        "name": "gitea",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329849872",
+        "uid": "effaf7b0-29d5-43f4-8108-aa6fa6040728"
+      },
+      "spec": {
+        "clusterIP": "172.30.13.222",
+        "clusterIPs": [
+          "172.30.13.222"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "gitea",
+            "port": 3000,
+            "protocol": "TCP",
+            "targetPort": 3000
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "gitea"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:09Z",
+        "name": "haproxy",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858654",
+        "uid": "e9a1f135-d374-45bb-9c8d-220e8a8f639d"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "haproxy"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:11Z",
+        "name": "haproxy-http",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858752",
+        "uid": "5b01e7b8-efa5-4c0a-afac-71d6f081ae36"
+      },
+      "spec": {
+        "clusterIP": "172.30.161.222",
+        "clusterIPs": [
+          "172.30.161.222"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "haproxy",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "haproxy"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:15Z",
+        "name": "iis",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859094",
+        "uid": "87916a07-1c16-481a-bc84-fdb9914e2074"
+      },
+      "spec": {
+        "clusterIP": "172.30.52.28",
+        "clusterIPs": [
+          "172.30.52.28"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "iis",
+            "port": 80,
+            "protocol": "TCP",
+            "targetPort": 80
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "dbserver"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:04Z",
+        "name": "lab",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858423",
+        "uid": "af04bc6e-ad7f-4466-84df-ba5ed8a52a6c"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "foo",
+            "port": 1234,
+            "protocol": "TCP",
+            "targetPort": 1234
+          }
+        ],
+        "selector": {
+          "kubevirt.io": "virt-launcher"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:06Z",
+        "name": "node01",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858481",
+        "uid": "6709739f-d3bc-45fa-9de9-254e4410146b"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "node01"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:08Z",
+        "name": "node01-http",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858608",
+        "uid": "a880d684-69f9-4126-9d4c-c385a8f406f4"
+      },
+      "spec": {
+        "clusterIP": "172.30.41.168",
+        "clusterIPs": [
+          "172.30.41.168"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "node01",
+            "port": 80,
+            "protocol": "TCP",
+            "targetPort": 80
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "node01"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "showroom",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860045",
+        "uid": "48c34d62-e0f0-43f7-ab74-861ea213df44"
+      },
+      "spec": {
+        "clusterIP": "172.30.175.89",
+        "clusterIPs": [
+          "172.30.175.89"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "showroom",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/name": "showroom"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:12Z",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858845",
+        "uid": "0a0a7741-50ad-4e7c-b48a-8b80b0854083"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "windows",
+            "port": 5986,
+            "protocol": "TCP",
+            "targetPort": 5986
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "windows"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-ironrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860023",
+        "uid": "7f58317f-534c-4450-8a01-7a2f7e83a4d1"
+      },
+      "spec": {
+        "clusterIP": "172.30.18.62",
+        "clusterIPs": [
+          "172.30.18.62"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 9000,
+            "protocol": "TCP",
+            "targetPort": 9000
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/name": "showroom"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-jetrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860032",
+        "uid": "1d652c65-955e-4aa5-a3f0-e2725a2ffe18"
+      },
+      "spec": {
+        "clusterIP": "172.30.162.112",
+        "clusterIPs": [
+          "172.30.162.112"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 7171,
+            "protocol": "TCP",
+            "targetPort": 7171
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/name": "showroom"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:14Z",
+        "name": "windows-rdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858878",
+        "uid": "6e460cb3-d4ba-4a61-bbf4-14ad22df0843"
+      },
+      "spec": {
+        "clusterIP": "172.30.244.143",
+        "clusterIPs": [
+          "172.30.244.143"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "windows-rdp",
+            "port": 3389,
+            "protocol": "TCP",
+            "targetPort": 3389
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "windows"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-tokengen",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860039",
+        "uid": "eae8a0c5-c33a-4389-bfba-a727b0f3a575"
+      },
+      "spec": {
+        "clusterIP": "172.30.181.111",
+        "clusterIPs": [
+          "172.30.181.111"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 8081,
+            "protocol": "TCP",
+            "targetPort": 8081
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/name": "showroom"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

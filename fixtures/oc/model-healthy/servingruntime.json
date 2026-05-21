@@ -1,0 +1,39 @@
+{
+  "apiVersion": "serving.kserve.io/v1alpha1",
+  "kind": "ServingRuntime",
+  "metadata": {
+    "name": "ovms",
+    "namespace": "summit-model-001",
+    "creationTimestamp": "2026-05-05T14:00:30Z"
+  },
+  "spec": {
+    "supportedModelFormats": [
+      {
+        "name": "onnx",
+        "version": "1",
+        "autoSelect": true
+      },
+      {
+        "name": "openvino_ir",
+        "version": "2022.1",
+        "autoSelect": true
+      }
+    ],
+    "containers": [
+      {
+        "name": "ovms",
+        "image": "quay.io/opendatahub/openvino_model_server:stable",
+        "resources": {
+          "requests": {
+            "cpu": "1",
+            "memory": "2Gi"
+          },
+          "limits": {
+            "cpu": "2",
+            "memory": "4Gi"
+          }
+        }
+      }
+    ]
+  }
+}

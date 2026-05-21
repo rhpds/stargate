@@ -1,0 +1,27 @@
+id: run-created
+version: v0.1.0
+stage: run-created
+timeout_seconds: 30
+entry_criteria: []
+exit_criteria:
+  - name: run_id_present
+    required: true
+  - name: demo_id_present
+    required: true
+  - name: namespace_present
+    required: true
+  - name: rubric_version_present
+    required: true
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  run_metadata_incomplete:
+    when:
+      - run_id_present == false
+    recommended_action: verify_run_creation
+allowed_remediations:
+  - verify_run_creation
+forbidden_remediations: []

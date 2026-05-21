@@ -1,0 +1,45 @@
+id: storage-clone-ready
+version: v0.1.0
+stage: storage-clone-ready
+timeout_seconds: 600
+entry_criteria:
+  - name: namespace_exists
+    required: true
+exit_criteria:
+  - name: datavolume_exists
+    required: true
+  - name: datavolume_succeeded
+    required: true
+  - name: pvc_bound
+    required: true
+  - name: clone_duration_acceptable
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  datavolume_missing:
+    when:
+      - datavolume_exists == false
+    recommended_action: check_datavolume_manifest
+  datavolume_failed:
+    when:
+      - datavolume_exists == true
+      - datavolume_succeeded == false
+    recommended_action: inspect_datavolume_status
+  pvc_not_bound:
+    when:
+      - datavolume_exists == true
+      - pvc_bound == false
+    recommended_action: inspect_pvc_status
+allowed_remediations:
+  - check_datavolume_manifest
+  - inspect_datavolume_status
+  - inspect_pvc_status
+forbidden_remediations:
+  - delete_namespace
+  - delete_source_snapshot

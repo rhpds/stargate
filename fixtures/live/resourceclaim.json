@@ -1,0 +1,319 @@
+{
+  "apiVersion": "poolboy.gpte.redhat.com/v1",
+  "kind": "ResourceClaim",
+  "metadata": {
+    "annotations": {
+      "babylon.gpte.redhat.com/catalogDisplayName": "babylon-catalog-prod",
+      "babylon.gpte.redhat.com/catalogItemDisplayName": "IT Cluster Platform - OpenShift on AWS",
+      "babylon.gpte.redhat.com/category": "Open_Environments",
+      "babylon.gpte.redhat.com/cost-tracker": "{}",
+      "babylon.gpte.redhat.com/url": "https://devhub.corp.redhat.com/itcp/clusters/clusterplatform-prod/clusterplatform.ocp4-aws.prod-4qdfg",
+      "demo.redhat.com/UserEmail": "gmahto@redhat.com",
+      "demo.redhat.com/cost-center": "106",
+      "demo.redhat.com/info-message-template": "{\"outputFormat\":\"html\",\"template\":\"ifndef::openshift_console_url[]\\n[%autowidth.stretch,width=40%,cols=\\\"^.^a\\\"]\\n|===\\n| Thank you for your patience! OpenShift access details will be available very soon after the service is successfully deployed.\\n|===\\nendif::[]\\n\\nifdef::openshift_console_url[]\\n=== OpenShift Console Access\\n\\nYour OpenShift cluster console is available at: +\\n{openshift_console_url}\\n\\nAdministrator login is available with:\\n\\n*User:* kubeadmin +\\n*Password:* {openshift_kubeadmin_password}\\n\\n=== Bastion Access\\n\\nA RHEL bastion host is available with common utilities pre-installed and OpenShift command line access pre-configured.\\nFor SSH access to the bastion:\\n\\n*Hostname:* {bastion_public_hostname} +\\n*User:* {bastion_ssh_user_name} +\\n*Password:* {bastion_ssh_password}\\n\\n.Example bastion SSH command\\n[subs=attributes+]\\n----\\nssh {bastion_ssh_user_name}@{bastion_public_hostname}\\n----\\n\\n=== API and Command Line Access\\n\\nThe OpenShift API is available at: +\\n{openshift_api_url}\\n\\nThe `oc` command line utility is available for download at: +\\n{openshift_client_download_url}\\n\\nA service account with cluster-admin access has been configured on your cluster and may be accessed with the following authentication token:\\n\\n.OpenShift API Token\\n[subs=attributes+]\\n----\\n{openshift_cluster_admin_token}\\n----\\n\\nYour OpenShift API is secured with the following TLS certificate authority.\\nFor secure access we recommend copying the certificate content to a local file, ex: `ocp-{guid}.ca.crt`.\\n\\n.OpenShift API CA Certificate\\n[subs=attributes+]\\n----\\n{openshift_api_ca_cert}\\n----\\n\\nIf you have saved your cluster CA certificate content to `ocp-{guid}.ca.crt` then you may log into your cluster using:\\n\\n.OpenShift command line login command\\n[subs=attributes+]\\n----\\noc login --server={openshift_api_url} --token={openshift_cluster_admin_token} --certificate-authority=ocp-{guid}.ca.crt\\n----\\nendif::[]\\n\",\"templateFormat\":\"asciidoc\"}",
+      "demo.redhat.com/orderedBy": "clusterplatform@demo.redhat.com",
+      "demo.redhat.com/provide_salesforce-id_later": "false",
+      "demo.redhat.com/purpose": "Trying out a technical solution",
+      "demo.redhat.com/purpose-activity": "Practice / Enablement",
+      "demo.redhat.com/requester": "gmahto@redhat.com",
+      "demo.redhat.com/requester-name": "Gagan Mahto",
+      "demo.redhat.com/sales-type": "project",
+      "demo.redhat.com/scheduled": "false",
+      "demo.redhat.com/worker-id": "16013476",
+      "devhub.corp.redhat.com/rhat-cost-center": "106",
+      "devhub.corp.redhat.com/rhat-worker-id": "16013476",
+      "itcp.redhat.com/salesforce-id": "04440445",
+      "itcp.redhat.com/user-uuid": "7c390c80-5a15-11ed-a641-0a58ac14ac0c",
+      "poolboy.gpte.redhat.com/resource-claim-init-timestamp": "2026-05-06T10:12:22Z"
+    },
+    "creationTimestamp": "2026-05-06T10:12:22Z",
+    "finalizers": [
+      "poolboy.gpte.redhat.com/handler",
+      "demo.redhat.com/reporting"
+    ],
+    "generation": 1,
+    "labels": {
+      "babylon.gpte.redhat.com/catalogItemName": "clusterplatform.ocp4-aws.prod",
+      "babylon.gpte.redhat.com/catalogItemNamespace": "babylon-catalog-prod",
+      "demo.redhat.com/white-glove": "false",
+      "gpte.redhat.com/asset-uuid": "571845a0-d2b5-424f-b29c-37a95ca9ee6e",
+      "itcp.redhat.com/user-worker-id": "16013476",
+      "poolboy.gpte.redhat.com/resource-handler-idx": "4"
+    },
+    "name": "clusterplatform.ocp4-aws.prod-4qdfg",
+    "namespace": "clusterplatform-prod",
+    "resourceVersion": "3312799147",
+    "uid": "8fb85b93-081f-45e4-ba6e-be87a0ee0df0"
+  },
+  "spec": {
+    "autoDetach": {
+      "when": "status.resources | json_query(\"[?state.spec.vars.current_state == 'provision-failed']\") | length != 0"
+    },
+    "lifespan": {
+      "end": "2026-05-07T16:12:21Z"
+    },
+    "provider": {
+      "name": "clusterplatform.ocp4-aws.prod",
+      "parameterValues": {
+        "aws_region": "us-east-2",
+        "master_instance_count": 3,
+        "master_instance_type": "m6a.xlarge",
+        "ocp4_fips_enable": false,
+        "ocp4_installer_version": "4.18.36",
+        "ocp4_network_type": "OVNKubernetes",
+        "ocp4_workload_cert_manager_install_ingress_certificates": false,
+        "purpose": "Trying out a technical solution",
+        "stop_timestamp": "2026-05-06T18:12:21Z",
+        "worker_instance_count": 1,
+        "worker_instance_type": "m6a.4xlarge"
+      }
+    }
+  },
+  "status": {
+    "diffBase": "{}",
+    "healthy": true,
+    "lifespan": {
+      "end": "2026-05-07T16:12:21Z",
+      "firstReady": "2026-05-06T11:21:05Z",
+      "maximum": "60d",
+      "relativeMaximum": "14d",
+      "start": "2026-05-06T10:12:22Z"
+    },
+    "provider": {
+      "name": "clusterplatform.ocp4-aws.prod",
+      "parameterValues": {
+        "aws_region": "us-east-2",
+        "master_instance_count": 3,
+        "master_instance_type": "m6a.xlarge",
+        "ocp4_fips_enable": false,
+        "ocp4_installer_version": "4.18.36",
+        "ocp4_network_type": "OVNKubernetes",
+        "ocp4_workload_cert_manager_install_ingress_certificates": false,
+        "purpose": "Trying out a technical solution",
+        "start_timestamp": "2026-05-06T10:12:22Z",
+        "stop_timestamp": "2026-05-06T18:12:21Z",
+        "worker_instance_count": 1,
+        "worker_instance_type": "m6a.4xlarge"
+      }
+    },
+    "ready": true,
+    "resourceHandle": {
+      "apiVersion": "poolboy.gpte.redhat.com/v1",
+      "kind": "ResourceHandle",
+      "name": "guid-fcs6h",
+      "namespace": "poolboy"
+    },
+    "resources": [
+      {
+        "healthy": true,
+        "name": "clusterplatform.ocp4-aws.prod",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "clusterplatform.ocp4-aws.prod",
+          "namespace": "poolboy"
+        },
+        "ready": true,
+        "reference": {
+          "apiVersion": "anarchy.gpte.redhat.com/v1",
+          "kind": "AnarchySubject",
+          "name": "clusterplatform.ocp4-aws.prod-fcs6h",
+          "namespace": "babylon-anarchy-sandboxes-gpte"
+        },
+        "state": {
+          "apiVersion": "anarchy.gpte.redhat.com/v1",
+          "kind": "AnarchySubject",
+          "metadata": {
+            "annotations": {
+              "anarchy.gpte.redhat.com/spec-sha256": "REDACTED-secret-value"
+            },
+            "creationTimestamp": "2026-05-06T10:12:22Z",
+            "finalizers": [
+              "anarchy.gpte.redhat.com",
+              "anarchy.gpte.redhat.com/subject",
+              "demo.redhat.com/reporting"
+            ],
+            "labels": {
+              "AwsSandbox": "sandbox4590",
+              "anarchy.gpte.redhat.com/governor": "clusterplatform.ocp4-aws.prod",
+              "sandbox": "sandbox4590",
+              "state": "stopped"
+            },
+            "name": "clusterplatform.ocp4-aws.prod-fcs6h",
+            "namespace": "babylon-anarchy-sandboxes-gpte",
+            "resourceVersion": "3312799144",
+            "uid": "b09fe32e-1061-4514-9ee7-542d0eb7c161"
+          },
+          "spec": {
+            "governor": "clusterplatform.ocp4-aws.prod",
+            "vars": {
+              "action_schedule": {
+                "default_runtime": "8h",
+                "maximum_runtime": "5d",
+                "start": "2026-05-06T10:12:22Z",
+                "stop": "2026-05-06T18:12:21Z"
+              },
+              "check_status_state": null,
+              "current_state": "stopped",
+              "desired_state": "stopped",
+              "healthy": true,
+              "job_vars": {
+                "HostedZoneId": "Z02266832B8ZMLIO5AD4G",
+                "aws_region": "us-east-2",
+                "cloud_provider": "ec2",
+                "guid": "fcs6h",
+                "master_instance_count": 3,
+                "master_instance_type": "m6a.xlarge",
+                "ocp4_fips_enable": false,
+                "ocp4_installer_version": "4.18.36",
+                "ocp4_network_type": "OVNKubernetes",
+                "ocp4_workload_cert_manager_install_ingress_certificates": false,
+                "platform": "RPS",
+                "sandbox_account": "528757826952",
+                "sandbox_account_id": "528757826952",
+                "sandbox_hosted_zone_id": "Z02266832B8ZMLIO5AD4G",
+                "sandbox_name": "sandbox4590",
+                "sandbox_zone": "sandbox4590.opentlc.com",
+                "subdomain_base_suffix": ".sandbox4590.opentlc.com",
+                "uuid": "99b89a4b-3735-5104-bc18-27a1b21c078a",
+                "worker_instance_count": 1,
+                "worker_instance_type": "m6a.4xlarge"
+              },
+              "provision_data": {
+                "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+                "aws_default_region": "us-east-2",
+                "aws_region": "us-east-2",
+                "aws_route53_domain": ".sandbox4590.opentlc.com",
+                "aws_sandbox_account_id": "528757826952",
+                "aws_secret_access_key": "REDACTED-dummy-value",
+                "aws_web_console_password": "REDACTED-dummy-value",
+                "aws_web_console_url": "https://XXXXXXXXXXXX.signin.aws.amazon.com/console",
+                "aws_web_console_user_name": "open-environment-fcs6h-admin",
+                "bastion_public_hostname": "bastion.fcs6h.sandbox4590.opentlc.com",
+                "bastion_ssh_password": "REDACTED-dummy-value",
+                "bastion_ssh_user_name": "lab-user",
+                "cloud_provider": "ec2",
+                "guid": "fcs6h",
+                "openshift_api_ca_cert": "REDACTED-dummy-value",
+                "openshift_api_url": "https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443",
+                "openshift_client_download_url": "http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
+                "openshift_cluster_admin_token": "REDACTED-dummy-value",
+                "openshift_cluster_ingress_domain": "apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
+                "openshift_console_url": "https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
+                "openshift_kubeadmin_password": "REDACTED-dummy-value"
+              },
+              "provision_messages": [
+                "\nYour AWS credentials are:\n\n`AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE`\n\n`AWS_SECRET_ACCESS_KEY: REDACTED`\n\n*Please DO NOT expose these AWS credentials in GIT repos or anywhere else that could be public! If detected, your environment will be deleted without warning.*\n\nTop level route53 domain: .sandbox4590.opentlc.com\n\nWeb Console Access: https://XXXXXXXXXXXX.signin.aws.amazon.com/console\n\nWeb Console Credentials: open-environment-xxxxx-admin / REDACTED\n\nRefer to the following pages regarding the AWS CLI and APIs:\n\n** AWS CLI Installation: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html\n\n** AWS Config Basics: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html\n\n** AWS API Getting Started: https://aws.amazon.com/developers/getting-started/\n\n*WARNING*\n\n** *We monitor usage and we will be charging back to your cost center.*\n** *Reports from the cloud provider of misuse or account compromise will result in immediate deletion of your environment without any warning to you and referral to Red Hat INFOSEC.*\n** *Do not post your credentials in github/email/web pages/etc.*\n** *NOTE: Most account compromises occur when accidentally checking credentials into github.*\n",
+                "OpenShift Console: https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com\nOpenShift API for command line 'oc' client: https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443\nOpenShift kubeadmin password: REDACTED-dummy-value\nDownload oc client from http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
+                "You can access your bastion via SSH:\nssh lab-user@bastion.fcs6h.sandbox4590.opentlc.com\n\nMake sure you use the username 'lab-user' and the password 'REDACTED-dummy-value' when prompted.\n"
+              ]
+            }
+          },
+          "status": {
+            "actions": {
+              "provision": {
+                "completeTimestamp": "2026-05-06T11:21:05Z",
+                "startTimestamp": "2026-05-06T10:12:28Z",
+                "state": "successful"
+              },
+              "stop": {
+                "completeTimestamp": "2026-05-06T18:14:02Z",
+                "startTimestamp": "2026-05-06T18:12:42Z",
+                "state": "successful"
+              }
+            },
+            "pendingActions": [],
+            "runStatus": "successful",
+            "runs": {
+              "active": []
+            },
+            "sandboxAPIJobs": {
+              "provision": {
+                "httpStatus": 200,
+                "startTimestamp": "2026-05-06T10:12:37Z"
+              },
+              "stop": {
+                "completeTimestamp": "2026-05-06T18:14:02Z",
+                "httpStatus": 200,
+                "jobStatus": "successful",
+                "message": "stop request created",
+                "requestID": "sSoPdsXhwj8A3N2fiAT5B",
+                "startTimestamp": "2026-05-06T18:13:50Z"
+              }
+            },
+            "supportedActions": {
+              "destroy": {},
+              "provision": {},
+              "start": {},
+              "status": {},
+              "stop": {}
+            },
+            "towerJobs": {
+              "provision": {
+                "completeTimestamp": "2026-05-06T11:21:05Z",
+                "deployerJob": 266674,
+                "jobStatus": "successful",
+                "startTimestamp": "2026-05-06T10:12:28Z",
+                "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
+                "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/266674/"
+              },
+              "stop": {
+                "completeTimestamp": "2026-05-06T18:13:48Z",
+                "deployerJob": 266903,
+                "jobStatus": "successful",
+                "startTimestamp": "2026-05-06T18:12:41Z",
+                "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
+                "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/266903/"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "summary": {
+      "agnosticv": {
+        "account": "clusterplatform",
+        "asset_uuid": "571845a0-d2b5-424f-b29c-37a95ca9ee6e",
+        "path": "clusterplatform/ocp4-aws/prod.yaml",
+        "repo": "clusterplatform-agnosticv",
+        "short_name": "ocp4-aws",
+        "stage": "prod"
+      },
+      "catalog_item_name": "clusterplatform.ocp4-aws.prod",
+      "catalog_item_namespace": "babylon-catalog-prod",
+      "provision_data": {
+        "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+        "aws_default_region": "us-east-2",
+        "aws_region": "us-east-2",
+        "aws_route53_domain": ".sandbox4590.opentlc.com",
+        "aws_sandbox_account_id": "528757826952",
+        "aws_secret_access_key": "REDACTED-dummy-value",
+        "aws_web_console_password": "REDACTED-dummy-value",
+        "aws_web_console_url": "https://XXXXXXXXXXXX.signin.aws.amazon.com/console",
+        "aws_web_console_user_name": "open-environment-fcs6h-admin",
+        "bastion_public_hostname": "bastion.fcs6h.sandbox4590.opentlc.com",
+        "bastion_ssh_password": "REDACTED-dummy-value",
+        "bastion_ssh_user_name": "lab-user",
+        "cloud_provider": "ec2",
+        "guid": "fcs6h",
+        "openshift_api_ca_cert": "REDACTED-dummy-value",
+        "openshift_api_url": "https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443",
+        "openshift_client_download_url": "http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
+        "openshift_cluster_admin_token": "REDACTED-dummy-value",
+        "openshift_cluster_ingress_domain": "apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
+        "openshift_console_url": "https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
+        "openshift_kubeadmin_password": "REDACTED-dummy-value"
+      },
+      "runtime_default": "8h",
+      "runtime_maximum": "5d",
+      "state": "stopped",
+      "supportedActions": {
+        "destroy": {},
+        "provision": {},
+        "start": {},
+        "status": {},
+        "stop": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 10751,
+      "eventTime": null,
+      "firstTimestamp": "2026-03-29T14:35:36Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{op-which}",
+        "kind": "Pod",
+        "name": "op-which",
+        "namespace": "ocp-portal",
+        "resourceVersion": "585239771",
+        "uid": "67cc1fb1-7c29-4a47-a82c-0bf9cc56627d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:20:43Z",
+      "message": "Pulling image \"quay.io/openshift/oauth-proxy:4.15\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:15:38Z",
+        "name": "op-which.18a156974e1676b1",
+        "namespace": "ocp-portal",
+        "resourceVersion": "699431582",
+        "uid": "5ecb19c1-fc41-4286-903a-84fcd3966c11"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph01",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph01"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 243224,
+      "eventTime": null,
+      "firstTimestamp": "2026-03-29T14:35:36Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{op-which}",
+        "kind": "Pod",
+        "name": "op-which",
+        "namespace": "ocp-portal",
+        "resourceVersion": "585239771",
+        "uid": "67cc1fb1-7c29-4a47-a82c-0bf9cc56627d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:15:46Z",
+      "message": "Back-off pulling image \"quay.io/openshift/oauth-proxy:4.15\"",
+      "metadata": {
+        "creationTimestamp": "2026-03-29T14:35:36Z",
+        "name": "op-which.18a1569768ef8bbe",
+        "namespace": "ocp-portal",
+        "resourceVersion": "699679545",
+        "uid": "d7ea184e-eb23-43a1-9852-b46dc507746e"
+      },
+      "reason": "BackOff",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph01",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph01"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "openshift.io/sa.scc.mcs": "s0:c56,c40",
+      "openshift.io/sa.scc.supplemental-groups": "1003160000/10000",
+      "openshift.io/sa.scc.uid-range": "1003160000/10000",
+      "security.openshift.io/MinimallySufficientPodSecurityStandard": "restricted"
+    },
+    "creationTimestamp": "2026-05-06T10:44:38Z",
+    "labels": {
+      "cost_management_optimizations": "true",
+      "created-by": "sandbox-api",
+      "guid": "zz95m",
+      "kubernetes.io/metadata.name": "sandbox-zz95m-zt-ansiblebu",
+      "mutatepods.kubemacpool.io": "ignore",
+      "mutatevirtualmachines.kubemacpool.io": "ignore",
+      "pod-security.kubernetes.io/audit": "restricted",
+      "pod-security.kubernetes.io/audit-version": "latest",
+      "pod-security.kubernetes.io/warn": "restricted",
+      "pod-security.kubernetes.io/warn-version": "latest",
+      "serviceUuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+    },
+    "name": "sandbox-zz95m-zt-ansiblebu",
+    "resourceVersion": "1329846523",
+    "uid": "bcd4670e-839f-4d0e-b50b-0800295a0634"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

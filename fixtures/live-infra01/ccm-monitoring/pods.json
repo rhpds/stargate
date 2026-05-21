@@ -1,0 +1,2545 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.72/23\"],\"mac_address\":\"0a:58:0a:82:02:48\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.72/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.72\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:48\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T14:00:00Z",
+        "generateName": "ccm-monitoring-push-29634600-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "e9fae0fe-aef1-4b45-a42a-d6f409bc4a8d",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634600",
+          "controller-uid": "e9fae0fe-aef1-4b45-a42a-d6f409bc4a8d",
+          "job-name": "ccm-monitoring-push-29634600"
+        },
+        "name": "ccm-monitoring-push-29634600-jzjtg",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634600",
+            "uid": "e9fae0fe-aef1-4b45-a42a-d6f409bc4a8d"
+          }
+        ],
+        "resourceVersion": "698755407",
+        "uid": "7657afcc-f76e-4322-8002-3fac686db52a"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-thq5w",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-thq5w",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T14:00:07Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T14:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T14:00:06Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T14:00:06Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T14:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://c0db428d077c4f94306ba8cf79a8476eba0d06c0ea508479aed7d7b1f4d271cf",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:04b6d6c9d05857ca39c360caf8698f3081360eeffe85da2eaab3e7e91040030b",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://c0db428d077c4f94306ba8cf79a8476eba0d06c0ea508479aed7d7b1f4d271cf",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T14:00:05Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T14:00:02Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-thq5w",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.72",
+        "podIPs": [
+          {
+            "ip": "10.130.2.72"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T14:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.115/23\"],\"mac_address\":\"0a:58:0a:82:02:73\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.115/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.115\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:73\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T15:00:00Z",
+        "generateName": "ccm-monitoring-push-29634660-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "4eddf634-823f-4b78-b362-4b52f8edb549",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634660",
+          "controller-uid": "4eddf634-823f-4b78-b362-4b52f8edb549",
+          "job-name": "ccm-monitoring-push-29634660"
+        },
+        "name": "ccm-monitoring-push-29634660-fjbvq",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634660",
+            "uid": "4eddf634-823f-4b78-b362-4b52f8edb549"
+          }
+        ],
+        "resourceVersion": "698882374",
+        "uid": "e1f220df-fd9e-4d19-8a72-99812ee1c23a"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-wmmx9",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-wmmx9",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T15:00:08Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T15:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T15:00:07Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T15:00:07Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T15:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://28ecbca3b86e5951d97ea73330059621caa9aa965f0d37d17be2337fc469f6e4",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:04b6d6c9d05857ca39c360caf8698f3081360eeffe85da2eaab3e7e91040030b",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://28ecbca3b86e5951d97ea73330059621caa9aa965f0d37d17be2337fc469f6e4",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T15:00:07Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T15:00:04Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-wmmx9",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.115",
+        "podIPs": [
+          {
+            "ip": "10.130.2.115"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T15:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.147/23\"],\"mac_address\":\"0a:58:0a:82:02:93\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.147/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.147\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:93\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T16:00:00Z",
+        "generateName": "ccm-monitoring-push-29634720-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "36c8821c-941a-44a3-be48-a5eefba28ae5",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634720",
+          "controller-uid": "36c8821c-941a-44a3-be48-a5eefba28ae5",
+          "job-name": "ccm-monitoring-push-29634720"
+        },
+        "name": "ccm-monitoring-push-29634720-nsnvl",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634720",
+            "uid": "36c8821c-941a-44a3-be48-a5eefba28ae5"
+          }
+        ],
+        "resourceVersion": "699009132",
+        "uid": "45968193-8f87-4deb-a2a1-b0e589a153a6"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hkgh5",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-hkgh5",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T16:00:14Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T16:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T16:00:12Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T16:00:12Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T16:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://146d0eb1f866d3bd9840e08c99193c65c756a4f1b1abf1e30dda9524174370f8",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:04b6d6c9d05857ca39c360caf8698f3081360eeffe85da2eaab3e7e91040030b",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://146d0eb1f866d3bd9840e08c99193c65c756a4f1b1abf1e30dda9524174370f8",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T16:00:12Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T16:00:08Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hkgh5",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.147",
+        "podIPs": [
+          {
+            "ip": "10.130.2.147"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T16:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.128.3.182/23\"],\"mac_address\":\"0a:58:0a:80:03:b6\",\"gateway_ips\":[\"10.128.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.128.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.128.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.128.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.128.2.1\"}],\"ip_address\":\"10.128.3.182/23\",\"gateway_ip\":\"10.128.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.3.182\"\n    ],\n    \"mac\": \"0a:58:0a:80:03:b6\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T17:00:00Z",
+        "generateName": "ccm-monitoring-push-29634780-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "6c4a16b1-23e8-41cd-9818-41046a0cb990",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634780",
+          "controller-uid": "6c4a16b1-23e8-41cd-9818-41046a0cb990",
+          "job-name": "ccm-monitoring-push-29634780"
+        },
+        "name": "ccm-monitoring-push-29634780-wr2x6",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634780",
+            "uid": "6c4a16b1-23e8-41cd-9818-41046a0cb990"
+          }
+        ],
+        "resourceVersion": "699135155",
+        "uid": "9b4b268b-54aa-41b5-a0e0-e166702820ec"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-8pzhw",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph02",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-8pzhw",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T17:00:17Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T17:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T17:00:15Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T17:00:15Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T17:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://f48a82f33510858ca954a52c9f50ab87f93676d8d28df3645a33590a96c69874",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:ad95b39788517858e0ad7a45ccec41382c684894b13633fb0b7f161e44862f3b",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://f48a82f33510858ca954a52c9f50ab87f93676d8d28df3645a33590a96c69874",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T17:00:15Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T17:00:11Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-8pzhw",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.177",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.177"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.128.3.182",
+        "podIPs": [
+          {
+            "ip": "10.128.3.182"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T17:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.174/23\"],\"mac_address\":\"0a:58:0a:82:02:ae\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.174/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.174\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:ae\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T18:00:00Z",
+        "generateName": "ccm-monitoring-push-29634840-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "835a5fa2-3221-4e00-9696-1e6b5166e3b1",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634840",
+          "controller-uid": "835a5fa2-3221-4e00-9696-1e6b5166e3b1",
+          "job-name": "ccm-monitoring-push-29634840"
+        },
+        "name": "ccm-monitoring-push-29634840-rmt7s",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634840",
+            "uid": "835a5fa2-3221-4e00-9696-1e6b5166e3b1"
+          }
+        ],
+        "resourceVersion": "699263156",
+        "uid": "2009801b-653c-4299-897d-a6774b2bc472"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-5v27s",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-5v27s",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:00:45Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:00:44Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:00:44Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://59eb8930ae0c3a7521a39385cfa8e0a5477c0705f28bb29cf7537a5cf56ce7b7",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:82857f478e89490f75c7f39b4731bec04d6f8cf2bb5fd402784015dcc742aedd",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://59eb8930ae0c3a7521a39385cfa8e0a5477c0705f28bb29cf7537a5cf56ce7b7",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T18:00:43Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T18:00:39Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-5v27s",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.174",
+        "podIPs": [
+          {
+            "ip": "10.130.2.174"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T18:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.208/23\"],\"mac_address\":\"0a:58:0a:82:02:d0\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.208/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.208\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:d0\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "generateName": "ccm-monitoring-push-29634900-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "fd39d439-1752-462c-878f-44d6e8923fd6",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634900",
+          "controller-uid": "fd39d439-1752-462c-878f-44d6e8923fd6",
+          "job-name": "ccm-monitoring-push-29634900"
+        },
+        "name": "ccm-monitoring-push-29634900-qllnp",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634900",
+            "uid": "fd39d439-1752-462c-878f-44d6e8923fd6"
+          }
+        ],
+        "resourceVersion": "699387729",
+        "uid": "77e4691e-9604-45e1-8f80-b83ea31441af"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-qzs2b",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-qzs2b",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:00:09Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:00:08Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:00:08Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://48e249c16b0f1f4da5c81ea2964218959b41ba5917395bd4b8d83ec59bb7b09b",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:82857f478e89490f75c7f39b4731bec04d6f8cf2bb5fd402784015dcc742aedd",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://48e249c16b0f1f4da5c81ea2964218959b41ba5917395bd4b8d83ec59bb7b09b",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T19:00:07Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T19:00:04Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-qzs2b",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.208",
+        "podIPs": [
+          {
+            "ip": "10.130.2.208"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T19:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.216/23\"],\"mac_address\":\"0a:58:0a:82:02:d8\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.216/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.216\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:d8\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "generateName": "ccm-monitoring-push-29634960-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "2ff775a6-7600-46de-88b2-dfc6f99d696c",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29634960",
+          "controller-uid": "2ff775a6-7600-46de-88b2-dfc6f99d696c",
+          "job-name": "ccm-monitoring-push-29634960"
+        },
+        "name": "ccm-monitoring-push-29634960-x6pdp",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29634960",
+            "uid": "2ff775a6-7600-46de-88b2-dfc6f99d696c"
+          }
+        ],
+        "resourceVersion": "699515989",
+        "uid": "4b174462-eed5-4347-95ce-06c86f57e893"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-8xblt",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-8xblt",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:00:11Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:00:09Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:00:09Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://34b1bf404b52bcbb4100abdfde3af30c33a5499cb0f909fc885e6c6cec129fd2",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:82857f478e89490f75c7f39b4731bec04d6f8cf2bb5fd402784015dcc742aedd",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://34b1bf404b52bcbb4100abdfde3af30c33a5499cb0f909fc885e6c6cec129fd2",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T20:00:09Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T20:00:06Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-8xblt",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.216",
+        "podIPs": [
+          {
+            "ip": "10.130.2.216"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T20:00:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.2.224/23\"],\"mac_address\":\"0a:58:0a:82:02:e0\",\"gateway_ips\":[\"10.130.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.130.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.2.1\"}],\"ip_address\":\"10.130.2.224/23\",\"gateway_ip\":\"10.130.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.2.224\"\n    ],\n    \"mac\": \"0a:58:0a:82:02:e0\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "generateName": "ccm-monitoring-push-29635020-",
+        "labels": {
+          "batch.kubernetes.io/controller-uid": "263b3c8d-3771-49ba-b10e-d675a85c671c",
+          "batch.kubernetes.io/job-name": "ccm-monitoring-push-29635020",
+          "controller-uid": "263b3c8d-3771-49ba-b10e-d675a85c671c",
+          "job-name": "ccm-monitoring-push-29635020"
+        },
+        "name": "ccm-monitoring-push-29635020-5scn4",
+        "namespace": "ccm-monitoring",
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "Job",
+            "name": "ccm-monitoring-push-29635020",
+            "uid": "263b3c8d-3771-49ba-b10e-d675a85c671c"
+          }
+        ],
+        "resourceVersion": "699645452",
+        "uid": "338a19ae-dd30-4e0b-95bc-df383c9d1f66"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "/bin/sh",
+              "/scripts/entrypoint.sh"
+            ],
+            "env": [
+              {
+                "name": "CRD_NAME",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "CRD_NAMESPACE",
+                "value": "costmanagement-metrics-operator"
+              },
+              {
+                "name": "UPLOAD_THRESHOLD_MINUTES",
+                "value": "360"
+              },
+              {
+                "name": "ICINGA_API_URL",
+                "value": "https://icinga01.ops.demo.redhat.com:5665/v1/actions/process-check-result"
+              },
+              {
+                "name": "ICINGA_API_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "username",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_API_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "password",
+                    "name": "ccm-monitoring-icinga"
+                  }
+                }
+              },
+              {
+                "name": "ICINGA_HOST",
+                "value": "infra01"
+              },
+              {
+                "name": "ICINGA_SERVICE",
+                "value": "cloud-cost-operator"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "IN_CLUSTER",
+                "value": "1"
+              }
+            ],
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ccm-monitoring-push",
+            "resources": {},
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001210000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-xg9zp",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "ccm-monitoring-dockercfg-75fmx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph00",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001210000,
+          "seLinuxOptions": {
+            "level": "s0:c35,c10"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "ccm-monitoring",
+        "serviceAccountName": "ccm-monitoring",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ccm-monitoring-script"
+            },
+            "name": "scripts"
+          },
+          {
+            "name": "pip-cache",
+            "persistentVolumeClaim": {
+              "claimName": "ccm-monitoring-pip-cache"
+            }
+          },
+          {
+            "name": "kube-api-access-xg9zp",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T21:00:15Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T21:00:00Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T21:00:13Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T21:00:13Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T21:00:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://f377ff35b89203120a80f793e6e40ac4d0613ed193e1fec3c5a3adedab1dfd6b",
+            "image": "registry.redhat.io/ubi9/python-311:latest",
+            "imageID": "registry.redhat.io/ubi9/python-311@sha256:82857f478e89490f75c7f39b4731bec04d6f8cf2bb5fd402784015dcc742aedd",
+            "lastState": {},
+            "name": "ccm-monitoring-push",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://f377ff35b89203120a80f793e6e40ac4d0613ed193e1fec3c5a3adedab1dfd6b",
+                "exitCode": 1,
+                "finishedAt": "2026-05-06T21:00:13Z",
+                "reason": "Error",
+                "startedAt": "2026-05-06T21:00:09Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/scripts",
+                "name": "scripts"
+              },
+              {
+                "mountPath": "/pip-cache",
+                "name": "pip-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-xg9zp",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.130",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.130"
+          }
+        ],
+        "phase": "Failed",
+        "podIP": "10.130.2.224",
+        "podIPs": [
+          {
+            "ip": "10.130.2.224"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-05-06T21:00:00Z"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,444 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/clonePhase": "Succeeded",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/createdForDataVolume": "78319504-d993-423f-9fa4-84bb6da3a02c",
+          "cdi.kubevirt.io/dataSourceNamespace": "cnv-images",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.condition.running": "false",
+          "cdi.kubevirt.io/storage.condition.running.message": "Clone Complete",
+          "cdi.kubevirt.io/storage.condition.running.reason": "Completed",
+          "cdi.kubevirt.io/storage.contentType": "kubevirt",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.pod.restarts": "0",
+          "cdi.kubevirt.io/storage.populator.progress": "100.0%",
+          "cdi.kubevirt.io/storage.preallocation.requested": "false",
+          "cdi.kubevirt.io/storage.usePopulator": "true",
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "reclaimspace.csiaddons.openshift.io/cronjob": "bastion-2cf6p-1778073116",
+          "reclaimspace.csiaddons.openshift.io/schedule": "@weekly",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "creationTimestamp": "2026-05-06T13:11:15Z",
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "containerized-data-importer",
+          "app.kubernetes.io/component": "storage",
+          "app.kubernetes.io/managed-by": "cdi-controller",
+          "app.kubernetes.io/part-of": "hyperconverged-cluster",
+          "app.kubernetes.io/version": "4.20.11",
+          "kubevirt.io/created-by": "22841505-3384-437a-ad73-e5dd306b30bb"
+        },
+        "name": "bastion-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "cdi.kubevirt.io/v1beta1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "DataVolume",
+            "name": "bastion-2cf6p",
+            "uid": "78319504-d993-423f-9fa4-84bb6da3a02c"
+          }
+        ],
+        "resourceVersion": "1330323053",
+        "uid": "40b3842f-6361-4b61-9a3a-71c8b85b7009"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "dataSource": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-78319504-d993-423f-9fa4-84bb6da3a02c"
+        },
+        "dataSourceRef": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-78319504-d993-423f-9fa4-84bb6da3a02c"
+        },
+        "resources": {
+          "requests": {
+            "storage": "50Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Block",
+        "volumeName": "pvc-8474a246-6946-4c99-8d1b-b5cfb56214b7"
+      },
+      "status": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "capacity": {
+          "storage": "50Gi"
+        },
+        "phase": "Bound"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/clonePhase": "Succeeded",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/createdForDataVolume": "2a87147b-f945-4c73-b707-e5ccc3ff729b",
+          "cdi.kubevirt.io/dataSourceNamespace": "cnv-images",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.condition.running": "false",
+          "cdi.kubevirt.io/storage.condition.running.message": "Clone Complete",
+          "cdi.kubevirt.io/storage.condition.running.reason": "Completed",
+          "cdi.kubevirt.io/storage.contentType": "kubevirt",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.pod.restarts": "0",
+          "cdi.kubevirt.io/storage.populator.progress": "100.0%",
+          "cdi.kubevirt.io/storage.preallocation.requested": "false",
+          "cdi.kubevirt.io/storage.usePopulator": "true",
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "reclaimspace.csiaddons.openshift.io/cronjob": "controller-2cf6p-1778073152",
+          "reclaimspace.csiaddons.openshift.io/schedule": "@weekly",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "creationTimestamp": "2026-05-06T13:11:51Z",
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "containerized-data-importer",
+          "app.kubernetes.io/component": "storage",
+          "app.kubernetes.io/managed-by": "cdi-controller",
+          "app.kubernetes.io/part-of": "hyperconverged-cluster",
+          "app.kubernetes.io/version": "4.20.11",
+          "kubevirt.io/created-by": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
+        },
+        "name": "controller-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "cdi.kubevirt.io/v1beta1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "DataVolume",
+            "name": "controller-2cf6p",
+            "uid": "2a87147b-f945-4c73-b707-e5ccc3ff729b"
+          }
+        ],
+        "resourceVersion": "1330325081",
+        "uid": "34d8a9f0-2765-48c8-b4f7-04484781b8f4"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "dataSource": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-2a87147b-f945-4c73-b707-e5ccc3ff729b"
+        },
+        "dataSourceRef": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-2a87147b-f945-4c73-b707-e5ccc3ff729b"
+        },
+        "resources": {
+          "requests": {
+            "storage": "100Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Block",
+        "volumeName": "pvc-6829a25f-09b8-4099-895d-a34a86888d34"
+      },
+      "status": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "capacity": {
+          "storage": "100Gi"
+        },
+        "phase": "Bound"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/clonePhase": "Succeeded",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/createdForDataVolume": "187c045c-5451-4f31-b0e8-2494ae2aee64",
+          "cdi.kubevirt.io/dataSourceNamespace": "cnv-images",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.condition.running": "false",
+          "cdi.kubevirt.io/storage.condition.running.message": "Clone Complete",
+          "cdi.kubevirt.io/storage.condition.running.reason": "Completed",
+          "cdi.kubevirt.io/storage.contentType": "kubevirt",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.pod.restarts": "0",
+          "cdi.kubevirt.io/storage.populator.progress": "100.0%",
+          "cdi.kubevirt.io/storage.preallocation.requested": "false",
+          "cdi.kubevirt.io/storage.usePopulator": "true",
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "reclaimspace.csiaddons.openshift.io/cronjob": "node1-2cf6p-1778073187",
+          "reclaimspace.csiaddons.openshift.io/schedule": "@weekly",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "creationTimestamp": "2026-05-06T13:12:26Z",
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "containerized-data-importer",
+          "app.kubernetes.io/component": "storage",
+          "app.kubernetes.io/managed-by": "cdi-controller",
+          "app.kubernetes.io/part-of": "hyperconverged-cluster",
+          "app.kubernetes.io/version": "4.20.11",
+          "kubevirt.io/created-by": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
+        },
+        "name": "node1-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "cdi.kubevirt.io/v1beta1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "DataVolume",
+            "name": "node1-2cf6p",
+            "uid": "187c045c-5451-4f31-b0e8-2494ae2aee64"
+          }
+        ],
+        "resourceVersion": "1330327113",
+        "uid": "3b98ec46-aa30-4bb7-94e5-fcd012f78694"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "dataSource": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-187c045c-5451-4f31-b0e8-2494ae2aee64"
+        },
+        "dataSourceRef": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-187c045c-5451-4f31-b0e8-2494ae2aee64"
+        },
+        "resources": {
+          "requests": {
+            "storage": "50Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Block",
+        "volumeName": "pvc-e2b805eb-ba16-4f8e-b09b-cbeb7138485d"
+      },
+      "status": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "capacity": {
+          "storage": "50Gi"
+        },
+        "phase": "Bound"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/clonePhase": "Succeeded",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/createdForDataVolume": "58660d27-bcce-4563-8826-95b7bafa353f",
+          "cdi.kubevirt.io/dataSourceNamespace": "cnv-images",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.condition.running": "false",
+          "cdi.kubevirt.io/storage.condition.running.message": "Clone Complete",
+          "cdi.kubevirt.io/storage.condition.running.reason": "Completed",
+          "cdi.kubevirt.io/storage.contentType": "kubevirt",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.pod.restarts": "0",
+          "cdi.kubevirt.io/storage.populator.progress": "100.0%",
+          "cdi.kubevirt.io/storage.preallocation.requested": "false",
+          "cdi.kubevirt.io/storage.usePopulator": "true",
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "reclaimspace.csiaddons.openshift.io/cronjob": "node2-2cf6p-1778073188",
+          "reclaimspace.csiaddons.openshift.io/schedule": "@weekly",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "creationTimestamp": "2026-05-06T13:12:27Z",
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "containerized-data-importer",
+          "app.kubernetes.io/component": "storage",
+          "app.kubernetes.io/managed-by": "cdi-controller",
+          "app.kubernetes.io/part-of": "hyperconverged-cluster",
+          "app.kubernetes.io/version": "4.20.11",
+          "kubevirt.io/created-by": "6626e924-c2a8-46a6-a29c-12807731966a"
+        },
+        "name": "node2-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "cdi.kubevirt.io/v1beta1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "DataVolume",
+            "name": "node2-2cf6p",
+            "uid": "58660d27-bcce-4563-8826-95b7bafa353f"
+          }
+        ],
+        "resourceVersion": "1330327160",
+        "uid": "3cfa482e-8e46-4663-84f3-59f551117045"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "dataSource": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-58660d27-bcce-4563-8826-95b7bafa353f"
+        },
+        "dataSourceRef": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-58660d27-bcce-4563-8826-95b7bafa353f"
+        },
+        "resources": {
+          "requests": {
+            "storage": "50Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Block",
+        "volumeName": "pvc-8ebed670-0898-4877-8721-a2af638127dd"
+      },
+      "status": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "capacity": {
+          "storage": "50Gi"
+        },
+        "phase": "Bound"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/clonePhase": "Succeeded",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/createdForDataVolume": "0fc9a17f-ce4c-42fb-9aed-d313c2ec205f",
+          "cdi.kubevirt.io/dataSourceNamespace": "cnv-images",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.condition.running": "false",
+          "cdi.kubevirt.io/storage.condition.running.message": "Clone Complete",
+          "cdi.kubevirt.io/storage.condition.running.reason": "Completed",
+          "cdi.kubevirt.io/storage.contentType": "kubevirt",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.pod.restarts": "0",
+          "cdi.kubevirt.io/storage.populator.progress": "100.0%",
+          "cdi.kubevirt.io/storage.preallocation.requested": "false",
+          "cdi.kubevirt.io/storage.usePopulator": "true",
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "reclaimspace.csiaddons.openshift.io/cronjob": "ssap-2cf6p-1778073215",
+          "reclaimspace.csiaddons.openshift.io/schedule": "@weekly",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "creationTimestamp": "2026-05-06T13:13:14Z",
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "containerized-data-importer",
+          "app.kubernetes.io/component": "storage",
+          "app.kubernetes.io/managed-by": "cdi-controller",
+          "app.kubernetes.io/part-of": "hyperconverged-cluster",
+          "app.kubernetes.io/version": "4.20.11",
+          "kubevirt.io/created-by": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
+        },
+        "name": "ssap-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "cdi.kubevirt.io/v1beta1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "DataVolume",
+            "name": "ssap-2cf6p",
+            "uid": "0fc9a17f-ce4c-42fb-9aed-d313c2ec205f"
+          }
+        ],
+        "resourceVersion": "1330328590",
+        "uid": "4208a877-7e04-47df-b6d5-140820e75324"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "dataSource": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-0fc9a17f-ce4c-42fb-9aed-d313c2ec205f"
+        },
+        "dataSourceRef": {
+          "apiGroup": "cdi.kubevirt.io",
+          "kind": "VolumeCloneSource",
+          "name": "volume-clone-source-0fc9a17f-ce4c-42fb-9aed-d313c2ec205f"
+        },
+        "resources": {
+          "requests": {
+            "storage": "50Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Block",
+        "volumeName": "pvc-d1c91fc5-0b1e-47f6-a596-93cf45c8792a"
+      },
+      "status": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "capacity": {
+          "storage": "50Gi"
+        },
+        "phase": "Bound"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

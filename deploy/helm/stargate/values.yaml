@@ -1,0 +1,76 @@
+api:
+  image: stargate-api:latest
+  replicas: 1
+  port: 8090
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  env:
+    STARGATE_DATABASE_URL: ""  # Set via Helm --set or template referencing secrets
+    STARGATE_SSL_VERIFY: "false"
+
+scanner:
+  image: stargate-scanner:latest
+  clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+  tier1: 300
+  tier2: 900
+  tier3: 3600
+  batch: 5
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+babylonWorker:
+  image: stargate-scanner:latest
+  interval: 180
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  image: stargate-frontend:latest
+  replicas: 1
+  port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+postgres:
+  image: postgres:15
+  storage: 10Gi
+  user: stargate
+  password: ""  # REQUIRED — set via --set or values override
+  database: stargate
+
+secrets:
+  mountPath: /app/secrets
+  litellmApiKey: ""
+  adminApiKey: ""
+
+scanHistory:
+  storage: 5Gi
+
+routes:
+  frontend: stargate.apps.cluster.example.com
+  api: stargate-api.apps.cluster.example.com
+
+oauth:
+  enabled: false
+  image: registry.redhat.io/openshift4/ose-oauth-proxy:latest
+  cookieSecret: ""

@@ -1,0 +1,121 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: stargate-ci
+spec:
+  params:
+    - name: git-url
+      type: string
+      default: https://github.com/rhpds/stargate-platform.git
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-registry
+      type: string
+      default: quay.io/rhpds
+  workspaces:
+    - name: source
+    - name: docker-config
+
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: source
+
+    - name: run-tests
+      runAfter: [fetch-source]
+      taskSpec:
+        workspaces:
+          - name: source
+        steps:
+          - name: test
+            image: registry.access.redhat.com/ubi9/python-39:latest
+            workingDir: $(workspaces.source.path)
+            script: |
+              pip install -e ".[dev]" --quiet
+              python -m pytest tests/ -v -m "not integration" --tb=short
+              echo "Tests passed"
+      workspaces:
+        - name: source
+          workspace: source
+
+    - name: build-api
+      runAfter: [run-tests]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/stargate-api:$(params.git-revision)
+        - name: DOCKERFILE
+          value: Containerfile
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: docker-config
+
+    - name: build-scanner
+      runAfter: [run-tests]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/stargate-scanner:$(params.git-revision)
+        - name: DOCKERFILE
+          value: Containerfile.scanner
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: docker-config
+
+    - name: build-frontend
+      runAfter: [run-tests]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/stargate-frontend:$(params.git-revision)
+        - name: DOCKERFILE
+          value: Containerfile.frontend
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: docker-config
+
+    - name: deploy
+      runAfter: [build-api, build-scanner, build-frontend]
+      taskSpec:
+        params:
+          - name: image-registry
+            type: string
+          - name: git-revision
+            type: string
+        steps:
+          - name: helm-upgrade
+            image: alpine/helm:3.14
+            script: |
+              helm upgrade --install stargate deploy/helm/stargate/ \
+                --set api.image=$(params.image-registry)/stargate-api:$(params.git-revision) \
+                --set scanner.image=$(params.image-registry)/stargate-scanner:$(params.git-revision) \
+                --set frontend.image=$(params.image-registry)/stargate-frontend:$(params.git-revision) \
+                --wait --timeout 300s
+              echo "Deploy complete"
+      params:
+        - name: image-registry
+          value: $(params.image-registry)
+        - name: git-revision
+          value: $(params.git-revision)

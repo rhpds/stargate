@@ -1,0 +1,717 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:03Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "control",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858456",
+        "uid": "2ddf3ded-4574-468d-b42e-0d395e78bd50"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.43.4",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-control-6pjz5",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "d89e6a9a-e582-4f2e-8ee0-f0085bfa80ec"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "control-ssh",
+              "port": 22,
+              "protocol": "TCP"
+            },
+            {
+              "name": "control-https",
+              "port": 443,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T20:15:25Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:16Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500195",
+        "uid": "382ae10d-93a1-423c-ae86-b710e407c99b"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.165",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-dbserver-rtqhq",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "dbserver",
+              "port": 5986,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T20:15:25Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:18Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "dbserver-rdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500199",
+        "uid": "f27d71ae-34e2-4c23-a387-aec8f296dbc8"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.165",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-dbserver-rtqhq",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "dbserver-rdp",
+              "port": 3389,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:46:05Z"
+        },
+        "creationTimestamp": "2026-05-06T10:46:05Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "gitea",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329849874",
+        "uid": "e1115605-d28d-4fe6-97a1-677b6935658e"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.20.32",
+              "nodeName": "ocp-virt6-host5",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "gitea",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "8a3cd9e2-04e9-4870-be07-7bea3f77c17f"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "gitea",
+              "port": 3000,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:49:09Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:09Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "haproxy",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858655",
+        "uid": "6a868b73-3ab5-4b07-ac89-b71c029f2639"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.43.8",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-haproxy-w6jhx",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c6af62ba-6857-4a39-b6e4-7b1450e41e1d"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:49:11Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:11Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "haproxy-http",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858754",
+        "uid": "0c305360-a8e8-468e-9a6a-b034f7e2bc75"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.43.8",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-haproxy-w6jhx",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c6af62ba-6857-4a39-b6e4-7b1450e41e1d"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "haproxy",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T20:15:25Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:15Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "iis",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500196",
+        "uid": "ef2c3ff1-b556-46d1-9c16-ba2ac7a1f528"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.165",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-dbserver-rtqhq",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "iis",
+              "port": 80,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T20:15:25Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:04Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "lab",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500198",
+        "uid": "c71b364b-fa4e-4319-9004-f8ff039ce9c7"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "hostname": "control",
+              "ip": "10.128.43.4",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-control-6pjz5",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "d89e6a9a-e582-4f2e-8ee0-f0085bfa80ec"
+              }
+            },
+            {
+              "hostname": "node01",
+              "ip": "10.128.43.5",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-node01-q9gsz",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "4aca8f1e-a554-43df-811c-4ccdb4ceb8d8"
+              }
+            },
+            {
+              "hostname": "haproxy",
+              "ip": "10.128.43.8",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-haproxy-w6jhx",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c6af62ba-6857-4a39-b6e4-7b1450e41e1d"
+              }
+            },
+            {
+              "hostname": "windows",
+              "ip": "10.130.38.163",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-windows-j5qvv",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+              }
+            },
+            {
+              "hostname": "dbserver",
+              "ip": "10.130.38.165",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-dbserver-rtqhq",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "foo",
+              "port": 1234,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:49:06Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:06Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "node01",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858482",
+        "uid": "07d289c9-d17b-44c7-a33d-e4538b54f1a3"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.43.5",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-node01-q9gsz",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "4aca8f1e-a554-43df-811c-4ccdb4ceb8d8"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:49:08Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:08Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "node01-http",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329858609",
+        "uid": "a249d46e-db25-4205-b6c7-6e3413dfa57e"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.43.5",
+              "nodeName": "ocp-virt6-host12",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-node01-q9gsz",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "4aca8f1e-a554-43df-811c-4ccdb4ceb8d8"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "node01",
+              "port": 80,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:55:18Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "showroom",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329877025",
+        "uid": "a8b18216-213b-4000-9310-18853d95d070"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.23.129",
+              "nodeName": "ocp-virt6-host4",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "showroom-8544b8f86d-7qr4f",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c3b1c35b-9dec-416e-9d2e-ec256abeda78"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "showroom",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T19:58:15Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:12Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458932",
+        "uid": "b4771319-4735-4f7c-87b1-096f36d7f7ba"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.163",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-windows-j5qvv",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "windows",
+              "port": 5986,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:55:18Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-ironrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329877028",
+        "uid": "29ac1e8a-cd9f-402d-b0a4-4fee4f6d4049"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.23.129",
+              "nodeName": "ocp-virt6-host4",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "showroom-8544b8f86d-7qr4f",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c3b1c35b-9dec-416e-9d2e-ec256abeda78"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 9000,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:55:18Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-jetrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329877030",
+        "uid": "7dcccd16-fde0-4d55-a330-80ac8824d1de"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.23.129",
+              "nodeName": "ocp-virt6-host4",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "showroom-8544b8f86d-7qr4f",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c3b1c35b-9dec-416e-9d2e-ec256abeda78"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 7171,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T19:58:15Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:14Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "windows-rdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458934",
+        "uid": "5214ba7a-c20b-497b-8927-d00b0be307ee"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.163",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-windows-j5qvv",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "windows-rdp",
+              "port": 3389,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T10:55:18Z"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-tokengen",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329877027",
+        "uid": "5326ab48-4524-4de3-8f3a-629db29b3a73"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.23.129",
+              "nodeName": "ocp-virt6-host4",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "showroom-8544b8f86d-7qr4f",
+                "namespace": "sandbox-zz95m-zt-ansiblebu",
+                "uid": "c3b1c35b-9dec-416e-9d2e-ec256abeda78"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 8081,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

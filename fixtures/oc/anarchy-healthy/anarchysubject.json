@@ -1,0 +1,26 @@
+{
+  "apiVersion": "anarchy.gpte.redhat.com/v1",
+  "kind": "AnarchySubject",
+  "metadata": {
+    "name": "demo-simple-container-abc123",
+    "namespace": "babylon-anarchy-0",
+    "labels": {
+      "babylon.gpte.redhat.com/catalogItemName": "demo-simple-container"
+    }
+  },
+  "status": {
+    "state": "started",
+    "towerJobs": {
+      "provision": {
+        "completeTimestamp": "2026-05-06T10:30:00Z",
+        "status": "successful"
+      }
+    },
+    "conditions": [
+      {
+        "type": "Provisioned",
+        "status": "True"
+      }
+    ]
+  }
+}

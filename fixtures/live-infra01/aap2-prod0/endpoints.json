@@ -1,0 +1,114 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-03-10T14:24:10Z"
+        },
+        "creationTimestamp": "2026-03-10T14:23:59Z",
+        "labels": {
+          "app.kubernetes.io/component": "database",
+          "app.kubernetes.io/instance": "postgres-15-prod0",
+          "app.kubernetes.io/managed-by": "automationcontroller-operator",
+          "app.kubernetes.io/name": "postgres-15",
+          "app.kubernetes.io/operator-version": "2.4",
+          "app.kubernetes.io/part-of": "prod0",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "prod0-postgres-15",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "529329003",
+        "uid": "c00c3b0d-2dfe-4148-bb3a-5f3f39a39c67"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.3.30",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "prod0-postgres-15-0",
+                "namespace": "aap2-prod0",
+                "uid": "43db02e3-2751-42b6-9c93-de9ca5d326aa"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 5432,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-03-10T14:24:24Z",
+        "labels": {
+          "app.kubernetes.io/component": "automationcontroller",
+          "app.kubernetes.io/managed-by": "automationcontroller-operator",
+          "app.kubernetes.io/operator-version": "2.4",
+          "app.kubernetes.io/part-of": "prod0"
+        },
+        "name": "prod0-service",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "694723701",
+        "uid": "7ff570ad-9e69-4493-83ae-5d58443511bd"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.3.31",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "prod0-web-54d5fff8fb-cfn2l",
+                "namespace": "aap2-prod0",
+                "uid": "fd9c844d-ec5f-4107-a2c6-28ef23e3f032"
+              }
+            },
+            {
+              "ip": "10.130.1.79",
+              "nodeName": "ocp-infra01-worker02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "prod0-web-54d5fff8fb-wbmbm",
+                "namespace": "aap2-prod0",
+                "uid": "a7fd5c18-aaf6-4b8e-87c8-007bfda08737"
+              }
+            },
+            {
+              "ip": "10.131.1.101",
+              "nodeName": "ocp-infra01-worker01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "prod0-web-54d5fff8fb-k6jxg",
+                "namespace": "aap2-prod0",
+                "uid": "949473ae-e581-4b33-a1e5-b99ccdf64c14"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http",
+              "port": 8052,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

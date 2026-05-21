@@ -1,0 +1,130 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/balance": "roundrobin",
+          "haproxy.router.openshift.io/rate-limit-connections": "50",
+          "haproxy.router.openshift.io/timeout": "300s",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"route.openshift.io/v1\",\"kind\":\"Route\",\"metadata\":{\"annotations\":{\"haproxy.router.openshift.io/balance\":\"roundrobin\",\"haproxy.router.openshift.io/rate-limit-connections\":\"50\",\"haproxy.router.openshift.io/timeout\":\"300s\"},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\",\"tier\":\"frontend\"},\"name\":\"dashboard-route\",\"namespace\":\"cost-monitor\"},\"spec\":{\"port\":{\"targetPort\":\"http\"},\"tls\":{\"insecureEdgeTerminationPolicy\":\"Redirect\",\"termination\":\"edge\"},\"to\":{\"kind\":\"Service\",\"name\":\"oauth-proxy-service\",\"weight\":100}}}\n",
+          "openshift.io/host.generated": "true"
+        },
+        "creationTimestamp": "2026-01-29T23:56:18Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "dashboard",
+          "tier": "frontend"
+        },
+        "name": "dashboard-route",
+        "namespace": "cost-monitor",
+        "resourceVersion": "455931633",
+        "uid": "5ed1e190-8b3c-4088-96ab-0fc8047f312d"
+      },
+      "spec": {
+        "host": "cost-monitor.apps.cluster.example.com",
+        "port": {
+          "targetPort": "http"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "oauth-proxy-service",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-02-12T20:36:18Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "cost-monitor.apps.cluster.example.com",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/ip_whitelist": "10.0.0.0/8 172.16.0.0/12",
+          "haproxy.router.openshift.io/timeout": "10s",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"route.openshift.io/v1\",\"kind\":\"Route\",\"metadata\":{\"annotations\":{\"haproxy.router.openshift.io/ip_whitelist\":\"10.0.0.0/8 172.16.0.0/12\",\"haproxy.router.openshift.io/timeout\":\"10s\"},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"monitoring\",\"tier\":\"backend\"},\"name\":\"health-route\",\"namespace\":\"cost-monitor\"},\"spec\":{\"host\":\"health-cost-monitor.apps.cluster.example.com\",\"path\":\"/health\",\"port\":{\"targetPort\":\"health\"},\"tls\":{\"insecureEdgeTerminationPolicy\":\"Redirect\",\"termination\":\"edge\"},\"to\":{\"kind\":\"Service\",\"name\":\"cost-data-service\",\"weight\":100}}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:19Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "monitoring",
+          "tier": "backend"
+        },
+        "name": "health-route",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912936",
+        "uid": "5d052692-4ad0-4307-b7f5-d51bd7866218"
+      },
+      "spec": {
+        "host": "health-cost-monitor.apps.cluster.example.com",
+        "path": "/health",
+        "port": {
+          "targetPort": "health"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "cost-data-service",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-01-29T23:56:19Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "health-cost-monitor.apps.cluster.example.com",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
