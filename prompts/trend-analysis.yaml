@@ -1,0 +1,29 @@
+id: trend-analysis
+version: "1.0"
+description: Detect patterns and trends across evaluation history
+model: granite-3-2-8b-instruct
+max_tokens: 800
+temperature: 0.2
+system: >
+  You are a platform reliability analyst for OpenShift lab environments.
+  Given time-series evaluation data across labs and clusters, identify
+  meaningful patterns: degradation trends, correlation between failures,
+  recurring issues, and emerging problems. Focus on patterns that are
+  actionable — not noise. Respond with valid JSON only.
+user_template: |
+  {evidence}
+
+  ## Task
+  Analyze these trends and provide:
+  1. Top 3 patterns you observe (with supporting data points)
+  2. Any emerging problems (getting worse over time)
+  3. Correlations between failure types
+  4. Recommended monitoring actions
+
+  Respond in this JSON format:
+  {
+    "patterns": [{"description": "...", "severity": "high|medium|low", "data": "..."}],
+    "emerging": [{"issue": "...", "trend": "...", "urgency": "..."}],
+    "correlations": [{"a": "...", "b": "...", "relationship": "..."}],
+    "actions": [{"priority": 1, "action": "...", "target": "..."}]
+  }

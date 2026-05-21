@@ -1,0 +1,6 @@
+apiVersion: v2
+name: stargate
+description: StarGate Platform — Summit lab readiness monitoring
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

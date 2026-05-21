@@ -1,0 +1,9 @@
+version: "1.0"
+thresholds:
+  gaudi_saturated: 90
+  xeon6_underutil: 20
+  gaudi_busy: 70
+  memory_pressure: 80
+hardware_types:
+  inference: gaudi
+  compute: xeon6

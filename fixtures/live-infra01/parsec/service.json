@@ -1,0 +1,110 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{\"service.beta.openshift.io/serving-cert-secret-name\":\"oauth-serving-cert\"},\"labels\":{\"app\":\"parsec\",\"component\":\"oauth-proxy\"},\"name\":\"oauth-proxy-service\",\"namespace\":\"parsec\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":8080,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"port\":8443,\"protocol\":\"TCP\",\"targetPort\":8443}],\"selector\":{\"app\":\"parsec-oauth-proxy\",\"component\":\"oauth-proxy\"},\"type\":\"ClusterIP\"}}",
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1750049928",
+          "service.beta.openshift.io/serving-cert-secret-name": "REDACTED-dummy-password",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1750049928"
+        },
+        "creationTimestamp": "2026-02-12T20:13:50Z",
+        "labels": {
+          "app": "parsec",
+          "component": "oauth-proxy"
+        },
+        "name": "oauth-proxy-service",
+        "namespace": "parsec",
+        "resourceVersion": "530521910",
+        "uid": "56ebdb4f-ca8d-44cc-98dd-0dfe50cb8247"
+      },
+      "spec": {
+        "clusterIP": "172.30.238.236",
+        "clusterIPs": [
+          "172.30.238.236"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          },
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": 8443
+          }
+        ],
+        "selector": {
+          "app": "parsec-oauth-proxy",
+          "component": "oauth-proxy"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"parsec\",\"component\":\"api\"},\"name\":\"parsec-service\",\"namespace\":\"parsec\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":8000,\"protocol\":\"TCP\",\"targetPort\":8000}],\"selector\":{\"app\":\"parsec\",\"component\":\"api\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-02-12T20:13:50Z",
+        "labels": {
+          "app": "parsec",
+          "component": "api"
+        },
+        "name": "parsec-service",
+        "namespace": "parsec",
+        "resourceVersion": "530521859",
+        "uid": "7e8d7c27-7b5e-47ac-9765-50667218662c"
+      },
+      "spec": {
+        "clusterIP": "172.30.79.106",
+        "clusterIPs": [
+          "172.30.79.106"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "http",
+            "port": 8000,
+            "protocol": "TCP",
+            "targetPort": 8000
+          }
+        ],
+        "selector": {
+          "app": "parsec",
+          "component": "api"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

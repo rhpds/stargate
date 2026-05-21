@@ -1,0 +1,49 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-03-31T13:49:51Z"
+        },
+        "creationTimestamp": "2026-03-29T14:25:52Z",
+        "labels": {
+          "app.kubernetes.io/name": "ocp-portal"
+        },
+        "name": "ocp-portal",
+        "namespace": "ocp-portal",
+        "resourceVersion": "591070739",
+        "uid": "4f142261-f8ed-421d-9833-11bba272a39c"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.3.176",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "ocp-portal-5c7b97cbd-td6jw",
+                "namespace": "ocp-portal",
+                "uid": "e261a6ec-d6b6-4507-96f6-eb7284397f83"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http-oauth",
+              "port": 4180,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

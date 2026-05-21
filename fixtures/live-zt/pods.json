@@ -1,0 +1,4510 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.20.32/21\"],\"mac_address\":\"0a:58:0a:82:14:20\",\"gateway_ips\":[\"10.130.16.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.16.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.16.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.130.16.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.16.1\"}],\"ip_address\":\"10.130.20.32/21\",\"gateway_ip\":\"10.130.16.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.20.32\"\n    ],\n    \"mac\": \"0a:58:0a:82:14:20\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
+          "security.openshift.io/validated-scc-subject-type": "user"
+        },
+        "creationTimestamp": "2026-05-06T10:45:47Z",
+        "generation": 1,
+        "labels": {
+          "app.kubernetes.io/name": "gitea"
+        },
+        "name": "gitea",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329848933",
+        "uid": "8a3cd9e2-04e9-4870-be07-7bea3f77c17f"
+      },
+      "spec": {
+        "containers": [
+          {
+            "env": [
+              {
+                "name": "GITEA__DEFAULT__RUN_MODE",
+                "value": "dev"
+              },
+              {
+                "name": "GITEA__database__DB_TYPE",
+                "value": "sqlite3"
+              },
+              {
+                "name": "GITEA__database__PATH",
+                "value": "/data/gitea/gitea.db"
+              },
+              {
+                "name": "GITEA__picture__DISABLE_GRAVATAR",
+                "value": "true"
+              },
+              {
+                "name": "GITEA__repository__DEFAULT_PRIVATE",
+                "value": "false"
+              },
+              {
+                "name": "GITEA__repository__DEFAULT_PUSH_CREATE_PRIVATE",
+                "value": "false"
+              },
+              {
+                "name": "GITEA__repository__ENABLE_PUSH_CREATE_ORG",
+                "value": "true"
+              },
+              {
+                "name": "GITEA__repository__ENABLE_PUSH_CREATE_USER",
+                "value": "true"
+              },
+              {
+                "name": "GITEA__repository__ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET",
+                "value": "false"
+              },
+              {
+                "name": "GITEA__security__INSTALL_LOCK",
+                "value": "true"
+              },
+              {
+                "name": "GITEA__server__SSH_DOMAIN",
+                "value": "http://gitea"
+              },
+              {
+                "name": "GITEA__service__DISABLE_REGISTRATION",
+                "value": "true"
+              },
+              {
+                "name": "GITEA__service__REQUIRE_SIGNIN_VIEW",
+                "value": "false"
+              },
+              {
+                "name": "GITEA__webhook__ALLOWED_HOST_LIST",
+                "value": "*"
+              }
+            ],
+            "image": "gitea/gitea:1.16.8-rootless",
+            "imagePullPolicy": "Always",
+            "lifecycle": {},
+            "name": "gitea",
+            "ports": [
+              {
+                "containerPort": 3000,
+                "name": "gitea",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "1",
+                "memory": "2Gi"
+              },
+              "requests": {
+                "cpu": "1",
+                "memory": "2Gi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/gitea/",
+                "name": "gitea-varlib"
+              },
+              {
+                "mountPath": "/data/",
+                "name": "gitea-data"
+              },
+              {
+                "mountPath": "/etc/gitea",
+                "name": "gitea-etc"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-v9tcn",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "nodeName": "ocp-virt6-host5",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1003160000,
+          "seLinuxOptions": {
+            "level": "s0:c56,c40"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "gitea-data"
+          },
+          {
+            "emptyDir": {},
+            "name": "gitea-etc"
+          },
+          {
+            "emptyDir": {},
+            "name": "gitea-varlib"
+          },
+          {
+            "name": "kube-api-access-v9tcn",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:45:50Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:45:47Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:45:50Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:45:50Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:45:47Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "1",
+              "memory": "2Gi"
+            },
+            "containerID": "cri-o://550fe6c6c4691e7593b4fee4f09da3b7875ef82ca0ed7e72a23a1c3879829c4d",
+            "image": "docker.io/gitea/gitea:1.16.8-rootless",
+            "imageID": "docker.io/gitea/gitea@sha256:8a6ad22694c76122ae075af1153a544577724c45cb45af44963aa78dc179cc46",
+            "lastState": {},
+            "name": "gitea",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "1",
+                "memory": "2Gi"
+              },
+              "requests": {
+                "cpu": "1",
+                "memory": "2Gi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:45:50Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/gitea/",
+                "name": "gitea-varlib"
+              },
+              {
+                "mountPath": "/data/",
+                "name": "gitea-data"
+              },
+              {
+                "mountPath": "/etc/gitea",
+                "name": "gitea-etc"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-v9tcn",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.252",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.252"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.130.20.32",
+        "podIPs": [
+          {
+            "ip": "10.130.20.32"
+          }
+        ],
+        "qosClass": "Guaranteed",
+        "startTime": "2026-05-06T10:45:47Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.131.23.129/21\"],\"mac_address\":\"0a:58:0a:83:17:81\",\"gateway_ips\":[\"10.131.16.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.131.16.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.131.16.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.131.16.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.131.16.1\"}],\"ip_address\":\"10.131.23.129/21\",\"gateway_ip\":\"10.131.16.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.131.23.129\"\n    ],\n    \"mac\": \"0a:58:0a:83:17:81\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
+          "security.openshift.io/validated-scc-subject-type": "user"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "generateName": "showroom-8544b8f86d-",
+        "generation": 1,
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/name": "showroom",
+          "pod-template-hash": "8544b8f86d"
+        },
+        "name": "showroom-8544b8f86d-7qr4f",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "showroom-8544b8f86d",
+            "uid": "711cd5c3-2317-4cc0-a11e-5dffa343ae2a"
+          }
+        ],
+        "resourceVersion": "1329877021",
+        "uid": "c3b1c35b-9dec-416e-9d2e-ec256abeda78"
+      },
+      "spec": {
+        "containers": [
+          {
+            "env": [
+              {
+                "name": "DEBUG",
+                "value": "true"
+              },
+              {
+                "name": "PORT",
+                "value": "8501"
+              },
+              {
+                "name": "ANSIBLE_USER",
+                "value": "rhel"
+              },
+              {
+                "name": "ANSIBLE_PASSWORD",
+                "value": "ansible123!"
+              },
+              {
+                "name": "BASTION_PORT",
+                "value": "22"
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              },
+              {
+                "name": "DOMAIN",
+                "value": "apps.ocpv06.rhdp.net"
+              },
+              {
+                "name": "REGISTRY_PULL_TOKEN"
+              },
+              {
+                "name": "SATELLITE_URL",
+                "value": "demosat-ha.infra.demo.redhat.com"
+              },
+              {
+                "name": "SATELLITE_ORG",
+                "value": "Red_Hat_RHDP_Labs"
+              },
+              {
+                "name": "SATELLITE_ACTIVATIONKEY",
+                "value": "rhel-8-and-9-latest-i4qjycz2xz"
+              },
+              {
+                "name": "VAULT_PASSWORD",
+                "value": "4ns1bl3v4ult!"
+              }
+            ],
+            "image": "quay.io/rhpds/zerotouch-automation:v1.2.0",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "runner",
+            "ports": [
+              {
+                "containerPort": 8501,
+                "name": "runner",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/app/runtime-automation",
+                "name": "showroom-files",
+                "subPath": "repo/runtime-automation"
+              },
+              {
+                "mountPath": "/app/artifacts",
+                "name": "showroom-files",
+                "subPath": "artifacts"
+              },
+              {
+                "mountPath": "/app/logs",
+                "name": "showroom-files",
+                "subPath": "logs"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              },
+              {
+                "name": "DOMAIN",
+                "value": "apps.ocpv06.rhdp.net"
+              }
+            ],
+            "image": "quay.io/rhpds/nginx:1.25",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "nginx",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "web",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/etc/nginx/nginx.conf",
+                "name": "nginx-config",
+                "subPath": "nginx.conf"
+              },
+              {
+                "mountPath": "/var/cache/nginx",
+                "name": "nginx-cache"
+              },
+              {
+                "mountPath": "/var/run",
+                "name": "nginx-pid"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "ANTORA_PLAYBOOK",
+                "value": "site.yml"
+              },
+              {
+                "name": "ZT_BUNDLE",
+                "value": "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.3/nookbag-v0.3.3.zip"
+              },
+              {
+                "name": "ZT_UI_ENABLED",
+                "value": "true"
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              },
+              {
+                "name": "DOMAIN",
+                "value": "apps.ocpv06.rhdp.net"
+              }
+            ],
+            "image": "quay.io/rhpds/showroom-content:v1.4.1",
+            "imagePullPolicy": "IfNotPresent",
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/",
+                "port": 8000,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "name": "content",
+            "ports": [
+              {
+                "containerPort": 8000,
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/",
+                "port": 8000,
+                "scheme": "HTTP"
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/user_data/",
+                "name": "user-data"
+              },
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files",
+                "subPath": "repo"
+              },
+              {
+                "mountPath": "/showroom/www",
+                "name": "showroom-files",
+                "subPath": "www"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/openshift-showroom-terminal-ocp:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "terminal",
+            "ports": [
+              {
+                "containerPort": 7681,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/home/lab-user",
+                "name": "terminal-lab-user-home"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8001",
+              "--ssh-host=control",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty",
+            "ports": [
+              {
+                "containerPort": 8001,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8002",
+              "--ssh-host=control",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty-control",
+            "ports": [
+              {
+                "containerPort": 8002,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8003",
+              "--ssh-host=node01",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty-node01",
+            "ports": [
+              {
+                "containerPort": 8003,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8004",
+              "--ssh-host=haproxy",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty-haproxy",
+            "ports": [
+              {
+                "containerPort": 8004,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8005",
+              "--ssh-host=windows",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty-windows",
+            "ports": [
+              {
+                "containerPort": 8005,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "--base=\"/wetty/\"",
+              "--port=8006",
+              "--ssh-host=dbserver",
+              "--ssh-port=22",
+              "--ssh-user=rhel",
+              "--ssh-auth=password",
+              "--ssh-pass=ansible123!"
+            ],
+            "env": [
+              {
+                "name": "NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              }
+            ],
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "wetty-dbserver",
+            "ports": [
+              {
+                "containerPort": 8006,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "RDPSERVER",
+                "value": "windows"
+              },
+              {
+                "name": "RDPUSER",
+                "value": "Administrator"
+              },
+              {
+                "name": "RDPPASSWORD",
+                "value": "Ansible123!"
+              },
+              {
+                "name": "JETSERVER",
+                "value": "https://windows-jetrdp-zz95m.apps.ocpv06.rhdp.net/jet/rdp"
+              },
+              {
+                "name": "TOKENGENSERVER",
+                "value": "https://windows-tokengen-zz95m.apps.ocpv06.rhdp.net"
+              }
+            ],
+            "image": "quay.io/agonzalezrh/ironrdp:v0.0.2",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "ironrdp",
+            "ports": [
+              {
+                "containerPort": 8081,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 7171,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 9000,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "BASTION_HOST",
+                "value": "control"
+              },
+              {
+                "name": "BASTION_PORT",
+                "value": "22"
+              },
+              {
+                "name": "BASTION_USER",
+                "value": "rhel"
+              },
+              {
+                "name": "BASTION_PASSWORD",
+                "value": "ansible123!"
+              },
+              {
+                "name": "OTHER_HOSTS",
+                "value": "control node01 haproxy windows dbserver"
+              }
+            ],
+            "image": "quay.io/rhpds/zt-monitoring:v1",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "monitoring",
+            "ports": [
+              {
+                "containerPort": 9999,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "initContainers": [
+          {
+            "env": [
+              {
+                "name": "GIT_REPO_URL",
+                "value": "https://github.com/rhpds/zt-ans-bu-roadshow02.git"
+              },
+              {
+                "name": "GIT_REPO_REF",
+                "value": "v2-summit26"
+              },
+              {
+                "name": "CLONE_DIR",
+                "value": "/showroom/repo"
+              }
+            ],
+            "image": "quay.io/rhpds/git-cloner:v1.1.4",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "git-cloner",
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "64Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files",
+                "subPath": "repo"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "FILES_DIR",
+                "value": "/showroom/repo"
+              },
+              {
+                "name": "OUTPUT_DIR",
+                "value": "/showroom/www"
+              },
+              {
+                "name": "ANTORA_PLAYBOOK",
+                "value": "site.yml"
+              },
+              {
+                "name": "ZT_BUNDLE",
+                "value": "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.3/nookbag-v0.3.3.zip"
+              },
+              {
+                "name": "ZT_UI_ENABLED",
+                "value": "true"
+              },
+              {
+                "name": "ANTORA_UI_BUNDLE_URL",
+                "value": "https://github.com/rhpds/rhdp_showroom_theme/releases/download/summit-2026/ui-bundle.zip"
+              }
+            ],
+            "image": "quay.io/rhpds/antora:v1.2.2",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "antora-builder",
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files",
+                "subPath": "repo"
+              },
+              {
+                "mountPath": "/user_data/",
+                "name": "user-data"
+              },
+              {
+                "mountPath": "/showroom/www",
+                "name": "showroom-files",
+                "subPath": "www"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "GIT_REPO_URL",
+                "value": "https://github.com/rhpds/zt-ans-bu-roadshow02.git"
+              },
+              {
+                "name": "GIT_REPO_REF",
+                "value": "v2-summit26"
+              },
+              {
+                "name": "BASTION_HOST",
+                "value": "control"
+              },
+              {
+                "name": "BASTION_PORT",
+                "value": "22"
+              },
+              {
+                "name": "BASTION_USER",
+                "value": "rhel"
+              },
+              {
+                "name": "BASTION_PASSWORD",
+                "value": "ansible123!"
+              },
+              {
+                "name": "GUID",
+                "value": "zz95m"
+              },
+              {
+                "name": "DOMAIN",
+                "value": "apps.ocpv06.rhdp.net"
+              },
+              {
+                "name": "SATELLITE_URL",
+                "value": "demosat-ha.infra.demo.redhat.com"
+              },
+              {
+                "name": "SATELLITE_ORG",
+                "value": "Red_Hat_RHDP_Labs"
+              },
+              {
+                "name": "SATELLITE_ACTIVATIONKEY",
+                "value": "rhel-8-and-9-latest-i4qjycz2xz"
+              },
+              {
+                "name": "REGISTRY_PULL_TOKEN"
+              },
+              {
+                "name": "VAULT_PASSWORD",
+                "value": "4ns1bl3v4ult!"
+              },
+              {
+                "name": "FORCE_SETUP",
+                "value": "false"
+              },
+              {
+                "name": "SETUP_STATE_DIR",
+                "value": "/setup-state"
+              }
+            ],
+            "image": "quay.io/rhpds/setup-automation:v1.0.8",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "setup",
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1003160000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/runner/",
+                "name": "runner"
+              },
+              {
+                "mountPath": "/setup-state",
+                "name": "setup-state"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "nodeName": "ocp-virt6-host4",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1003160000,
+          "seLinuxOptions": {
+            "level": "s0:c56,c40"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "showroom",
+        "serviceAccountName": "showroom",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "showroom-files"
+          },
+          {
+            "emptyDir": {},
+            "name": "runner"
+          },
+          {
+            "name": "setup-state",
+            "persistentVolumeClaim": {
+              "claimName": "showroom-setup-state"
+            }
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "showroom-userdata"
+            },
+            "name": "user-data"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "showroom-proxy-config"
+            },
+            "name": "nginx-config"
+          },
+          {
+            "emptyDir": {},
+            "name": "nginx-pid"
+          },
+          {
+            "emptyDir": {},
+            "name": "nginx-cache"
+          },
+          {
+            "name": "terminal-lab-user-home",
+            "persistentVolumeClaim": {
+              "claimName": "showroom-terminal-lab-user-home"
+            }
+          },
+          {
+            "name": "kube-api-access-nml4g",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:49:48Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:55:07Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:55:18Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:55:18Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:49:42Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "100m",
+              "memory": "64Mi"
+            },
+            "containerID": "cri-o://f2f48f8705f48f71cbd36e6d2d8b7ca04460e956c0d3a5558f0b6b471e458d43",
+            "image": "quay.io/rhpds/showroom-content:v1.4.1",
+            "imageID": "quay.io/rhpds/showroom-content@sha256:e52d7f0a7f6191fd79fa524de75355da128a5bd9e425ea515c99b153a3513381",
+            "lastState": {},
+            "name": "content",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:10Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/user_data/",
+                "name": "user-data"
+              },
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/showroom/www",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            },
+            "containerID": "cri-o://137ee477e29718b4a5dece2723e7e3bb268eb857c0ba7bc3ae3c7ac673024dc6",
+            "image": "quay.io/agonzalezrh/ironrdp:v0.0.2",
+            "imageID": "quay.io/agonzalezrh/ironrdp@sha256:0e3cc80f84e3452ed22468b7a681de5f0e8d65214f20c695a11f9f30e17b6013",
+            "lastState": {},
+            "name": "ironrdp",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:16Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            },
+            "containerID": "cri-o://4c43dd56989d6fe03c1820ad45ae3994f64bb3ea299cedaacbda6bbe5680bec0",
+            "image": "quay.io/rhpds/zt-monitoring:v1",
+            "imageID": "quay.io/rhpds/zt-monitoring@sha256:485d8bdbc2bbdfbfc7c61fd148f73b30a42481320df11fa670bb7b615d0a0a42",
+            "lastState": {},
+            "name": "monitoring",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:17Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            },
+            "containerID": "cri-o://2b75a5fd3a8863d5289661feb7ce24196d5dbcb775f46104d21b7836e92e8ca2",
+            "image": "quay.io/rhpds/nginx:1.25",
+            "imageID": "quay.io/rhpds/nginx@sha256:67835608e92def2a2c7f45ade2247a95ae38b5b3af358ca6b111c7513fd8fa85",
+            "lastState": {},
+            "name": "nginx",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:09Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/etc/nginx/nginx.conf",
+                "name": "nginx-config"
+              },
+              {
+                "mountPath": "/var/cache/nginx",
+                "name": "nginx-cache"
+              },
+              {
+                "mountPath": "/var/run",
+                "name": "nginx-pid"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "250m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://2f49fd1c511cdf485104f8cf9ca85b0bfffe8e92df333f17f4fe7e011ca598cd",
+            "image": "quay.io/rhpds/zerotouch-automation:v1.2.0",
+            "imageID": "quay.io/rhpds/zerotouch-automation@sha256:e3ee4c06223b235ef4c53cd7a9f27a349b12617e09d2e49a56d140083d308eec",
+            "lastState": {},
+            "name": "runner",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:09Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/app/runtime-automation",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/app/artifacts",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/app/logs",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://8424b3afd71a83db7262fbbc1a5625f7f2f88d1c45dc67596165e859ae0bcac7",
+            "image": "quay.io/rhpds/openshift-showroom-terminal-ocp:latest",
+            "imageID": "quay.io/rhpds/openshift-showroom-terminal-ocp@sha256:311f6878025a768d2109eb43a0b26a46d6173d5da6cffd0e1156651a10f8d53b",
+            "lastState": {},
+            "name": "terminal",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:11Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/home/lab-user",
+                "name": "terminal-lab-user-home"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://cbea4769be0bdb1079335dc57aa76949182f73d2969238103f5a24bbfa7bad83",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:11Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://3641fee4fb7849ef0e390329525090305a427b0dc49457af79cd0b18e21f0ebc",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty-control",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:12Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://00d5fdc0d5275ad15985d5f807a5855b9ef1d3daba6b5ba088925fc858fdbfe7",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty-dbserver",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:16Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://ca4f23e574c12bbf3c0fcef707fd9c1b14aacdd5e7b7f00f2115c83b3e020de0",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty-haproxy",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:14Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://a7be5a5c4b1a1455705756df97d5ac7f0a288168693facff2f5001dde3d92880",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty-node01",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:13Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://1bf51a8af8611ba7059ca50f3e784b7d7de4d00498c99ab52cda5f1941563230",
+            "image": "quay.io/rhpds/wetty:v2.5",
+            "imageID": "quay.io/rhpds/wetty@sha256:ac66cba1476d14e00000fdf5933c81bc13c7cc5dd2bd5ae4d3628288ccbfc547",
+            "lastState": {},
+            "name": "wetty-windows",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:55:15Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.238",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.238"
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "50m",
+              "memory": "64Mi"
+            },
+            "containerID": "cri-o://def58f27f51ffce93b21fe5caaebccb487273fec7bb156d389a443811e4b68dd",
+            "image": "quay.io/rhpds/git-cloner:v1.1.4",
+            "imageID": "quay.io/rhpds/git-cloner@sha256:8c8c927f9ff1c6f7d4f6e86f42d233a4ef63c7d06aae30add4e53fe902f5959e",
+            "lastState": {},
+            "name": "git-cloner",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "64Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://def58f27f51ffce93b21fe5caaebccb487273fec7bb156d389a443811e4b68dd",
+                "exitCode": 0,
+                "finishedAt": "2026-05-06T10:49:49Z",
+                "reason": "Completed",
+                "startedAt": "2026-05-06T10:49:48Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "250m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://fcdad84661a47d8ec6de6af17ea7f5b7b588f97d42ef2a943ea8ff35c9232f86",
+            "image": "quay.io/rhpds/antora:v1.2.2",
+            "imageID": "quay.io/rhpds/antora@sha256:3fcb97ddd623d849acec01c28dc4f11aefd2425bf4b7185ad02764e97a08cc51",
+            "lastState": {},
+            "name": "antora-builder",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://fcdad84661a47d8ec6de6af17ea7f5b7b588f97d42ef2a943ea8ff35c9232f86",
+                "exitCode": 0,
+                "finishedAt": "2026-05-06T10:50:00Z",
+                "reason": "Completed",
+                "startedAt": "2026-05-06T10:49:51Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/showroom/repo",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/user_data/",
+                "name": "user-data"
+              },
+              {
+                "mountPath": "/showroom/www",
+                "name": "showroom-files"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "allocatedResources": {
+              "cpu": "250m",
+              "memory": "256Mi"
+            },
+            "containerID": "cri-o://599554641ec8f0602017ac52cee190f1709f41bac9dd4460d2bd741d27a7dc38",
+            "image": "quay.io/rhpds/setup-automation:v1.0.8",
+            "imageID": "quay.io/rhpds/setup-automation@sha256:0288c8c0cb05fdd42316de151d09142b88a04c706140e531d3e84eb0698d2e8a",
+            "lastState": {},
+            "name": "setup",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "memory": "256Mi"
+              }
+            },
+            "restartCount": 1,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://599554641ec8f0602017ac52cee190f1709f41bac9dd4460d2bd741d27a7dc38",
+                "exitCode": 0,
+                "finishedAt": "2026-05-06T10:55:07Z",
+                "reason": "Completed",
+                "startedAt": "2026-05-06T10:53:01Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 0,
+                "supplementalGroups": [
+                  0,
+                  1003160000
+                ],
+                "uid": 1003160000
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/runner/",
+                "name": "runner"
+              },
+              {
+                "mountPath": "/setup-state",
+                "name": "setup-state"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-nml4g",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.131.23.129",
+        "podIPs": [
+          {
+            "ip": "10.131.23.129"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T10:49:42Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "descheduler.alpha.kubernetes.io/request-evict-only": "",
+          "istio.io/reroute-virtual-interfaces": "k6t-eth0",
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.128.43.4/21\"],\"mac_address\":\"0a:58:0a:80:2b:04\",\"gateway_ips\":[\"10.128.40.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.128.40.1\"}],\"ip_address\":\"10.128.43.4/21\",\"gateway_ip\":\"10.128.40.1\",\"role\":\"primary\"},\"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\":{\"ip_addresses\":null,\"mac_address\":\"2c:c2:60:cc:57:90\",\"tunnel_id\":2,\"role\":\"secondary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.43.4\"\n    ],\n    \"mac\": \"0a:58:0a:80:2b:04\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\",\n    \"interface\": \"pode888e8f205f\",\n    \"mac\": \"2c:c2:60:cc:57:90\",\n    \"dns\": {}\n}]",
+          "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"secondaryzz95m\",\"namespace\":\"sandbox-zz95m-zt-ansiblebu\",\"mac\":\"2c:c2:60:cc:57:90\",\"interface\":\"pode888e8f205f\"}]",
+          "kubectl.kubernetes.io/default-container": "compute",
+          "kubevirt.io/domain": "control",
+          "kubevirt.io/migrationTransportUnix": "true",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/vm-generation": "1",
+          "openshift.io/scc": "kubevirt-controller",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"control\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "post.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"control\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "pre.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/timeout": "60s",
+          "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
+          "security.openshift.io/validated-scc-subject-type": "user",
+          "traffic.sidecar.istio.io/kubevirtInterfaces": "k6t-eth0"
+        },
+        "creationTimestamp": "2026-05-06T10:46:22Z",
+        "generateName": "virt-launcher-control-",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io": "virt-launcher",
+          "kubevirt.io/created-by": "e9194300-3302-48ee-8c32-86f708f11070",
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "control",
+          "vm.kubevirt.io/name": "control"
+        },
+        "name": "virt-launcher-control-6pjz5",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachineInstance",
+            "name": "control",
+            "uid": "e9194300-3302-48ee-8c32-86f708f11070"
+          }
+        ],
+        "resourceVersion": "1329851088",
+        "uid": "d89e6a9a-e582-4f2e-8ee0-f0085bfa80ec"
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/usr/bin/virt-launcher-monitor",
+              "--qemu-timeout",
+              "340s",
+              "--name",
+              "control",
+              "--uid",
+              "e9194300-3302-48ee-8c32-86f708f11070",
+              "--namespace",
+              "sandbox-zz95m-zt-ansiblebu",
+              "--kubevirt-share-dir",
+              "/var/run/kubevirt",
+              "--ephemeral-disk-dir",
+              "/var/run/kubevirt-ephemeral-disks",
+              "--container-disk-dir",
+              "/var/run/kubevirt/container-disks",
+              "--grace-period-seconds",
+              "45",
+              "--hook-sidecars",
+              "0",
+              "--ovmf-path",
+              "/usr/share/OVMF",
+              "--disk-memory-limit",
+              "2000000000",
+              "--run-as-nonroot"
+            ],
+            "env": [
+              {
+                "name": "XDG_CACHE_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_CONFIG_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_RUNTIME_DIR",
+                "value": "/var/run"
+              },
+              {
+                "name": "KUBEVIRT_RESOURCE_NAME_secondaryzz95m"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "compute",
+            "resources": {
+              "limits": {
+                "cpu": "4",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "64612368384"
+              },
+              "requests": {
+                "cpu": "400m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "32306184192"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 107,
+              "runAsNonRoot": true,
+              "runAsUser": 107
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeDevices": [
+              {
+                "devicePath": "/dev/control-zz95m",
+                "name": "control-zz95m"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": false,
+        "hostname": "control",
+        "nodeName": "ocp-virt6-host12",
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubevirt.io/schedulable": "true",
+          "machine-type.node.kubevirt.io/pc-q35-rhel9.2.0": "true"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "readinessGates": [
+          {
+            "conditionType": "kubevirt.io/virtual-machine-unpaused"
+          }
+        ],
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 107,
+          "runAsGroup": 107,
+          "runAsNonRoot": true,
+          "runAsUser": 107,
+          "seccompProfile": {
+            "localhostProfile": "kubevirt/kubevirt.json",
+            "type": "Localhost"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "subdomain": "lab",
+        "terminationGracePeriodSeconds": 60,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "private"
+          },
+          {
+            "emptyDir": {},
+            "name": "public"
+          },
+          {
+            "emptyDir": {},
+            "name": "sockets"
+          },
+          {
+            "emptyDir": {},
+            "name": "virt-bin-share-dir"
+          },
+          {
+            "emptyDir": {},
+            "name": "libvirt-runtime"
+          },
+          {
+            "emptyDir": {},
+            "name": "ephemeral-disks"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-disks"
+          },
+          {
+            "name": "control-zz95m",
+            "persistentVolumeClaim": {
+              "claimName": "control-zz95m"
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "hotplug-disks"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-05-06T10:46:22Z",
+            "lastTransitionTime": "2026-05-06T10:46:22Z",
+            "message": "the virtual machine is not paused",
+            "reason": "NotPaused",
+            "status": "True",
+            "type": "kubevirt.io/virtual-machine-unpaused"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:26Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:22Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:26Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:26Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:22Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "400m",
+              "devices.kubevirt.io/kvm": "1",
+              "devices.kubevirt.io/tun": "1",
+              "devices.kubevirt.io/vhost-net": "1",
+              "ephemeral-storage": "50M",
+              "memory": "32306184192"
+            },
+            "containerID": "cri-o://0bd8d04c5291ee3197606b9319d036830a9d029634c9301abdc9ca807396616f",
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imageID": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "lastState": {},
+            "name": "compute",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "4",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "63098016Ki"
+              },
+              "requests": {
+                "cpu": "400m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "32306184192"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:46:25Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 107,
+                "supplementalGroups": [
+                  107,
+                  36
+                ],
+                "uid": 107
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.229",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.229"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.128.43.4",
+        "podIPs": [
+          {
+            "ip": "10.128.43.4"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T10:46:22Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "descheduler.alpha.kubernetes.io/request-evict-only": "",
+          "istio.io/reroute-virtual-interfaces": "k6t-eth0",
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.38.165/21\"],\"mac_address\":\"0a:58:0a:82:26:a5\",\"gateway_ips\":[\"10.130.32.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.32.1\"}],\"ip_address\":\"10.130.38.165/21\",\"gateway_ip\":\"10.130.32.1\",\"role\":\"primary\"},\"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\":{\"ip_addresses\":null,\"mac_address\":\"2c:c2:60:c1:d7:88\",\"tunnel_id\":70,\"role\":\"secondary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.38.165\"\n    ],\n    \"mac\": \"0a:58:0a:82:26:a5\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\",\n    \"interface\": \"pode888e8f205f\",\n    \"mac\": \"2c:c2:60:c1:d7:88\",\n    \"dns\": {}\n}]",
+          "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"secondaryzz95m\",\"namespace\":\"sandbox-zz95m-zt-ansiblebu\",\"mac\":\"2c:c2:60:c1:d7:88\",\"interface\":\"pode888e8f205f\"}]",
+          "kubectl.kubernetes.io/default-container": "compute",
+          "kubevirt.io/domain": "dbserver",
+          "kubevirt.io/migrationTransportUnix": "true",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/vm-generation": "1",
+          "openshift.io/scc": "kubevirt-controller",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"dbserver\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "post.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"dbserver\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "pre.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/timeout": "60s",
+          "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
+          "security.openshift.io/validated-scc-subject-type": "user",
+          "traffic.sidecar.istio.io/kubevirtInterfaces": "k6t-eth0"
+        },
+        "creationTimestamp": "2026-05-06T20:15:15Z",
+        "generateName": "virt-launcher-dbserver-",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io": "virt-launcher",
+          "kubevirt.io/created-by": "0e578838-a789-45bc-8641-05997361c3c2",
+          "kubevirt.io/nodeName": "ocp-virt6-host8",
+          "vm.cnv.io/name": "dbserver",
+          "vm.kubevirt.io/name": "dbserver"
+        },
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachineInstance",
+            "name": "dbserver",
+            "uid": "0e578838-a789-45bc-8641-05997361c3c2"
+          }
+        ],
+        "resourceVersion": "1331500206",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/usr/bin/virt-launcher-monitor",
+              "--qemu-timeout",
+              "308s",
+              "--name",
+              "dbserver",
+              "--uid",
+              "0e578838-a789-45bc-8641-05997361c3c2",
+              "--namespace",
+              "sandbox-zz95m-zt-ansiblebu",
+              "--kubevirt-share-dir",
+              "/var/run/kubevirt",
+              "--ephemeral-disk-dir",
+              "/var/run/kubevirt-ephemeral-disks",
+              "--container-disk-dir",
+              "/var/run/kubevirt/container-disks",
+              "--grace-period-seconds",
+              "45",
+              "--hook-sidecars",
+              "0",
+              "--ovmf-path",
+              "/usr/share/OVMF",
+              "--disk-memory-limit",
+              "2000000000",
+              "--run-as-nonroot"
+            ],
+            "env": [
+              {
+                "name": "XDG_CACHE_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_CONFIG_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_RUNTIME_DIR",
+                "value": "/var/run"
+              },
+              {
+                "name": "KUBEVIRT_RESOURCE_NAME_secondaryzz95m"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "compute",
+            "resources": {
+              "limits": {
+                "cpu": "4",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "memory": "32612368384"
+              },
+              "requests": {
+                "cpu": "400m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "ephemeral-storage": "50M",
+                "memory": "16306184192"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 107,
+              "runAsNonRoot": true,
+              "runAsUser": 107
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeDevices": [
+              {
+                "devicePath": "/dev/dbserver-zz95m",
+                "name": "dbserver-zz95m"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": false,
+        "hostname": "dbserver",
+        "nodeName": "ocp-virt6-host8",
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubevirt.io/schedulable": "true",
+          "machine-type.node.kubevirt.io/pc-q35-rhel9.2.0": "true"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "readinessGates": [
+          {
+            "conditionType": "kubevirt.io/virtual-machine-unpaused"
+          }
+        ],
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 107,
+          "runAsGroup": 107,
+          "runAsNonRoot": true,
+          "runAsUser": 107,
+          "seccompProfile": {
+            "localhostProfile": "kubevirt/kubevirt.json",
+            "type": "Localhost"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "subdomain": "lab",
+        "terminationGracePeriodSeconds": 60,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "private"
+          },
+          {
+            "emptyDir": {},
+            "name": "public"
+          },
+          {
+            "emptyDir": {},
+            "name": "sockets"
+          },
+          {
+            "emptyDir": {},
+            "name": "virt-bin-share-dir"
+          },
+          {
+            "emptyDir": {},
+            "name": "libvirt-runtime"
+          },
+          {
+            "emptyDir": {},
+            "name": "ephemeral-disks"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-disks"
+          },
+          {
+            "name": "dbserver-zz95m",
+            "persistentVolumeClaim": {
+              "claimName": "dbserver-zz95m"
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "hotplug-disks"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-05-06T20:15:15Z",
+            "lastTransitionTime": "2026-05-06T20:15:15Z",
+            "message": "the virtual machine is not paused",
+            "reason": "NotPaused",
+            "status": "True",
+            "type": "kubevirt.io/virtual-machine-unpaused"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:25Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:15Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:25Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:25Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:15Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "400m",
+              "devices.kubevirt.io/kvm": "1",
+              "devices.kubevirt.io/tun": "1",
+              "ephemeral-storage": "50M",
+              "memory": "16306184192"
+            },
+            "containerID": "cri-o://347a1910ac64aca0b340023a6d64554a9ea2c93e8d1a4771d64913323fb8d23e",
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imageID": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "lastState": {},
+            "name": "compute",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "4",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "memory": "31848016Ki"
+              },
+              "requests": {
+                "cpu": "400m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "ephemeral-storage": "50M",
+                "memory": "16306184192"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T20:15:24Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 107,
+                "supplementalGroups": [
+                  107,
+                  36
+                ],
+                "uid": 107
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.246",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.246"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.130.38.165",
+        "podIPs": [
+          {
+            "ip": "10.130.38.165"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T20:15:15Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "descheduler.alpha.kubernetes.io/request-evict-only": "",
+          "istio.io/reroute-virtual-interfaces": "k6t-eth0",
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.128.43.8/21\"],\"mac_address\":\"0a:58:0a:80:2b:08\",\"gateway_ips\":[\"10.128.40.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.128.40.1\"}],\"ip_address\":\"10.128.43.8/21\",\"gateway_ip\":\"10.128.40.1\",\"role\":\"primary\"},\"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\":{\"ip_addresses\":null,\"mac_address\":\"2c:c2:60:95:0c:bf\",\"tunnel_id\":8,\"role\":\"secondary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.43.8\"\n    ],\n    \"mac\": \"0a:58:0a:80:2b:08\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\",\n    \"interface\": \"pode888e8f205f\",\n    \"mac\": \"2c:c2:60:95:0c:bf\",\n    \"dns\": {}\n}]",
+          "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"secondaryzz95m\",\"namespace\":\"sandbox-zz95m-zt-ansiblebu\",\"mac\":\"2c:c2:60:95:0c:bf\",\"interface\":\"pode888e8f205f\"}]",
+          "kubectl.kubernetes.io/default-container": "compute",
+          "kubevirt.io/domain": "haproxy",
+          "kubevirt.io/migrationTransportUnix": "true",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/vm-generation": "1",
+          "openshift.io/scc": "kubevirt-controller",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"haproxy\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "post.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"haproxy\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "pre.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/timeout": "60s",
+          "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
+          "security.openshift.io/validated-scc-subject-type": "user",
+          "traffic.sidecar.istio.io/kubevirtInterfaces": "k6t-eth0"
+        },
+        "creationTimestamp": "2026-05-06T10:47:29Z",
+        "generateName": "virt-launcher-haproxy-",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io": "virt-launcher",
+          "kubevirt.io/created-by": "b3e25eb0-1c55-4991-8d9c-2537cad8e0e4",
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "haproxy",
+          "vm.kubevirt.io/name": "haproxy"
+        },
+        "name": "virt-launcher-haproxy-w6jhx",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachineInstance",
+            "name": "haproxy",
+            "uid": "b3e25eb0-1c55-4991-8d9c-2537cad8e0e4"
+          }
+        ],
+        "resourceVersion": "1329854564",
+        "uid": "c6af62ba-6857-4a39-b6e4-7b1450e41e1d"
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/usr/bin/virt-launcher-monitor",
+              "--qemu-timeout",
+              "274s",
+              "--name",
+              "haproxy",
+              "--uid",
+              "b3e25eb0-1c55-4991-8d9c-2537cad8e0e4",
+              "--namespace",
+              "sandbox-zz95m-zt-ansiblebu",
+              "--kubevirt-share-dir",
+              "/var/run/kubevirt",
+              "--ephemeral-disk-dir",
+              "/var/run/kubevirt-ephemeral-disks",
+              "--container-disk-dir",
+              "/var/run/kubevirt/container-disks",
+              "--grace-period-seconds",
+              "45",
+              "--hook-sidecars",
+              "0",
+              "--ovmf-path",
+              "/usr/share/OVMF",
+              "--disk-memory-limit",
+              "2000000000",
+              "--run-as-nonroot"
+            ],
+            "env": [
+              {
+                "name": "XDG_CACHE_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_CONFIG_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_RUNTIME_DIR",
+                "value": "/var/run"
+              },
+              {
+                "name": "KUBEVIRT_RESOURCE_NAME_secondaryzz95m"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "compute",
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "4578813952"
+              },
+              "requests": {
+                "cpu": "200m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "2289406976"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 107,
+              "runAsNonRoot": true,
+              "runAsUser": 107
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeDevices": [
+              {
+                "devicePath": "/dev/haproxy-zz95m",
+                "name": "haproxy-zz95m"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": false,
+        "hostname": "haproxy",
+        "nodeName": "ocp-virt6-host12",
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubevirt.io/schedulable": "true",
+          "machine-type.node.kubevirt.io/pc-q35-rhel9.2.0": "true"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "readinessGates": [
+          {
+            "conditionType": "kubevirt.io/virtual-machine-unpaused"
+          }
+        ],
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 107,
+          "runAsGroup": 107,
+          "runAsNonRoot": true,
+          "runAsUser": 107,
+          "seccompProfile": {
+            "localhostProfile": "kubevirt/kubevirt.json",
+            "type": "Localhost"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "subdomain": "lab",
+        "terminationGracePeriodSeconds": 60,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "private"
+          },
+          {
+            "emptyDir": {},
+            "name": "public"
+          },
+          {
+            "emptyDir": {},
+            "name": "sockets"
+          },
+          {
+            "emptyDir": {},
+            "name": "virt-bin-share-dir"
+          },
+          {
+            "emptyDir": {},
+            "name": "libvirt-runtime"
+          },
+          {
+            "emptyDir": {},
+            "name": "ephemeral-disks"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-disks"
+          },
+          {
+            "name": "haproxy-zz95m",
+            "persistentVolumeClaim": {
+              "claimName": "haproxy-zz95m"
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "hotplug-disks"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-05-06T10:47:29Z",
+            "lastTransitionTime": "2026-05-06T10:47:29Z",
+            "message": "the virtual machine is not paused",
+            "reason": "NotPaused",
+            "status": "True",
+            "type": "kubevirt.io/virtual-machine-unpaused"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:43Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:29Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:43Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:43Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:29Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "200m",
+              "devices.kubevirt.io/kvm": "1",
+              "devices.kubevirt.io/tun": "1",
+              "devices.kubevirt.io/vhost-net": "1",
+              "ephemeral-storage": "50M",
+              "memory": "2289406976"
+            },
+            "containerID": "cri-o://444f71f23f1edbcc07df83a70b0dec6c29685022d53c3277f7ceefadd7ff9b8b",
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imageID": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "lastState": {},
+            "name": "compute",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "4471498Ki"
+              },
+              "requests": {
+                "cpu": "200m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "2289406976"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:47:42Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 107,
+                "supplementalGroups": [
+                  107,
+                  36
+                ],
+                "uid": 107
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.229",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.229"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.128.43.8",
+        "podIPs": [
+          {
+            "ip": "10.128.43.8"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T10:47:29Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "descheduler.alpha.kubernetes.io/request-evict-only": "",
+          "istio.io/reroute-virtual-interfaces": "k6t-eth0",
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.128.43.5/21\"],\"mac_address\":\"0a:58:0a:80:2b:05\",\"gateway_ips\":[\"10.128.40.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.128.40.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.128.40.1\"}],\"ip_address\":\"10.128.43.5/21\",\"gateway_ip\":\"10.128.40.1\",\"role\":\"primary\"},\"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\":{\"ip_addresses\":null,\"mac_address\":\"2c:c2:60:63:18:54\",\"tunnel_id\":6,\"role\":\"secondary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.43.5\"\n    ],\n    \"mac\": \"0a:58:0a:80:2b:05\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\",\n    \"interface\": \"pode888e8f205f\",\n    \"mac\": \"2c:c2:60:63:18:54\",\n    \"dns\": {}\n}]",
+          "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"secondaryzz95m\",\"namespace\":\"sandbox-zz95m-zt-ansiblebu\",\"mac\":\"2c:c2:60:63:18:54\",\"interface\":\"pode888e8f205f\"}]",
+          "kubectl.kubernetes.io/default-container": "compute",
+          "kubevirt.io/domain": "node01",
+          "kubevirt.io/migrationTransportUnix": "true",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/vm-generation": "1",
+          "openshift.io/scc": "kubevirt-controller",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"node01\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "post.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"node01\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "pre.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/timeout": "60s",
+          "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
+          "security.openshift.io/validated-scc-subject-type": "user",
+          "traffic.sidecar.istio.io/kubevirtInterfaces": "k6t-eth0"
+        },
+        "creationTimestamp": "2026-05-06T10:46:50Z",
+        "generateName": "virt-launcher-node01-",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io": "virt-launcher",
+          "kubevirt.io/created-by": "fb304f80-1214-4c51-a58a-e1e55813e476",
+          "kubevirt.io/nodeName": "ocp-virt6-host12",
+          "vm.cnv.io/name": "node01",
+          "vm.kubevirt.io/name": "node01"
+        },
+        "name": "virt-launcher-node01-q9gsz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachineInstance",
+            "name": "node01",
+            "uid": "fb304f80-1214-4c51-a58a-e1e55813e476"
+          }
+        ],
+        "resourceVersion": "1329852730",
+        "uid": "4aca8f1e-a554-43df-811c-4ccdb4ceb8d8"
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/usr/bin/virt-launcher-monitor",
+              "--qemu-timeout",
+              "356s",
+              "--name",
+              "node01",
+              "--uid",
+              "fb304f80-1214-4c51-a58a-e1e55813e476",
+              "--namespace",
+              "sandbox-zz95m-zt-ansiblebu",
+              "--kubevirt-share-dir",
+              "/var/run/kubevirt",
+              "--ephemeral-disk-dir",
+              "/var/run/kubevirt-ephemeral-disks",
+              "--container-disk-dir",
+              "/var/run/kubevirt/container-disks",
+              "--grace-period-seconds",
+              "45",
+              "--hook-sidecars",
+              "0",
+              "--ovmf-path",
+              "/usr/share/OVMF",
+              "--disk-memory-limit",
+              "2000000000",
+              "--run-as-nonroot"
+            ],
+            "env": [
+              {
+                "name": "XDG_CACHE_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_CONFIG_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_RUNTIME_DIR",
+                "value": "/var/run"
+              },
+              {
+                "name": "KUBEVIRT_RESOURCE_NAME_secondaryzz95m"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "compute",
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "4578813952"
+              },
+              "requests": {
+                "cpu": "200m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "2289406976"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 107,
+              "runAsNonRoot": true,
+              "runAsUser": 107
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeDevices": [
+              {
+                "devicePath": "/dev/node01-zz95m",
+                "name": "node01-zz95m"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": false,
+        "hostname": "node01",
+        "nodeName": "ocp-virt6-host12",
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubevirt.io/schedulable": "true",
+          "machine-type.node.kubevirt.io/pc-q35-rhel9.2.0": "true"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "readinessGates": [
+          {
+            "conditionType": "kubevirt.io/virtual-machine-unpaused"
+          }
+        ],
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 107,
+          "runAsGroup": 107,
+          "runAsNonRoot": true,
+          "runAsUser": 107,
+          "seccompProfile": {
+            "localhostProfile": "kubevirt/kubevirt.json",
+            "type": "Localhost"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "subdomain": "lab",
+        "terminationGracePeriodSeconds": 60,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "private"
+          },
+          {
+            "emptyDir": {},
+            "name": "public"
+          },
+          {
+            "emptyDir": {},
+            "name": "sockets"
+          },
+          {
+            "emptyDir": {},
+            "name": "virt-bin-share-dir"
+          },
+          {
+            "emptyDir": {},
+            "name": "libvirt-runtime"
+          },
+          {
+            "emptyDir": {},
+            "name": "ephemeral-disks"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-disks"
+          },
+          {
+            "name": "node01-zz95m",
+            "persistentVolumeClaim": {
+              "claimName": "node01-zz95m"
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "hotplug-disks"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-05-06T10:46:50Z",
+            "lastTransitionTime": "2026-05-06T10:46:50Z",
+            "message": "the virtual machine is not paused",
+            "reason": "NotPaused",
+            "status": "True",
+            "type": "kubevirt.io/virtual-machine-unpaused"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:01Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:50Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:01Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:01Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:50Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "200m",
+              "devices.kubevirt.io/kvm": "1",
+              "devices.kubevirt.io/tun": "1",
+              "devices.kubevirt.io/vhost-net": "1",
+              "ephemeral-storage": "50M",
+              "memory": "2289406976"
+            },
+            "containerID": "cri-o://7ff4ba8289f5c17468de555d2f76abc341d39f05fe3f14e081c9c0bff0058b51",
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imageID": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "lastState": {},
+            "name": "compute",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "memory": "4471498Ki"
+              },
+              "requests": {
+                "cpu": "200m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "devices.kubevirt.io/vhost-net": "1",
+                "ephemeral-storage": "50M",
+                "memory": "2289406976"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T10:47:01Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 107,
+                "supplementalGroups": [
+                  107,
+                  36
+                ],
+                "uid": 107
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.229",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.229"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.128.43.5",
+        "podIPs": [
+          {
+            "ip": "10.128.43.5"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T10:46:50Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "descheduler.alpha.kubernetes.io/request-evict-only": "",
+          "istio.io/reroute-virtual-interfaces": "k6t-eth0",
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.38.163/21\"],\"mac_address\":\"0a:58:0a:82:26:a3\",\"gateway_ips\":[\"10.130.32.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"169.254.169.5/32\",\"nextHop\":\"10.130.32.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.130.32.1\"}],\"ip_address\":\"10.130.38.163/21\",\"gateway_ip\":\"10.130.32.1\",\"role\":\"primary\"},\"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\":{\"ip_addresses\":null,\"mac_address\":\"2c:c2:60:2f:f1:66\",\"tunnel_id\":66,\"role\":\"secondary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.38.163\"\n    ],\n    \"mac\": \"0a:58:0a:82:26:a3\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"sandbox-zz95m-zt-ansiblebu/secondaryzz95m\",\n    \"interface\": \"pode888e8f205f\",\n    \"mac\": \"2c:c2:60:2f:f1:66\",\n    \"dns\": {}\n}]",
+          "k8s.v1.cni.cncf.io/networks": "[{\"name\":\"secondaryzz95m\",\"namespace\":\"sandbox-zz95m-zt-ansiblebu\",\"mac\":\"2c:c2:60:2f:f1:66\",\"interface\":\"pode888e8f205f\"}]",
+          "kubectl.kubernetes.io/default-container": "compute",
+          "kubevirt.io/domain": "windows",
+          "kubevirt.io/migrationTransportUnix": "true",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/vm-generation": "1",
+          "openshift.io/scc": "kubevirt-controller",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"windows\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "post.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"windows\", \"--namespace\", \"sandbox-zz95m-zt-ansiblebu\"]",
+          "pre.hook.backup.velero.io/container": "compute",
+          "pre.hook.backup.velero.io/timeout": "60s",
+          "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
+          "security.openshift.io/validated-scc-subject-type": "user",
+          "traffic.sidecar.istio.io/kubevirtInterfaces": "k6t-eth0"
+        },
+        "creationTimestamp": "2026-05-06T19:58:07Z",
+        "generateName": "virt-launcher-windows-",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io": "virt-launcher",
+          "kubevirt.io/created-by": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7",
+          "kubevirt.io/nodeName": "ocp-virt6-host8",
+          "vm.cnv.io/name": "windows",
+          "vm.kubevirt.io/name": "windows"
+        },
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachineInstance",
+            "name": "windows",
+            "uid": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7"
+          }
+        ],
+        "resourceVersion": "1331458939",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/usr/bin/virt-launcher-monitor",
+              "--qemu-timeout",
+              "255s",
+              "--name",
+              "windows",
+              "--uid",
+              "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7",
+              "--namespace",
+              "sandbox-zz95m-zt-ansiblebu",
+              "--kubevirt-share-dir",
+              "/var/run/kubevirt",
+              "--ephemeral-disk-dir",
+              "/var/run/kubevirt-ephemeral-disks",
+              "--container-disk-dir",
+              "/var/run/kubevirt/container-disks",
+              "--grace-period-seconds",
+              "45",
+              "--hook-sidecars",
+              "0",
+              "--ovmf-path",
+              "/usr/share/OVMF",
+              "--disk-memory-limit",
+              "2000000000",
+              "--run-as-nonroot"
+            ],
+            "env": [
+              {
+                "name": "XDG_CACHE_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_CONFIG_HOME",
+                "value": "/var/run/kubevirt-private"
+              },
+              {
+                "name": "XDG_RUNTIME_DIR",
+                "value": "/var/run"
+              },
+              {
+                "name": "KUBEVIRT_RESOURCE_NAME_secondaryzz95m"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "compute",
+            "resources": {
+              "limits": {
+                "cpu": "6",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "memory": "64645922816"
+              },
+              "requests": {
+                "cpu": "600m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "ephemeral-storage": "50M",
+                "memory": "32322961408"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 107,
+              "runAsNonRoot": true,
+              "runAsUser": 107
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeDevices": [
+              {
+                "devicePath": "/dev/windows-zz95m",
+                "name": "windows-zz95m"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "mountPropagation": "HostToContainer",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": false,
+        "hostname": "windows",
+        "nodeName": "ocp-virt6-host8",
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubevirt.io/schedulable": "true",
+          "machine-type.node.kubevirt.io/pc-q35-rhel9.2.0": "true"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "readinessGates": [
+          {
+            "conditionType": "kubevirt.io/virtual-machine-unpaused"
+          }
+        ],
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 107,
+          "runAsGroup": 107,
+          "runAsNonRoot": true,
+          "runAsUser": 107,
+          "seccompProfile": {
+            "localhostProfile": "kubevirt/kubevirt.json",
+            "type": "Localhost"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "subdomain": "lab",
+        "terminationGracePeriodSeconds": 60,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "private"
+          },
+          {
+            "emptyDir": {},
+            "name": "public"
+          },
+          {
+            "emptyDir": {},
+            "name": "sockets"
+          },
+          {
+            "emptyDir": {},
+            "name": "virt-bin-share-dir"
+          },
+          {
+            "emptyDir": {},
+            "name": "libvirt-runtime"
+          },
+          {
+            "emptyDir": {},
+            "name": "ephemeral-disks"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-disks"
+          },
+          {
+            "name": "windows-zz95m",
+            "persistentVolumeClaim": {
+              "claimName": "windows-zz95m"
+            }
+          },
+          {
+            "emptyDir": {},
+            "name": "hotplug-disks"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": "2026-05-06T19:58:07Z",
+            "lastTransitionTime": "2026-05-06T19:58:07Z",
+            "message": "the virtual machine is not paused",
+            "reason": "NotPaused",
+            "status": "True",
+            "type": "kubevirt.io/virtual-machine-unpaused"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:15Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:07Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:15Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:15Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:07Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "allocatedResources": {
+              "cpu": "600m",
+              "devices.kubevirt.io/kvm": "1",
+              "devices.kubevirt.io/tun": "1",
+              "ephemeral-storage": "50M",
+              "memory": "32322961408"
+            },
+            "containerID": "cri-o://323ddaeb623e9b1698a2a166c1e8ebdb8a3e82c2f54011d72c1e39875d6e77fa",
+            "image": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "imageID": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+            "lastState": {},
+            "name": "compute",
+            "ready": true,
+            "resources": {
+              "limits": {
+                "cpu": "6",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "memory": "63130784Ki"
+              },
+              "requests": {
+                "cpu": "600m",
+                "devices.kubevirt.io/kvm": "1",
+                "devices.kubevirt.io/tun": "1",
+                "ephemeral-storage": "50M",
+                "memory": "32322961408"
+              }
+            },
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-05-06T19:58:15Z"
+              }
+            },
+            "user": {
+              "linux": {
+                "gid": 107,
+                "supplementalGroups": [
+                  107,
+                  36
+                ],
+                "uid": 107
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/kubevirt-private",
+                "name": "private"
+              },
+              {
+                "mountPath": "/var/run/kubevirt",
+                "name": "public"
+              },
+              {
+                "mountPath": "/var/run/kubevirt-ephemeral-disks",
+                "name": "ephemeral-disks"
+              },
+              {
+                "mountPath": "/var/run/libvirt",
+                "name": "libvirt-runtime"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/sockets",
+                "name": "sockets"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/container-disks",
+                "name": "container-disks"
+              },
+              {
+                "mountPath": "/var/run/kubevirt/hotplug-disks",
+                "name": "hotplug-disks"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.95.160.246",
+        "hostIPs": [
+          {
+            "ip": "10.95.160.246"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.130.38.163",
+        "podIPs": [
+          {
+            "ip": "10.130.38.163"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-05-06T19:58:07Z"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

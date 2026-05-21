@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: stargate-frontend
+  template:
+    metadata:
+      labels:
+        app: stargate-frontend
+    spec:
+      {{- if .Values.oauth.enabled }}
+      serviceAccountName: stargate-frontend
+      {{- end }}
+      containers:
+        - name: frontend
+          image: {{ .Values.frontend.image }}
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+          env:
+            - name: API_PROXY_TARGET
+              value: http://stargate-api:{{ .Values.api.port }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+        {{- if .Values.oauth.enabled }}
+        - name: oauth-proxy
+          image: {{ .Values.oauth.image | default "registry.redhat.io/openshift4/ose-oauth-proxy:latest" }}
+          ports:
+            - containerPort: 4180
+              name: proxy
+          args:
+            - --https-address=
+            - --http-address=:4180
+            - --upstream=http://localhost:{{ .Values.frontend.port }}
+            - --cookie-secret={{ required "oauth.cookieSecret must be set when oauth is enabled" .Values.oauth.cookieSecret }}
+            - --cookie-name=_stargate_oauth
+            - --provider=openshift
+            - --openshift-service-account=stargate-frontend
+            - --pass-user-headers=true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stargate-frontend
+  {{- if .Values.oauth.enabled }}
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: stargate-frontend-tls
+  {{- end }}
+spec:
+  ports:
+    {{- if .Values.oauth.enabled }}
+    - port: 4180
+      name: proxy
+      targetPort: 4180
+    {{- end }}
+    - port: {{ .Values.frontend.port }}
+      name: frontend
+      targetPort: {{ .Values.frontend.port }}
+  selector:
+    app: stargate-frontend

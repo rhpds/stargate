@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sdf-create-run
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  description: >
+    Creates a new SDF run record for a demo provisioning attempt.
+    Emits run_id as a result for downstream tasks.
+  params:
+    - name: demo-id
+      type: string
+      description: The demo definition ID
+    - name: namespace
+      type: string
+      description: Target namespace for the demo
+    - name: rubric-version
+      type: string
+      default: "v0.1.0"
+    - name: sdf-api-url
+      type: string
+      default: "http://summit-demo-factory:8080"
+  results:
+    - name: run-id
+      description: The created run ID
+  steps:
+    - name: create-run
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        RUN_ID="$(params.demo-id)-$(date -u +%Y%m%d-%H%M%S)"
+
+        RESPONSE=$(curl -sf -X POST "$(params.sdf-api-url)/runs" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"run_id\": \"${RUN_ID}\",
+            \"demo_id\": \"$(params.demo-id)\",
+            \"namespace\": \"$(params.namespace)\",
+            \"requested_by\": \"tekton-pipeline\",
+            \"rubric_version\": \"$(params.rubric-version)\"
+          }")
+
+        echo "Run created: ${RUN_ID}"
+        echo "${RESPONSE}" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=2))" 2>/dev/null || echo "${RESPONSE}"
+
+        printf "%s" "${RUN_ID}" > "$(results.run-id.path)"

@@ -1,0 +1,346 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"data-service\",\"tier\":\"backend\"},\"name\":\"cost-data-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"ports\":[{\"name\":\"api\",\"port\":8000,\"protocol\":\"TCP\",\"targetPort\":8000},{\"name\":\"health\",\"port\":8080,\"protocol\":\"TCP\",\"targetPort\":8080}],\"selector\":{\"app\":\"cost-data-service\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"data-service\"},\"type\":\"ClusterIP\"}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "data-service",
+          "tier": "backend"
+        },
+        "name": "cost-data-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912641",
+        "uid": "5edc7392-4286-48f3-8e41-d855261c2e94"
+      },
+      "spec": {
+        "clusterIP": "172.30.19.166",
+        "clusterIPs": [
+          "172.30.19.166"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "api",
+            "port": 8000,
+            "protocol": "TCP",
+            "targetPort": 8000
+          },
+          {
+            "name": "health",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "cost-data-service",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "data-service"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\",\"tier\":\"frontend\"},\"name\":\"dashboard-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"ports\":[{\"name\":\"web\",\"port\":8050,\"protocol\":\"TCP\",\"targetPort\":8050}],\"selector\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\"},\"type\":\"ClusterIP\"}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "dashboard",
+          "tier": "frontend"
+        },
+        "name": "dashboard-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912657",
+        "uid": "140230ad-fc47-415e-9c96-10177bc81781"
+      },
+      "spec": {
+        "clusterIP": "172.30.192.57",
+        "clusterIPs": [
+          "172.30.192.57"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "web",
+            "port": 8050,
+            "protocol": "TCP",
+            "targetPort": 8050
+          }
+        ],
+        "selector": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "dashboard"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{\"service.beta.openshift.io/serving-cert-secret-name\":\"oauth-serving-cert\"},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"oauth-proxy\",\"tier\":\"security\"},\"name\":\"oauth-proxy-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":8080,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"port\":8443,\"protocol\":\"TCP\",\"targetPort\":8443}],\"selector\":{\"app\":\"oauth-proxy\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"oauth-proxy\"},\"type\":\"ClusterIP\"}}\n",
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1750049928",
+          "service.beta.openshift.io/serving-cert-secret-name": "REDACTED-dummy-password",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1750049928"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "oauth-proxy",
+          "tier": "security"
+        },
+        "name": "oauth-proxy-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912688",
+        "uid": "3ed0ac02-64e4-45d3-a36b-d94dc444ff2c"
+      },
+      "spec": {
+        "clusterIP": "172.30.165.104",
+        "clusterIPs": [
+          "172.30.165.104"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          },
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": 8443
+          }
+        ],
+        "selector": {
+          "app": "oauth-proxy",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "oauth-proxy"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"database\",\"tier\":\"data\"},\"name\":\"postgresql\",\"namespace\":\"cost-monitor\"},\"spec\":{\"ports\":[{\"name\":\"postgresql\",\"port\":5432,\"protocol\":\"TCP\",\"targetPort\":5432}],\"selector\":{\"app\":\"postgresql\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"database\"},\"type\":\"ClusterIP\"}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database",
+          "tier": "data"
+        },
+        "name": "postgresql",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912678",
+        "uid": "06bf8b75-e1f4-43ea-9eb1-0f452148c6ca"
+      },
+      "spec": {
+        "clusterIP": "172.30.131.52",
+        "clusterIPs": [
+          "172.30.131.52"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "postgresql",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "postgresql",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"database\",\"tier\":\"data\"},\"name\":\"postgresql-headless\",\"namespace\":\"cost-monitor\"},\"spec\":{\"clusterIP\":\"None\",\"ports\":[{\"name\":\"postgresql\",\"port\":5432,\"protocol\":\"TCP\",\"targetPort\":5432}],\"selector\":{\"app\":\"postgresql\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"database\"},\"type\":\"ClusterIP\"}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:16Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database",
+          "tier": "data"
+        },
+        "name": "postgresql-headless",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912691",
+        "uid": "5881461a-724b-4916-87d0-b7d396c85164"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "postgresql",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "postgresql",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"cache\",\"tier\":\"data\"},\"name\":\"redis-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"ports\":[{\"name\":\"redis\",\"port\":6379,\"protocol\":\"TCP\",\"targetPort\":6379}],\"selector\":{\"app\":\"redis\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"cache\"},\"type\":\"ClusterIP\"}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:16Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "cache",
+          "tier": "data"
+        },
+        "name": "redis-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "417912699",
+        "uid": "e658873b-279e-4bf4-8d01-d882acca6be2"
+      },
+      "spec": {
+        "clusterIP": "172.30.192.198",
+        "clusterIPs": [
+          "172.30.192.198"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "redis",
+            "port": 6379,
+            "protocol": "TCP",
+            "targetPort": 6379
+          }
+        ],
+        "selector": {
+          "app": "redis",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "cache"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

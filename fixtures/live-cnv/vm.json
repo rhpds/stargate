@@ -1,0 +1,941 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "bastions,showroom",
+          "Stack": "project cloud-vms-base-2cf6p",
+          "config": "cloud-vms-base",
+          "guid": "2cf6p",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "ostype": "linux",
+          "owner": "cloud-vms-base@opentlc.com",
+          "uuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+        },
+        "creationTimestamp": "2026-05-06T13:11:15Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "bastion",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330323651",
+        "uid": "22841505-3384-437a-ad73-e5dd306b30bb"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "bastion-2cf6p"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "50Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-9.6",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "bastion"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 4,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "bastion-2cf6p"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "56957f70-ffa7-4c37-be97-ab601d86493c",
+                "uuid": "d43dd832-a7fd-52e8-852b-83099ffb0aae"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "8G"
+              },
+              "resources": {}
+            },
+            "hostname": "bastion",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "bastion-2cf6p"
+                },
+                "name": "bastion-2cf6p"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:11:43Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:12:08Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "bastion-2cf6p"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "project cloud-vms-base-2cf6p",
+          "config": "cloud-vms-base",
+          "guid": "2cf6p",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "cloud-vms-base@opentlc.com",
+          "uuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+        },
+        "creationTimestamp": "2026-05-06T13:11:51Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "controller",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330324405",
+        "uid": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "controller-2cf6p"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "100Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "aap-2.6-2-ceh-20251103",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "controller"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 8,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "controller-2cf6p"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "0b9bbb7d-4aef-497a-9e40-eed875bde10e",
+                "uuid": "463e56f7-1073-5952-bcfa-26b5c102a8db"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "32G"
+              },
+              "resources": {}
+            },
+            "hostname": "controller",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "controller-2cf6p"
+                },
+                "name": "controller-2cf6p"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cgp1c2VyOiByaGVsCnBhc3N3b3JkOiAiNHZKMWM1SkdhOHp3dXBDSiIKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIHNlZCAtaSAicy9QYXNzd29yZEF1dGhlbnRpY2F0aW9uIG5vL1Bhc3N3b3JkQXV0aGVudGljYXRpb24geWVzLyIgL2V0Yy9zc2gvc3NoZF9jb25maWcKICAtIHN5c3RlbWN0bCByZWxvYWQgc3NoZA=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:12:18Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "controller-2cf6p"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "nodes",
+          "Stack": "project cloud-vms-base-2cf6p",
+          "config": "cloud-vms-base",
+          "guid": "2cf6p",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "ostype": "linux",
+          "owner": "cloud-vms-base@opentlc.com",
+          "uuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+        },
+        "creationTimestamp": "2026-05-06T13:12:26Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "node1",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330328294",
+        "uid": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "node1-2cf6p"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "50Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-9.6",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "node1"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 4,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "node1-2cf6p"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "45c22bf3-90e2-4114-b170-b20f47f774fc",
+                "uuid": "30e3dcce-bc36-59a0-9635-dfa650fa95d9"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "8G"
+              },
+              "resources": {}
+            },
+            "hostname": "node1",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "node1-2cf6p"
+                },
+                "name": "node1-2cf6p"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:07Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:13:28Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "node1-2cf6p"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "nodes",
+          "Stack": "project cloud-vms-base-2cf6p",
+          "config": "cloud-vms-base",
+          "guid": "2cf6p",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "ostype": "linux",
+          "owner": "cloud-vms-base@opentlc.com",
+          "uuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+        },
+        "creationTimestamp": "2026-05-06T13:12:27Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "node2",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330328602",
+        "uid": "6626e924-c2a8-46a6-a29c-12807731966a"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "node2-2cf6p"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "50Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-9.6",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "node2"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 4,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "node2-2cf6p"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "b4c0789c-22d4-4ad1-af12-788f4bdf1853",
+                "uuid": "7cb4c36c-a9a2-5a7c-b24d-456d788adc02"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "8G"
+              },
+              "resources": {}
+            },
+            "hostname": "node2",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "node2-2cf6p"
+                },
+                "name": "node2-2cf6p"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:04Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:13:35Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "node2-2cf6p"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "servers",
+          "Stack": "project cloud-vms-base-2cf6p",
+          "config": "cloud-vms-base",
+          "guid": "2cf6p",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "ostype": "linux",
+          "owner": "cloud-vms-base@opentlc.com",
+          "uuid": "30ad510c-e190-5538-a37a-b420fbca838b"
+        },
+        "creationTimestamp": "2026-05-06T13:13:14Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "ssap",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330328983",
+        "uid": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "ssap-2cf6p"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "50Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "ssap-11032026",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "ssap"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 2,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "ssap-2cf6p"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "5b7de1f0-109e-4b75-b63d-cb43a547ca8d",
+                "uuid": "de2da852-b553-5dfc-b813-369eb9070e9b"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "4G"
+              },
+              "resources": {}
+            },
+            "hostname": "ssap",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "ssap-2cf6p"
+                },
+                "name": "ssap-2cf6p"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:41Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "ssap-2cf6p"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

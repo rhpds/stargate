@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stargate-scan-history-pvc
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: {{ .Values.scanHistory.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stargate-scheduler
+  template:
+    metadata:
+      labels:
+        app: stargate-scheduler
+    spec:
+      containers:
+        - name: scheduler
+          image: {{ .Values.scanner.image }}
+          command: ["python3", "-m", "cli.scheduler", "--clusters", {{ .Values.scanner.clusters | quote }},
+                    "--tier1", {{ .Values.scanner.tier1 | quote }}, "--tier2", {{ .Values.scanner.tier2 | quote }},
+                    "--tier3", {{ .Values.scanner.tier3 | quote }}, "--batch", {{ .Values.scanner.batch | quote }}]
+          volumeMounts:
+            - name: secrets
+              mountPath: {{ .Values.secrets.mountPath }}
+              readOnly: true
+            - name: scan-history
+              mountPath: /opt/app-root/src/scan-history
+          resources:
+            {{- toYaml .Values.scanner.resources | nindent 12 }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: stargate-kubeconfigs
+        - name: scan-history
+          persistentVolumeClaim:
+            claimName: stargate-scan-history-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-babylon-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stargate-babylon-worker
+  template:
+    metadata:
+      labels:
+        app: stargate-babylon-worker
+    spec:
+      containers:
+        - name: babylon-worker
+          image: {{ .Values.babylonWorker.image }}
+          command: ["python3", "-m", "cli.babylon_worker", "--interval", {{ .Values.babylonWorker.interval | quote }}]
+          volumeMounts:
+            - name: secrets
+              mountPath: {{ .Values.secrets.mountPath }}
+              readOnly: true
+            - name: scan-history
+              mountPath: /opt/app-root/src/scan-history
+          resources:
+            {{- toYaml .Values.babylonWorker.resources | nindent 12 }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: stargate-kubeconfigs
+        - name: scan-history
+          persistentVolumeClaim:
+            claimName: stargate-scan-history-pvc

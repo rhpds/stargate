@@ -1,0 +1,1050 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T19:00:00.122078Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387256",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned cost-monitor/cost-data-refresh-29634900-q8sq5 to ocp-infra01-ceph00",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f128687ad8a",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387269",
+        "uid": "4ce750d3-af6e-4b1b-a9dd-bd103c805f11"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-infra01-cp02",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387276",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:00Z",
+      "message": "Add eth0 [10.130.2.207/23] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f12b6d32760",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387339",
+        "uid": "4293a309-fe2f-4f66-b0ef-ceb1d3e802a8"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387262",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:00Z",
+      "message": "Pulling image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f12b84fa622",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387346",
+        "uid": "5cfa21cd-e5d9-4c55-bb55-a441b09e6faf"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387262",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:01Z",
+      "message": "Successfully pulled image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\" in 65ms (65ms including waiting). Image size: 1679057269 bytes.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:01Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f12bc39a3fb",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387350",
+        "uid": "54979100-cb66-4876-9fac-10101426d29f"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387262",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:01Z",
+      "message": "Created container: data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:01Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f12c1eaee29",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387355",
+        "uid": "4848130a-0e40-4325-986d-a0f9641e6209"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634900-q8sq5",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387262",
+        "uid": "7be4be42-65f5-4f08-beea-158990844033"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:01Z",
+      "message": "Started container data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:01Z",
+        "name": "cost-data-refresh-29634900-q8sq5.18ad0f12c232cdc1",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387356",
+        "uid": "3fe8cf56-5e9e-4bce-bf3e-a378e66d4928"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29634900",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387243",
+        "uid": "3ce501e4-cc18-4b94-97b8-27e58703f02c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:00Z",
+      "message": "Created pod: cost-data-refresh-29634900-q8sq5",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "name": "cost-data-refresh-29634900.18ad0f12865595ea",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387271",
+        "uid": "f5ba2e63-b38d-4cfe-ad11-b4808591ed4a"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29634900",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699388179",
+        "uid": "3ce501e4-cc18-4b94-97b8-27e58703f02c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:22Z",
+      "message": "Job completed",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:22Z",
+        "name": "cost-data-refresh-29634900.18ad0f17be11d36a",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699388182",
+        "uid": "8461210a-e77f-4cfc-837a-06c6f51442f8"
+      },
+      "reason": "Completed",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T20:00:00.225646Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515487",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned cost-monitor/cost-data-refresh-29634960-pkskr to ocp-infra01-ceph00",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258bd6ca678",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515498",
+        "uid": "93a15fe3-8fe7-4c42-983e-a7e300afcf41"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-infra01-cp02",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515507",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:00Z",
+      "message": "Add eth0 [10.130.2.215/23] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258e8fa1076",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515551",
+        "uid": "d450b40a-3312-4223-8df3-f9b63e2a0e9b"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515491",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:00Z",
+      "message": "Pulling image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258eb3204e0",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515557",
+        "uid": "11977d00-e8e2-4a1a-b631-b885ad2ada54"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515491",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:01Z",
+      "message": "Successfully pulled image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\" in 68ms (68ms including waiting). Image size: 1679057269 bytes.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:01Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258ef4e1e5a",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515563",
+        "uid": "4d597560-12f5-4742-85b9-91d6aba48ce1"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515491",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:01Z",
+      "message": "Created container: data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:01Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258f52c41a8",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515571",
+        "uid": "deec73e2-8c13-4bd4-a518-1cf79af5c413"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29634960-pkskr",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515491",
+        "uid": "041fa8c0-44e8-4766-9972-8a6f87636c1e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:01Z",
+      "message": "Started container data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:01Z",
+        "name": "cost-data-refresh-29634960-pkskr.18ad1258f56f9c46",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515572",
+        "uid": "1e3fc7fe-2576-476a-94ca-fb247f1141ed"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29634960",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515461",
+        "uid": "f0f8e81c-a2ed-40cf-a399-9df76273c5a2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:00Z",
+      "message": "Created pod: cost-data-refresh-29634960-pkskr",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "name": "cost-data-refresh-29634960.18ad1258bd201c10",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515490",
+        "uid": "8d7c90b3-09dd-48b4-8bc4-4d5ba4381194"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:20Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29634960",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699516317",
+        "uid": "f0f8e81c-a2ed-40cf-a399-9df76273c5a2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:20Z",
+      "message": "Job completed",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:20Z",
+        "name": "cost-data-refresh-29634960.18ad125d5cc0ead9",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699516321",
+        "uid": "cdc066d7-843e-4c52-a9c2-e2855108d7ac"
+      },
+      "reason": "Completed",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T21:00:00.124359Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644770",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned cost-monitor/cost-data-refresh-29635020-lg7x2 to ocp-infra01-ceph00",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159ee81bbd7c",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644788",
+        "uid": "a7715d63-0791-4158-9d3b-6a22bbb0dd9e"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-infra01-cp02",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644804",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:00Z",
+      "message": "Add eth0 [10.130.2.226/23] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159f16b81cbe",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644835",
+        "uid": "c2cfd8d0-42e5-4d48-8e88-689d18832241"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644779",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:00Z",
+      "message": "Pulling image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159f17f41089",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644838",
+        "uid": "a346e94e-b2ee-473f-8352-594308a6c5dc"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:00Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644779",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:00Z",
+      "message": "Successfully pulled image \"image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service:latest\" in 69ms (69ms including waiting). Image size: 1679057269 bytes.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159f1c1b5168",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644841",
+        "uid": "bffb9238-d17d-44cd-8f9c-59f8c2213ea5"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644779",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:01Z",
+      "message": "Created container: data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:01Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159f20c7d4eb",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644848",
+        "uid": "2c7bb349-88e9-414e-999d-449263f22dc7"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:01Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{data-refresh}",
+        "kind": "Pod",
+        "name": "cost-data-refresh-29635020-lg7x2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644779",
+        "uid": "5884bafa-0374-4dae-b033-8329908e76b2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:01Z",
+      "message": "Started container data-refresh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:01Z",
+        "name": "cost-data-refresh-29635020-lg7x2.18ad159f210ddfb2",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644849",
+        "uid": "31e13e99-3f61-4607-b856-ef1ce2ff8899"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29635020",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644758",
+        "uid": "91abc665-f9ee-4e71-9937-36f6ba55382e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:00Z",
+      "message": "Created pod: cost-data-refresh-29635020-lg7x2",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh-29635020.18ad159ee7d5c0c4",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644796",
+        "uid": "800f0110-4f18-4aa6-a50f-4869f7377a9f"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "Job",
+        "name": "cost-data-refresh-29635020",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699645735",
+        "uid": "91abc665-f9ee-4e71-9937-36f6ba55382e"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:22Z",
+      "message": "Job completed",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:22Z",
+        "name": "cost-data-refresh-29635020.18ad15a42f528f30",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699645740",
+        "uid": "ee81c314-5471-494f-896a-d9755c8aaffb"
+      },
+      "reason": "Completed",
+      "reportingComponent": "job-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "job-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699262124",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:00Z",
+      "message": "Created job cost-data-refresh-29634900",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:00Z",
+        "name": "cost-data-refresh.18ad0f1285b876aa",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387259",
+        "uid": "3cf88732-facd-4d9b-8f7f-3daaaede4e75"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387249",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:22Z",
+      "message": "Deleted job cost-data-refresh-29634720",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:22Z",
+        "name": "cost-data-refresh.18ad0f17be602d27",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699388184",
+        "uid": "46321535-f36e-4be9-ac7b-e5336047630e"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699387249",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:00:22Z",
+      "message": "Saw completed job: cost-data-refresh-29634900, condition: Complete",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:00:22Z",
+        "name": "cost-data-refresh.18ad0f17be606f89",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699388186",
+        "uid": "7bb489fe-b4e6-4ecb-aac8-9e6129331f6f"
+      },
+      "reason": "SawCompletedJob",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699388185",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:00Z",
+      "message": "Created job cost-data-refresh-29634960",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:00Z",
+        "name": "cost-data-refresh.18ad1258b68d7072",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515475",
+        "uid": "e03eb223-52ec-4688-8cc3-0ae55b967830"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:20Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515468",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:20Z",
+      "message": "Deleted job cost-data-refresh-29634780",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:20Z",
+        "name": "cost-data-refresh.18ad125d5cf8d34f",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699516323",
+        "uid": "f37d27c3-bb7f-4ee4-8db6-0866ada01f22"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:00:20Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699515468",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:00:20Z",
+      "message": "Saw completed job: cost-data-refresh-29634960, condition: Complete",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:00:20Z",
+        "name": "cost-data-refresh.18ad125d5cf914ed",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699516332",
+        "uid": "47ffdb49-1bb7-4046-ac5e-b562b5e38cf4"
+      },
+      "reason": "SawCompletedJob",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:00Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699516326",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:00Z",
+      "message": "Created job cost-data-refresh-29635020",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:00Z",
+        "name": "cost-data-refresh.18ad159ee737557d",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644785",
+        "uid": "8e506575-1bf0-4e8e-96de-59bcc3d6b6d8"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644763",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:22Z",
+      "message": "Deleted job cost-data-refresh-29634840",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:22Z",
+        "name": "cost-data-refresh.18ad15a42f972455",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699645742",
+        "uid": "7434ab06-be19-4ed2-a619-9668789ef4a7"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T21:00:22Z",
+      "involvedObject": {
+        "apiVersion": "batch/v1",
+        "kind": "CronJob",
+        "name": "cost-data-refresh",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699644763",
+        "uid": "d8e1dd24-e1b1-4ed9-a6e1-cb28cb5d7f77"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:00:22Z",
+      "message": "Saw completed job: cost-data-refresh-29635020, condition: Complete",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T21:00:22Z",
+        "name": "cost-data-refresh.18ad15a42f974be4",
+        "namespace": "cost-monitor",
+        "resourceVersion": "699645746",
+        "uid": "d55648a2-d953-4d0f-9dc4-6bc31301e55e"
+      },
+      "reason": "SawCompletedJob",
+      "reportingComponent": "cronjob-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "cronjob-controller"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

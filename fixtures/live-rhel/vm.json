@@ -1,0 +1,193 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "bastions",
+          "Stack": "zero-touch-base-rhel-2dclz",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "2dclz",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "b16afa37-ce7f-5f46-a86d-325e3a797db3"
+        },
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220063",
+        "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "rhel-2dclz"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "40G"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-10-0-07-09-25-3",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "rhel"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 1,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "rhel-2dclz"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "efi": {
+                    "secureBoot": false
+                  }
+                },
+                "serial": "3b5634b5-09f1-4a7d-ba8a-0286df0e8d66",
+                "uuid": "9f916b1a-3828-52f9-a0c7-a4e222a20fc9"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "4G"
+              },
+              "resources": {}
+            },
+            "hostname": "rhel",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "rhel-2dclz"
+                },
+                "name": "rhel-2dclz"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1lZDI1NTE5IEFBQUFDM056YUMxbFpESTFOVEU1QUFBQUlJaUhuRUN3Z0xudUZvQzRBb3labHQ5TXNSTWxUbEhEMHlBSjJ6elVzVzdyCg=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:33:50Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "rhel-2dclz"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

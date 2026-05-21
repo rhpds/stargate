@@ -1,0 +1,40 @@
+{
+  "apiVersion": "cdi.kubevirt.io/v1beta1",
+  "kind": "DataVolume",
+  "metadata": {
+    "name": "demo-vm-rootdisk",
+    "namespace": "summit-vm-001",
+    "creationTimestamp": "2026-05-05T14:01:00Z"
+  },
+  "spec": {
+    "source": {
+      "pvc": {
+        "namespace": "golden-images",
+        "name": "rhel9-base"
+      }
+    },
+    "storage": {
+      "resources": {
+        "requests": {
+          "storage": "30Gi"
+        }
+      }
+    }
+  },
+  "status": {
+    "phase": "Succeeded",
+    "progress": "100.0%",
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:03:30Z"
+      },
+      {
+        "type": "Bound",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:01:05Z"
+      }
+    ]
+  }
+}

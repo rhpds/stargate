@@ -1,0 +1,1021 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "16",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"rcars-api:latest\",\"namespace\":\"rcars-prod\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"rcars-api\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"image.openshift.io/triggers\":\"[{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"rcars-api:latest\\\",\\\"namespace\\\":\\\"rcars-prod\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.containers[?(@.name==\\\\\\\"rcars-api\\\\\\\")].image\\\"}]\"},\"labels\":{\"app\":\"rcars\",\"component\":\"api\"},\"name\":\"rcars-api\",\"namespace\":\"rcars-prod\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"rcars\",\"component\":\"api\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"api\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"PG_USER\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_USER\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_PASSWORD\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_DB\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_DATABASE\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"RCARS_DATABASE_URL\",\"value\":\"postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)\"},{\"name\":\"RCARS_REDIS_URL\",\"value\":\"redis://rcars-redis:6379\"},{\"name\":\"RCARS_KUBECONFIG_PATH\",\"value\":\"/etc/rcars/kubeconfig\"},{\"name\":\"ANTHROPIC_VERTEX_PROJECT_ID\",\"value\":\"itpc-gcp-product-all-claude\"},{\"name\":\"CLOUD_ML_REGION\",\"value\":\"us-east5\"},{\"name\":\"GOOGLE_APPLICATION_CREDENTIALS\",\"value\":\"/etc/rcars/vertex-credentials.json\"},{\"name\":\"RCARS_CURATOR_EMAILS_STR\",\"value\":\"ankay@redhat.com\"},{\"name\":\"RCARS_ADMIN_EMAILS_STR\",\"value\":\"nstephan@redhat.com,sborenst@redhat.com\"},{\"name\":\"RCARS_STALE_DAYS\",\"value\":\"3\"},{\"name\":\"RCARS_SA_ALLOWLIST_STR\",\"value\":\"\"},{\"name\":\"RCARS_DEV_USER\",\"value\":\"\"},{\"name\":\"HF_HOME\",\"value\":\"/opt/app-root/hf_cache\"}],\"image\":\"image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api:latest\",\"imagePullPolicy\":\"Always\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/api/v1/health\",\"port\":8080},\"initialDelaySeconds\":15,\"periodSeconds\":30,\"timeoutSeconds\":10},\"name\":\"rcars-api\",\"ports\":[{\"containerPort\":8080}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/api/v1/health/ready\",\"port\":8080},\"initialDelaySeconds\":10,\"periodSeconds\":10,\"timeoutSeconds\":5},\"resources\":{\"limits\":{\"cpu\":\"2\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"512Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}},\"volumeMounts\":[{\"mountPath\":\"/etc/rcars/kubeconfig\",\"name\":\"babylon-kubeconfig\",\"readOnly\":true,\"subPath\":\"kubeconfig\"},{\"mountPath\":\"/etc/rcars/vertex-credentials.json\",\"name\":\"vertex-credentials\",\"readOnly\":true,\"subPath\":\"credentials.json\"},{\"mountPath\":\"/tmp/rcars-clones\",\"name\":\"clone-workspace\"}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"babylon-kubeconfig\",\"secret\":{\"secretName\":\"rcars-babylon-kubeconfig\"}},{\"name\":\"vertex-credentials\",\"secret\":{\"secretName\":\"rcars-vertex-credentials\"}},{\"emptyDir\":{\"sizeLimit\":\"10Gi\"},\"name\":\"clone-workspace\"}]}}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:01Z",
+        "generation": 16,
+        "labels": {
+          "app": "rcars",
+          "component": "api"
+        },
+        "name": "rcars-api",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699135578",
+        "uid": "e1c7c223-6e91-4d39-838f-1e7908f028c4"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rcars",
+            "component": "api"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-04-29T11:53:58Z"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "rcars",
+              "component": "api"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "PG_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_USER",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_PASSWORD",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_DB",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_DATABASE",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "RCARS_DATABASE_URL",
+                    "value": "postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)"
+                  },
+                  {
+                    "name": "RCARS_REDIS_URL",
+                    "value": "redis://rcars-redis:6379"
+                  },
+                  {
+                    "name": "RCARS_KUBECONFIG_PATH",
+                    "value": "/etc/rcars/kubeconfig"
+                  },
+                  {
+                    "name": "ANTHROPIC_VERTEX_PROJECT_ID",
+                    "value": "itpc-gcp-product-all-claude"
+                  },
+                  {
+                    "name": "CLOUD_ML_REGION",
+                    "value": "us-east5"
+                  },
+                  {
+                    "name": "GOOGLE_APPLICATION_CREDENTIALS",
+                    "value": "/etc/rcars/vertex-credentials.json"
+                  },
+                  {
+                    "name": "RCARS_CURATOR_EMAILS_STR",
+                    "value": "ankay@redhat.com"
+                  },
+                  {
+                    "name": "RCARS_ADMIN_EMAILS_STR",
+                    "value": "nstephan@redhat.com,sborenst@redhat.com"
+                  },
+                  {
+                    "name": "RCARS_STALE_DAYS",
+                    "value": "3"
+                  },
+                  {
+                    "name": "RCARS_SA_ALLOWLIST_STR"
+                  },
+                  {
+                    "name": "RCARS_DEV_USER"
+                  },
+                  {
+                    "name": "HF_HOME",
+                    "value": "/opt/app-root/hf_cache"
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api@sha256:f323420338bbf863fda88977e7cd198f75bc25c3fd3ff7f400268593052582cd",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/v1/health",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 10
+                },
+                "name": "rcars-api",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/v1/health/ready",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/rcars/kubeconfig",
+                    "name": "babylon-kubeconfig",
+                    "readOnly": true,
+                    "subPath": "kubeconfig"
+                  },
+                  {
+                    "mountPath": "/etc/rcars/vertex-credentials.json",
+                    "name": "vertex-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.json"
+                  },
+                  {
+                    "mountPath": "/tmp/rcars-clones",
+                    "name": "clone-workspace"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "babylon-kubeconfig",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-babylon-kubeconfig"
+                }
+              },
+              {
+                "name": "vertex-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-vertex-credentials"
+                }
+              },
+              {
+                "emptyDir": {
+                  "sizeLimit": "10Gi"
+                },
+                "name": "clone-workspace"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-30T13:16:12Z",
+            "lastUpdateTime": "2026-04-30T13:16:12Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-29T12:05:35Z",
+            "lastUpdateTime": "2026-05-06T17:00:28Z",
+            "message": "ReplicaSet \"rcars-api-74567d69bc\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 16,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "13",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"rcars-frontend:latest\",\"namespace\":\"rcars-prod\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"rcars-frontend\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"image.openshift.io/triggers\":\"[{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"rcars-frontend:latest\\\",\\\"namespace\\\":\\\"rcars-prod\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.containers[?(@.name==\\\\\\\"rcars-frontend\\\\\\\")].image\\\"}]\"},\"labels\":{\"app\":\"rcars\",\"component\":\"frontend\"},\"name\":\"rcars-frontend\",\"namespace\":\"rcars-prod\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"rcars\",\"component\":\"frontend\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"frontend\"}},\"spec\":{\"containers\":[{\"image\":\"image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-frontend:latest\",\"imagePullPolicy\":\"Always\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080},\"initialDelaySeconds\":5,\"periodSeconds\":30},\"name\":\"rcars-frontend\",\"ports\":[{\"containerPort\":8080}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080},\"initialDelaySeconds\":3,\"periodSeconds\":10},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}}}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}}}}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:03Z",
+        "generation": 13,
+        "labels": {
+          "app": "rcars",
+          "component": "frontend"
+        },
+        "name": "rcars-frontend",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699122107",
+        "uid": "4511c016-ffa3-45c6-a6a3-afe8e711f704"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rcars",
+            "component": "frontend"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-04-29T11:54:01Z"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "rcars",
+              "component": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "image": "image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-frontend@sha256:d46a4675375a9c847f36685bbc1d9be4ec2dc48da63f66045f060d170279cb4e",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "rcars-frontend",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 3,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-29T11:49:23Z",
+            "lastUpdateTime": "2026-04-29T11:49:23Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-29T11:43:03Z",
+            "lastUpdateTime": "2026-05-06T16:54:06Z",
+            "message": "ReplicaSet \"rcars-frontend-658756f48f\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 13,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"oauth-proxy\"},\"name\":\"rcars-oauth-proxy\",\"namespace\":\"rcars-prod\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"rcars\",\"component\":\"oauth-proxy\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"oauth-proxy\"}},\"spec\":{\"containers\":[{\"args\":[\"-provider=openshift\",\"-http-address=:8080\",\"-https-address=\",\"-email-domain=*\",\"-upstream=http://rcars-frontend-service:8080/\",\"-client-id=$(OAUTH_CLIENT_ID)\",\"-client-secret-file=/etc/proxy/secrets/client-secret\",\"-cookie-secret-file=/etc/proxy/secrets/session_secret\",\"-openshift-service-account=rcars-oauth\",\"-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\",\"-skip-auth-regex=^/assets/\",\"-upstream-timeout=180s\",\"-pass-user-headers=true\"],\"env\":[{\"name\":\"OAUTH_CLIENT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"client-id\",\"name\":\"rcars-oauth-proxy-secret\"}}}],\"image\":\"registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080},\"initialDelaySeconds\":10,\"periodSeconds\":10},\"name\":\"oauth-proxy\",\"ports\":[{\"containerPort\":8080,\"name\":\"http\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080},\"initialDelaySeconds\":5,\"periodSeconds\":5},\"resources\":{\"limits\":{\"cpu\":\"200m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}},\"volumeMounts\":[{\"mountPath\":\"/etc/proxy/secrets\",\"name\":\"oauth-proxy-secret\",\"readOnly\":true}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"rcars-oauth\",\"volumes\":[{\"name\":\"oauth-proxy-secret\",\"secret\":{\"secretName\":\"rcars-oauth-proxy-secret\"}}]}}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:03Z",
+        "generation": 1,
+        "labels": {
+          "app": "rcars",
+          "component": "oauth-proxy"
+        },
+        "name": "rcars-oauth-proxy",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211949",
+        "uid": "4594f609-6229-4063-ac70-bcf60a80a62c"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rcars",
+            "component": "oauth-proxy"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "rcars",
+              "component": "oauth-proxy"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "-provider=openshift",
+                  "-http-address=:8080",
+                  "-https-address=",
+                  "-email-domain=*",
+                  "-upstream=http://rcars-frontend-service:8080/",
+                  "-client-id=$(OAUTH_CLIENT_ID)",
+                  "-client-secret-file=/etc/proxy/secrets/client-secret",
+                  "-cookie-secret-file=/etc/proxy/secrets/session_secret",
+                  "-openshift-service-account=rcars-oauth",
+                  "-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                  "-skip-auth-regex=^/assets/",
+                  "-upstream-timeout=180s",
+                  "-pass-user-headers=true"
+                ],
+                "env": [
+                  {
+                    "name": "OAUTH_CLIENT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "client-id",
+                        "name": "rcars-oauth-proxy-secret"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "oauth-proxy",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/proxy/secrets",
+                    "name": "oauth-proxy-secret",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "rcars-oauth",
+            "serviceAccountName": "rcars-oauth",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "oauth-proxy-secret",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-oauth-proxy-secret"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-29T11:43:14Z",
+            "lastUpdateTime": "2026-04-29T11:43:14Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-29T11:43:03Z",
+            "lastUpdateTime": "2026-04-29T11:43:14Z",
+            "message": "ReplicaSet \"rcars-oauth-proxy-85cbf5c6b\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "16",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"rcars-api:latest\",\"namespace\":\"rcars-prod\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"rcars-recommend-worker\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"image.openshift.io/triggers\":\"[{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"rcars-api:latest\\\",\\\"namespace\\\":\\\"rcars-prod\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.containers[?(@.name==\\\\\\\"rcars-recommend-worker\\\\\\\")].image\\\"}]\"},\"labels\":{\"app\":\"rcars\",\"component\":\"recommend-worker\"},\"name\":\"rcars-recommend-worker\",\"namespace\":\"rcars-prod\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"rcars\",\"component\":\"recommend-worker\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"recommend-worker\"}},\"spec\":{\"containers\":[{\"command\":[\"arq\",\"rcars.workers.RecommendWorkerSettings\"],\"env\":[{\"name\":\"PG_USER\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_USER\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_PASSWORD\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_DB\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_DATABASE\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"RCARS_DATABASE_URL\",\"value\":\"postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)\"},{\"name\":\"RCARS_REDIS_URL\",\"value\":\"redis://rcars-redis:6379\"},{\"name\":\"ANTHROPIC_VERTEX_PROJECT_ID\",\"value\":\"itpc-gcp-product-all-claude\"},{\"name\":\"CLOUD_ML_REGION\",\"value\":\"us-east5\"},{\"name\":\"GOOGLE_APPLICATION_CREDENTIALS\",\"value\":\"/etc/rcars/vertex-credentials.json\"},{\"name\":\"HF_HOME\",\"value\":\"/opt/app-root/hf_cache\"}],\"image\":\"image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api:latest\",\"imagePullPolicy\":\"Always\",\"name\":\"rcars-recommend-worker\",\"resources\":{\"limits\":{\"cpu\":\"1\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"250m\",\"memory\":\"1Gi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}},\"volumeMounts\":[{\"mountPath\":\"/etc/rcars/vertex-credentials.json\",\"name\":\"vertex-credentials\",\"readOnly\":true,\"subPath\":\"credentials.json\"}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"vertex-credentials\",\"secret\":{\"secretName\":\"rcars-vertex-credentials\"}}]}}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:02Z",
+        "generation": 16,
+        "labels": {
+          "app": "rcars",
+          "component": "recommend-worker"
+        },
+        "name": "rcars-recommend-worker",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699134871",
+        "uid": "78fcc61c-efcd-4d7c-94e9-95d56d759616"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rcars",
+            "component": "recommend-worker"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-04-29T11:54:00Z"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "rcars",
+              "component": "recommend-worker"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "arq",
+                  "rcars.workers.RecommendWorkerSettings"
+                ],
+                "env": [
+                  {
+                    "name": "PG_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_USER",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_PASSWORD",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_DB",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_DATABASE",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "RCARS_DATABASE_URL",
+                    "value": "postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)"
+                  },
+                  {
+                    "name": "RCARS_REDIS_URL",
+                    "value": "redis://rcars-redis:6379"
+                  },
+                  {
+                    "name": "ANTHROPIC_VERTEX_PROJECT_ID",
+                    "value": "itpc-gcp-product-all-claude"
+                  },
+                  {
+                    "name": "CLOUD_ML_REGION",
+                    "value": "us-east5"
+                  },
+                  {
+                    "name": "GOOGLE_APPLICATION_CREDENTIALS",
+                    "value": "/etc/rcars/vertex-credentials.json"
+                  },
+                  {
+                    "name": "HF_HOME",
+                    "value": "/opt/app-root/hf_cache"
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api@sha256:f323420338bbf863fda88977e7cd198f75bc25c3fd3ff7f400268593052582cd",
+                "imagePullPolicy": "Always",
+                "name": "rcars-recommend-worker",
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "1Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/rcars/vertex-credentials.json",
+                    "name": "vertex-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.json"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "vertex-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-vertex-credentials"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-29T13:13:42Z",
+            "lastUpdateTime": "2026-04-29T13:13:42Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-29T11:53:52Z",
+            "lastUpdateTime": "2026-05-06T17:00:11Z",
+            "message": "ReplicaSet \"rcars-recommend-worker-56f5bcc797\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 16,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "16",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"rcars-api:latest\",\"namespace\":\"rcars-prod\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"rcars-scan-worker\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"image.openshift.io/triggers\":\"[{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"rcars-api:latest\\\",\\\"namespace\\\":\\\"rcars-prod\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.containers[?(@.name==\\\\\\\"rcars-scan-worker\\\\\\\")].image\\\"}]\"},\"labels\":{\"app\":\"rcars\",\"component\":\"scan-worker\"},\"name\":\"rcars-scan-worker\",\"namespace\":\"rcars-prod\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"rcars\",\"component\":\"scan-worker\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"scan-worker\"}},\"spec\":{\"containers\":[{\"command\":[\"arq\",\"rcars.workers.WorkerSettings\"],\"env\":[{\"name\":\"PG_USER\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_USER\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_PASSWORD\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"PG_DB\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRESQL_DATABASE\",\"name\":\"rcars-postgresql\"}}},{\"name\":\"RCARS_DATABASE_URL\",\"value\":\"postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)\"},{\"name\":\"RCARS_REDIS_URL\",\"value\":\"redis://rcars-redis:6379\"},{\"name\":\"RCARS_KUBECONFIG_PATH\",\"value\":\"/etc/rcars/kubeconfig\"},{\"name\":\"ANTHROPIC_VERTEX_PROJECT_ID\",\"value\":\"itpc-gcp-product-all-claude\"},{\"name\":\"CLOUD_ML_REGION\",\"value\":\"us-east5\"},{\"name\":\"GOOGLE_APPLICATION_CREDENTIALS\",\"value\":\"/etc/rcars/vertex-credentials.json\"},{\"name\":\"RCARS_CLONE_DIR\",\"value\":\"/tmp/rcars-clones\"},{\"name\":\"RCARS_PIPELINE_ENABLED\",\"value\":\"True\"},{\"name\":\"RCARS_PIPELINE_HOUR\",\"value\":\"4\"},{\"name\":\"RCARS_PIPELINE_MINUTE\",\"value\":\"0\"},{\"name\":\"HF_HOME\",\"value\":\"/opt/app-root/hf_cache\"}],\"image\":\"image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api:latest\",\"imagePullPolicy\":\"Always\",\"name\":\"rcars-scan-worker\",\"resources\":{\"limits\":{\"cpu\":\"2\",\"memory\":\"4Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]}},\"volumeMounts\":[{\"mountPath\":\"/etc/rcars/kubeconfig\",\"name\":\"babylon-kubeconfig\",\"readOnly\":true,\"subPath\":\"kubeconfig\"},{\"mountPath\":\"/etc/rcars/vertex-credentials.json\",\"name\":\"vertex-credentials\",\"readOnly\":true,\"subPath\":\"credentials.json\"},{\"mountPath\":\"/tmp/rcars-clones\",\"name\":\"clone-workspace\"}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"babylon-kubeconfig\",\"secret\":{\"secretName\":\"rcars-babylon-kubeconfig\"}},{\"name\":\"vertex-credentials\",\"secret\":{\"secretName\":\"rcars-vertex-credentials\"}},{\"emptyDir\":{\"sizeLimit\":\"10Gi\"},\"name\":\"clone-workspace\"}]}}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:02Z",
+        "generation": 16,
+        "labels": {
+          "app": "rcars",
+          "component": "scan-worker"
+        },
+        "name": "rcars-scan-worker",
+        "namespace": "rcars-prod",
+        "resourceVersion": "699134850",
+        "uid": "07b1a8bc-e6f5-4108-85aa-6687eeeba373"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rcars",
+            "component": "scan-worker"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-04-29T11:53:59Z"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "rcars",
+              "component": "scan-worker"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "arq",
+                  "rcars.workers.WorkerSettings"
+                ],
+                "env": [
+                  {
+                    "name": "PG_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_USER",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_PASSWORD",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PG_DB",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "POSTGRESQL_DATABASE",
+                        "name": "rcars-postgresql"
+                      }
+                    }
+                  },
+                  {
+                    "name": "RCARS_DATABASE_URL",
+                    "value": "postgresql://$(PG_USER):$(PG_PASSWORD)@rcars-postgresql:5432/$(PG_DB)"
+                  },
+                  {
+                    "name": "RCARS_REDIS_URL",
+                    "value": "redis://rcars-redis:6379"
+                  },
+                  {
+                    "name": "RCARS_KUBECONFIG_PATH",
+                    "value": "/etc/rcars/kubeconfig"
+                  },
+                  {
+                    "name": "ANTHROPIC_VERTEX_PROJECT_ID",
+                    "value": "itpc-gcp-product-all-claude"
+                  },
+                  {
+                    "name": "CLOUD_ML_REGION",
+                    "value": "us-east5"
+                  },
+                  {
+                    "name": "GOOGLE_APPLICATION_CREDENTIALS",
+                    "value": "/etc/rcars/vertex-credentials.json"
+                  },
+                  {
+                    "name": "RCARS_CLONE_DIR",
+                    "value": "/tmp/rcars-clones"
+                  },
+                  {
+                    "name": "RCARS_PIPELINE_ENABLED",
+                    "value": "True"
+                  },
+                  {
+                    "name": "RCARS_PIPELINE_HOUR",
+                    "value": "4"
+                  },
+                  {
+                    "name": "RCARS_PIPELINE_MINUTE",
+                    "value": "0"
+                  },
+                  {
+                    "name": "HF_HOME",
+                    "value": "/opt/app-root/hf_cache"
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/rcars-prod/rcars-api@sha256:f323420338bbf863fda88977e7cd198f75bc25c3fd3ff7f400268593052582cd",
+                "imagePullPolicy": "Always",
+                "name": "rcars-scan-worker",
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "4Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/rcars/kubeconfig",
+                    "name": "babylon-kubeconfig",
+                    "readOnly": true,
+                    "subPath": "kubeconfig"
+                  },
+                  {
+                    "mountPath": "/etc/rcars/vertex-credentials.json",
+                    "name": "vertex-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.json"
+                  },
+                  {
+                    "mountPath": "/tmp/rcars-clones",
+                    "name": "clone-workspace"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "babylon-kubeconfig",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-babylon-kubeconfig"
+                }
+              },
+              {
+                "name": "vertex-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "rcars-vertex-credentials"
+                }
+              },
+              {
+                "emptyDir": {
+                  "sizeLimit": "10Gi"
+                },
+                "name": "clone-workspace"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-29T12:06:19Z",
+            "lastUpdateTime": "2026-04-29T12:06:19Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-29T12:06:19Z",
+            "lastUpdateTime": "2026-05-06T17:00:10Z",
+            "message": "ReplicaSet \"rcars-scan-worker-7b57578cb9\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 16,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "apiVersion": "poolboy.gpte.redhat.com/v1",
+  "kind": "ResourceHandle",
+  "metadata": {
+    "creationTimestamp": "2026-05-05T16:04:52Z",
+    "finalizers": [
+      "poolboy.gpte.redhat.com/handler"
+    ],
+    "generateName": "guid-",
+    "generation": 9,
+    "labels": {
+      "poolboy.gpte.redhat.com/resource-claim-name": "published.rhacs-demo.prod-q8dm7",
+      "poolboy.gpte.redhat.com/resource-claim-namespace": "user-doloyede-redhat-com",
+      "poolboy.gpte.redhat.com/resource-handler-idx": "0",
+      "poolboy.gpte.redhat.com/resource-pool-name": "openshift-4.20-single",
+      "poolboy.gpte.redhat.com/resource-pool-namespace": "poolboy"
+    },
+    "name": "guid-247gt",
+    "namespace": "poolboy",
+    "resourceVersion": "3312998055",
+    "uid": "0c3e7c4b-fee3-4ed2-9064-b3dd274b3bd0"
+  },
+  "spec": {
+    "lifespan": {
+      "default": "2d",
+      "end": "2026-05-30T05:45:00Z",
+      "maximum": "180d",
+      "relativeMaximum": "30d"
+    },
+    "provider": {
+      "name": "published.rhacs-demo.prod",
+      "parameterValues": {
+        "purpose": "Show a demo to a customer",
+        "start_timestamp": "2026-05-05T16:19:04Z",
+        "stop_timestamp": "2026-05-05T21:22:19Z"
+      }
+    },
+    "resourceClaim": {
+      "apiVersion": "poolboy.gpte.redhat.com/v1",
+      "kind": "ResourceClaim",
+      "name": "published.rhacs-demo.prod-q8dm7",
+      "namespace": "user-doloyede-redhat-com"
+    },
+    "resourcePool": {
+      "apiVersion": "poolboy.gpte.redhat.com/v1",
+      "kind": "ResourcePool",
+      "name": "openshift-4.20-single",
+      "namespace": "poolboy"
+    },
+    "resources": [
+      {
+        "name": "openshift-base",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "agd-v2.ocp-cluster-cnv-pools.prod",
+          "namespace": "poolboy"
+        },
+        "template": {
+          "spec": {
+            "vars": {
+              "action_schedule": {
+                "start": "2026-05-05T16:19:04Z",
+                "stop": "2026-05-05T21:22:19Z"
+              },
+              "job_vars": {
+                "cluster_size": "sno",
+                "host_ocp4_installer_version": "4.20",
+                "ocp4_fips_enable": false
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "rhacs-demo-cnv",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "agd-v2.rhacs-demo-cnv.prod",
+          "namespace": "poolboy"
+        },
+        "template": {
+          "spec": {
+            "vars": {
+              "action_schedule": {
+                "start": "2026-05-05T16:19:04Z",
+                "stop": "2026-05-05T21:22:19Z"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "vars": {}
+  },
+  "status": {
+    "diffBase": "{}",
+    "healthy": true,
+    "ready": true,
+    "resources": [
+      {
+        "healthy": true,
+        "name": "openshift-base",
+        "ready": true,
+        "reference": {
+          "apiVersion": "anarchy.gpte.redhat.com/v1",
+          "kind": "AnarchySubject",
+          "name": "agd-v2.ocp-cluster-cnv-pools.prod-247gt",
+          "namespace": "babylon-anarchy-ocp-wksp"
+        }
+      },
+      {
+        "healthy": true,
+        "name": "rhacs-demo-cnv",
+        "ready": true,
+        "reference": {
+          "apiVersion": "anarchy.gpte.redhat.com/v1",
+          "kind": "AnarchySubject",
+          "name": "agd-v2.rhacs-demo-cnv.prod-247gt-1",
+          "namespace": "babylon-anarchy-ocp-wksp"
+        },
+        "waitingFor": "Linked ResourceProvider"
+      }
+    ],
+    "summary": {
+      "agnosticv": {
+        "account": "published",
+        "asset_uuid": "8997a9a0-a117-40cd-be30-a9b3e0512cd9",
+        "path": "published/rhacs-demo/prod.yaml",
+        "repo": "rhpds-agnosticv",
+        "short_name": "rhacs-demo",
+        "stage": "prod"
+      },
+      "catalog_item_name": "published.rhacs-demo.prod",
+      "catalog_item_namespace": "babylon-catalog-prod",
+      "provision_data": {
+        "acs_portal_password": "REDACTED-dummy-value",
+        "acs_portal_username": "admin",
+        "acs_route": "https://central-stackrox.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "bastion_public_hostname": "ssh.ocpv05.rhdp.net",
+        "bastion_ssh_password": "REDACTED-dummy-value",
+        "bastion_ssh_port": "32717",
+        "bastion_ssh_user_name": "lab-user",
+        "cloud_provider": "openshift_cnv",
+        "guid": "247gt",
+        "keycloak_admin_console": "https://sso.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "keycloak_admin_password": "REDACTED-dummy-value",
+        "keycloak_admin_user": "temp-admin",
+        "lab_ui_url": "https://showroom-showroom-247gt-1.apps.cluster-247gt.dynamic2.redhatworkshops.io/",
+        "openshift_api_ca_cert": "REDACTED-dummy-value",
+        "openshift_api_server_url": "https://api.cluster-247gt.dynamic2.redhatworkshops.io:6443",
+        "openshift_api_url": "https://api.cluster-247gt.dynamic2.redhatworkshops.io:6443",
+        "openshift_client_download_url": "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz",
+        "openshift_cluster_account_passwords": {
+          "admin": "1cRGQUTOwh0a"
+        },
+        "openshift_cluster_admin_password": "REDACTED-dummy-value",
+        "openshift_cluster_admin_token": "REDACTED-dummy-value",
+        "openshift_cluster_admin_username": "admin",
+        "openshift_cluster_console_url": "https://console-openshift-console.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "openshift_cluster_ingress_domain": "apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "openshift_console_url": "https://console-openshift-console.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "openshift_gitops_server": "https://openshift-gitops-server-openshift-gitops.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "openshift_kubeadmin_password": "REDACTED-dummy-value",
+        "quay_admin_password": "REDACTED-dummy-value",
+        "quay_admin_token": "REDACTED-dummy-value",
+        "quay_admin_username": "quayadmin",
+        "quay_console_url": "https://quay.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "quay_host": "quay.apps.cluster-247gt.dynamic2.redhatworkshops.io",
+        "rhel_vm_name": "rhel-webserver",
+        "rhel_vm_namespace": "rhel-webserver",
+        "rhel_vm_password": "REDACTED-dummy-value",
+        "rhel_vm_user": "rhel",
+        "sandbox_openshift_api_key": "REDACTED-dummy-value",
+        "sandbox_openshift_api_url": "https://api.cluster.example.com:6443",
+        "sandbox_openshift_apps_domain": "apps.ocpv05.rhdp.net",
+        "sandbox_openshift_cluster": "ocpv05",
+        "sandbox_openshift_console_url": "https://console-openshift-console.apps.cluster.example.com",
+        "sandbox_openshift_namespace": "sandbox-247gt-ocp4-cluster",
+        "showroom_primary_view_url": "https://showroom-showroom-247gt-1.apps.cluster-247gt.dynamic2.redhatworkshops.io/"
+      },
+      "runtime_default": "6h",
+      "runtime_maximum": "180d",
+      "state": "stopped",
+      "supportedActions": {
+        "destroy": {},
+        "provision": {},
+        "start": {},
+        "status": {},
+        "stop": {}
+      }
+    }
+  }
+}

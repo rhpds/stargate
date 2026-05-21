@@ -1,0 +1,619 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:58Z",
+        "name": "bastion-3000",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329649",
+        "uid": "586a6a2e-3313-4ed9-afb2-cf8540f81ec3"
+      },
+      "spec": {
+        "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "3000"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "bastion",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:58Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:58Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:57Z",
+        "name": "bastion-443",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329621",
+        "uid": "2e4961c2-45c4-4c50-8d81-2ce309bee618"
+      },
+      "spec": {
+        "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "443"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "bastion",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:57Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:57Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:57Z",
+        "name": "bastion-80",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329588",
+        "uid": "0c298d76-12d8-411b-8248-3f8e8b6b5677"
+      },
+      "spec": {
+        "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "80"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "bastion",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:57Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:57Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:59Z",
+        "name": "bastion-8080",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329681",
+        "uid": "60c9875b-9036-48d1-909e-03d0c78b4e57"
+      },
+      "spec": {
+        "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "8080"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "bastion",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:59Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:13:59Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:00Z",
+        "name": "bastion-8181",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329724",
+        "uid": "0e222609-706f-42b7-8f8c-31574a786a9a"
+      },
+      "spec": {
+        "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "8181"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "bastion",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:00Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:00Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:02Z",
+        "name": "controller-443",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329791",
+        "uid": "82fe8113-0ced-48cd-9474-85e7b2e62531"
+      },
+      "spec": {
+        "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "443"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nREDACTED\n-----END CERTIFICATE-----",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "controller",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:02Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:02Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:01Z",
+        "name": "controller-5000",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329761",
+        "uid": "6e66948f-f762-4d4f-8a79-833345779336"
+      },
+      "spec": {
+        "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "5000"
+        },
+        "tls": {
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "controller",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:01Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:01Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:03Z",
+        "name": "ssap-443",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329840",
+        "uid": "09115efd-c221-4093-8cb4-a807e305ded3"
+      },
+      "spec": {
+        "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
+        "port": {
+          "targetPort": "443"
+        },
+        "tls": {
+          "termination": "passthrough"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "ssap",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:03Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:03Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:03Z",
+        "name": "ssap-7007",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329862",
+        "uid": "8e3d956d-2b95-40b6-aded-deb13753906e"
+      },
+      "spec": {
+        "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "7007"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nREDACTED\n-----END CERTIFICATE-----",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "ssap",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:03Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T13:14:03Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

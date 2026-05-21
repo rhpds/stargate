@@ -1,0 +1,156 @@
+{
+  "apiVersion": "anarchy.gpte.redhat.com/v1",
+  "kind": "AnarchySubject",
+  "metadata": {
+    "annotations": {
+      "anarchy.gpte.redhat.com/spec-sha256": "kc0UxVUXD8zeuWpx2D99Wix7jGaQHbilz8D09zX0fMY=",
+      "demo.redhat.com/reporting-task-published": "2026-05-06T09:47:56Z",
+      "poolboy.gpte.redhat.com/resource-claim-name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event-595xb",
+      "poolboy.gpte.redhat.com/resource-claim-namespace": "user-jappleii-redhat-com",
+      "poolboy.gpte.redhat.com/resource-handle-deleted": "2026-04-30T16:45:55Z",
+      "poolboy.gpte.redhat.com/resource-handle-name": "guid-49rj2",
+      "poolboy.gpte.redhat.com/resource-handle-namespace": "poolboy",
+      "poolboy.gpte.redhat.com/resource-handle-uid": "d35060a1-eccc-4129-8237-ff252a487ac4",
+      "poolboy.gpte.redhat.com/resource-index": "0",
+      "poolboy.gpte.redhat.com/resource-provider-name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event",
+      "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
+      "poolboy.gpte.redhat.com/resource-requester-email": "jappleii@redhat.com",
+      "poolboy.gpte.redhat.com/resource-requester-name": "John Apple II [72138]",
+      "poolboy.gpte.redhat.com/resource-requester-preferred-username": "jappleii@redhat.com",
+      "poolboy.gpte.redhat.com/resource-requester-user": "jappleii@redhat.com"
+    },
+    "creationTimestamp": "2026-04-29T21:43:56Z",
+    "deletionGracePeriodSeconds": 0,
+    "deletionTimestamp": "2026-04-30T16:45:55Z",
+    "finalizers": [
+      "demo.redhat.com/reporting",
+      "anarchy.gpte.redhat.com/subject"
+    ],
+    "generation": 37,
+    "labels": {
+      "OcpSandbox": "49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
+      "anarchy.gpte.redhat.com/governor": "ai-quickstarts.ai-qs-ppe-comp-tenant.event",
+      "demo.redhat.com/reporting-deletion": "true",
+      "sandbox": "49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
+      "state": "destroy-failed"
+    },
+    "name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event-49rj2",
+    "namespace": "babylon-anarchy-0",
+    "resourceVersion": "3312038479",
+    "uid": "904d37cf-a309-4249-8843-a73db360aed3"
+  },
+  "spec": {
+    "governor": "ai-quickstarts.ai-qs-ppe-comp-tenant.event",
+    "vars": {
+      "action_schedule": {
+        "default_runtime": "6h",
+        "maximum_runtime": "180d",
+        "start": "2026-04-29T20:46:15Z",
+        "stop": "2027-04-29T23:05:25Z"
+      },
+      "check_status_state": null,
+      "current_state": "destroy-failed",
+      "desired_state": "destroyed",
+      "healthy": true,
+      "job_vars": {
+        "catalog_item_name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event",
+        "cloud_provider": "none",
+        "cluster_admin_agnosticd_sa_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+        "guid": "49rj2",
+        "platform": "RHPDS",
+        "requester_email": "jappleii@redhat.com",
+        "sandbox_openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
+        "sandbox_openshift_apps_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "sandbox_openshift_cluster": "cluster-4px7h",
+        "sandbox_openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "sandbox_openshift_name": "49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
+        "sandbox_openshift_namespace": "sandbox-49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
+        "uuid": "168e13b3-7cda-5857-bae7-a8126d71a6b0"
+      },
+      "provision_data": {
+        "lab_ui_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/",
+        "litellm_api_base_url": "https://litellm.example.com/v1",
+        "litellm_api_endpoint": "https://litellm.example.com",
+        "litellm_available_models": [
+          "llama-scout-17b"
+        ],
+        "litellm_available_models_list": "llama-scout-17b",
+        "litellm_key_alias": "virtkey-49rj2",
+        "litellm_key_duration": "7d",
+        "litellm_key_id": "3dc026fb32af88ad67881acf835d3e312084563868f32b20735322ff8d753081",
+        "litellm_virtual_key": "sk-z0PnIov5IH1meY2Ubj-8fA",
+        "openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
+        "openshift_cluster_ingress_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "password": "REDACTED-dummy-password",
+        "showroom_primary_view_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/",
+        "user": "user-49rj2"
+      },
+      "provision_message_body": "[]",
+      "provision_messages": [
+        "LiteMaaS API Base URL: https://litellm.example.com/v1",
+        "LiteMaaS Virtual Key: sk-z0PnIov5IH1meY2Ubj-8fA",
+        "Available Models: llama-scout-17b",
+        "Key Duration: 7d",
+        "Lab instructions: https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/"
+      ]
+    }
+  },
+  "status": {
+    "actions": {
+      "destroy": {
+        "completeTimestamp": "2026-05-06T02:49:43Z",
+        "state": "failed"
+      },
+      "provision": {
+        "completeTimestamp": "2026-04-29T21:58:24Z",
+        "startTimestamp": "2026-04-29T21:44:02Z",
+        "state": "successful"
+      }
+    },
+    "activeAction": {
+      "after": "2026-04-30T16:45:59Z",
+      "apiVersion": "anarchy.gpte.redhat.com/v1",
+      "kind": "AnarchyAction",
+      "name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event-49rj2-destroy-p88d8",
+      "namespace": "babylon-anarchy-0",
+      "uid": "2e94f986-e698-4bed-a01d-38d6458362e0"
+    },
+    "diffBase": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+    "pendingActions": [],
+    "runStatus": "successful",
+    "runs": {
+      "active": []
+    },
+    "sandboxAPIJobs": {
+      "provision": {
+        "httpStatus": 200,
+        "startTimestamp": "2026-04-29T21:44:10Z"
+      }
+    },
+    "supportedActions": {
+      "destroy": {},
+      "provision": {},
+      "start": {},
+      "stop": {}
+    },
+    "towerJobs": {
+      "destroy": {
+        "completeTimestamp": "2026-05-06T02:49:43Z",
+        "deployerJob": 53836,
+        "jobStatus": "failed",
+        "startTimestamp": "2026-05-06T02:43:00Z",
+        "towerHost": "event0.apps.cluster.example.com",
+        "towerJobURL": "event0.apps.cluster.example.com#/jobs/53836/"
+      },
+      "provision": {
+        "completeTimestamp": "2026-04-29T21:58:24Z",
+        "deployerJob": 232313,
+        "jobStatus": "successful",
+        "startTimestamp": "2026-04-29T21:44:02Z",
+        "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
+        "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/232313/"
+      }
+    }
+  }
+}

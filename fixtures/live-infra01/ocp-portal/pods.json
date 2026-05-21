@@ -1,0 +1,2070 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.131.3.46/23\"],\"mac_address\":\"0a:58:0a:83:03:2e\",\"gateway_ips\":[\"10.131.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.131.2.1\"}],\"ip_address\":\"10.131.3.46/23\",\"gateway_ip\":\"10.131.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.131.3.46\"\n    ],\n    \"mac\": \"0a:58:0a:83:03:2e\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/build.name": "ocp-portal-1",
+          "openshift.io/scc": "privileged"
+        },
+        "creationTimestamp": "2026-03-29T13:53:01Z",
+        "labels": {
+          "openshift.io/build.name": "ocp-portal-1"
+        },
+        "name": "ocp-portal-1-build",
+        "namespace": "ocp-portal",
+        "ownerReferences": [
+          {
+            "apiVersion": "build.openshift.io/v1",
+            "controller": true,
+            "kind": "Build",
+            "name": "ocp-portal-1",
+            "uid": "cabd4a33-e30e-4681-a8bc-69be9529b61c"
+          }
+        ],
+        "resourceVersion": "585159512",
+        "uid": "2eadc47b-e512-428e-8bed-df404a4dd93b"
+      },
+      "spec": {
+        "activeDeadlineSeconds": 604800,
+        "containers": [
+          {
+            "args": [
+              "openshift-docker-build",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-1\",\"namespace\":\"ocp-portal\",\"uid\":\"cabd4a33-e30e-4681-a8bc-69be9529b61c\",\"resourceVersion\":\"585154126\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T13:53:01Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"1\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T13:53:01Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T13:53:01Z\",\"lastTransitionTime\":\"2026-03-29T13:53:01Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "PUSH_DOCKERCFG_PATH",
+                "value": "/var/run/secrets/openshift.io/push"
+              },
+              {
+                "name": "PULL_DOCKERCFG_PATH",
+                "value": "/var/run/secrets/openshift.io/pull"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "docker-build",
+            "resources": {},
+            "securityContext": {
+              "privileged": true,
+              "runAsGroup": 0,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "Unconfined"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/kubelet/config.json",
+                "name": "node-pullsecrets"
+              },
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/lib/containers/cache",
+                "name": "buildcachedir"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/push",
+                "name": "builder-dockercfg-jx5p7-push",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/pull",
+                "name": "builder-dockercfg-jx5p7-pull",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/lib/containers",
+                "name": "container-storage-root"
+              },
+              {
+                "mountPath": "/var/run/containers",
+                "name": "container-storage-run"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "builder-dockercfg-jx5p7"
+          }
+        ],
+        "initContainers": [
+          {
+            "args": [
+              "openshift-git-clone",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-1\",\"namespace\":\"ocp-portal\",\"uid\":\"cabd4a33-e30e-4681-a8bc-69be9529b61c\",\"resourceVersion\":\"585154126\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T13:53:01Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"1\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T13:53:01Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T13:53:01Z\",\"lastTransitionTime\":\"2026-03-29T13:53:01Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "git-clone",
+            "resources": {},
+            "securityContext": {
+              "capabilities": {
+                "add": [
+                  "CHOWN",
+                  "DAC_OVERRIDE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 0,
+              "runAsNonRoot": false,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "stdin": true,
+            "stdinOnce": true,
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "openshift-manage-dockerfile",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-1\",\"namespace\":\"ocp-portal\",\"uid\":\"cabd4a33-e30e-4681-a8bc-69be9529b61c\",\"resourceVersion\":\"585154126\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T13:53:01Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"1\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T13:53:01Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T13:53:01Z\",\"lastTransitionTime\":\"2026-03-29T13:53:01Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "manage-dockerfile",
+            "resources": {},
+            "securityContext": {
+              "capabilities": {
+                "add": [
+                  "CHOWN",
+                  "DAC_OVERRIDE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 0,
+              "runAsNonRoot": false,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph01",
+        "nodeSelector": {
+          "kubernetes.io/os": "linux"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "builder",
+        "serviceAccountName": "builder",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "hostPath": {
+              "path": "/var/lib/containers/cache",
+              "type": ""
+            },
+            "name": "buildcachedir"
+          },
+          {
+            "emptyDir": {},
+            "name": "buildworkdir"
+          },
+          {
+            "hostPath": {
+              "path": "/var/lib/kubelet/config.json",
+              "type": "File"
+            },
+            "name": "node-pullsecrets"
+          },
+          {
+            "name": "builder-dockercfg-jx5p7-push",
+            "secret": {
+              "defaultMode": 384,
+              "secretName": "builder-dockercfg-jx5p7"
+            }
+          },
+          {
+            "name": "builder-dockercfg-jx5p7-pull",
+            "secret": {
+              "defaultMode": 384,
+              "secretName": "builder-dockercfg-jx5p7"
+            }
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ocp-portal-1-sys-config"
+            },
+            "name": "build-system-configs"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "items": [
+                {
+                  "key": "service-ca.crt",
+                  "path": "certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt"
+                }
+              ],
+              "name": "ocp-portal-1-ca"
+            },
+            "name": "build-ca-bundles"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "items": [
+                {
+                  "key": "ca-bundle.crt",
+                  "path": "tls-ca-bundle.pem"
+                }
+              ],
+              "name": "ocp-portal-1-global-ca"
+            },
+            "name": "build-proxy-ca-bundles"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-storage-root"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-storage-run"
+          },
+          {
+            "emptyDir": {},
+            "name": "build-blob-cache"
+          },
+          {
+            "name": "kube-api-access-c9r55",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T13:55:44Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T13:54:26Z",
+            "reason": "PodCompleted",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T13:55:43Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T13:55:43Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T13:53:01Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://9a94c606ba20d07117f8b661a1515d2ea849145306a942183dd56de5ab26ef8b",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "docker-build",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://9a94c606ba20d07117f8b661a1515d2ea849145306a942183dd56de5ab26ef8b",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T13:55:43Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T13:54:26Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/kubelet/config.json",
+                "name": "node-pullsecrets"
+              },
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/lib/containers/cache",
+                "name": "buildcachedir"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/push",
+                "name": "builder-dockercfg-jx5p7-push",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/pull",
+                "name": "builder-dockercfg-jx5p7-pull",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/lib/containers",
+                "name": "container-storage-root"
+              },
+              {
+                "mountPath": "/var/run/containers",
+                "name": "container-storage-run"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.175",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.175"
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "containerID": "cri-o://4d2906e8e7fc893d838628a2b2aba8ddbd42cb2b0fd8be05176641d014e94d8e",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "git-clone",
+            "ready": true,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://4d2906e8e7fc893d838628a2b2aba8ddbd42cb2b0fd8be05176641d014e94d8e",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T13:54:24Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T13:53:02Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "containerID": "cri-o://435e35ea95afff51cfacb1ec07560c0dc62809e1eab3ad7c52266f46f3ac2af1",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "manage-dockerfile",
+            "ready": true,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://435e35ea95afff51cfacb1ec07560c0dc62809e1eab3ad7c52266f46f3ac2af1",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T13:54:25Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T13:54:25Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-c9r55",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "phase": "Succeeded",
+        "podIP": "10.131.3.46",
+        "podIPs": [
+          {
+            "ip": "10.131.3.46"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-03-29T13:53:01Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.131.3.170/23\"],\"mac_address\":\"0a:58:0a:83:03:aa\",\"gateway_ips\":[\"10.131.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.131.2.1\"}],\"ip_address\":\"10.131.3.170/23\",\"gateway_ip\":\"10.131.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.131.3.170\"\n    ],\n    \"mac\": \"0a:58:0a:83:03:aa\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/build.name": "ocp-portal-2",
+          "openshift.io/scc": "privileged"
+        },
+        "creationTimestamp": "2026-03-29T22:43:00Z",
+        "labels": {
+          "openshift.io/build.name": "ocp-portal-2"
+        },
+        "name": "ocp-portal-2-build",
+        "namespace": "ocp-portal",
+        "ownerReferences": [
+          {
+            "apiVersion": "build.openshift.io/v1",
+            "controller": true,
+            "kind": "Build",
+            "name": "ocp-portal-2",
+            "uid": "3a7b5a62-0542-4356-8b46-374739b6923f"
+          }
+        ],
+        "resourceVersion": "586231341",
+        "uid": "615c8a40-ceeb-46ad-821a-8decf7b535ec"
+      },
+      "spec": {
+        "activeDeadlineSeconds": 604800,
+        "containers": [
+          {
+            "args": [
+              "openshift-docker-build",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-2\",\"namespace\":\"ocp-portal\",\"uid\":\"3a7b5a62-0542-4356-8b46-374739b6923f\",\"resourceVersion\":\"586225876\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T22:43:00Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"2\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T22:43:00Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T22:43:00Z\",\"lastTransitionTime\":\"2026-03-29T22:43:00Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "PUSH_DOCKERCFG_PATH",
+                "value": "/var/run/secrets/openshift.io/push"
+              },
+              {
+                "name": "PULL_DOCKERCFG_PATH",
+                "value": "/var/run/secrets/openshift.io/pull"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "docker-build",
+            "resources": {},
+            "securityContext": {
+              "privileged": true,
+              "runAsGroup": 0,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "Unconfined"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/kubelet/config.json",
+                "name": "node-pullsecrets"
+              },
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/lib/containers/cache",
+                "name": "buildcachedir"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/push",
+                "name": "builder-dockercfg-jx5p7-push",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/pull",
+                "name": "builder-dockercfg-jx5p7-pull",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/lib/containers",
+                "name": "container-storage-root"
+              },
+              {
+                "mountPath": "/var/run/containers",
+                "name": "container-storage-run"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "builder-dockercfg-jx5p7"
+          }
+        ],
+        "initContainers": [
+          {
+            "args": [
+              "openshift-git-clone",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-2\",\"namespace\":\"ocp-portal\",\"uid\":\"3a7b5a62-0542-4356-8b46-374739b6923f\",\"resourceVersion\":\"586225876\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T22:43:00Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"2\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T22:43:00Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T22:43:00Z\",\"lastTransitionTime\":\"2026-03-29T22:43:00Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "git-clone",
+            "resources": {},
+            "securityContext": {
+              "capabilities": {
+                "add": [
+                  "CHOWN",
+                  "DAC_OVERRIDE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 0,
+              "runAsNonRoot": false,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "stdin": true,
+            "stdinOnce": true,
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "args": [
+              "openshift-manage-dockerfile",
+              "--v=0"
+            ],
+            "env": [
+              {
+                "name": "BUILD",
+                "value": "{\"kind\":\"Build\",\"apiVersion\":\"build.openshift.io/v1\",\"metadata\":{\"name\":\"ocp-portal-2\",\"namespace\":\"ocp-portal\",\"uid\":\"3a7b5a62-0542-4356-8b46-374739b6923f\",\"resourceVersion\":\"586225876\",\"generation\":1,\"creationTimestamp\":\"2026-03-29T22:43:00Z\",\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\",\"buildconfig\":\"ocp-portal\",\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.start-policy\":\"Serial\"},\"annotations\":{\"openshift.io/build-config.name\":\"ocp-portal\",\"openshift.io/build.number\":\"2\"},\"ownerReferences\":[{\"apiVersion\":\"build.openshift.io/v1\",\"kind\":\"BuildConfig\",\"name\":\"ocp-portal\",\"uid\":\"d2626efd-2d05-4c64-a831-15bd7f2ae698\",\"controller\":true}],\"managedFields\":[{\"manager\":\"openshift-apiserver\",\"operation\":\"Update\",\"apiVersion\":\"build.openshift.io/v1\",\"time\":\"2026-03-29T22:43:00Z\",\"fieldsType\":\"FieldsV1\",\"fieldsV1\":{\"f:metadata\":{\"f:annotations\":{\".\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.number\":{}},\"f:labels\":{\".\":{},\"f:app.kubernetes.io/name\":{},\"f:buildconfig\":{},\"f:openshift.io/build-config.name\":{},\"f:openshift.io/build.start-policy\":{}},\"f:ownerReferences\":{\".\":{},\"k:{\\\"uid\\\":\\\"d2626efd-2d05-4c64-a831-15bd7f2ae698\\\"}\":{}}},\"f:spec\":{\"f:output\":{\"f:to\":{}},\"f:serviceAccount\":{},\"f:source\":{\"f:binary\":{},\"f:type\":{}},\"f:strategy\":{\"f:dockerStrategy\":{},\"f:type\":{}}},\"f:status\":{\"f:conditions\":{\".\":{},\"k:{\\\"type\\\":\\\"New\\\"}\":{\".\":{},\"f:lastTransitionTime\":{},\"f:lastUpdateTime\":{},\"f:status\":{},\"f:type\":{}}},\"f:config\":{},\"f:phase\":{}}}}]},\"spec\":{\"serviceAccount\":\"builder\",\"source\":{\"type\":\"Binary\",\"binary\":{}},\"strategy\":{\"type\":\"Docker\",\"dockerStrategy\":{\"pullSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}}},\"output\":{\"to\":{\"kind\":\"DockerImage\",\"name\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\"},\"pushSecret\":{\"name\":\"builder-dockercfg-jx5p7\"}},\"resources\":{},\"postCommit\":{},\"nodeSelector\":null},\"status\":{\"phase\":\"New\",\"outputDockerImageReference\":\"image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest\",\"config\":{\"kind\":\"BuildConfig\",\"namespace\":\"ocp-portal\",\"name\":\"ocp-portal\"},\"output\":{},\"conditions\":[{\"type\":\"New\",\"status\":\"True\",\"lastUpdateTime\":\"2026-03-29T22:43:00Z\",\"lastTransitionTime\":\"2026-03-29T22:43:00Z\"}]}}\n"
+              },
+              {
+                "name": "LANG",
+                "value": "C.utf8"
+              },
+              {
+                "name": "BUILD_REGISTRIES_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.conf"
+              },
+              {
+                "name": "BUILD_REGISTRIES_DIR_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/registries.d"
+              },
+              {
+                "name": "BUILD_SIGNATURE_POLICY_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/policy.json"
+              },
+              {
+                "name": "BUILD_STORAGE_CONF_PATH",
+                "value": "/var/run/configs/openshift.io/build-system/storage.conf"
+              },
+              {
+                "name": "BUILD_BLOBCACHE_DIR",
+                "value": "/var/cache/blobs"
+              }
+            ],
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "manage-dockerfile",
+            "resources": {},
+            "securityContext": {
+              "capabilities": {
+                "add": [
+                  "CHOWN",
+                  "DAC_OVERRIDE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsGroup": 0,
+              "runAsNonRoot": false,
+              "runAsUser": 0,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph01",
+        "nodeSelector": {
+          "kubernetes.io/os": "linux"
+        },
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "builder",
+        "serviceAccountName": "builder",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "hostPath": {
+              "path": "/var/lib/containers/cache",
+              "type": ""
+            },
+            "name": "buildcachedir"
+          },
+          {
+            "emptyDir": {},
+            "name": "buildworkdir"
+          },
+          {
+            "hostPath": {
+              "path": "/var/lib/kubelet/config.json",
+              "type": "File"
+            },
+            "name": "node-pullsecrets"
+          },
+          {
+            "name": "builder-dockercfg-jx5p7-push",
+            "secret": {
+              "defaultMode": 384,
+              "secretName": "builder-dockercfg-jx5p7"
+            }
+          },
+          {
+            "name": "builder-dockercfg-jx5p7-pull",
+            "secret": {
+              "defaultMode": 384,
+              "secretName": "builder-dockercfg-jx5p7"
+            }
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "ocp-portal-2-sys-config"
+            },
+            "name": "build-system-configs"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "items": [
+                {
+                  "key": "service-ca.crt",
+                  "path": "certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt"
+                }
+              ],
+              "name": "ocp-portal-2-ca"
+            },
+            "name": "build-ca-bundles"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "items": [
+                {
+                  "key": "ca-bundle.crt",
+                  "path": "tls-ca-bundle.pem"
+                }
+              ],
+              "name": "ocp-portal-2-global-ca"
+            },
+            "name": "build-proxy-ca-bundles"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-storage-root"
+          },
+          {
+            "emptyDir": {},
+            "name": "container-storage-run"
+          },
+          {
+            "emptyDir": {},
+            "name": "build-blob-cache"
+          },
+          {
+            "name": "kube-api-access-hfh6m",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T22:45:48Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T22:44:31Z",
+            "reason": "PodCompleted",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T22:45:47Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T22:45:47Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T22:43:00Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://e1d38a504abcf0201fd83a3fdbe9527192a4fe97bdb2d409b6fdb6d47248fac8",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "docker-build",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://e1d38a504abcf0201fd83a3fdbe9527192a4fe97bdb2d409b6fdb6d47248fac8",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T22:45:47Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T22:44:31Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/lib/kubelet/config.json",
+                "name": "node-pullsecrets"
+              },
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/lib/containers/cache",
+                "name": "buildcachedir"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/push",
+                "name": "builder-dockercfg-jx5p7-push",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/secrets/openshift.io/pull",
+                "name": "builder-dockercfg-jx5p7-pull",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/lib/containers",
+                "name": "container-storage-root"
+              },
+              {
+                "mountPath": "/var/run/containers",
+                "name": "container-storage-run"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.175",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.175"
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "containerID": "cri-o://72c84b8c61f79f379e6748c28fc0dc53c7cecb56ea6ac20efd3c59df99ac3dbd",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "git-clone",
+            "ready": true,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://72c84b8c61f79f379e6748c28fc0dc53c7cecb56ea6ac20efd3c59df99ac3dbd",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T22:44:30Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T22:43:01Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "containerID": "cri-o://6426b4bb5c4e5fc58123a41b0f367ffd619851f255b722370075a080a281b3b3",
+            "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "imageID": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5e907a877a97a8296b3fddc49943830dd7b0a46193df899963e4ef2923ec5781",
+            "lastState": {},
+            "name": "manage-dockerfile",
+            "ready": true,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "cri-o://6426b4bb5c4e5fc58123a41b0f367ffd619851f255b722370075a080a281b3b3",
+                "exitCode": 0,
+                "finishedAt": "2026-03-29T22:44:31Z",
+                "reason": "Completed",
+                "startedAt": "2026-03-29T22:44:30Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/build",
+                "name": "buildworkdir"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/build-system",
+                "name": "build-system-configs",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/certs",
+                "name": "build-ca-bundles"
+              },
+              {
+                "mountPath": "/var/run/configs/openshift.io/pki",
+                "name": "build-proxy-ca-bundles"
+              },
+              {
+                "mountPath": "/var/cache/blobs",
+                "name": "build-blob-cache"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-hfh6m",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "phase": "Succeeded",
+        "podIP": "10.131.3.170",
+        "podIPs": [
+          {
+            "ip": "10.131.3.170"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-03-29T22:43:00Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.131.3.176/23\"],\"mac_address\":\"0a:58:0a:83:03:b0\",\"gateway_ips\":[\"10.131.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.131.2.1\"}],\"ip_address\":\"10.131.3.176/23\",\"gateway_ip\":\"10.131.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.131.3.176\"\n    ],\n    \"mac\": \"0a:58:0a:83:03:b0\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "kubectl.kubernetes.io/restartedAt": "2026-03-30T01:00:31+02:00",
+          "openshift.io/scc": "restricted-v2",
+          "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
+        },
+        "creationTimestamp": "2026-03-29T23:00:31Z",
+        "generateName": "ocp-portal-5c7b97cbd-",
+        "labels": {
+          "app.kubernetes.io/name": "ocp-portal",
+          "pod-template-hash": "5c7b97cbd"
+        },
+        "name": "ocp-portal-5c7b97cbd-td6jw",
+        "namespace": "ocp-portal",
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "ocp-portal-5c7b97cbd",
+            "uid": "b62574db-1cb8-4d02-8ff9-7d5b000fc5e3"
+          }
+        ],
+        "resourceVersion": "591070738",
+        "uid": "e261a6ec-d6b6-4507-96f6-eb7284397f83"
+      },
+      "spec": {
+        "containers": [
+          {
+            "args": [
+              "exec /usr/bin/oauth-proxy \\\n  --http-address=0.0.0.0:4180 \\\n  --https-address= \\\n  --proxy-prefix=/oauth2 \\\n  --provider=openshift \\\n  --upstream=http://127.0.0.1:8080 \\\n  --skip-provider-button=true \\\n  --cookie-secure=true \\\n  --cookie-httponly=true \\\n  --redirect-url=\"${OAUTH2_PROXY_REDIRECT_URL}\"\n"
+            ],
+            "command": [
+              "/bin/sh",
+              "-c"
+            ],
+            "envFrom": [
+              {
+                "secretRef": {
+                  "name": "ocp-portal-oauth"
+                }
+              }
+            ],
+            "image": "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:v4.4",
+            "imagePullPolicy": "IfNotPresent",
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/oauth2/healthz",
+                "port": "http-oauth",
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 15,
+              "periodSeconds": 20,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "name": "oauth2-proxy",
+            "ports": [
+              {
+                "containerPort": 4180,
+                "name": "http-oauth",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/oauth2/healthz",
+                "port": "http-oauth",
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "50m",
+                "memory": "64Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001530000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zj5ff",
+                "readOnly": true
+              }
+            ]
+          },
+          {
+            "env": [
+              {
+                "name": "NODE_ENV",
+                "value": "production"
+              },
+              {
+                "name": "PORT",
+                "value": "8080"
+              },
+              {
+                "name": "DATABASE_PATH",
+                "value": "/data/ocp_clusters.db"
+              },
+              {
+                "name": "TRUST_PROXY",
+                "value": "true"
+              }
+            ],
+            "image": "image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest",
+            "imagePullPolicy": "Always",
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/api/health",
+                "port": "http-app",
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 15,
+              "periodSeconds": 30,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "name": "ocp-portal",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http-app",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/api/health",
+                "port": "http-app",
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "runAsUser": 1001530000
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/data",
+                "name": "sqlite-data"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zj5ff",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "default-dockercfg-lzstx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph01",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "fsGroup": 1001530000,
+          "seLinuxOptions": {
+            "level": "s0:c39,c24"
+          },
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "sqlite-data",
+            "persistentVolumeClaim": {
+              "claimName": "ocp-portal-sqlite"
+            }
+          },
+          {
+            "name": "kube-api-access-zj5ff",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T23:00:33Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T23:00:31Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-31T13:49:51Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-31T13:49:51Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T23:00:31Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "containerID": "cri-o://bbaacf1d569c9a72e038fe14aa1f3e1f43d2a25c2df2a4cc9222d24a7bbb1c64",
+            "image": "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:v4.4",
+            "imageID": "image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy@sha256:04b340433c0ebf32b35d7cbbab5ce79dd2d201b9d54e552b049251805c6bf4b9",
+            "lastState": {},
+            "name": "oauth2-proxy",
+            "ready": true,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-03-29T23:00:32Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zj5ff",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          },
+          {
+            "containerID": "cri-o://26d83ac7302e42cfbd793afba98962d0b9ac2c77c883d2e9e012ad2437b0a182",
+            "image": "image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal:latest",
+            "imageID": "image-registry.openshift-image-registry.svc:5000/ocp-portal/ocp-portal@sha256:d187b5d0f97f4712fa99018f764ad0e16e6f14c91b3bcd1203508ee33ff7f82d",
+            "lastState": {
+              "terminated": {
+                "containerID": "cri-o://3d1eb1cca200a570792b010bf9084a4bf485553be393810b095bad4cf8e3685c",
+                "exitCode": 137,
+                "finishedAt": "2026-03-31T13:49:37Z",
+                "reason": "OOMKilled",
+                "startedAt": "2026-03-30T00:02:32Z"
+              }
+            },
+            "name": "ocp-portal",
+            "ready": true,
+            "restartCount": 3,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-03-31T13:49:38Z"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/data",
+                "name": "sqlite-data"
+              },
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-zj5ff",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.175",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.175"
+          }
+        ],
+        "phase": "Running",
+        "podIP": "10.131.3.176",
+        "podIPs": [
+          {
+            "ip": "10.131.3.176"
+          }
+        ],
+        "qosClass": "Burstable",
+        "startTime": "2026-03-29T23:00:31Z"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "annotations": {
+          "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.131.3.68/23\"],\"mac_address\":\"0a:58:0a:83:03:44\",\"gateway_ips\":[\"10.131.2.1\"],\"routes\":[{\"dest\":\"10.128.0.0/14\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"172.30.0.0/16\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"169.254.0.5/32\",\"nextHop\":\"10.131.2.1\"},{\"dest\":\"100.64.0.0/16\",\"nextHop\":\"10.131.2.1\"}],\"ip_address\":\"10.131.3.68/23\",\"gateway_ip\":\"10.131.2.1\",\"role\":\"primary\"}}",
+          "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.131.3.68\"\n    ],\n    \"mac\": \"0a:58:0a:83:03:44\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+          "openshift.io/scc": "anyuid"
+        },
+        "creationTimestamp": "2026-03-29T14:35:35Z",
+        "labels": {
+          "run": "op-which"
+        },
+        "name": "op-which",
+        "namespace": "ocp-portal",
+        "resourceVersion": "699673752",
+        "uid": "67cc1fb1-7c29-4a47-a82c-0bf9cc56627d"
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "ls",
+              "-la",
+              "/"
+            ],
+            "image": "quay.io/openshift/oauth-proxy:4.15",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "op-which",
+            "resources": {},
+            "securityContext": {
+              "capabilities": {
+                "drop": [
+                  "MKNOD"
+                ]
+              }
+            },
+            "stdin": true,
+            "stdinOnce": true,
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-6dtgn",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "imagePullSecrets": [
+          {
+            "name": "default-dockercfg-lzstx"
+          }
+        ],
+        "nodeName": "ocp-infra01-ceph01",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Never",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "seLinuxOptions": {
+            "level": "s0:c39,c24"
+          }
+        },
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          },
+          {
+            "effect": "NoExecute",
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "tolerationSeconds": 300
+          }
+        ],
+        "volumes": [
+          {
+            "name": "kube-api-access-6dtgn",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "service-ca.crt",
+                        "path": "service-ca.crt"
+                      }
+                    ],
+                    "name": "openshift-service-ca.crt"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T14:35:36Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T14:35:35Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T14:35:35Z",
+            "message": "containers with unready status: [op-which]",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T14:35:35Z",
+            "message": "containers with unready status: [op-which]",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-03-29T14:35:35Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "image": "quay.io/openshift/oauth-proxy:4.15",
+            "imageID": "",
+            "lastState": {},
+            "name": "op-which",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "Back-off pulling image \"quay.io/openshift/oauth-proxy:4.15\"",
+                "reason": "ImagePullBackOff"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access-6dtgn",
+                "readOnly": true,
+                "recursiveReadOnly": "Disabled"
+              }
+            ]
+          }
+        ],
+        "hostIP": "10.185.19.175",
+        "hostIPs": [
+          {
+            "ip": "10.185.19.175"
+          }
+        ],
+        "phase": "Pending",
+        "podIP": "10.131.3.68",
+        "podIPs": [
+          {
+            "ip": "10.131.3.68"
+          }
+        ],
+        "qosClass": "BestEffort",
+        "startTime": "2026-03-29T14:35:35Z"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

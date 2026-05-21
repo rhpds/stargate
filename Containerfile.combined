@@ -1,0 +1,50 @@
+## Stage 1: Build frontend
+FROM --platform=linux/amd64 node:22-alpine AS frontend-build
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npx vite build
+
+## Stage 2: Python API + scanner + built frontend
+FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/python-39:latest
+
+USER 0
+
+RUN curl -sL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz" \
+    | tar xzf - -C /usr/local/bin oc kubectl && \
+    chmod +x /usr/local/bin/oc /usr/local/bin/kubectl
+
+USER 1001
+
+WORKDIR /opt/app-root/src
+
+COPY pyproject.toml .
+RUN pip install --no-cache-dir pydantic pyyaml jsonschema fastapi uvicorn psycopg2-binary sqlalchemy alembic prometheus-client slowapi
+
+COPY api/ api/
+COPY cli/ cli/
+COPY collectors/ collectors/
+COPY engine/ engine/
+COPY events/ events/
+COPY constraints/ constraints/
+COPY normalizers/ normalizers/
+COPY db/ db/
+COPY rubrics/ rubrics/
+COPY remediations/ remediations/
+COPY evidence-schemas/ evidence-schemas/
+COPY prompts/ prompts/
+COPY policies/ policies/
+COPY alembic/ alembic/
+COPY alembic.ini .
+
+# Bundle synthetic client emulator (makes emulator.* importable via PYTHONPATH)
+COPY stargate-synthetic-client-emulator/emulator/ emulator/
+
+COPY --from=frontend-build /build/dist frontend/dist/
+
+RUN mkdir -p scan-history && chmod 777 scan-history
+
+EXPOSE 8090
+
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8090"]

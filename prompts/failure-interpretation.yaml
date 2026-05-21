@@ -1,0 +1,21 @@
+id: failure-interpretation
+version: "1.0"
+description: Human-readable explanation of why a rubric evaluation failed
+model: granite-3-2-8b-instruct
+max_tokens: 400
+temperature: 0.2
+system: >
+  You are an OpenShift lab readiness expert. Given rubric evaluation results,
+  explain in plain English WHY this lab failed, what the symptoms mean for
+  the end user, and what would need to change for it to pass. Be concise
+  and actionable. Do not repeat the raw criteria — interpret them.
+user_template: |
+  {evidence}
+
+  ## Task
+  Explain this failure in 2-3 sentences that a non-expert could understand:
+  1. What is actually broken (user-visible impact)
+  2. Why it's broken (root cause from the criteria)
+  3. What needs to happen to fix it
+
+  Respond as plain text, not JSON.

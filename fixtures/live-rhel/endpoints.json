@@ -1,0 +1,170 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T18:34:02Z"
+        },
+        "creationTimestamp": "2026-05-06T18:34:02Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "lab",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220489",
+        "uid": "90d1c216-d32b-4d04-9ad0-debb2ae2384b"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "hostname": "rhel",
+              "ip": "10.130.38.130",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-rhel-26kzq",
+                "namespace": "sandbox-2dclz-zt-rhelbu",
+                "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "foo",
+              "port": 1234,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T18:34:01Z"
+        },
+        "creationTimestamp": "2026-05-06T18:34:01Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220465",
+        "uid": "960a1fbd-d984-4fa5-ad46-0dcc34ddd00a"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.130",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-rhel-26kzq",
+                "namespace": "sandbox-2dclz-zt-rhelbu",
+                "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T18:34:03Z"
+        },
+        "creationTimestamp": "2026-05-06T18:34:03Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "rhel-ssh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220570",
+        "uid": "3e643493-da30-4f78-997e-b051000b3d7f"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.130",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-rhel-26kzq",
+                "namespace": "sandbox-2dclz-zt-rhelbu",
+                "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T18:37:22Z"
+        },
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "showroom",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331228021",
+        "uid": "3252703c-cb51-4368-80a5-8a4f9de55f9a"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.38.131",
+              "nodeName": "ocp-virt6-host8",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "showroom-6d769469cf-4lzrh",
+                "namespace": "sandbox-2dclz-zt-rhelbu",
+                "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "showroom",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

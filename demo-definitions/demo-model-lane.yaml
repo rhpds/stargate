@@ -1,0 +1,20 @@
+demo_id: demo-model-lane
+name: Model Serving Lane Demo
+description: AI/ML model serving demo via OpenShift AI and KServe.
+namespace_prefix: summit-model
+rubric_version: v0.1.0
+stages:
+  - stage_id: cluster-health
+    rubric_id: cluster-health
+  - stage_id: run-created
+    rubric_id: run-created
+  - stage_id: provision-complete
+    rubric_id: provision-complete
+  - stage_id: namespace-ready
+    rubric_id: namespace-ready
+  - stage_id: model-endpoint-ready
+    rubric_id: model-endpoint-ready
+  - stage_id: smoke-test-ready
+    rubric_id: smoke-test-ready
+  - stage_id: showroom-healthy
+    rubric_id: showroom-healthy

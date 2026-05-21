@@ -1,0 +1,976 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "generation": 1,
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "showroom",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329877065",
+        "uid": "86bd5f8e-8812-4691-8572-35f8a847e3c3"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/instance": "showroom",
+            "app.kubernetes.io/name": "showroom"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/instance": "showroom",
+              "app.kubernetes.io/name": "showroom"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "DEBUG",
+                    "value": "true"
+                  },
+                  {
+                    "name": "PORT",
+                    "value": "8501"
+                  },
+                  {
+                    "name": "ANSIBLE_USER",
+                    "value": "rhel"
+                  },
+                  {
+                    "name": "ANSIBLE_PASSWORD",
+                    "value": "ansible123!"
+                  },
+                  {
+                    "name": "BASTION_PORT",
+                    "value": "22"
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  },
+                  {
+                    "name": "DOMAIN",
+                    "value": "apps.ocpv06.rhdp.net"
+                  },
+                  {
+                    "name": "REGISTRY_PULL_TOKEN"
+                  },
+                  {
+                    "name": "SATELLITE_URL",
+                    "value": "demosat-ha.infra.demo.redhat.com"
+                  },
+                  {
+                    "name": "SATELLITE_ORG",
+                    "value": "Red_Hat_RHDP_Labs"
+                  },
+                  {
+                    "name": "SATELLITE_ACTIVATIONKEY",
+                    "value": "rhel-8-and-9-latest-i4qjycz2xz"
+                  },
+                  {
+                    "name": "VAULT_PASSWORD",
+                    "value": "4ns1bl3v4ult!"
+                  }
+                ],
+                "image": "quay.io/rhpds/zerotouch-automation:v1.2.0",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "runner",
+                "ports": [
+                  {
+                    "containerPort": 8501,
+                    "name": "runner",
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/runtime-automation",
+                    "name": "showroom-files",
+                    "subPath": "repo/runtime-automation"
+                  },
+                  {
+                    "mountPath": "/app/artifacts",
+                    "name": "showroom-files",
+                    "subPath": "artifacts"
+                  },
+                  {
+                    "mountPath": "/app/logs",
+                    "name": "showroom-files",
+                    "subPath": "logs"
+                  }
+                ]
+              },
+              {
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  },
+                  {
+                    "name": "DOMAIN",
+                    "value": "apps.ocpv06.rhdp.net"
+                  }
+                ],
+                "image": "quay.io/rhpds/nginx:1.25",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "nginx",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "web",
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/nginx/nginx.conf",
+                    "name": "nginx-config",
+                    "subPath": "nginx.conf"
+                  },
+                  {
+                    "mountPath": "/var/cache/nginx",
+                    "name": "nginx-cache"
+                  },
+                  {
+                    "mountPath": "/var/run",
+                    "name": "nginx-pid"
+                  }
+                ]
+              },
+              {
+                "env": [
+                  {
+                    "name": "ANTORA_PLAYBOOK",
+                    "value": "site.yml"
+                  },
+                  {
+                    "name": "ZT_BUNDLE",
+                    "value": "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.3/nookbag-v0.3.3.zip"
+                  },
+                  {
+                    "name": "ZT_UI_ENABLED",
+                    "value": "true"
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  },
+                  {
+                    "name": "DOMAIN",
+                    "value": "apps.ocpv06.rhdp.net"
+                  }
+                ],
+                "image": "quay.io/rhpds/showroom-content:v1.4.1",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "content",
+                "ports": [
+                  {
+                    "containerPort": 8000,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/user_data/",
+                    "name": "user-data"
+                  },
+                  {
+                    "mountPath": "/showroom/repo",
+                    "name": "showroom-files",
+                    "subPath": "repo"
+                  },
+                  {
+                    "mountPath": "/showroom/www",
+                    "name": "showroom-files",
+                    "subPath": "www"
+                  }
+                ]
+              },
+              {
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/openshift-showroom-terminal-ocp:latest",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "terminal",
+                "ports": [
+                  {
+                    "containerPort": 7681,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/home/lab-user",
+                    "name": "terminal-lab-user-home"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8001",
+                  "--ssh-host=control",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty",
+                "ports": [
+                  {
+                    "containerPort": 8001,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8002",
+                  "--ssh-host=control",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty-control",
+                "ports": [
+                  {
+                    "containerPort": 8002,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8003",
+                  "--ssh-host=node01",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty-node01",
+                "ports": [
+                  {
+                    "containerPort": 8003,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8004",
+                  "--ssh-host=haproxy",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty-haproxy",
+                "ports": [
+                  {
+                    "containerPort": 8004,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8005",
+                  "--ssh-host=windows",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty-windows",
+                "ports": [
+                  {
+                    "containerPort": 8005,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "args": [
+                  "--base=\"/wetty/\"",
+                  "--port=8006",
+                  "--ssh-host=dbserver",
+                  "--ssh-port=22",
+                  "--ssh-user=rhel",
+                  "--ssh-auth=password",
+                  "--ssh-pass=ansible123!"
+                ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  }
+                ],
+                "image": "quay.io/rhpds/wetty:v2.5",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "wetty-dbserver",
+                "ports": [
+                  {
+                    "containerPort": 8006,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "env": [
+                  {
+                    "name": "RDPSERVER",
+                    "value": "windows"
+                  },
+                  {
+                    "name": "RDPUSER",
+                    "value": "Administrator"
+                  },
+                  {
+                    "name": "RDPPASSWORD",
+                    "value": "Ansible123!"
+                  },
+                  {
+                    "name": "JETSERVER",
+                    "value": "https://windows-jetrdp-zz95m.apps.ocpv06.rhdp.net/jet/rdp"
+                  },
+                  {
+                    "name": "TOKENGENSERVER",
+                    "value": "https://windows-tokengen-zz95m.apps.ocpv06.rhdp.net"
+                  }
+                ],
+                "image": "quay.io/agonzalezrh/ironrdp:v0.0.2",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "ironrdp",
+                "ports": [
+                  {
+                    "containerPort": 8081,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 7171,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9000,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              },
+              {
+                "env": [
+                  {
+                    "name": "BASTION_HOST",
+                    "value": "control"
+                  },
+                  {
+                    "name": "BASTION_PORT",
+                    "value": "22"
+                  },
+                  {
+                    "name": "BASTION_USER",
+                    "value": "rhel"
+                  },
+                  {
+                    "name": "BASTION_PASSWORD",
+                    "value": "ansible123!"
+                  },
+                  {
+                    "name": "OTHER_HOSTS",
+                    "value": "control node01 haproxy windows dbserver"
+                  }
+                ],
+                "image": "quay.io/rhpds/zt-monitoring:v1",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "monitoring",
+                "ports": [
+                  {
+                    "containerPort": 9999,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "env": [
+                  {
+                    "name": "GIT_REPO_URL",
+                    "value": "https://github.com/rhpds/zt-ans-bu-roadshow02.git"
+                  },
+                  {
+                    "name": "GIT_REPO_REF",
+                    "value": "v2-summit26"
+                  },
+                  {
+                    "name": "CLONE_DIR",
+                    "value": "/showroom/repo"
+                  }
+                ],
+                "image": "quay.io/rhpds/git-cloner:v1.1.4",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "git-cloner",
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/showroom/repo",
+                    "name": "showroom-files",
+                    "subPath": "repo"
+                  }
+                ]
+              },
+              {
+                "env": [
+                  {
+                    "name": "FILES_DIR",
+                    "value": "/showroom/repo"
+                  },
+                  {
+                    "name": "OUTPUT_DIR",
+                    "value": "/showroom/www"
+                  },
+                  {
+                    "name": "ANTORA_PLAYBOOK",
+                    "value": "site.yml"
+                  },
+                  {
+                    "name": "ZT_BUNDLE",
+                    "value": "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.3/nookbag-v0.3.3.zip"
+                  },
+                  {
+                    "name": "ZT_UI_ENABLED",
+                    "value": "true"
+                  },
+                  {
+                    "name": "ANTORA_UI_BUNDLE_URL",
+                    "value": "https://github.com/rhpds/rhdp_showroom_theme/releases/download/summit-2026/ui-bundle.zip"
+                  }
+                ],
+                "image": "quay.io/rhpds/antora:v1.2.2",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "antora-builder",
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/showroom/repo",
+                    "name": "showroom-files",
+                    "subPath": "repo"
+                  },
+                  {
+                    "mountPath": "/user_data/",
+                    "name": "user-data"
+                  },
+                  {
+                    "mountPath": "/showroom/www",
+                    "name": "showroom-files",
+                    "subPath": "www"
+                  }
+                ]
+              },
+              {
+                "env": [
+                  {
+                    "name": "GIT_REPO_URL",
+                    "value": "https://github.com/rhpds/zt-ans-bu-roadshow02.git"
+                  },
+                  {
+                    "name": "GIT_REPO_REF",
+                    "value": "v2-summit26"
+                  },
+                  {
+                    "name": "BASTION_HOST",
+                    "value": "control"
+                  },
+                  {
+                    "name": "BASTION_PORT",
+                    "value": "22"
+                  },
+                  {
+                    "name": "BASTION_USER",
+                    "value": "rhel"
+                  },
+                  {
+                    "name": "BASTION_PASSWORD",
+                    "value": "ansible123!"
+                  },
+                  {
+                    "name": "GUID",
+                    "value": "zz95m"
+                  },
+                  {
+                    "name": "DOMAIN",
+                    "value": "apps.ocpv06.rhdp.net"
+                  },
+                  {
+                    "name": "SATELLITE_URL",
+                    "value": "demosat-ha.infra.demo.redhat.com"
+                  },
+                  {
+                    "name": "SATELLITE_ORG",
+                    "value": "Red_Hat_RHDP_Labs"
+                  },
+                  {
+                    "name": "SATELLITE_ACTIVATIONKEY",
+                    "value": "rhel-8-and-9-latest-i4qjycz2xz"
+                  },
+                  {
+                    "name": "REGISTRY_PULL_TOKEN"
+                  },
+                  {
+                    "name": "VAULT_PASSWORD",
+                    "value": "4ns1bl3v4ult!"
+                  },
+                  {
+                    "name": "FORCE_SETUP",
+                    "value": "false"
+                  },
+                  {
+                    "name": "SETUP_STATE_DIR",
+                    "value": "/setup-state"
+                  }
+                ],
+                "image": "quay.io/rhpds/setup-automation:v1.0.8",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "setup",
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/runner/",
+                    "name": "runner"
+                  },
+                  {
+                    "mountPath": "/setup-state",
+                    "name": "setup-state"
+                  }
+                ]
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "serviceAccount": "showroom",
+            "serviceAccountName": "showroom",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "showroom-files"
+              },
+              {
+                "emptyDir": {},
+                "name": "runner"
+              },
+              {
+                "name": "setup-state",
+                "persistentVolumeClaim": {
+                  "claimName": "showroom-setup-state"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "showroom-userdata"
+                },
+                "name": "user-data"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "showroom-proxy-config"
+                },
+                "name": "nginx-config"
+              },
+              {
+                "emptyDir": {},
+                "name": "nginx-pid"
+              },
+              {
+                "emptyDir": {},
+                "name": "nginx-cache"
+              },
+              {
+                "name": "terminal-lab-user-home",
+                "persistentVolumeClaim": {
+                  "claimName": "showroom-terminal-lab-user-home"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-05-06T10:55:18Z",
+            "lastUpdateTime": "2026-05-06T10:55:18Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-05-06T10:49:42Z",
+            "lastUpdateTime": "2026-05-06T10:55:18Z",
+            "message": "ReplicaSet \"showroom-8544b8f86d\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

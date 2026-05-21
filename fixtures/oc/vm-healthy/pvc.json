@@ -1,0 +1,30 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolumeClaim",
+  "metadata": {
+    "name": "demo-vm-rootdisk",
+    "namespace": "summit-vm-001",
+    "creationTimestamp": "2026-05-05T14:01:00Z"
+  },
+  "spec": {
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "resources": {
+      "requests": {
+        "storage": "30Gi"
+      }
+    },
+    "storageClassName": "ocs-storagecluster-ceph-rbd-virtualization",
+    "volumeMode": "Block"
+  },
+  "status": {
+    "phase": "Bound",
+    "capacity": {
+      "storage": "30Gi"
+    },
+    "accessModes": [
+      "ReadWriteOnce"
+    ]
+  }
+}

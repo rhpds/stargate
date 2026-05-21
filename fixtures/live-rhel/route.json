@@ -1,0 +1,83 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "1h",
+          "haproxy.router.openshift.io/timeout-tunnel": "1h"
+        },
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226183",
+        "uid": "3cb51a93-b855-461a-84f6-e838bf16e97f"
+      },
+      "spec": {
+        "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": 8080
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "showroom",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T18:36:39Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T18:36:39Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

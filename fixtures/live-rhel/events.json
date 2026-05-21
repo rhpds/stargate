@@ -1,0 +1,2204 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218579",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "No PVC found",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9feb1c8e85",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218580",
+        "uid": "e31cfff8-cc24-426d-bacc-edf9e0ad954c"
+      },
+      "reason": "NotFound",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 17,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218584",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:48Z",
+      "message": "The datasource for this PVC does not match any registered VolumePopulator",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9fefa3b636",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219894",
+        "uid": "c6b96264-222a-4599-8ec2-8a4a35ea31b8"
+      },
+      "reason": "UnrecognizedDataSourceKind",
+      "reportingComponent": "volume-data-source-validator",
+      "reportingInstance": "",
+      "source": {
+        "component": "volume-data-source-validator"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218584",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "Error saving claim: Operation cannot be fulfilled on persistentvolumeclaims \"rhel-2dclz\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff1c43f71",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218593",
+        "uid": "e458baa6-59e8-44b5-acc7-6242eb6b00f0"
+      },
+      "reason": "ProvisioningFailed",
+      "reportingComponent": "persistentvolume-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "persistentvolume-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218591",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "Cloning from cnv-images/rhel-10-0-07-09-25-3 into sandbox-2dclz-zt-rhelbu/rhel-2dclz scheduled",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff288f2df",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218597",
+        "uid": "2855267b-af1d-4fe7-8ed6-f3fdf245ea64"
+      },
+      "reason": "CloneScheduled",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218591",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "PVC rhel-2dclz Pending",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff28915a0",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218600",
+        "uid": "2d655eec-6a64-4519-aabc-431e9b18e191"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218591",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "Clone Pending",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff2892186",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218603",
+        "uid": "84c4c82f-3b06-4692-aec7-d418bf6ad5b2"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218601",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "target PVC rhel-2dclz Pending and The datasource for this PVC does not match any registered VolumePopulator",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff4cdffde",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218605",
+        "uid": "f0f332ee-6b3c-4a11-bd43-c41c1b0c6be1"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218611",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "[tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : External provisioner is provisioning volume for claim \"cnv-images/tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff93c3ef3",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218617",
+        "uid": "332fe5c3-9380-4c7a-a78a-edebe12aa97e"
+      },
+      "reason": "Provisioning",
+      "reportingComponent": "clone-populator",
+      "reportingInstance": "",
+      "source": {
+        "component": "clone-populator"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218611",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "[tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff93c787a",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218636",
+        "uid": "ad3f1d8a-6e90-46cb-b345-1bc8619551e2"
+      },
+      "reason": "ExternalProvisioning",
+      "reportingComponent": "clone-populator",
+      "reportingInstance": "",
+      "source": {
+        "component": "clone-populator"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218616",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "CSI Volume clone in progress (for pvc cnv-images/rhel-10-0-07-09-25-3)",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff9800255",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218631",
+        "uid": "9efef12d-f10b-40f0-9089-81e95c15bbe7"
+      },
+      "reason": "CSICloneInProgress",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218616",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "target PVC rhel-2dclz Pending and Error saving claim: Operation cannot be fulfilled on persistentvolumeclaims \"rhel-2dclz\": the object has been modified; please apply your changes to the latest version and try again",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel-2dclz.18ad0d9ff9802172",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218632",
+        "uid": "711c00a2-4665-45bd-9d79-e35db1a69f98"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 4,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:30Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218670",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:30Z",
+        "name": "rhel-2dclz.18ad0da05b57f601",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219642",
+        "uid": "b3c37e8e-d2f5-44ae-8f12-1eb6e60cdb84"
+      },
+      "reason": "ExternalProvisioning",
+      "reportingComponent": "persistentvolume-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "persistentvolume-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 4,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:30Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218670",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "External provisioner is provisioning volume for claim \"sandbox-2dclz-zt-rhelbu/rhel-2dclz\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:30Z",
+        "name": "rhel-2dclz.18ad0da05b73ba81",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220427",
+        "uid": "04ad22f6-0185-42cf-8546-c83d08ef871a"
+      },
+      "reason": "Provisioning",
+      "reportingComponent": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4",
+      "reportingInstance": "",
+      "source": {
+        "component": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 4,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:30Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218670",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "Assuming an external populator will provision the volume",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:30Z",
+        "name": "rhel-2dclz.18ad0da05b743a83",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220150",
+        "uid": "4ddedc3d-2646-4f6c-82fe-450d40fa84cc"
+      },
+      "reason": "Provisioning",
+      "reportingComponent": "external-provisioner",
+      "reportingInstance": "",
+      "source": {
+        "component": "external-provisioner"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:30Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218680",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:30Z",
+      "message": "target PVC rhel-2dclz Pending and [tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:30Z",
+        "name": "rhel-2dclz.18ad0da05c992ea3",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218686",
+        "uid": "dd691527-e802-4d4a-a7d2-768eea8e342f"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:30Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218688",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:30Z",
+      "message": "target PVC rhel-2dclz Pending and Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:30Z",
+        "name": "rhel-2dclz.18ad0da05d315aa5",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218689",
+        "uid": "58330927-5b2c-42d8-8208-8ac5c9677bdd"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:46Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219643",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "Prepping PersistentVolumeClaim for DataVolume sandbox-2dclz-zt-rhelbu/rhel-2dclz",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:46Z",
+        "name": "rhel-2dclz.18ad0da41861e0d1",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219644",
+        "uid": "8ac6a400-e7dc-4a99-8780-d7a17d1a1b5a"
+      },
+      "reason": "PrepClaimInProgress",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219641",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "[tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : waiting for an external controller to expand this PVC",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:46Z",
+        "name": "rhel-2dclz.18ad0da429eaeabd",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219667",
+        "uid": "bcdce397-580a-4f6d-a4ba-05e27b7c0a26"
+      },
+      "reason": "ExternalExpanding",
+      "reportingComponent": "clone-populator",
+      "reportingInstance": "",
+      "source": {
+        "component": "clone-populator"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219641",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "[tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : External resizer is resizing volume pvc-79955d60-d131-4a2e-930b-044feb8f0005",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:46Z",
+        "name": "rhel-2dclz.18ad0da429eb1bbc",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219669",
+        "uid": "59b10f97-4f9b-4685-b6d7-324d79622db9"
+      },
+      "reason": "Resizing",
+      "reportingComponent": "clone-populator",
+      "reportingInstance": "",
+      "source": {
+        "component": "clone-populator"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219641",
+        "uid": "06bd1578-0fe9-44ff-936b-cf1cc43ccd5d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "[tmp-pvc-06bd1578-0fe9-44ff-936b-cf1cc43ccd5d] : Resize volume succeeded",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:46Z",
+        "name": "rhel-2dclz.18ad0da429eb2372",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219670",
+        "uid": "bc97c787-2503-4a86-8dbe-7fb29d4e63ef"
+      },
+      "reason": "VolumeResizeSuccessful",
+      "reportingComponent": "clone-populator",
+      "reportingInstance": "",
+      "source": {
+        "component": "clone-populator"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:46Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219674",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:46Z",
+      "message": "Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:46Z",
+        "name": "rhel-2dclz.18ad0da42b3b15b7",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219675",
+        "uid": "eed529c7-d3af-40bc-8165-882b385ef36e"
+      },
+      "reason": "Pending",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:47Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219727",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:47Z",
+      "message": "PVC rhel-2dclz Bound",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "name": "rhel-2dclz.18ad0da448342aba",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219728",
+        "uid": "38502df8-b79a-46d0-8431-f344b808550e"
+      },
+      "reason": "Bound",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:47Z",
+      "involvedObject": {
+        "apiVersion": "cdi.kubevirt.io/v1beta1",
+        "kind": "DataVolume",
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219740",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:47Z",
+      "message": "Successfully cloned from cnv-images/rhel-10-0-07-09-25-3 into sandbox-2dclz-zt-rhelbu/rhel-2dclz",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "name": "rhel-2dclz.18ad0da4540ded66",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219741",
+        "uid": "8d6a1e04-63ee-40fe-bd03-fea5d1c87f5c"
+      },
+      "reason": "CloneSucceeded",
+      "reportingComponent": "datavolume-pvc-clone-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "datavolume-pvc-clone-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:28Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218571",
+        "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:28Z",
+      "message": "Created DataVolume rhel-2dclz",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "name": "rhel.18ad0d9fe82eba2c",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218575",
+        "uid": "de67fed8-8c7b-45e3-aab0-1cdd49925652"
+      },
+      "reason": "SuccessfulDataVolumeCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:47Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331218596",
+        "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:47Z",
+      "message": "Started the virtual machine by creating the new virtual machine instance rhel",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "name": "rhel.18ad0da454ebdfbc",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219745",
+        "uid": "54941dc3-899f-4301-b010-2b1880fcdff1"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:47Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219748",
+        "uid": "033e5e85-2544-43e4-bf17-001c2ca1d67a"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:47Z",
+      "message": "Created virtual machine pod virt-launcher-rhel-26kzq",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "name": "rhel.18ad0da4569bd56d",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219754",
+        "uid": "7112b706-2eb0-4439-8b37-740a7250793a"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:53Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219915",
+        "uid": "033e5e85-2544-43e4-bf17-001c2ca1d67a"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:53Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:53Z",
+        "name": "rhel.18ad0da5dd306a9b",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220054",
+        "uid": "ea57890a-3f3a-40ae-aa45-6b80649aa1ca"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:54Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220055",
+        "uid": "033e5e85-2544-43e4-bf17-001c2ca1d67a"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:54Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:54Z",
+        "name": "rhel.18ad0da5e46464c4",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220059",
+        "uid": "e182c7d5-1b2e-4e2f-aa2a-b85ef7f9e2cc"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T18:36:39.202169Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226164",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-2dclz-zt-rhelbu/showroom-6d769469cf-4lzrh to ocp-virt6-host8",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcc59325fb8",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226168",
+        "uid": "7562d11b-5ac6-4e88-afc8-39763b413019"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:39Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:39Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-0757744c-707c-46f6-8115-c75263e18307\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcc817f8a21",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226209",
+        "uid": "4cb79665-d840-434d-b935-c53e78bac6c4"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:44Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226175",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:44Z",
+      "message": "Add eth0 [10.130.38.131/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:44Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcd7c300413",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226336",
+        "uid": "8ac94fb8-ae67-4ba6-a9de-3e979f1efb60"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:44Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{git-cloner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:44Z",
+      "message": "Container image \"quay.io/rhpds/git-cloner:v1.1.2\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:44Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcd7fb6718f",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226338",
+        "uid": "abd80611-7883-4b17-8bed-043f2238d59d"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:44Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{git-cloner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:44Z",
+      "message": "Created container: git-cloner",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:44Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcda8a79d85",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226361",
+        "uid": "eacde4f9-5273-4636-b236-4de608cc272b"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:44Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{git-cloner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:44Z",
+      "message": "Started container git-cloner",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:44Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcda9728701",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226362",
+        "uid": "99d7e5a0-ffe4-4f9e-a04c-c6330a3eecdc"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:46Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{antora-builder}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:46Z",
+      "message": "Container image \"quay.io/rhpds/antora:v1.0.1\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:46Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dce0485e081",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226428",
+        "uid": "3fcbc2db-fc80-43a9-b4f9-658952ea4137"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:47Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{antora-builder}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:47Z",
+      "message": "Created container: antora-builder",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:47Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dce2d9c30d7",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226438",
+        "uid": "22d4177e-76e4-4bae-b8ab-be467ddec7cc"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:47Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{antora-builder}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:47Z",
+      "message": "Started container antora-builder",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:47Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dce2e3b61d7",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226439",
+        "uid": "6a058559-43e3-441b-ab24-c38fd3cc8724"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:52Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{setup}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:52Z",
+      "message": "Container image \"quay.io/rhpds/setup-automation:v1.0.3\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:52Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcf711a6da9",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226614",
+        "uid": "93f93cd6-dc90-4835-aff2-91a7ceab9f2d"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:53Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{setup}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:53Z",
+      "message": "Created container: setup",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:53Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcf9313d98c",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226652",
+        "uid": "1511ede1-ba91-4dba-ba85-d2d4ab5a35a3"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:53Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.initContainers{setup}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:53Z",
+      "message": "Started container setup",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:53Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dcf93ceeeb0",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226653",
+        "uid": "82c20362-48b6-42c4-924b-9006deaeae1c"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:16Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{runner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:16Z",
+      "message": "Container image \"quay.io/rhpds/zerotouch-automation:v1.2.0\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:16Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd52437dc7c",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227581",
+        "uid": "c9a66c48-4da3-46f8-ad56-e620a35ae354"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:17Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{runner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:17Z",
+      "message": "Created container: runner",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:17Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd551af645f",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227615",
+        "uid": "aa2afe7d-201d-414a-ba54-54ade9402987"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:17Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{runner}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:17Z",
+      "message": "Started container runner",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:17Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd552704c1a",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227617",
+        "uid": "deead790-6199-4e24-8900-c22ed4f9a9b5"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:17Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{nginx}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:17Z",
+      "message": "Container image \"quay.io/rhpds/nginx:1.25\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:17Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd552860e13",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227618",
+        "uid": "9591387d-cb87-4d37-b06a-8ee850513b08"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:18Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{nginx}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:18Z",
+      "message": "Created container: nginx",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:18Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd580c1843f",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227865",
+        "uid": "1ac81181-c585-4ea6-80b1-f2b083c634fa"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:18Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{nginx}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:18Z",
+      "message": "Started container nginx",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:18Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5816a295b",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227866",
+        "uid": "47dcde0f-6672-4ed1-9029-6a8ec30086f5"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:18Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{content}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:18Z",
+      "message": "Container image \"quay.io/rhpds/showroom-content:v1.3.0\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:18Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5817db61e",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227867",
+        "uid": "ed7726d1-aabe-40ea-a1b5-ad50640aef68"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{content}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Created container: content",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5acf3369e",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227894",
+        "uid": "fd9e0f85-9fd3-4672-84a7-83072cf9c288"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{content}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Started container content",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5adaa5e9b",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227896",
+        "uid": "c2f28702-e7fd-4319-ab6d-5448646879dd"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{terminal}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Container image \"quay.io/rhpds/openshift-showroom-terminal-ocp:latest\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5adbf050e",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227897",
+        "uid": "26bd9642-8f58-4e87-861f-5fbfc82021c9"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{terminal}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Created container: terminal",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5d4709a5c",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227940",
+        "uid": "9aba60db-9757-4a33-9f7f-e26a4af3eb3c"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{terminal}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Started container terminal",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5d5467403",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227941",
+        "uid": "4c9d6e31-3d05-4b89-9231-05788c1181ba"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:19Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{wetty}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:19Z",
+      "message": "Container image \"quay.io/rhpds/wetty:v2.5\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:19Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5d559780c",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227943",
+        "uid": "b5589bab-621e-4fd6-9ef1-7d6a5d46b0b0"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:20Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{wetty}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:20Z",
+      "message": "Created container: wetty",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:20Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5f4b15060",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227966",
+        "uid": "efaf027a-9132-480b-b37b-ca35e5775280"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:20Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{wetty}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:20Z",
+      "message": "Started container wetty",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:20Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5f574fdd0",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227968",
+        "uid": "a6e3db48-f063-459b-a765-8b2cce0c11fa"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:37:20Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{wetty-rhel}",
+        "kind": "Pod",
+        "name": "showroom-6d769469cf-4lzrh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226166",
+        "uid": "055b9f36-1620-47cd-88a0-f55253f67a40"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:37:20Z",
+      "message": "Container image \"quay.io/rhpds/wetty:v2.5\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:37:20Z",
+        "name": "showroom-6d769469cf-4lzrh.18ad0dd5f58c6567",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331227969",
+        "uid": "72c93dc0-f80c-4d40-8ee3-af1c094f437a"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:39Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "ReplicaSet",
+        "name": "showroom-6d769469cf",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226159",
+        "uid": "ea21a0eb-6838-454b-ba60-5a809aaa81ac"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:39Z",
+      "message": "Created pod: showroom-6d769469cf-4lzrh",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom-6d769469cf.18ad0dcc58e2aab8",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226165",
+        "uid": "70973ff0-bc58-4369-a8a7-73c7e58e0132"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "replicaset-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "showroom-terminal-lab-user-home",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226128",
+        "uid": "0757744c-707c-46f6-8115-c75263e18307"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:38Z",
+      "message": "Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:38Z",
+        "name": "showroom-terminal-lab-user-home.18ad0dcc37b4a1c2",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226131",
+        "uid": "d517f19c-ff9c-4c3d-8be8-8dfc97d297dc"
+      },
+      "reason": "ExternalProvisioning",
+      "reportingComponent": "persistentvolume-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "persistentvolume-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "showroom-terminal-lab-user-home",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226128",
+        "uid": "0757744c-707c-46f6-8115-c75263e18307"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:38Z",
+      "message": "External provisioner is provisioning volume for claim \"sandbox-2dclz-zt-rhelbu/showroom-terminal-lab-user-home\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:38Z",
+        "name": "showroom-terminal-lab-user-home.18ad0dcc37b74d4d",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226130",
+        "uid": "a04ad687-d9d2-4da5-b01d-fb03a52be146"
+      },
+      "reason": "Provisioning",
+      "reportingComponent": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4",
+      "reportingInstance": "",
+      "source": {
+        "component": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "name": "showroom-terminal-lab-user-home",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226128",
+        "uid": "0757744c-707c-46f6-8115-c75263e18307"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:38Z",
+      "message": "Successfully provisioned volume pvc-0757744c-707c-46f6-8115-c75263e18307",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:38Z",
+        "name": "showroom-terminal-lab-user-home.18ad0dcc431cb3b8",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226134",
+        "uid": "d8a522b8-360a-4513-b062-41585c4e8200"
+      },
+      "reason": "ProvisioningSucceeded",
+      "reportingComponent": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4",
+      "reportingInstance": "",
+      "source": {
+        "component": "openshift-storage.rbd.csi.ceph.com_ocp-virt6-host3_a6f9f75a-343d-443c-ab37-780a7ab110b4"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:36:39Z",
+      "involvedObject": {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "name": "showroom",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226155",
+        "uid": "0924eef5-001d-4688-aa07-7dcf7ed2d73b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:36:39Z",
+      "message": "Scaled up replica set showroom-6d769469cf from 0 to 1",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom.18ad0dcc57d26a8e",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226161",
+        "uid": "ea352778-7777-4abc-acc7-a1ed7a3a6e97"
+      },
+      "reason": "ScalingReplicaSet",
+      "reportingComponent": "deployment-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "deployment-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T18:33:47.363419Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219753",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-2dclz-zt-rhelbu/virt-launcher-rhel-26kzq to ocp-virt6-host8",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da456cf1543",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219756",
+        "uid": "c65feff2-94f6-448c-9fa0-5716a08cc680"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:48Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:48Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-79955d60-d131-4a2e-930b-044feb8f0005\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:48Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da47dfdef83",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219804",
+        "uid": "ab39f882-b66e-4eb7-a904-56afbd4d9b9b"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:49Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:49Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-79955d60-d131-4a2e-930b-044feb8f0005\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-79955d60-d131-4a2e-930b-044feb8f0005/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:49Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da4bc19355b",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219850",
+        "uid": "1b776a80-58ca-4db2-a0ff-e286faa750c1"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:49Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:49Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-79955d60-d131-4a2e-930b-044feb8f0005\" volumeMapPath \"/var/lib/kubelet/pods/c91039f6-f60f-4226-82d6-54899f75f71c/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:49Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da4bc19bd74",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219852",
+        "uid": "8707e860-6f20-41bc-bbc4-a272c54ea350"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219763",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:50Z",
+      "message": "Add eth0 [10.130.38.130/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:50Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da4faf71484",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219886",
+        "uid": "17e343be-7399-4274-9507-258eff583404"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:50Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:50Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da4fdbd5513",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219888",
+        "uid": "3ca18823-8304-4aa5-bb1b-4ea4ab293372"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:50Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:50Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da523d80eba",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219907",
+        "uid": "9c306e3c-4dc8-4d61-bd47-b5b677f2fc0f"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:33:50Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-rhel-26kzq",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219755",
+        "uid": "c91039f6-f60f-4226-82d6-54899f75f71c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:33:50Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:33:50Z",
+        "name": "virt-launcher-rhel-26kzq.18ad0da5249ef94a",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331219908",
+        "uid": "325de5e2-df1f-4553-81d8-5d088909dcbc"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-03-10T23:43:18Z"
+        },
+        "creationTimestamp": "2026-02-12T20:13:50Z",
+        "labels": {
+          "app": "parsec",
+          "component": "oauth-proxy"
+        },
+        "name": "oauth-proxy-service",
+        "namespace": "parsec",
+        "resourceVersion": "530522334",
+        "uid": "591214de-3a76-46f4-b409-3d04a6e46525"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.2.64",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "oauth-proxy-7bbd9b94b4-9s7wb",
+                "namespace": "parsec",
+                "uid": "e3faa294-8d17-42dc-b28c-124cf45ee27e"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "https",
+              "port": 8443,
+              "protocol": "TCP"
+            },
+            {
+              "name": "http",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-05T19:03:32Z"
+        },
+        "creationTimestamp": "2026-02-12T20:13:50Z",
+        "labels": {
+          "app": "parsec",
+          "component": "api"
+        },
+        "name": "parsec-service",
+        "namespace": "parsec",
+        "resourceVersion": "696327512",
+        "uid": "9774ab04-eee9-44d9-bc25-9787ed7f4f02"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.2.99",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "parsec-569b67f995-22d2g",
+                "namespace": "parsec",
+                "uid": "ea65fe0a-5b4c-4e71-8e8c-964b2bd081a5"
+              }
+            },
+            {
+              "ip": "10.128.4.59",
+              "nodeName": "ocp-infra01-worker00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "parsec-569b67f995-skvs9",
+                "namespace": "parsec",
+                "uid": "6c33f909-a640-4212-ad30-df1e0f543690"
+              }
+            },
+            {
+              "ip": "10.130.2.157",
+              "nodeName": "ocp-infra01-ceph00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "parsec-569b67f995-p7c7d",
+                "namespace": "parsec",
+                "uid": "5772d0fc-56e7-4db9-b58c-72b89b7e1279"
+              }
+            },
+            {
+              "ip": "10.131.3.234",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "parsec-569b67f995-mzhbt",
+                "namespace": "parsec",
+                "uid": "49a6031e-079b-4e4b-993e-3bcb7b4d6169"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http",
+              "port": 8000,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

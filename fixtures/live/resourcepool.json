@@ -1,0 +1,99 @@
+{
+  "apiVersion": "poolboy.gpte.redhat.com/v1",
+  "kind": "ResourcePool",
+  "metadata": {
+    "annotations": {
+      "babylon.gpte.redhat.com/description": ""
+    },
+    "creationTimestamp": "2026-02-09T09:30:48Z",
+    "finalizers": [
+      "poolboy.gpte.redhat.com/handler"
+    ],
+    "generation": 4,
+    "labels": {
+      "cloud-provider.demo.redhat.com/ec2": "",
+      "cloud-provider.demo.redhat.com/openshift_cnv": "",
+      "poolboy.gpte.redhat.com/resource-handler-idx": "4",
+      "resource-provider.demo.redhat.com/enterprise.aap-product-demos-cnv-aap25.prod": "",
+      "resource-provider.demo.redhat.com/sandboxes-gpte.sandbox-open.prod": ""
+    },
+    "name": "ansible-product-demo-2.6",
+    "namespace": "poolboy",
+    "resourceVersion": "3312863943",
+    "uid": "f42602bc-d8a6-4274-831a-c1a13b891060"
+  },
+  "spec": {
+    "deleteUnhealthyResourceHandles": true,
+    "lifespan": {
+      "default": "1d6h",
+      "maximum": "180d",
+      "relativeMaximum": "30d",
+      "unclaimed": "1d"
+    },
+    "maxUnready": 5,
+    "minAvailable": 2,
+    "resources": [
+      {
+        "name": "aws",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "sandboxes-gpte.sandbox-open.prod",
+          "namespace": "poolboy"
+        },
+        "template": {
+          "spec": {
+            "vars": {
+              "default_desired_state": "started",
+              "job_vars": {
+                "aws_region": "us-east-2",
+                "sandbox_aws_admin_user_policy_type": "default"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "enterprise.aap-product-demos-cnv-aap25.prod",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "enterprise.aap-product-demos-cnv-aap25.prod",
+          "namespace": "poolboy"
+        },
+        "template": {
+          "spec": {
+            "vars": {
+              "default_desired_state": "started",
+              "job_vars": {
+                "azure_open_environment_type": false,
+                "ibm_open_environment_type": false,
+                "ocp4_workload_ansible_automation_platform_operator_channel": "stable-2.6",
+                "ocp4_workload_cert_manager_install_ingress_certificates": true
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "status": {
+    "diffBase": "{\"spec\":{\"deleteUnhealthyResourceHandles\":true,\"lifespan\":{\"default\":\"1d6h\",\"maximum\":\"180d\",\"relativeMaximum\":\"30d\",\"unclaimed\":\"1d\"},\"maxUnready\":5,\"minAvailable\":2,\"resources\":[{\"name\":\"aws\",\"provider\":{\"apiVersion\":\"poolboy.gpte.redhat.com/v1\",\"kind\":\"ResourceProvider\",\"name\":\"sandboxes-gpte.sandbox-open.prod\",\"namespace\":\"poolboy\"},\"template\":{\"spec\":{\"vars\":{\"default_desired_state\":\"started\",\"job_vars\":{\"aws_region\":\"us-east-2\",\"sandbox_aws_admin_user_policy_type\":\"default\"}}}}},{\"name\":\"enterprise.aap-product-demos-cnv-aap25.prod\",\"provider\":{\"apiVersion\":\"poolboy.gpte.redhat.com/v1\",\"kind\":\"ResourceProvider\",\"name\":\"enterprise.aap-product-demos-cnv-aap25.prod\",\"namespace\":\"poolboy\"},\"template\":{\"spec\":{\"vars\":{\"default_desired_state\":\"started\",\"job_vars\":{\"azure_open_environment_type\":false,\"ibm_open_environment_type\":false,\"ocp4_workload_ansible_automation_platform_operator_channel\":\"stable-2.6\",\"ocp4_workload_cert_manager_install_ingress_certificates\":true}}}}}]},\"metadata\":{\"labels\":{\"cloud-provider.demo.redhat.com/ec2\":\"\",\"cloud-provider.demo.redhat.com/openshift_cnv\":\"\",\"poolboy.gpte.redhat.com/resource-handler-idx\":\"4\",\"resource-provider.demo.redhat.com/enterprise.aap-product-demos-cnv-aap25.prod\":\"\",\"resource-provider.demo.redhat.com/sandboxes-gpte.sandbox-open.prod\":\"\"},\"annotations\":{\"babylon.gpte.redhat.com/description\":\"\"}}}",
+    "resourceHandleCount": {
+      "available": 2,
+      "ready": 0
+    },
+    "resourceHandles": [
+      {
+        "healthy": true,
+        "name": "guid-p2fmw",
+        "ready": false
+      },
+      {
+        "healthy": true,
+        "name": "guid-wlghn",
+        "ready": false
+      }
+    ]
+  }
+}
