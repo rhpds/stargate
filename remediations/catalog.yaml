@@ -464,11 +464,12 @@
     - "oc patch resourcepool {pool} -n {namespace} --type=merge -p '{\"spec\":{\"minAvailable\":5}}'"
   forbidden_when: []
 
-# --- Auto-execute remediations (low risk) ---
+# --- Auto-execute remediations (low risk, Kubernetes-native) ---
 
 - id: restart_crashlooping_pod
   risk: low
   mode: auto_execute
+  execution_method: kubernetes
   scope: namespace
   requires_approval: false
   allowed_when:
@@ -481,6 +482,7 @@
 - id: restart_not_ready_deployment
   risk: low
   mode: auto_execute
+  execution_method: kubernetes
   scope: namespace
   requires_approval: false
   allowed_when:
@@ -493,6 +495,7 @@
 - id: restart_failed_health_check
   risk: low
   mode: auto_execute
+  execution_method: kubernetes
   scope: namespace
   requires_approval: false
   allowed_when:
@@ -505,6 +508,7 @@
 - id: restart_showroom
   risk: low
   mode: auto_execute
+  execution_method: kubernetes
   scope: namespace
   requires_approval: false
   allowed_when:
@@ -520,6 +524,7 @@
 - id: recreate_missing_namespace
   risk: medium
   mode: manual_approval
+  execution_method: kubernetes
   scope: namespace
   requires_approval: true
   allowed_when:
@@ -528,3 +533,54 @@
     - "oc new-project {namespace}"
   forbidden_when:
     - "namespace == openshift-*"
+
+# --- RHDP-managed remediations (go through RHDP APIs, not raw oc) ---
+
+- id: retry_failed_provision
+  risk: medium
+  mode: manual_approval
+  execution_method: rhdp_anarchy
+  scope: namespace
+  requires_approval: true
+  allowed_when:
+    - failure_class == provision_failed
+  commands:
+    - "anarchy:retry:{anarchy_subject}"
+  forbidden_when: []
+
+- id: destroy_stuck_provision
+  risk: medium
+  mode: manual_approval
+  execution_method: rhdp_anarchy
+  scope: namespace
+  requires_approval: true
+  allowed_when:
+    - failure_class == provision_not_started
+  commands:
+    - "anarchy:destroy:{anarchy_subject}"
+  forbidden_when: []
+
+- id: reclaim_sandbox_placement
+  risk: medium
+  mode: manual_approval
+  execution_method: rhdp_sandbox_api
+  scope: namespace
+  requires_approval: true
+  allowed_when:
+    - failure_class == namespace_missing
+  commands:
+    - "sandbox-api:delete:{placement_uuid}"
+  forbidden_when: []
+
+- id: scale_pool_rhdp
+  risk: medium
+  mode: manual_approval
+  execution_method: rhdp_poolboy
+  scope: cluster
+  requires_approval: true
+  allowed_when:
+    - failure_class == pool_exhausted
+    - failure_class == pool_capacity_low
+  commands:
+    - "poolboy:scale:{pool}:{min_available}"
+  forbidden_when: []

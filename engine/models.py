@@ -42,6 +42,13 @@ class RemediationRisk(str, Enum):
     CRITICAL = "critical"
 
 
+class ExecutionMethod(str, Enum):
+    KUBERNETES = "kubernetes"
+    RHDP_ANARCHY = "rhdp_anarchy"
+    RHDP_SANDBOX_API = "rhdp_sandbox_api"
+    RHDP_POOLBOY = "rhdp_poolboy"
+
+
 # --- Run ---
 
 class Run(BaseModel):
@@ -130,6 +137,7 @@ class Remediation(BaseModel):
     id: str = Field(..., min_length=1)
     risk: RemediationRisk
     mode: RemediationMode = RemediationMode.RECOMMEND_ONLY
+    execution_method: ExecutionMethod = ExecutionMethod.KUBERNETES
     scope: str = Field(..., min_length=1)
     requires_approval: bool = True
     allowed_when: List[str] = Field(default_factory=list)
