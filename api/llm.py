@@ -20,7 +20,7 @@ logger = logging.getLogger("stargate.llm")
 
 LLM_URL = os.environ.get(
     "STARGATE_LITELLM_URL",
-    "https://litellm.example.com/v1/chat/completions",
+    "",
 )
 LLM_API_KEY = os.environ.get("STARGATE_LITELLM_API_KEY", "")
 if not LLM_API_KEY:

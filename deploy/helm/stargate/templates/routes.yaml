@@ -3,7 +3,7 @@ kind: Route
 metadata:
   name: stargate
 spec:
-  host: {{ .Values.routes.frontend | default "stargate.apps.cluster.example.com" }}
+  host: {{ required "routes.frontend must be set" .Values.routes.frontend }}
   to:
     kind: Service
     name: stargate-frontend
@@ -18,7 +18,7 @@ kind: Route
 metadata:
   name: stargate-api
 spec:
-  host: {{ .Values.routes.api | default "stargate-api.apps.cluster.example.com" }}
+  host: {{ required "routes.api must be set" .Values.routes.api }}
   to:
     kind: Service
     name: stargate-api

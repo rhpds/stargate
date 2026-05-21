@@ -67,8 +67,8 @@ scanHistory:
   storage: 5Gi
 
 routes:
-  frontend: stargate.apps.cluster.example.com
-  api: stargate-api.apps.cluster.example.com
+  frontend: ""  # Set to your cluster's apps domain
+  api: ""       # Set to your cluster's apps domain
 
 oauth:
   enabled: false

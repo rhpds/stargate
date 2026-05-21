@@ -47,7 +47,7 @@ spec:
             - name: STARGATE_CORS_ORIGINS
               value: {{ .Values.api.env.STARGATE_CORS_ORIGINS | default "http://localhost:3000" | quote }}
             - name: STARGATE_LITELLM_URL
-              value: {{ .Values.api.env.STARGATE_LITELLM_URL | default "https://litellm.example.com/v1/chat/completions" | quote }}
+              value: {{ .Values.api.env.STARGATE_LITELLM_URL | default "" | quote }}
           volumeMounts:
             - name: scan-history
               mountPath: /opt/app-root/src/scan-history
