@@ -524,13 +524,13 @@
 - id: recreate_missing_namespace
   risk: medium
   mode: manual_approval
-  execution_method: kubernetes
+  execution_method: rhdp_sandbox_api
   scope: namespace
   requires_approval: true
   allowed_when:
     - failure_class == namespace_missing
   commands:
-    - "oc new-project {namespace}"
+    - "sandbox-api:replace:{placement_uuid}"
   forbidden_when:
     - "namespace == openshift-*"
 
