@@ -39,19 +39,10 @@ import StatusLabel from '../components/StatusLabel';
 import TrendChart from '../components/TrendChart';
 import ApprovalQueue from '../components/ApprovalQueue';
 
-const CLUSTER_DOMAINS: Record<string, string> = {
-  'ocpv05': 'dal10.infra.demo.redhat.com',
-  'ocpv06': 'dal10.infra.demo.redhat.com',
-  'ocpv07': 'wdc06.infra.demo.redhat.com',
-  'ocpv08': 'dal10.infra.demo.redhat.com',
-  'ocpv09': 'dal13.infra.demo.redhat.com',
-  'ocpv-infra01': 'dal12.infra.demo.redhat.com',
-  'ocpv-infra02': 'wdc07.infra.demo.redhat.com',
-  'ocp-us-east-1': 'infra.open.redhat.com',
-};
+const CLUSTER_DOMAINS: Record<string, string> = {};
 
 function clusterConsoleUrl(cluster: string): string {
-  const domain = CLUSTER_DOMAINS[cluster] ?? 'dal10.infra.demo.redhat.com';
+  const domain = CLUSTER_DOMAINS[cluster] ?? '';
   return `https://console-openshift-console.apps.${cluster}.${domain}`;
 }
 

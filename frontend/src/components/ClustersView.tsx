@@ -116,7 +116,7 @@ export default function ClustersView({ data, onSelect, selectedCluster }: Props)
         <Tbody>
           {clusterSort.sorted.map(s => (
             <Tr key={s.cluster} isClickable isRowSelected={s.cluster === selectedCluster} onRowClick={() => onSelect(s)}>
-              <Td><a href={`https://console-openshift-console.apps.${s.cluster}.dal10.infra.demo.redhat.com`} target="_blank" rel="noreferrer" style={{ color: 'var(--sg-color--info)', fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>{s.cluster}</a></Td>
+              <Td><span style={{ color: 'var(--sg-color--info)', fontWeight: 600 }}>{s.cluster}</span></Td>
               <Td><StatusLabel status={s.status} isCompact /></Td>
               <Td><CpuCell value={s.avg_cpu_pct} /></Td>
               <Td style={{ color: (s.hot_nodes ?? 0) > 0 ? 'var(--sg-color--critical)' : undefined }}>{s.hot_nodes ?? '-'}</Td>

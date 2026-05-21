@@ -19,7 +19,7 @@ const SOURCES = [
   {
     name: 'Labagator',
     color: 'blue' as const,
-    url: 'https://labagator-api.apps.cluster.example.com/api/v1/',
+    url: 'Labagator REST API (configured via STARGATE_LABAGATOR_URL)',
     provides: ['Lab metadata (code, title, status, cloud)', 'Session schedule (dates, rooms, attendees)', 'Developer & ops assignments', 'Lab development stage (planning/building)'],
     feedsTo: ['Labs View', 'Readiness Banner', 'Executive Summary'],
     refresh: 'Every 30s via dashboard polling',
@@ -27,7 +27,7 @@ const SOURCES = [
   {
     name: 'Demolition',
     color: 'orange' as const,
-    url: 'https://demolition.apps.cluster.example.com/api/v1/',
+    url: 'Demolition REST API (configured via STARGATE_DEMOLITION_URL)',
     provides: ['Smoke test results (pass/fail per worker)', 'Load test history', 'Worker count and completion rates'],
     feedsTo: ['Labs View (Smoke Test column)', 'Lab Drawer (failure analysis)', 'Executive Summary'],
     refresh: 'Every 30s via dashboard polling',
@@ -43,7 +43,7 @@ const SOURCES = [
   {
     name: 'Cluster Scanners (9 clusters)',
     color: 'green' as const,
-    url: 'ocpv05, ocpv06, ocpv07, ocpv08, ocpv09, ocpv10, ocpv-infra01, ocpv-infra02, ocp-us-east-1',
+    url: 'Configured clusters via kubeconfigs (STARGATE_CLUSTERS env var)',
     provides: [
       'Tier 1 (5 min): Node CPU/memory, hot nodes',
       'Tier 2 (5 min): Pod status, sandbox health, VM count, crashloops',
