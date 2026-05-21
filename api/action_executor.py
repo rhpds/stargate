@@ -144,7 +144,7 @@ def _notify_pending_approval(action_type, target, confidence, pending_id):
                     f"• Target: `{target}`\n"
                     f"• Confidence: {confidence*100:.0f}%\n"
                     f"• Pending ID: #{pending_id}\n"
-                    f"• <https://stargate.apps.cluster.example.com/admin|Review in Dashboard>",
+                    f"• <{os.environ.get('STARGATE_DASHBOARD_URL', '')}/admin|Review in Dashboard>",
         }).encode()
         req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req, timeout=10)

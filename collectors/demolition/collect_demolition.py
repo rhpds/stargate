@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_URL = "https://demolition.apps.cluster.example.com/api/v1"
+DEFAULT_URL = os.environ.get("STARGATE_DEMOLITION_URL", "")
 
 
 def _get(url: str) -> Optional[Any]:

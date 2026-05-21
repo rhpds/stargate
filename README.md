@@ -77,7 +77,10 @@ All configuration via environment variables:
 |----------|-------------|---------|
 | `STARGATE_DATABASE_URL` | PostgreSQL connection string | (required) |
 | `STARGATE_LITELLM_API_KEY` | LiteLLM API key for AI features | (optional) |
-| `STARGATE_LITELLM_URL` | LiteLLM endpoint URL | (optional) |
+| `STARGATE_LITELLM_URL` | LiteLLM endpoint URL | (required for AI features) |
+| `STARGATE_LABAGATOR_URL` | Labagator API base URL | (required for lab data) |
+| `STARGATE_DEMOLITION_URL` | Demolition API base URL | (required for smoke tests) |
+| `STARGATE_DASHBOARD_URL` | Public dashboard URL (for Slack notifications) | (optional) |
 | `STARGATE_LLM_MODEL` | LLM model name | `granite-3-2-8b-instruct` |
 | `STARGATE_ADMIN_API_KEY` | Admin API authentication key | (required for API key auth) |
 | `STARGATE_SSL_VERIFY` | Verify TLS certificates | `true` |

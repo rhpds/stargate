@@ -244,7 +244,7 @@ def _fetch_labagator_labs() -> List[Dict]:
     import urllib.error
     try:
         req = urllib_req.Request(
-            "https://labagator-api.apps.cluster.example.com/api/v1/labs/?limit=200"
+            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/labs/?limit=200"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -272,7 +272,7 @@ def _fetch_labagator_sessions() -> List[Dict]:
     import urllib.error
     try:
         req = urllib_req.Request(
-            "https://labagator-api.apps.cluster.example.com/api/v1/room-sessions/?limit=500"
+            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/room-sessions/?limit=500"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -297,7 +297,7 @@ def _fetch_demolition_sessions() -> List[Dict]:
     import urllib.error
     try:
         req = urllib_req.Request(
-            "https://demolition.apps.cluster.example.com/api/v1/integration/sessions"
+            os.environ.get("STARGATE_DEMOLITION_URL", "") + "/integration/sessions"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
