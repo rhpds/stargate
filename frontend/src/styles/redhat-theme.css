@@ -1,0 +1,149 @@
+:root {
+  /* Red Hat brand overrides for PatternFly — must override ALL font variables */
+  --pf-t--global--font--family--body: 'Red Hat Text', 'RedHatText', sans-serif;
+  --pf-t--global--font--family--heading: 'Red Hat Display', 'RedHatDisplay', sans-serif;
+  --pf-t--global--font--family--sans-serif: 'Red Hat Text', 'RedHatText', sans-serif;
+  --pf-t--global--font--family--mono: 'Red Hat Mono', 'RedHatMono', monospace;
+
+  /* Red Hat red as primary brand color */
+  --rh-color--brand: #EE0000;
+  --rh-color--brand-dark: #A30000;
+  --rh-color--brand-light: #FCEAEA;
+
+  /* StarGate status colors */
+  --sg-color--healthy: #3E8635;
+  --sg-color--healthy-bg: #F3FAF2;
+  --sg-color--warning: #F0AB00;
+  --sg-color--warning-bg: #FFF4E6;
+  --sg-color--critical: #C9190B;
+  --sg-color--critical-bg: #FCEAEA;
+  --sg-color--info: #0066CC;
+  --sg-color--info-bg: #E7F1FF;
+
+  /* Text */
+  --rh-color--text: #151515;
+  --rh-color--text-secondary: #6A6E73;
+  --rh-color--text-on-dark: #FFFFFF;
+
+  /* Surfaces */
+  --rh-color--surface: #FFFFFF;
+  --rh-color--surface-secondary: #F0F0F0;
+  --rh-color--surface-tertiary: #F8F9FA;
+  --rh-color--border: #D2D2D2;
+  --rh-color--border-strong: #8A8D90;
+}
+
+/* Apply Red Hat Display to headings */
+h1, h2, h3, h4, h5, h6,
+.pf-v6-c-title,
+.pf-v6-c-content h1,
+.pf-v6-c-content h2,
+.pf-v6-c-content h3 {
+  font-family: 'Red Hat Display', 'RedHatDisplay', var(--pf-t--global--font--family--sans-serif) !important;
+}
+
+/* Apply Red Hat Text to body and all PatternFly components */
+body,
+.pf-v6-c-page,
+.pf-v6-c-content,
+.pf-v6-c-table,
+.pf-v6-c-card,
+.pf-v6-c-nav,
+.pf-v6-c-label,
+.pf-v6-c-toolbar,
+.pf-v6-c-select,
+.pf-v6-c-menu,
+.pf-v6-c-description-list,
+.pf-v6-c-breadcrumb,
+.pf-v6-c-alert,
+[class^="pf-v6-"] {
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+}
+
+/* Override PatternFly primary button to Red Hat red */
+.pf-v6-c-button.pf-m-primary {
+  --pf-v6-c-button--m-primary--BackgroundColor: var(--rh-color--brand);
+  --pf-v6-c-button--m-primary--hover--BackgroundColor: var(--rh-color--brand-dark);
+  --pf-v6-c-button--m-primary--active--BackgroundColor: var(--rh-color--brand-dark);
+  --pf-v6-c-button--m-primary--focus--BackgroundColor: var(--rh-color--brand-dark);
+}
+
+/* Override PatternFly link color to Red Hat red */
+.pf-v6-c-nav__link.pf-m-current {
+  --pf-v6-c-nav__link--m-current--Color: var(--rh-color--brand);
+}
+
+/* Red Hat brand accent on focus rings */
+*:focus-visible {
+  outline-color: var(--rh-color--brand) !important;
+}
+
+/* Masthead brand bar */
+.pf-v6-c-masthead {
+  --pf-v6-c-masthead--BackgroundColor: #151515 !important;
+  background-color: #151515 !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+.pf-v6-c-masthead__main {
+  background-color: #151515 !important;
+  flex-shrink: 0 !important;
+}
+.pf-v6-c-masthead__brand {
+  background-color: #151515 !important;
+}
+.pf-v6-c-masthead__content {
+  background-color: #151515 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Red Hat branded Label overrides */
+.pf-v6-c-label.pf-m-red {
+  --pf-v6-c-label--BackgroundColor: #FCEAEA;
+  --pf-v6-c-label--Color: #A30000;
+  --pf-v6-c-label--icon--Color: #C9190B;
+}
+
+.pf-v6-c-label.pf-m-blue {
+  --pf-v6-c-label--BackgroundColor: #E7F1FF;
+  --pf-v6-c-label--Color: #004080;
+  --pf-v6-c-label--icon--Color: #0066CC;
+}
+
+.pf-v6-c-label.pf-m-orange {
+  --pf-v6-c-label--BackgroundColor: #FFF4E6;
+  --pf-v6-c-label--Color: #8F4700;
+  --pf-v6-c-label--icon--Color: #F0AB00;
+}
+
+.pf-v6-c-label.pf-m-green {
+  --pf-v6-c-label--BackgroundColor: #F3FAF2;
+  --pf-v6-c-label--Color: #1E4F18;
+  --pf-v6-c-label--icon--Color: #3E8635;
+}
+
+/* NavItem active state — Red Hat red */
+.pf-v6-c-nav__link::after {
+  --pf-v6-c-nav__link--after--BackgroundColor: var(--rh-color--brand);
+}
+
+/* Tables: auto-size columns, scroll on overflow */
+.sg-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.sg-table-wrap .pf-v6-c-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.sg-table-wrap .pf-v6-c-table > thead > tr > th {
+  white-space: nowrap;
+}
+
+.sg-table-wrap .pf-v6-c-table > tbody > tr > td {
+  white-space: nowrap;
+}

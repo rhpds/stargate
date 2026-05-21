@@ -1,0 +1,409 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T13:11:15Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "22841505-3384-437a-ad73-e5dd306b30bb"
+        },
+        "name": "bastion-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "bastion",
+            "uid": "22841505-3384-437a-ad73-e5dd306b30bb"
+          }
+        ],
+        "resourceVersion": "1330321986",
+        "uid": "78319504-d993-423f-9fa4-84bb6da3a02c"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "50Gi"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "rhel-9.6",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "bastion-2cf6p",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T13:11:39Z",
+            "lastTransitionTime": "2026-05-06T13:11:39Z",
+            "message": "PVC bastion-2cf6p Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:11:39Z",
+            "lastTransitionTime": "2026-05-06T13:11:39Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:11:39Z",
+            "lastTransitionTime": "2026-05-06T13:11:39Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    },
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T13:11:51Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
+        },
+        "name": "controller-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "controller",
+            "uid": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
+          }
+        ],
+        "resourceVersion": "1330323967",
+        "uid": "2a87147b-f945-4c73-b707-e5ccc3ff729b"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "100Gi"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "aap-2.6-2-ceh-20251103",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "controller-2cf6p",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:12Z",
+            "lastTransitionTime": "2026-05-06T13:12:12Z",
+            "message": "PVC controller-2cf6p Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:12Z",
+            "lastTransitionTime": "2026-05-06T13:12:12Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:12Z",
+            "lastTransitionTime": "2026-05-06T13:12:12Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    },
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T13:12:26Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
+        },
+        "name": "node1-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "node1",
+            "uid": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
+          }
+        ],
+        "resourceVersion": "1330326136",
+        "uid": "187c045c-5451-4f31-b0e8-2494ae2aee64"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "50Gi"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "rhel-9.6",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "node1-2cf6p",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "message": "PVC node1-2cf6p Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    },
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T13:12:27Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "6626e924-c2a8-46a6-a29c-12807731966a"
+        },
+        "name": "node2-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "node2",
+            "uid": "6626e924-c2a8-46a6-a29c-12807731966a"
+          }
+        ],
+        "resourceVersion": "1330326189",
+        "uid": "58660d27-bcce-4563-8826-95b7bafa353f"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "50Gi"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "rhel-9.6",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "node2-2cf6p",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "message": "PVC node2-2cf6p Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:12:53Z",
+            "lastTransitionTime": "2026-05-06T13:12:53Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    },
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T13:13:14Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
+        },
+        "name": "ssap-2cf6p",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "ssap",
+            "uid": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
+          }
+        ],
+        "resourceVersion": "1330328220",
+        "uid": "0fc9a17f-ce4c-42fb-9aed-d313c2ec205f"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "50Gi"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "ssap-11032026",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "ssap-2cf6p",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T13:13:27Z",
+            "lastTransitionTime": "2026-05-06T13:13:27Z",
+            "message": "PVC ssap-2cf6p Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:13:27Z",
+            "lastTransitionTime": "2026-05-06T13:13:27Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T13:13:27Z",
+            "lastTransitionTime": "2026-05-06T13:13:27Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

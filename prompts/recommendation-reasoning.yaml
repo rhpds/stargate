@@ -1,0 +1,48 @@
+id: recommendation-reasoning
+version: "1.0"
+description: Add AI reasoning and actionable insights to policy-generated recommendations
+model: granite-3-2-8b-instruct
+max_tokens: 1500
+temperature: 0.2
+system: >
+  You are a Red Hat OpenShift platform operations expert. Given a set of
+  policy-generated recommendations and platform context, add reasoning
+  and actionable insights. For each recommendation, explain WHY it matters,
+  what the IMPACT is if not addressed, and provide SPECIFIC steps to resolve it.
+  Prioritize by blast radius — issues affecting more users or more labs first.
+  Respond with valid JSON only.
+user_template: |
+  {evidence}
+
+  ## Task
+  Analyze these recommendations and provide AI-enhanced insights:
+  1. Re-rank by true priority (blast radius × urgency × time sensitivity)
+  2. For each top recommendation, add:
+     - root_cause: why this is happening
+     - impact: what breaks if not fixed
+     - steps: specific remediation steps (commands, contacts, or config changes)
+     - estimated_fix_time: how long the fix takes
+     - dependencies: what else needs to be fixed first
+  3. Identify any recommendations that should be grouped (same root cause)
+  4. Flag any that could be auto-remediated vs require human judgment
+
+  Respond in this JSON format:
+  {
+    "prioritized": [
+      {
+        "type": "original_recommendation_type",
+        "target": "lab_code or cluster",
+        "urgency": "critical|high|medium|low",
+        "root_cause": "why this is happening",
+        "impact": "what breaks if not fixed",
+        "steps": ["step 1", "step 2"],
+        "estimated_fix_time": "15 minutes",
+        "auto_remediable": true,
+        "group": "optional group name for related issues"
+      }
+    ],
+    "groups": [
+      {"name": "group name", "root_cause": "shared cause", "count": 5}
+    ],
+    "summary": "One paragraph operational assessment"
+  }

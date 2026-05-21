@@ -1,0 +1,43 @@
+id: provision-complete
+version: v0.1.0
+stage: provision-complete
+timeout_seconds: 120
+entry_criteria: []
+exit_criteria:
+  - name: anarchysubject_exists
+    required: true
+  - name: provision_job_succeeded
+    required: true
+  - name: state_is_started
+    required: true
+  - name: no_error_conditions
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  anarchysubject_missing:
+    when:
+      - anarchysubject_exists == false
+    recommended_action: check_anarchysubject
+  provision_failed:
+    when:
+      - anarchysubject_exists == true
+      - provision_job_succeeded == false
+    recommended_action: inspect_provision_job
+  provision_not_started:
+    when:
+      - anarchysubject_exists == true
+      - provision_job_succeeded == true
+      - state_is_started == false
+    recommended_action: inspect_anarchy_state
+allowed_remediations:
+  - check_anarchysubject
+  - inspect_provision_job
+  - inspect_anarchy_state
+forbidden_remediations:
+  - delete_namespace

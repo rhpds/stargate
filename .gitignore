@@ -1,0 +1,46 @@
+# Secrets — never commit
+secrets/
+*.kubeconfig
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.token
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+
+# Podman/Docker
+*.tar
+
+# Runtime artifacts
+*.db
+scheduler.log
+test-receipts/
+scan-history/
+backups/
+stargate-synthetic-client-emulator/

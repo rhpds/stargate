@@ -1,0 +1,991 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "zero-touch-base-rhel-zz95m",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "zz95m",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+        },
+        "creationTimestamp": "2026-05-06T10:46:08Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "control",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329851157",
+        "uid": "1bf10219-6105-4d2a-8384-35a69ed0ef80"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "control-zz95m"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "50Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "aap-2.6-2-ceh-20251103",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "control"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 4,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "control-zz95m"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  },
+                  {
+                    "bridge": {},
+                    "macAddress": "2c:c2:60:cc:57:90",
+                    "model": "virtio",
+                    "name": "secondaryzz95m"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "e9c4137b-55b5-40f6-977c-fa93baa9bae1",
+                "uuid": "e214e425-afdb-580b-9728-75607218a17b"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "32G"
+              },
+              "resources": {}
+            },
+            "hostname": "control",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              },
+              {
+                "multus": {
+                  "networkName": "secondaryzz95m"
+                },
+                "name": "secondaryzz95m"
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "control-zz95m"
+                },
+                "name": "control-zz95m"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIGVjaG8gIlBhc3N3b3JkQXV0aGVudGljYXRpb24geWVzIiA+IC9ldGMvc3NoL3NzaGRfY29uZmlnLmQvNTAtY2xvdWQtaW5pdC5jb25mCiAgLSBzeXN0ZW1jdGwgcmVsb2FkIHNzaGQ="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:46:26Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "control-zz95m"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "zero-touch-base-rhel-zz95m",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "zz95m",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+        },
+        "creationTimestamp": "2026-05-06T10:48:29Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500363",
+        "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "dbserver-zz95m"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "65Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "base-windows-srv-2019",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "dbserver"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 4,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "dbserver-zz95m"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "e1000e",
+                    "name": "default"
+                  },
+                  {
+                    "bridge": {},
+                    "macAddress": "2c:c2:60:c1:d7:88",
+                    "model": "e1000e",
+                    "name": "secondaryzz95m"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "9cacd878-1580-4725-aab5-5e736c5f59d8",
+                "uuid": "853e116c-7e35-522a-8bbd-d8662261ca6b"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "16G"
+              },
+              "resources": {}
+            },
+            "hostname": "dbserver",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              },
+              {
+                "multus": {
+                  "networkName": "secondaryzz95m"
+                },
+                "name": "secondaryzz95m"
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "dbserver-zz95m"
+                },
+                "name": "dbserver-zz95m"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQo="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T20:15:25Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "dbserver-zz95m"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "zero-touch-base-rhel-zz95m",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "zz95m",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+        },
+        "creationTimestamp": "2026-05-06T10:47:08Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "haproxy",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329855653",
+        "uid": "3596671e-ceb3-46d1-99be-decb474d2083"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "haproxy-zz95m"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "30Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-9.5",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "haproxy"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 2,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "haproxy-zz95m"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  },
+                  {
+                    "bridge": {},
+                    "macAddress": "2c:c2:60:95:0c:bf",
+                    "model": "virtio",
+                    "name": "secondaryzz95m"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "28ebd8bf-8605-4947-a2c4-cf4753e9d0b5",
+                "uuid": "a4b95da8-7e7c-5767-8a23-dc763f657926"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "2G"
+              },
+              "resources": {}
+            },
+            "hostname": "haproxy",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              },
+              {
+                "multus": {
+                  "networkName": "secondaryzz95m"
+                },
+                "name": "secondaryzz95m"
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "haproxy-zz95m"
+                },
+                "name": "haproxy-zz95m"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIGVjaG8gIlBhc3N3b3JkQXV0aGVudGljYXRpb24geWVzIiA+IC9ldGMvc3NoL3NzaGRfY29uZmlnLmQvNTAtY2xvdWQtaW5pdC5jb25mCiAgLSBzeXN0ZW1jdGwgcmVsb2FkIHNzaGQ="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:43Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T10:48:05Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "haproxy-zz95m"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "zero-touch-base-rhel-zz95m",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "zz95m",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+        },
+        "creationTimestamp": "2026-05-06T10:46:33Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "node01",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329853632",
+        "uid": "4d6b6cb7-c3f6-4aad-8d34-6f5735d99a33"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "node01-zz95m"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "30Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "rhel-9.5",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "node01"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 2,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "node01-zz95m"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "virtio",
+                    "name": "default"
+                  },
+                  {
+                    "bridge": {},
+                    "macAddress": "2c:c2:60:63:18:54",
+                    "model": "virtio",
+                    "name": "secondaryzz95m"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "1f4b09c4-165c-46aa-8ada-13a7769217c2",
+                "uuid": "38d4356c-8b7a-5926-836d-033bf711b970"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "2G"
+              },
+              "resources": {}
+            },
+            "hostname": "node01",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              },
+              {
+                "multus": {
+                  "networkName": "secondaryzz95m"
+                },
+                "name": "secondaryzz95m"
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "node01-zz95m"
+                },
+                "name": "node01-zz95m"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQoKdXNlcjogcmhlbApwYXNzd29yZDogYW5zaWJsZTEyMyEKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9ICAKcnVuY21kOgogIC0gZWNobyAiUGFzc3dvcmRBdXRoZW50aWNhdGlvbiB5ZXMiID4gL2V0Yy9zc2gvc3NoZF9jb25maWcuZC81MC1jbG91ZC1pbml0LmNvbmYKICAtIHN5c3RlbWN0bCByZWxvYWQgc3NoZA=="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T10:47:01Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T10:47:21Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "node01-zz95m"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachine",
+      "metadata": {
+        "annotations": {
+          "AnsibleGroup": "isolated",
+          "Stack": "zero-touch-base-rhel-zz95m",
+          "env_type": "zero-touch-base-rhel",
+          "guid": "zz95m",
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "owner": "zero-touch-base-rhel@opentlc.com",
+          "uuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
+        },
+        "creationTimestamp": "2026-05-06T10:47:54Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize"
+        ],
+        "generation": 1,
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331459008",
+        "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+      },
+      "spec": {
+        "dataVolumeTemplates": [
+          {
+            "metadata": {
+              "creationTimestamp": null,
+              "name": "windows-zz95m"
+            },
+            "spec": {
+              "pvc": {
+                "accessModes": [
+                  "ReadWriteMany"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "65Gi"
+                  }
+                },
+                "volumeMode": "Block"
+              },
+              "source": {
+                "pvc": {
+                  "name": "base-windows-ad-2022",
+                  "namespace": "cnv-images"
+                }
+              }
+            }
+          }
+        ],
+        "running": true,
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubevirt.io/pci-topology-version": "v3"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "vm.cnv.io/name": "windows"
+            }
+          },
+          "spec": {
+            "architecture": "amd64",
+            "domain": {
+              "cpu": {
+                "cores": 6,
+                "model": "host-passthrough"
+              },
+              "devices": {
+                "disks": [
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "windows-zz95m"
+                  },
+                  {
+                    "disk": {
+                      "bus": "virtio"
+                    },
+                    "name": "cloudinitdisk"
+                  }
+                ],
+                "interfaces": [
+                  {
+                    "masquerade": {},
+                    "model": "e1000e",
+                    "name": "default"
+                  },
+                  {
+                    "bridge": {},
+                    "macAddress": "2c:c2:60:2f:f1:66",
+                    "model": "e1000e",
+                    "name": "secondaryzz95m"
+                  }
+                ]
+              },
+              "firmware": {
+                "bootloader": {
+                  "bios": {}
+                },
+                "serial": "e2d61947-b8d0-480b-b1b3-035ab2ebdca9",
+                "uuid": "9f6f4bcc-ae3b-5cfb-96d4-0a6b201a6762"
+              },
+              "machine": {
+                "type": "pc-q35-rhel9.2.0"
+              },
+              "memory": {
+                "guest": "32G"
+              },
+              "resources": {}
+            },
+            "hostname": "windows",
+            "networks": [
+              {
+                "name": "default",
+                "pod": {}
+              },
+              {
+                "multus": {
+                  "networkName": "secondaryzz95m"
+                },
+                "name": "secondaryzz95m"
+              }
+            ],
+            "subdomain": "lab",
+            "volumes": [
+              {
+                "dataVolume": {
+                  "name": "windows-zz95m"
+                },
+                "name": "windows-zz95m"
+              },
+              {
+                "cloudInitNoCloud": {
+                  "networkDataBase64": "bmV0d29yazogMg==",
+                  "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQmdRREFPOW51SGlqNVJMZjIwSGhTWG9IWG9CZ2N5Z1hqV0ZMVWVJbEpIZVZnd0UwcXlFdGhSNkZ0bDc5RFlkdUJ6b21mNUVDci9EbDZYK2J3Zmp6UTR6TzN1SkYrV3VjaDZLYmJPb1ZzVTRSQkhQNWQ1YVl3dGxmdmZ4RGZYemtxakpycmVXdEh6enhoU2lZTy9QOXJSdCtrSm10bEVIeFZNVUVTR2Z4OU0zSzdVTGhjQkRvU3ZKU0FScFhaVk9JeEluYm42bTQreHdhVndSazVScEE2RklQVEVQRHFPMWhHMkhmeEpUV2ptbGxZVkNZbElDQVJyeVVCL0EvVVhRK0RIb2dCT1hlWDNHRjdiWWJlZE1qVUR6ZHpoNi9BMkFWSHBId1F4UkZCc3M2dUY1NG9GQmtqRHQ0dmRQVkQ5MENhQ1hRazhzYW9NMStwYUhVOERGaEpuTlcxSUtGVjBVRXV1eUMyL0hUd0R6QXVWbk4xVXdUL3h0Wm9iZnc2SGlZSmN6VHV0aHNLbjZORlVHNkFEQzdyaEJnU2p2eDhIdDRINm5tb3k3MC85VFNuWlRRYUJ1TkRaU1ZXcGdnOFdxcGxLYXJsbXFLMWxvODVoL3VZRnMwMjdTWUZOeUdnQWpQdm5qSFo1Ri9XU0RJTEV2RmpjUVJzcjVobHZlRHowZHFCU084PQo="
+                },
+                "name": "cloudinitdisk"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T19:58:15Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "created": true,
+        "desiredGeneration": 1,
+        "observedGeneration": 1,
+        "printableStatus": "Running",
+        "ready": true,
+        "runStrategy": "Always",
+        "volumeSnapshotStatuses": [
+          {
+            "enabled": true,
+            "name": "windows-zz95m"
+          },
+          {
+            "enabled": false,
+            "name": "cloudinitdisk",
+            "reason": "Snapshot is not supported for this volumeSource type [cloudinitdisk]"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

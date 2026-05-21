@@ -1,0 +1,235 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"api\"},\"name\":\"rcars-api\",\"namespace\":\"rcars-prod\"},\"spec\":{\"ports\":[{\"port\":8080,\"targetPort\":8080}],\"selector\":{\"app\":\"rcars\",\"component\":\"api\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:00Z",
+        "labels": {
+          "app": "rcars",
+          "component": "api"
+        },
+        "name": "rcars-api",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211358",
+        "uid": "8974f873-dcfa-432f-b865-10b369f1e253"
+      },
+      "spec": {
+        "clusterIP": "172.30.29.196",
+        "clusterIPs": [
+          "172.30.29.196"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "rcars",
+          "component": "api"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"frontend\"},\"name\":\"rcars-frontend-service\",\"namespace\":\"rcars-prod\"},\"spec\":{\"ports\":[{\"port\":8080,\"targetPort\":8080}],\"selector\":{\"app\":\"rcars\",\"component\":\"frontend\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:01Z",
+        "labels": {
+          "app": "rcars",
+          "component": "frontend"
+        },
+        "name": "rcars-frontend-service",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211375",
+        "uid": "962b67cc-4626-48de-83ce-acb1509e3e91"
+      },
+      "spec": {
+        "clusterIP": "172.30.161.183",
+        "clusterIPs": [
+          "172.30.161.183"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "rcars",
+          "component": "frontend"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"oauth-proxy\"},\"name\":\"rcars-oauth-proxy-service\",\"namespace\":\"rcars-prod\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":8080,\"targetPort\":8080}],\"selector\":{\"app\":\"rcars\",\"component\":\"oauth-proxy\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:03Z",
+        "labels": {
+          "app": "rcars",
+          "component": "oauth-proxy"
+        },
+        "name": "rcars-oauth-proxy-service",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211496",
+        "uid": "b85497af-c098-4fa4-85c4-875af4915c82"
+      },
+      "spec": {
+        "clusterIP": "172.30.89.221",
+        "clusterIPs": [
+          "172.30.89.221"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "rcars",
+          "component": "oauth-proxy"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"postgresql\"},\"name\":\"rcars-postgresql\",\"namespace\":\"rcars-prod\"},\"spec\":{\"ports\":[{\"port\":5432,\"targetPort\":5432}],\"selector\":{\"app\":\"rcars\",\"component\":\"postgresql\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-04-29T11:40:56Z",
+        "labels": {
+          "app": "rcars",
+          "component": "postgresql"
+        },
+        "name": "rcars-postgresql",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677207119",
+        "uid": "d9f775d8-6d6c-4e13-97aa-095b43b6968f"
+      },
+      "spec": {
+        "clusterIP": "172.30.114.105",
+        "clusterIPs": [
+          "172.30.114.105"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "rcars",
+          "component": "postgresql"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"labels\":{\"app\":\"rcars\",\"component\":\"redis\"},\"name\":\"rcars-redis\",\"namespace\":\"rcars-prod\"},\"spec\":{\"ports\":[{\"port\":6379,\"targetPort\":6379}],\"selector\":{\"app\":\"rcars\",\"component\":\"redis\"},\"type\":\"ClusterIP\"}}"
+        },
+        "creationTimestamp": "2026-04-29T11:40:57Z",
+        "labels": {
+          "app": "rcars",
+          "component": "redis"
+        },
+        "name": "rcars-redis",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677207157",
+        "uid": "b84b041a-9069-46f3-a938-99ad4eb25460"
+      },
+      "spec": {
+        "clusterIP": "172.30.102.245",
+        "clusterIPs": [
+          "172.30.102.245"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 6379,
+            "protocol": "TCP",
+            "targetPort": 6379
+          }
+        ],
+        "selector": {
+          "app": "rcars",
+          "component": "redis"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

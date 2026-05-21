@@ -1,0 +1,13 @@
+{
+  "type": "phase-c-real-test",
+  "phase": "C",
+  "gate": "Real execution on stargate-test namespace",
+  "generated_at": "2026-05-12T16:09:07.281255+00:00",
+  "passed": 7,
+  "failed": 0,
+  "gate_passed": true,
+  "namespace": "stargate-test",
+  "cluster": "ocpv-infra01",
+  "sa": "stargate-executor",
+  "evidence": "Real oc create/scale/delete on infra01 stargate-test namespace. Rollback capture\u2192delete\u2192restore verified."
+}

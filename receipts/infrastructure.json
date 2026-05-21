@@ -1,0 +1,33 @@
+{
+  "type": "infrastructure",
+  "generated_at": "2026-05-12T16:09:08.680983+00:00",
+  "deployment": {
+    "cluster": "ocpv-infra01",
+    "namespace": "stargate",
+    "url": "https://stargate.apps.cluster.example.com"
+  },
+  "test_namespace": {
+    "cluster": "ocpv-infra01",
+    "namespace": "stargate-test",
+    "sa": "stargate-executor",
+    "role": "stargate-executor-role (namespace-scoped write)"
+  },
+  "scanner_clusters": [
+    "ocpv05",
+    "ocpv06",
+    "ocpv07",
+    "ocpv08",
+    "ocpv09",
+    "ocpv-infra01",
+    "ocpv-infra02",
+    "ocp-us-east-1"
+  ],
+  "scanner_sa": "stargate-scanner (cluster-reader, read-only)",
+  "database": "PostgreSQL 15, 20Gi PVC",
+  "llm": "Granite 3.2 8B on Intel Gaudi via LiteLLM",
+  "projects": {
+    "platform": "/Users/jkershaw/Documents/stargate-platform",
+    "emulator": "/Users/jkershaw/Documents/stargate-synthetic-client-emulator",
+    "mock_cluster": "/Users/jkershaw/Documents/stargate-mock-cluster"
+  }
+}

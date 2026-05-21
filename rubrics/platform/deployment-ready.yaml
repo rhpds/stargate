@@ -1,0 +1,42 @@
+id: deployment-ready
+version: v0.1.0
+stage: deployment-ready
+timeout_seconds: 300
+entry_criteria:
+  - name: namespace_exists
+    required: true
+exit_criteria:
+  - name: deployment_exists
+    required: true
+  - name: desired_replicas_ready
+    required: true
+  - name: no_crashloop_pods
+    required: true
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  pods_crashlooping:
+    when:
+      - deployment_exists == true
+      - no_crashloop_pods == false
+    recommended_action: inspect_pod_logs
+  pods_not_ready:
+    when:
+      - deployment_exists == true
+      - desired_replicas_ready == false
+    recommended_action: inspect_pod_status
+  deployment_missing:
+    when:
+      - deployment_exists == false
+    recommended_action: check_deployment_manifest
+allowed_remediations:
+  - inspect_pod_status
+  - inspect_pod_logs
+forbidden_remediations:
+  - delete_namespace
+  - delete_source_snapshot

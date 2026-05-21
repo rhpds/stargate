@@ -1,0 +1,38 @@
+# Production values for ocpv-infra01 deployment
+
+api:
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api:latest
+  replicas: 2
+  env:
+    STARGATE_SSL_VERIFY: "false"
+    STARGATE_CORS_ORIGINS: "https://stargate.apps.cluster.example.com,https://stargate-api.apps.cluster.example.com"
+    STARGATE_LITELLM_URL: "https://litellm.example.com/v1/chat/completions"
+
+scanner:
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
+  clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+  tier1: 300
+  tier2: 900
+  tier3: 3600
+
+babylonWorker:
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
+  interval: 180
+
+frontend:
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-frontend:latest
+  replicas: 1
+
+postgres:
+  storage: 20Gi
+
+scanHistory:
+  storage: 10Gi
+
+routes:
+  frontend: stargate.apps.cluster.example.com
+  api: stargate-api.apps.cluster.example.com
+
+oauth:
+  enabled: true
+  cookieSecret: ""  # Set at install time: --set oauth.cookieSecret=$(openssl rand -hex 16)

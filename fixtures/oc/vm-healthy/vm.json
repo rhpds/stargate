@@ -1,0 +1,59 @@
+{
+  "apiVersion": "kubevirt.io/v1",
+  "kind": "VirtualMachine",
+  "metadata": {
+    "name": "demo-vm",
+    "namespace": "summit-vm-001",
+    "creationTimestamp": "2026-05-05T14:04:00Z"
+  },
+  "spec": {
+    "running": true,
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "demo-vm"
+        }
+      },
+      "spec": {
+        "domain": {
+          "cpu": {
+            "cores": 2
+          },
+          "memory": {
+            "guest": "4Gi"
+          },
+          "devices": {
+            "disks": [
+              {
+                "name": "rootdisk",
+                "disk": {
+                  "bus": "virtio"
+                }
+              }
+            ]
+          }
+        },
+        "volumes": [
+          {
+            "name": "rootdisk",
+            "dataVolume": {
+              "name": "demo-vm-rootdisk"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "status": {
+    "ready": true,
+    "created": true,
+    "printableStatus": "Running",
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:05:00Z"
+      }
+    ]
+  }
+}

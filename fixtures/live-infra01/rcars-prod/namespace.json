@@ -1,0 +1,32 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "openshift.io/sa.scc.mcs": "s0:c39,c34",
+      "openshift.io/sa.scc.supplemental-groups": "1001550000/10000",
+      "openshift.io/sa.scc.uid-range": "1001550000/10000"
+    },
+    "creationTimestamp": "2026-04-10T08:08:03Z",
+    "labels": {
+      "kubernetes.io/metadata.name": "rcars-prod",
+      "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.22.0",
+      "openshift-pipelines.tekton.dev/namespace-trusted-configmaps-version": "1.22.0",
+      "pod-security.kubernetes.io/audit": "baseline",
+      "pod-security.kubernetes.io/audit-version": "latest",
+      "pod-security.kubernetes.io/warn": "baseline",
+      "pod-security.kubernetes.io/warn-version": "latest"
+    },
+    "name": "rcars-prod",
+    "resourceVersion": "659569023",
+    "uid": "95a9ebba-95a8-4a84-b574-42c1abfdf751"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

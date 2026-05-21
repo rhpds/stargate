@@ -1,0 +1,60 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"route.openshift.io/v1\",\"kind\":\"Route\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\"},\"name\":\"dashboard-ocp-portal\",\"namespace\":\"ocp-portal\"},\"spec\":{\"port\":{\"targetPort\":\"http-oauth\"},\"tls\":{\"insecureEdgeTerminationPolicy\":\"Redirect\",\"termination\":\"edge\"},\"to\":{\"kind\":\"Service\",\"name\":\"ocp-portal\",\"weight\":100},\"wildcardPolicy\":\"None\"}}\n",
+          "openshift.io/host.generated": "true"
+        },
+        "creationTimestamp": "2026-03-29T14:24:38Z",
+        "labels": {
+          "app.kubernetes.io/name": "ocp-portal"
+        },
+        "name": "dashboard-ocp-portal",
+        "namespace": "ocp-portal",
+        "resourceVersion": "585217390",
+        "uid": "21600fc3-9a31-4571-8bb7-310d466c7670"
+      },
+      "spec": {
+        "host": "dashboard-ocp-portal-ocp-portal.apps.cluster.example.com",
+        "port": {
+          "targetPort": "http-oauth"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "ocp-portal",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-03-29T14:24:38Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "dashboard-ocp-portal-ocp-portal.apps.cluster.example.com",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

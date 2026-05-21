@@ -1,0 +1,1186 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T13:11:39Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 13,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host15",
+          "vm.cnv.io/name": "bastion"
+        },
+        "name": "bastion",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "bastion",
+            "uid": "22841505-3384-437a-ad73-e5dd306b30bb"
+          }
+        ],
+        "resourceVersion": "1330369580",
+        "uid": "e2e8898a-f66e-40cc-8944-73c5351a2b19"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 4,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "bastion-2cf6p"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "56957f70-ffa7-4c37-be97-ab601d86493c",
+            "uuid": "d43dd832-a7fd-52e8-852b-83099ffb0aae"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "8G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "bastion",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "bastion-2cf6p"
+            },
+            "name": "bastion-2cf6p"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "438c7429-65ce-4c73-af6f-a1dfd90b7289": "ocp-virt6-host15"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:11:43Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:12:08Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 4
+        },
+        "guestOSInfo": {
+          "id": "rhel",
+          "kernelRelease": "5.14.0-570.12.1.el9_6.x86_64",
+          "kernelVersion": "#1 SMP PREEMPT_DYNAMIC Fri Apr 4 10:41:31 EDT 2025",
+          "machine": "x86_64",
+          "name": "Red Hat Enterprise Linux",
+          "prettyName": "Red Hat Enterprise Linux 9.6 (Plow)",
+          "version": "9.6 (Plow)",
+          "versionId": "9.6"
+        },
+        "interfaces": [
+          {
+            "infoSource": "domain, guest-agent",
+            "interfaceName": "eth0",
+            "ipAddress": "10.129.43.124",
+            "ipAddresses": [
+              "10.129.43.124"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:81:2b:7c",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          },
+          {
+            "infoSource": "guest-agent",
+            "interfaceName": "podman0",
+            "ipAddress": "10.88.0.1",
+            "ipAddresses": [
+              "10.88.0.1",
+              "fe80::2420:65ff:fe4a:c699"
+            ],
+            "mac": "26:20:65:4a:c6:99"
+          },
+          {
+            "infoSource": "guest-agent",
+            "interfaceName": "veth0",
+            "ipAddress": "fe80::387f:90ff:fe0c:997d",
+            "ipAddresses": [
+              "fe80::387f:90ff:fe0c:997d"
+            ],
+            "mac": "3a:7f:90:0c:99:7d"
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "8G",
+          "guestCurrent": "7812500Ki",
+          "guestRequested": "8G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host15",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T13:11:39Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T13:11:39Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T13:11:43Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T13:11:46Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c256,c870",
+        "virtualMachineRevisionName": "revision-start-vm-22841505-3384-437a-ad73-e5dd306b30bb-1",
+        "volumeStatus": [
+          {
+            "name": "bastion-2cf6p",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "50Gi"
+              },
+              "claimName": "bastion-2cf6p",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "50Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          },
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T13:12:12Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 9,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host",
+          "vm.cnv.io/name": "controller"
+        },
+        "name": "controller",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "controller",
+            "uid": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
+          }
+        ],
+        "resourceVersion": "1330330426",
+        "uid": "27a88f89-4be3-48d2-b109-b0027a84257e"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 8,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "controller-2cf6p"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "0b9bbb7d-4aef-497a-9e40-eed875bde10e",
+            "uuid": "463e56f7-1073-5952-bcfa-26b5c102a8db"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "32G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "controller",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "controller-2cf6p"
+            },
+            "name": "controller-2cf6p"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cgp1c2VyOiByaGVsCnBhc3N3b3JkOiAiNHZKMWM1SkdhOHp3dXBDSiIKY2hwYXNzd2Q6IHsgZXhwaXJlOiBGYWxzZSB9CnJ1bmNtZDoKICAtIHNlZCAtaSAicy9QYXNzd29yZEF1dGhlbnRpY2F0aW9uIG5vL1Bhc3N3b3JkQXV0aGVudGljYXRpb24geWVzLyIgL2V0Yy9zc2gvc3NoZF9jb25maWcKICAtIHN5c3RlbWN0bCByZWxvYWQgc3NoZA=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "3f5d001f-7400-458f-9804-f99a66342399": "ocp-virt6-host"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:12:18Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 8
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.130.5.44",
+            "ipAddresses": [
+              "10.130.5.44"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:05:2c",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "32G",
+          "guestCurrent": "31250000Ki",
+          "guestRequested": "32G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:12Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:12Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:18Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:20Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c157,c620",
+        "virtualMachineRevisionName": "revision-start-vm-0184fd49-fd7b-45ac-b7da-2022a4ad7350-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "controller-2cf6p",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "100Gi"
+              },
+              "claimName": "controller-2cf6p",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "100Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T13:12:53Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 11,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host9",
+          "vm.cnv.io/name": "node1"
+        },
+        "name": "node1",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "node1",
+            "uid": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
+          }
+        ],
+        "resourceVersion": "1330328747",
+        "uid": "5448b5cb-c41e-4dcf-8595-8d44c3099efc"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 4,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "node1-2cf6p"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "45c22bf3-90e2-4114-b170-b20f47f774fc",
+            "uuid": "30e3dcce-bc36-59a0-9635-dfa650fa95d9"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "8G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "node1",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "node1-2cf6p"
+            },
+            "name": "node1-2cf6p"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "45ef1f36-3584-44c2-bf4b-fd08388668bd": "ocp-virt6-host9"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:07Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:13:28Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 4
+        },
+        "guestOSInfo": {
+          "id": "rhel",
+          "kernelRelease": "5.14.0-570.12.1.el9_6.x86_64",
+          "kernelVersion": "#1 SMP PREEMPT_DYNAMIC Fri Apr 4 10:41:31 EDT 2025",
+          "machine": "x86_64",
+          "name": "Red Hat Enterprise Linux",
+          "prettyName": "Red Hat Enterprise Linux 9.6 (Plow)",
+          "version": "9.6 (Plow)",
+          "versionId": "9.6"
+        },
+        "interfaces": [
+          {
+            "infoSource": "domain, guest-agent",
+            "interfaceName": "eth0",
+            "ipAddress": "10.129.36.61",
+            "ipAddresses": [
+              "10.129.36.61"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:81:24:3d",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "8G",
+          "guestCurrent": "7812500Ki",
+          "guestRequested": "8G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host9",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:53Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:53Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:07Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:08Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c952,c1014",
+        "virtualMachineRevisionName": "revision-start-vm-4b15717d-1ef1-4a67-a71c-82740f3e8d4a-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "node1-2cf6p",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "50Gi"
+              },
+              "claimName": "node1-2cf6p",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "50Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T13:12:53Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 13,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host6",
+          "vm.cnv.io/name": "node2"
+        },
+        "name": "node2",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "node2",
+            "uid": "6626e924-c2a8-46a6-a29c-12807731966a"
+          }
+        ],
+        "resourceVersion": "1330329087",
+        "uid": "9d6e783f-37da-4418-bede-5bac3aa668ae"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 4,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "node2-2cf6p"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "b4c0789c-22d4-4ad1-af12-788f4bdf1853",
+            "uuid": "7cb4c36c-a9a2-5a7c-b24d-456d788adc02"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "8G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "node2",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "node2-2cf6p"
+            },
+            "name": "node2-2cf6p"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "ed74f0f1-37cb-4596-8113-2b50001f79ac": "ocp-virt6-host6"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:04Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          },
+          {
+            "lastProbeTime": "2026-05-06T13:13:35Z",
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "AgentConnected"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 4
+        },
+        "guestOSInfo": {
+          "id": "rhel",
+          "kernelRelease": "5.14.0-570.12.1.el9_6.x86_64",
+          "kernelVersion": "#1 SMP PREEMPT_DYNAMIC Fri Apr 4 10:41:31 EDT 2025",
+          "machine": "x86_64",
+          "name": "Red Hat Enterprise Linux",
+          "prettyName": "Red Hat Enterprise Linux 9.6 (Plow)",
+          "version": "9.6 (Plow)",
+          "versionId": "9.6"
+        },
+        "interfaces": [
+          {
+            "infoSource": "domain, guest-agent",
+            "interfaceName": "eth0",
+            "ipAddress": "10.130.27.110",
+            "ipAddresses": [
+              "10.130.27.110"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:1b:6e",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "8G",
+          "guestCurrent": "7812500Ki",
+          "guestRequested": "8G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host6",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:53Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T13:12:53Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:04Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:08Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c151,c400",
+        "virtualMachineRevisionName": "revision-start-vm-6626e924-c2a8-46a6-a29c-12807731966a-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "node2-2cf6p",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "50Gi"
+              },
+              "claimName": "node2-2cf6p",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "50Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T13:13:27Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 9,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host",
+          "vm.cnv.io/name": "ssap"
+        },
+        "name": "ssap",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "ssap",
+            "uid": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
+          }
+        ],
+        "resourceVersion": "1330330421",
+        "uid": "848f0e7c-880d-4329-987d-9fdc3c4a4061"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 2,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "ssap-2cf6p"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "bios": {}
+            },
+            "serial": "5b7de1f0-109e-4b75-b63d-cb43a547ca8d",
+            "uuid": "de2da852-b553-5dfc-b813-369eb9070e9b"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "4G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "ssap",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "ssap-2cf6p"
+            },
+            "name": "ssap-2cf6p"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1yc2EgQUFBQUIzTnphQzF5YzJFQUFBQURBUUFCQUFBQkFRQ2RVV3ZyMzMzVk1tYWs2YStycXZCdm14STJjOHY2YUZlYzdYZmh1dmJZUmRCQTNXSkZ4cUFBcUZXOXRiR29jb1hQNGcycStTWVd5TE1tTXduN1VIYmlGcXRMWUpoQXE1d1lKQTF6V2daemMyeHlIYWcxRnAyemwwTUNhZitkRkxUS3VLRzY3aG5TNUVacmhIOUNpcjBiUnJyQWN1Ky9Gd0Q5bXd4R3ZnaVFqRmRLUnJIMmdLNHg3dDN3R3JWazNBaEtTYzB6ZkFOVktPWWQxaDdUNkZxMTQvT0EwRVlrTWRqQ3NZNXRmdU4zd3llZmxMUDhrTzNqM2pLU0FUaGoySkNPUnJqSVkrdS9kRERsT0hhMEU4eWlHL2RHbHBodk1wbXJDTDRoV2RhNVVVcVdhL2h5bmtsaGo1TzhIR1pmaHBoT0EzZDMrRzhIcndaVk5wd3JMTVNQIEFnbm9zdGljRCBQcm92aXNpb24gS2V5Cg=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "c5a4e5df-3079-4276-a82d-a0bb27aa9310": "ocp-virt6-host"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T13:13:41Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 2
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.130.5.45",
+            "ipAddresses": [
+              "10.130.5.45"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:05:2d",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "4G",
+          "guestCurrent": "3906252Ki",
+          "guestRequested": "4G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:27Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:27Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:41Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T13:13:43Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c209,c777",
+        "virtualMachineRevisionName": "revision-start-vm-9a0efbc7-d528-4f25-acd5-c11307b86b9c-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "ssap-2cf6p",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "50Gi"
+              },
+              "claimName": "ssap-2cf6p",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "50Gi"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

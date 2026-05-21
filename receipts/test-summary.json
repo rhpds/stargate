@@ -1,0 +1,28 @@
+{
+  "type": "test-summary",
+  "generated_at": "2026-05-12T16:08:57.893369+00:00",
+  "total_tests": 686,
+  "total_passed": 686,
+  "total_failed": 0,
+  "all_green": true,
+  "suites": {
+    "platform": {
+      "passed": 566,
+      "failed": 0,
+      "summary": "566 passed, 14 skipped, 7 deselected, 4 warnings in 18.30s",
+      "output": "ests/test_api.py::TestHealth::test_health\n  /Users/jkershaw/Documents/stargate-platform/api/app.py:81: DeprecationWarning: \n          on_event is deprecated, use lifespan event handlers instead.\n  \n          Read more about it in the\n          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).\n          \n    @app.on_event(\"shutdown\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n566 passed, 14 skipped, 7 deselected, 4 warnings in 18.30s\n"
+    },
+    "emulator": {
+      "passed": 102,
+      "failed": 0,
+      "summary": "102 passed in 0.10s",
+      "output": "........................................................................ [ 70%]\n..............................                                           [100%]\n102 passed in 0.10s\n"
+    },
+    "mock_cluster": {
+      "passed": 18,
+      "failed": 0,
+      "summary": "18 passed in 0.28s",
+      "output": "..................                                                       [100%]\n18 passed in 0.28s\n"
+    }
+  }
+}

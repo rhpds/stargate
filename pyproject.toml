@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stargate"
+version = "0.1.0"
+description = "Centralized validation layer for RHDP — evidence collection, rubric evaluation, failure classification, and event processing"
+requires-python = ">=3.9"
+dependencies = [
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "jsonschema>=4.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.5",
+]
+api = [
+    "fastapi>=0.109",
+    "uvicorn>=0.25",
+    "psycopg2-binary>=2.9",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: marks tests requiring podman-compose services (PostgreSQL)",
+]
+
+[tool.setuptools.packages.find]
+include = ["engine*", "collectors*", "normalizers*", "proposals*", "api*", "db*", "events*"]

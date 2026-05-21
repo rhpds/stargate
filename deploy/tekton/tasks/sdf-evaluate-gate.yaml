@@ -1,0 +1,63 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sdf-evaluate-gate
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  description: >
+    Evaluates a stage against its rubric. If the rubric fails,
+    the task fails — blocking pipeline promotion. This is the
+    stage gate enforcement point.
+  params:
+    - name: run-id
+      type: string
+    - name: stage-id
+      type: string
+    - name: sdf-api-url
+      type: string
+      default: "http://summit-demo-factory:8080"
+  results:
+    - name: outcome
+      description: "pass, warn, or fail"
+    - name: failure-class
+      description: Failure classification if failed
+  steps:
+    - name: evaluate
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        RESPONSE=$(curl -sf -X POST \
+          "$(params.sdf-api-url)/runs/$(params.run-id)/stages/$(params.stage-id)/evaluate" \
+          -H "Content-Type: application/json" \
+          -d '{}')
+
+        OUTCOME=$(echo "${RESPONSE}" | python3 -c "import sys,json; print(json.load(sys.stdin)['outcome'])" 2>/dev/null || echo "unknown")
+        FAILURE_CLASS=$(echo "${RESPONSE}" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('failure_class') or '')" 2>/dev/null || echo "")
+
+        echo "Stage $(params.stage-id): ${OUTCOME}"
+        if [ -n "${FAILURE_CLASS}" ]; then
+          echo "  failure_class: ${FAILURE_CLASS}"
+        fi
+
+        printf "%s" "${OUTCOME}" > "$(results.outcome.path)"
+        printf "%s" "${FAILURE_CLASS}" > "$(results.failure-class.path)"
+
+        # Gate enforcement: fail the task if rubric fails
+        if [ "${OUTCOME}" = "fail" ]; then
+          echo "GATE BLOCKED: Stage $(params.stage-id) failed rubric evaluation."
+          echo "Pipeline promotion is blocked."
+          exit 1
+        fi
+
+    - name: complete-stage
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        curl -sf -X POST \
+          "$(params.sdf-api-url)/runs/$(params.run-id)/stages/$(params.stage-id)/complete" \
+          -H "Content-Type: application/json" || true
+        echo "Stage $(params.stage-id) completed"

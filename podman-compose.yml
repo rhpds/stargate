@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  postgres:
+    image: docker.io/library/postgres:15
+    environment:
+      POSTGRES_USER: stargate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: stargate
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Containerfile.scanner
+    command:
+      - python3
+      - -m
+      - cli.scheduler
+      - --clusters
+      - ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+    volumes:
+      - ./secrets:/opt/app-root/src/secrets:ro,z
+      - ./scan-history:/opt/app-root/src/scan-history:z
+    restart: unless-stopped
+
+  babylon-worker:
+    build:
+      context: .
+      dockerfile: Containerfile.scanner
+    command:
+      - python3
+      - -m
+      - cli.babylon_worker
+    volumes:
+      - ./secrets:/opt/app-root/src/secrets:ro,z
+      - ./scan-history:/opt/app-root/src/scan-history:z
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Containerfile.frontend
+    environment:
+      API_PROXY_TARGET: http://host.containers.internal:8090
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

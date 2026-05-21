@@ -1,0 +1,775 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:20Z",
+        "name": "control-https",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859136",
+        "uid": "9e61dc3b-bb92-4913-9207-51537f28619b"
+      },
+      "spec": {
+        "host": "control-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "Content-Security-Policy"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "referrer-policy"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "443"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nREDACTED\n-----END CERTIFICATE-----",
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "control",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:20Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "control-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:20Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "control-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:24Z",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859252",
+        "uid": "b4bfdcd5-944e-4136-9f84-d4706958061e"
+      },
+      "spec": {
+        "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "Content-Security-Policy"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "referrer-policy"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "80"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "iis",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:24Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:24Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:46:06Z",
+        "name": "gitea",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329849942",
+        "uid": "39063eda-fa07-4dbf-878b-6891dc65c5ce"
+      },
+      "spec": {
+        "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "3000"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "gitea",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:46:06Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:46:06Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:22Z",
+        "name": "haproxy-web",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859194",
+        "uid": "83a18861-16ec-435b-8ee1-a3c32fe1ee31"
+      },
+      "spec": {
+        "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "Content-Security-Policy"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "referrer-policy"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "8080"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "haproxy-http",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:22Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:22Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:21Z",
+        "name": "node01-web",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859167",
+        "uid": "6be7313c-1520-4321-8f5f-09883919772b"
+      },
+      "spec": {
+        "host": "node01-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "Content-Security-Policy"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "referrer-policy"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "80"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "node01-http",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:21Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "node01-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:21Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "node01-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "1h",
+          "haproxy.router.openshift.io/timeout-tunnel": "1h"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "showroom",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860091",
+        "uid": "c75b058d-81c0-49c2-ab9f-2d8560f6f9e6"
+      },
+      "spec": {
+        "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": 8080
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "showroom",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:49:23Z",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329859222",
+        "uid": "978c2f58-7dc2-40b1-8e3b-8092f5583ef2"
+      },
+      "spec": {
+        "host": "windows-zz95m.apps.ocpv06.rhdp.net",
+        "httpHeaders": {
+          "actions": {
+            "request": null,
+            "response": [
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "X-Frame-Options"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "Content-Security-Policy"
+              },
+              {
+                "action": {
+                  "type": "Delete"
+                },
+                "name": "referrer-policy"
+              }
+            ]
+          }
+        },
+        "port": {
+          "targetPort": "80"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "None",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "iis",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:23Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:23Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "1h",
+          "haproxy.router.openshift.io/timeout-tunnel": "1h"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-ironrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860067",
+        "uid": "5d7bdae0-7344-4811-a162-af939f98c99e"
+      },
+      "spec": {
+        "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
+        "port": {
+          "targetPort": 9000
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "windows-ironrdp",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "1h",
+          "haproxy.router.openshift.io/timeout-tunnel": "1h"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-jetrdp",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860088",
+        "uid": "5ab2ac1a-d0af-4297-86fd-2e048fd6c75d"
+      },
+      "spec": {
+        "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
+        "port": {
+          "targetPort": 7171
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "windows-jetrdp",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "1h",
+          "haproxy.router.openshift.io/timeout-tunnel": "1h"
+        },
+        "creationTimestamp": "2026-05-06T10:49:42Z",
+        "labels": {
+          "app.kubernetes.io/instance": "showroom",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "showroom",
+          "app.kubernetes.io/version": "1.0.0",
+          "helm.sh/chart": "zerotouch-1.10.2"
+        },
+        "name": "windows-tokengen",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329860090",
+        "uid": "9525f207-55dc-4311-92c4-4684807f4331"
+      },
+      "spec": {
+        "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
+        "port": {
+          "targetPort": 8081
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "windows-tokengen",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "routerName": "ingress-rhdp-net",
+            "wildcardPolicy": "None"
+          },
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-05-06T10:49:42Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,46 @@
+id: vm-runtime-ready
+version: v0.1.0
+stage: vm-runtime-ready
+timeout_seconds: 600
+entry_criteria:
+  - name: datavolume_succeeded
+    required: true
+exit_criteria:
+  - name: vm_exists
+    required: true
+  - name: vmi_running
+    required: true
+  - name: guest_agent_connected
+    required: false
+  - name: guest_os_ready
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  vm_missing:
+    when:
+      - vm_exists == false
+    recommended_action: check_vm_manifest
+  vmi_not_running:
+    when:
+      - vm_exists == true
+      - vmi_running == false
+    recommended_action: inspect_vmi_status
+  guest_agent_not_connected:
+    when:
+      - vm_exists == true
+      - vmi_running == true
+      - guest_agent_connected == false
+    recommended_action: inspect_guest_agent
+allowed_remediations:
+  - check_vm_manifest
+  - inspect_vmi_status
+  - inspect_guest_agent
+forbidden_remediations:
+  - delete_namespace
+  - delete_source_snapshot

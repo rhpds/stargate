@@ -1,0 +1,23 @@
+id: aap-failure
+version: "1.0"
+description: Root cause analysis for AAP provisioning and destroy job failures
+model: granite-3-2-8b-instruct
+max_tokens: 500
+temperature: 0.1
+system: >
+  You are an Ansible Automation Platform operations expert analyzing
+  provisioning job failures. Determine root cause, severity, recommended
+  action, and which team should fix the issue. Be specific and actionable.
+  Respond with valid JSON only.
+user_template: |
+  {evidence}
+
+  ## Task
+  Analyze this AAP job failure and provide:
+  1. Root cause (what specifically went wrong)
+  2. Severity (critical/high/medium/low)
+  3. Recommended action (specific steps to fix)
+  4. Team to notify (platform-ops/lab-developer/infra/babylon)
+
+  Respond in this exact JSON format:
+  {{"root_cause": "description", "severity": "high", "action": "specific fix steps", "team": "platform-ops", "reasoning": "brief explanation"}}

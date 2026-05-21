@@ -1,0 +1,161 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:34:02Z",
+        "name": "lab",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220488",
+        "uid": "51108031-be1e-4ccc-b564-15a424915119"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "foo",
+            "port": 1234,
+            "protocol": "TCP",
+            "targetPort": 1234
+          }
+        ],
+        "selector": {
+          "kubevirt.io": "virt-launcher"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:34:01Z",
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220463",
+        "uid": "14d22864-8529-41b6-93a4-b3bbb16ca2d2"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "rhel"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:34:03Z",
+        "name": "rhel-ssh",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331220569",
+        "uid": "bfbe508c-ee01-44c0-bb0a-f24267092ffd"
+      },
+      "spec": {
+        "clusterIP": "172.30.200.146",
+        "clusterIPs": [
+          "172.30.200.146"
+        ],
+        "externalTrafficPolicy": "Cluster",
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "nodePort": 30323,
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "rhel"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:36:39Z",
+        "name": "showroom",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "resourceVersion": "1331226147",
+        "uid": "6ccc2e16-be6e-4378-9298-ef68c02f3e58"
+      },
+      "spec": {
+        "clusterIP": "172.30.125.148",
+        "clusterIPs": [
+          "172.30.125.148"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "showroom",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "showroom"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

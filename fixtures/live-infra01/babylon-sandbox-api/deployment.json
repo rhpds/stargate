@@ -1,0 +1,191 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/tracking-id": "babylon-sandbox-api:apps/Deployment:babylon-sandbox-api/sandbox-api",
+          "deployment.kubernetes.io/revision": "2",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/tracking-id\":\"babylon-sandbox-api:apps/Deployment:babylon-sandbox-api/sandbox-api\"},\"labels\":{\"app.kubernetes.io/name\":\"sandbox-api\",\"app.kubernetes.io/version\":\"1.1.6\"},\"name\":\"sandbox-api\",\"namespace\":\"babylon-sandbox-api\"},\"spec\":{\"replicas\":2,\"selector\":{\"matchLabels\":{\"app.kubernetes.io/name\":\"sandbox-api\"}},\"strategy\":{\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/name\":\"sandbox-api\",\"app.kubernetes.io/version\":\"1.1.6\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"DATABASE_URL\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"database_url\",\"name\":\"sandbox-api-db\"}}},{\"name\":\"VAULT_SECRET\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"vault_secret\",\"name\":\"sandbox-api-vault\"}}},{\"name\":\"JWT_AUTH_SECRET\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"jwt_auth_secret\",\"name\":\"sandbox-api-auth\"}}},{\"name\":\"AWS_ACCESS_KEY_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"dynamodb_aws_access_key_id\",\"name\":\"sandbox-api-db\"}}},{\"name\":\"AWS_SECRET_ACCESS_KEY\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"dynamodb_aws_secret_access_key\",\"name\":\"sandbox-api-db\"}}},{\"name\":\"AWS_REGION\",\"value\":\"us-east-1\"},{\"name\":\"dynamodb_table\",\"value\":\"accounts\"},{\"name\":\"ASSUMEROLE_AWS_ACCESS_KEY_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"assumerole_aws_access_key_id\",\"name\":\"sandbox-api-aws-assumerole\"}}},{\"name\":\"ASSUMEROLE_AWS_SECRET_ACCESS_KEY\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"assumerole_aws_secret_access_key\",\"name\":\"sandbox-api-aws-assumerole\"}}},{\"name\":\"CLUSTER_DOMAIN\",\"value\":\"cluster.example.com\"}],\"image\":\"quay.io/rhpds/sandbox-api:v1.2.11\",\"imagePullPolicy\":\"Always\",\"livenessProbe\":{\"initialDelaySeconds\":10,\"tcpSocket\":{\"port\":8080},\"timeoutSeconds\":1},\"name\":\"sandbox-api\",\"ports\":[{\"containerPort\":8080}],\"resources\":null}]}}}}\n"
+        },
+        "creationTimestamp": "2026-04-28T13:47:55Z",
+        "generation": 2,
+        "labels": {
+          "app.kubernetes.io/name": "sandbox-api",
+          "app.kubernetes.io/version": "1.1.6"
+        },
+        "name": "sandbox-api",
+        "namespace": "babylon-sandbox-api",
+        "resourceVersion": "692657010",
+        "uid": "737f3864-f5fa-45f3-807a-66248c513b7d"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 2,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "sandbox-api"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/name": "sandbox-api",
+              "app.kubernetes.io/version": "1.1.6"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "DATABASE_URL",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "database_url",
+                        "name": "sandbox-api-db"
+                      }
+                    }
+                  },
+                  {
+                    "name": "VAULT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "vault_secret",
+                        "name": "sandbox-api-vault"
+                      }
+                    }
+                  },
+                  {
+                    "name": "JWT_AUTH_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "jwt_auth_secret",
+                        "name": "sandbox-api-auth"
+                      }
+                    }
+                  },
+                  {
+                    "name": "AWS_ACCESS_KEY_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamodb_aws_access_key_id",
+                        "name": "sandbox-api-db"
+                      }
+                    }
+                  },
+                  {
+                    "name": "AWS_SECRET_ACCESS_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamodb_aws_secret_access_key",
+                        "name": "sandbox-api-db"
+                      }
+                    }
+                  },
+                  {
+                    "name": "AWS_REGION",
+                    "value": "us-east-1"
+                  },
+                  {
+                    "name": "dynamodb_table",
+                    "value": "accounts"
+                  },
+                  {
+                    "name": "ASSUMEROLE_AWS_ACCESS_KEY_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "assumerole_aws_access_key_id",
+                        "name": "sandbox-api-aws-assumerole"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ASSUMEROLE_AWS_SECRET_ACCESS_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "assumerole_aws_secret_access_key",
+                        "name": "sandbox-api-aws-assumerole"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLUSTER_DOMAIN",
+                    "value": "cluster.example.com"
+                  }
+                ],
+                "image": "quay.io/rhpds/sandbox-api:v1.2.11",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8080
+                  },
+                  "timeoutSeconds": 1
+                },
+                "name": "sandbox-api",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 2,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-28T13:48:17Z",
+            "lastUpdateTime": "2026-04-28T13:48:17Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-28T13:47:55Z",
+            "lastUpdateTime": "2026-05-04T14:39:23Z",
+            "message": "ReplicaSet \"sandbox-api-5db6c6ccd4\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 2,
+        "readyReplicas": 2,
+        "replicas": 2,
+        "updatedReplicas": 2
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

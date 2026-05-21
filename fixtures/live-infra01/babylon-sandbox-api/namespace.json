@@ -1,0 +1,35 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "openshift.io/description": "",
+      "openshift.io/display-name": "",
+      "openshift.io/requester": "gucore@redhat.com",
+      "openshift.io/sa.scc.mcs": "s0:c40,c15",
+      "openshift.io/sa.scc.supplemental-groups": "1001590000/10000",
+      "openshift.io/sa.scc.uid-range": "1001590000/10000"
+    },
+    "creationTimestamp": "2026-04-17T14:55:41Z",
+    "labels": {
+      "kubernetes.io/metadata.name": "babylon-sandbox-api",
+      "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.22.0",
+      "openshift-pipelines.tekton.dev/namespace-trusted-configmaps-version": "1.22.0",
+      "pod-security.kubernetes.io/audit": "baseline",
+      "pod-security.kubernetes.io/audit-version": "latest",
+      "pod-security.kubernetes.io/warn": "baseline",
+      "pod-security.kubernetes.io/warn-version": "latest"
+    },
+    "name": "babylon-sandbox-api",
+    "resourceVersion": "659568801",
+    "uid": "01ed3266-d9f8-4162-9f51-d41a6894b6f2"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

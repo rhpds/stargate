@@ -1,0 +1,60 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/timeout": "180s",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"route.openshift.io/v1\",\"kind\":\"Route\",\"metadata\":{\"annotations\":{\"haproxy.router.openshift.io/timeout\":\"180s\"},\"labels\":{\"app\":\"rcars\"},\"name\":\"rcars\",\"namespace\":\"rcars-prod\"},\"spec\":{\"host\":\"rcars.apps.cluster.example.com\",\"port\":{\"targetPort\":\"http\"},\"tls\":{\"insecureEdgeTerminationPolicy\":\"Redirect\",\"termination\":\"edge\"},\"to\":{\"kind\":\"Service\",\"name\":\"rcars-oauth-proxy-service\"}}}"
+        },
+        "creationTimestamp": "2026-04-29T11:43:04Z",
+        "labels": {
+          "app": "rcars"
+        },
+        "name": "rcars",
+        "namespace": "rcars-prod",
+        "resourceVersion": "677211553",
+        "uid": "f1205553-6a51-477b-8076-fa683bf8b5ad"
+      },
+      "spec": {
+        "host": "rcars.apps.cluster.example.com",
+        "port": {
+          "targetPort": "http"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "rcars-oauth-proxy-service",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-04-29T11:43:04Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "rcars.apps.cluster.example.com",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

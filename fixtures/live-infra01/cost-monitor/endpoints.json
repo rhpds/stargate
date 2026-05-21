@@ -1,0 +1,291 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-04-30T13:16:01Z"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "data-service",
+          "tier": "backend"
+        },
+        "name": "cost-data-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680432654",
+        "uid": "53572ba7-173c-46dc-b795-bb1433a9fe1b"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.2.71",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "cost-data-service-5fb8dd885f-zltbv",
+                "namespace": "cost-monitor",
+                "uid": "8cdd856c-be08-4592-9628-85cc719701b6"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "api",
+              "port": 8000,
+              "protocol": "TCP"
+            },
+            {
+              "name": "health",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-03-11T14:25:30Z"
+        },
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "dashboard",
+          "tier": "frontend"
+        },
+        "name": "dashboard-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "532333660",
+        "uid": "734a1261-e06f-4f70-82a2-d1cfbe32a388"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.131.2.111",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "dashboard-service-686dd95474-tg8sv",
+                "namespace": "cost-monitor",
+                "uid": "b08e7f6f-d73e-4d25-911d-e05734523cd7"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "web",
+              "port": 8050,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "oauth-proxy",
+          "tier": "security"
+        },
+        "name": "oauth-proxy-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433641",
+        "uid": "31393fd5-2d8f-4aeb-9598-c74fff348a58"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.3.232",
+              "nodeName": "ocp-infra01-ceph02",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "oauth-proxy-69df4654c5-vnzh5",
+                "namespace": "cost-monitor",
+                "uid": "2a34782b-245c-4eb5-ac8e-7ccd5dfa98a8"
+              }
+            },
+            {
+              "ip": "10.128.4.74",
+              "nodeName": "ocp-infra01-worker00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "oauth-proxy-69df4654c5-z87rr",
+                "namespace": "cost-monitor",
+                "uid": "a9d68ca8-1418-41d9-b7f1-248ee1412316"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "https",
+              "port": 8443,
+              "protocol": "TCP"
+            },
+            {
+              "name": "http",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-01-29T23:56:15Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database",
+          "tier": "data"
+        },
+        "name": "postgresql",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433366",
+        "uid": "0baee16b-1f51-479a-a68b-f0cd01719476"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.4.237",
+              "nodeName": "ocp-infra01-worker00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "postgresql-0",
+                "namespace": "cost-monitor",
+                "uid": "6faef1df-4d34-4968-b675-f445f7b28396"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "postgresql",
+              "port": 5432,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-01-29T23:56:16Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "database",
+          "service.kubernetes.io/headless": "",
+          "tier": "data"
+        },
+        "name": "postgresql-headless",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433367",
+        "uid": "4479b448-3354-4d62-b1f3-a147709103d5"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "hostname": "postgresql-0",
+              "ip": "10.128.4.237",
+              "nodeName": "ocp-infra01-worker00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "postgresql-0",
+                "namespace": "cost-monitor",
+                "uid": "6faef1df-4d34-4968-b675-f445f7b28396"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "postgresql",
+              "port": 5432,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-01-29T23:56:16Z",
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "cache",
+          "tier": "data"
+        },
+        "name": "redis-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433623",
+        "uid": "5b2e4efd-d6e0-4711-b528-761537b8a5cb"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.128.4.236",
+              "nodeName": "ocp-infra01-worker00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "redis-854b45c865-fwrw7",
+                "namespace": "cost-monitor",
+                "uid": "2330a216-f064-4531-8528-b14668376f4c"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "redis",
+              "port": 6379,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

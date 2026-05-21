@@ -1,0 +1,37 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/name\":\"ocp-portal\"},\"name\":\"ocp-portal\"}}\n",
+      "openshift.io/description": "",
+      "openshift.io/display-name": "",
+      "openshift.io/requester": "josegonz@redhat.com",
+      "openshift.io/sa.scc.mcs": "s0:c39,c24",
+      "openshift.io/sa.scc.supplemental-groups": "1001530000/10000",
+      "openshift.io/sa.scc.uid-range": "1001530000/10000"
+    },
+    "creationTimestamp": "2026-03-29T09:45:01Z",
+    "labels": {
+      "app.kubernetes.io/name": "ocp-portal",
+      "kubernetes.io/metadata.name": "ocp-portal",
+      "openshift-pipelines.tekton.dev/namespace-reconcile-version": "1.22.0",
+      "openshift-pipelines.tekton.dev/namespace-trusted-configmaps-version": "1.22.0",
+      "pod-security.kubernetes.io/audit": "baseline",
+      "pod-security.kubernetes.io/audit-version": "latest",
+      "pod-security.kubernetes.io/warn": "baseline",
+      "pod-security.kubernetes.io/warn-version": "latest"
+    },
+    "name": "ocp-portal",
+    "resourceVersion": "659568936",
+    "uid": "a75cb774-5ac3-425c-86fb-071578f9f978"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

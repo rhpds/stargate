@@ -1,0 +1,278 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:48Z",
+        "name": "bastion",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329314",
+        "uid": "3ab3d9cf-1f26-4b0d-8632-a2682f192ba6"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "bastion-80",
+            "port": 80,
+            "protocol": "TCP",
+            "targetPort": 80
+          },
+          {
+            "name": "bastion-443",
+            "port": 443,
+            "protocol": "TCP",
+            "targetPort": 443
+          },
+          {
+            "name": "bastion-3000",
+            "port": 3000,
+            "protocol": "TCP",
+            "targetPort": 3000
+          },
+          {
+            "name": "bastion-8080",
+            "port": 8080,
+            "protocol": "TCP",
+            "targetPort": 8080
+          },
+          {
+            "name": "bastion-8181",
+            "port": 8181,
+            "protocol": "TCP",
+            "targetPort": 8181
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "bastion"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:14:06Z",
+        "name": "bastion-ssh",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329964",
+        "uid": "a78d94be-3b7b-41a7-be98-06f5a75ead37"
+      },
+      "spec": {
+        "clusterIP": "172.30.102.32",
+        "clusterIPs": [
+          "172.30.102.32"
+        ],
+        "externalTrafficPolicy": "Cluster",
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "nodePort": 32687,
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "bastion"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:50Z",
+        "name": "controller",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329391",
+        "uid": "2a211538-347e-45dc-bdac-58dfd45c5c11"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "controller-443",
+            "port": 443,
+            "protocol": "TCP",
+            "targetPort": 443
+          },
+          {
+            "name": "controller-5000",
+            "port": 5000,
+            "protocol": "TCP",
+            "targetPort": 5000
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "controller"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:53Z",
+        "name": "node1",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329431",
+        "uid": "59a8f92b-016f-4758-aed3-aaa22ac0318f"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "node1"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:53Z",
+        "name": "node2",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329460",
+        "uid": "9e4b774b-b5f8-4e43-a357-d3a729318f84"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "node2"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:54Z",
+        "name": "ssap",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329523",
+        "uid": "d70183b7-bc57-4b34-b4a6-dfa317925afb"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "clusterIPs": [
+          "None"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "ssap-22",
+            "port": 22,
+            "protocol": "TCP",
+            "targetPort": 22
+          },
+          {
+            "name": "ssap-443",
+            "port": 443,
+            "protocol": "TCP",
+            "targetPort": 443
+          },
+          {
+            "name": "ssap-7007",
+            "port": 7007,
+            "protocol": "TCP",
+            "targetPort": 7007
+          }
+        ],
+        "selector": {
+          "vm.cnv.io/name": "ssap"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

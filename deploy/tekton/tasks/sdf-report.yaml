@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sdf-report
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  description: >
+    Generates a run report from the SDF API and prints it.
+    Always runs (as a finally task) regardless of pipeline success/failure.
+  params:
+    - name: run-id
+      type: string
+    - name: sdf-api-url
+      type: string
+      default: "http://summit-demo-factory:8080"
+  steps:
+    - name: generate-report
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "=== Summit Demo Factory Run Report ==="
+        echo ""
+
+        REPORT=$(curl -sf "$(params.sdf-api-url)/runs/$(params.run-id)/report")
+
+        echo "${REPORT}" | python3 -c "
+        import sys, json
+        r = json.load(sys.stdin)
+        print(f\"Run: {r['run_id']}\")
+        print(f\"Demo: {r['demo_id']}\")
+        print(f\"Namespace: {r['namespace']}\")
+        print(f\"Status: {r['status']}\")
+        print(f\"Passed: {r['passed']}, Failed: {r['failed']}, Warned: {r['warned']}, Pending: {r['pending']}\")
+        print()
+        print('Stages:')
+        for s in r.get('stages', []):
+            icon = '+' if s['outcome'] == 'pass' else ('~' if s['outcome'] == 'warn' else 'X')
+            line = f\"  [{icon}] {s['stage_id']}: {s['outcome'] or s['status']}\"
+            if s.get('duration_seconds'):
+                line += f\" ({s['duration_seconds']:.1f}s)\"
+            print(line)
+            if s.get('failure_class'):
+                print(f\"      failure_class: {s['failure_class']}\")
+        " 2>/dev/null || echo "${REPORT}"
+
+        echo ""
+        echo "=== Bottlenecks ==="
+        curl -sf "$(params.sdf-api-url)/runs/$(params.run-id)/bottlenecks" | python3 -c "
+        import sys, json
+        bottlenecks = json.load(sys.stdin)
+        for b in bottlenecks:
+            dur = f\"{b['duration_seconds']:.1f}s\" if b.get('duration_seconds') else 'n/a'
+            print(f\"  {b['stage_id']}: {dur} ({b['status']})\")
+        " 2>/dev/null || echo "  (unable to fetch bottlenecks)"

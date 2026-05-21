@@ -1,0 +1,89 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "cdi.kubevirt.io/v1beta1",
+      "kind": "DataVolume",
+      "metadata": {
+        "annotations": {
+          "cdi.kubevirt.io/allowClaimAdoption": "true",
+          "cdi.kubevirt.io/cloneType": "csi-clone",
+          "cdi.kubevirt.io/storage.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.extended.clone.token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
+          "cdi.kubevirt.io/storage.usePopulator": "true"
+        },
+        "creationTimestamp": "2026-05-06T18:33:28Z",
+        "generation": 1,
+        "labels": {
+          "kubevirt.io/created-by": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+        },
+        "name": "rhel-2dclz",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "rhel",
+            "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+          }
+        ],
+        "resourceVersion": "1331219746",
+        "uid": "c3ab6da5-8087-4d80-95f0-2f7825f368a8"
+      },
+      "spec": {
+        "pvc": {
+          "accessModes": [
+            "ReadWriteMany"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "40G"
+            }
+          },
+          "volumeMode": "Block"
+        },
+        "source": {
+          "pvc": {
+            "name": "rhel-10-0-07-09-25-3",
+            "namespace": "cnv-images"
+          }
+        }
+      },
+      "status": {
+        "claimName": "rhel-2dclz",
+        "conditions": [
+          {
+            "lastHeartbeatTime": "2026-05-06T18:33:47Z",
+            "lastTransitionTime": "2026-05-06T18:33:47Z",
+            "message": "PVC rhel-2dclz Bound",
+            "reason": "Bound",
+            "status": "True",
+            "type": "Bound"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T18:33:47Z",
+            "lastTransitionTime": "2026-05-06T18:33:47Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastHeartbeatTime": "2026-05-06T18:33:47Z",
+            "lastTransitionTime": "2026-05-06T18:33:47Z",
+            "message": "Clone Complete",
+            "reason": "Completed",
+            "status": "False",
+            "type": "Running"
+          }
+        ],
+        "phase": "Succeeded",
+        "progress": "100.0%"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

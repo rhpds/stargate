@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app: stargate-api
+  template:
+    metadata:
+      labels:
+        app: stargate-api
+    spec:
+      serviceAccountName: {{ .Values.oauth.enabled | ternary "stargate-oauth" "stargate-api" }}
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: api
+          image: {{ .Values.api.image }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - containerPort: {{ .Values.api.port }}
+          env:
+            - name: STARGATE_DATABASE_URL
+              value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: postgres-password
+            - name: STARGATE_SSL_VERIFY
+              value: {{ .Values.api.env.STARGATE_SSL_VERIFY | default "false" | quote }}
+            - name: STARGATE_LITELLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: litellm-api-key
+            - name: STARGATE_ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: admin-api-key
+            - name: STARGATE_CORS_ORIGINS
+              value: {{ .Values.api.env.STARGATE_CORS_ORIGINS | default "http://localhost:3000" | quote }}
+            - name: STARGATE_LITELLM_URL
+              value: {{ .Values.api.env.STARGATE_LITELLM_URL | default "https://litellm.example.com/v1/chat/completions" | quote }}
+          volumeMounts:
+            - name: scan-history
+              mountPath: /opt/app-root/src/scan-history
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.api.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.api.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+        {{- if .Values.oauth.enabled }}
+        - name: oauth-proxy
+          image: {{ .Values.oauth.image | default "registry.redhat.io/openshift4/ose-oauth-proxy:latest" }}
+          ports:
+            - containerPort: 4180
+              name: proxy
+          args:
+            - --https-address=
+            - --http-address=:4180
+            - --upstream=http://localhost:{{ .Values.api.port }}
+            - --cookie-secret={{ required "oauth.cookieSecret must be set when oauth is enabled" .Values.oauth.cookieSecret }}
+            - --cookie-name=_stargate_oauth
+            - --provider=openshift
+            - --openshift-service-account=stargate-oauth
+            - --pass-user-headers=true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        {{- end }}
+      volumes:
+        - name: scan-history
+          persistentVolumeClaim:
+            claimName: stargate-scan-history-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stargate-api
+spec:
+  ports:
+    {{- if .Values.oauth.enabled }}
+    - name: proxy
+      port: 4180
+      targetPort: 4180
+    {{- end }}
+    - name: api
+      port: {{ .Values.api.port }}
+      targetPort: {{ .Values.api.port }}
+  selector:
+    app: stargate-api

@@ -1,0 +1,21 @@
+display_information:
+  name: StarGate
+  description: RHDP Centralized Validation Layer — cluster health, lab readiness, failure classification
+  background_color: "#1a1a2e"
+
+features:
+  bot_user:
+    display_name: StarGate
+    always_online: true
+
+oauth_config:
+  scopes:
+    bot:
+      - incoming-webhook
+      - chat:write
+      - chat:write.public
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

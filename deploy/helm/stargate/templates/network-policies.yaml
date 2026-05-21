@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stargate-postgres-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: stargate-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: stargate
+      ports:
+        - port: 5432
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stargate-api-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: stargate
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 4180
+          protocol: TCP
+        - port: 8090
+          protocol: TCP

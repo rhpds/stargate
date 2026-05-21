@@ -1,0 +1,20 @@
+{
+  "type": "overall-summary",
+  "generated_at": "2026-05-12T16:09:08.681234+00:00",
+  "all_gates_passed": true,
+  "receipts": [
+    "test-summary",
+    "phase-a-shadow",
+    "phase-b-mock-cluster",
+    "phase-c-real-test",
+    "rubric-matrix",
+    "substrate-routing",
+    "infrastructure"
+  ],
+  "phase_gates": {
+    "A_shadow": true,
+    "B_mock_cluster": true,
+    "C_real_test": true,
+    "D_production": null
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 10143,
+      "eventTime": null,
+      "firstTimestamp": "2026-03-31T17:09:06Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{debug}",
+        "kind": "Pod",
+        "name": "image-debug-p44ls",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "591479842",
+        "uid": "652979f4-0e67-4657-b32b-bd55f8820b59"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:19:10Z",
+      "message": "Pulling image \"quay.io/agnosticd/ee-multicloud:chained-2026-02-15\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:19:10Z",
+        "name": "image-debug-p44ls.18a1fc20e91138c0",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "699302079",
+        "uid": "aee28740-be28-41e2-9e1d-19726fa6f35a"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 229825,
+      "eventTime": null,
+      "firstTimestamp": "2026-03-31T17:09:07Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{debug}",
+        "kind": "Pod",
+        "name": "image-debug-p44ls",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "591479842",
+        "uid": "652979f4-0e67-4657-b32b-bd55f8820b59"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T21:14:19Z",
+      "message": "Back-off pulling image \"quay.io/agnosticd/ee-multicloud:chained-2026-02-15\"",
+      "metadata": {
+        "creationTimestamp": "2026-03-31T17:09:07Z",
+        "name": "image-debug-p44ls.18a1fc2129a519d5",
+        "namespace": "aap2-prod0",
+        "resourceVersion": "699676493",
+        "uid": "6f1de1e0-189f-45db-9fde-f10c614db6a9"
+      },
+      "reason": "BackOff",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-infra01-ceph00",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-infra01-ceph00"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

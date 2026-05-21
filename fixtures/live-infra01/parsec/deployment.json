@@ -1,0 +1,705 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"labels\":{\"app\":\"parsec\",\"component\":\"oauth-proxy\"},\"name\":\"oauth-proxy\",\"namespace\":\"parsec\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"parsec-oauth-proxy\",\"component\":\"oauth-proxy\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"parsec-oauth-proxy\",\"component\":\"oauth-proxy\"}},\"spec\":{\"containers\":[{\"args\":[\"-provider=openshift\",\"-http-address=:8080\",\"-https-address=\",\"-email-domain=*\",\"-upstream=http://parsec-service:8000/\",\"-client-id=$(OAUTH_CLIENT_ID)\",\"-client-secret-file=/etc/proxy/secrets/client-secret\",\"-cookie-secret-file=/etc/proxy/secrets/session_secret\",\"-openshift-service-account=parsec-oauth\",\"-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\",\"-skip-auth-regex=^/api/(health|alert/)\",\"-upstream-timeout=180s\",\"-pass-user-headers=true\"],\"env\":[{\"name\":\"OAUTH_CLIENT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"client-id\",\"name\":\"oauth-proxy-secret\"}}}],\"image\":\"registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":10,\"periodSeconds\":10,\"timeoutSeconds\":5},\"name\":\"oauth-proxy\",\"ports\":[{\"containerPort\":8080,\"name\":\"http\",\"protocol\":\"TCP\"},{\"containerPort\":8443,\"name\":\"https\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":5,\"periodSeconds\":5,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"200m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/proxy/secrets\",\"name\":\"oauth-proxy-secret\",\"readOnly\":true},{\"mountPath\":\"/etc/tls/private\",\"name\":\"oauth-serving-cert\",\"readOnly\":true}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"parsec-oauth\",\"volumes\":[{\"name\":\"oauth-proxy-secret\",\"secret\":{\"secretName\":\"oauth-proxy-secret\"}},{\"name\":\"oauth-serving-cert\",\"secret\":{\"secretName\":\"oauth-serving-cert\"}}]}}}}"
+        },
+        "creationTimestamp": "2026-03-10T23:43:07Z",
+        "generation": 1,
+        "labels": {
+          "app": "parsec",
+          "component": "oauth-proxy"
+        },
+        "name": "oauth-proxy",
+        "namespace": "parsec",
+        "resourceVersion": "530522337",
+        "uid": "68c54d47-4449-48df-9883-ed9124d421a2"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "parsec-oauth-proxy",
+            "component": "oauth-proxy"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "parsec-oauth-proxy",
+              "component": "oauth-proxy"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "-provider=openshift",
+                  "-http-address=:8080",
+                  "-https-address=",
+                  "-email-domain=*",
+                  "-upstream=http://parsec-service:8000/",
+                  "-client-id=$(OAUTH_CLIENT_ID)",
+                  "-client-secret-file=/etc/proxy/secrets/client-secret",
+                  "-cookie-secret-file=/etc/proxy/secrets/session_secret",
+                  "-openshift-service-account=parsec-oauth",
+                  "-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                  "-skip-auth-regex=^/api/(health|alert/)",
+                  "-upstream-timeout=180s",
+                  "-pass-user-headers=true"
+                ],
+                "env": [
+                  {
+                    "name": "OAUTH_CLIENT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "client-id",
+                        "name": "oauth-proxy-secret"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "name": "oauth-proxy",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/proxy/secrets",
+                    "name": "oauth-proxy-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/etc/tls/private",
+                    "name": "oauth-serving-cert",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "parsec-oauth",
+            "serviceAccountName": "parsec-oauth",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "oauth-proxy-secret",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "oauth-proxy-secret"
+                }
+              },
+              {
+                "name": "oauth-serving-cert",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "oauth-serving-cert"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-03-10T23:43:18Z",
+            "lastUpdateTime": "2026-03-10T23:43:18Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-03-10T23:43:07Z",
+            "lastUpdateTime": "2026-03-10T23:43:18Z",
+            "message": "ReplicaSet \"oauth-proxy-7bbd9b94b4\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "81",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"parsec:latest\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"parsec\\\")].image\"},{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"parsec:latest\"},\"fieldPath\":\"spec.template.spec.initContainers[?(@.name==\\\"seed-pricing\\\")].image\"},{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"parsec:latest\"},\"fieldPath\":\"spec.template.spec.initContainers[?(@.name==\\\"seed-azure-billing\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"image.openshift.io/triggers\":\"[{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"parsec:latest\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.containers[?(@.name==\\\\\\\"parsec\\\\\\\")].image\\\"},{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"parsec:latest\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.initContainers[?(@.name==\\\\\\\"seed-pricing\\\\\\\")].image\\\"},{\\\"from\\\":{\\\"kind\\\":\\\"ImageStreamTag\\\",\\\"name\\\":\\\"parsec:latest\\\"},\\\"fieldPath\\\":\\\"spec.template.spec.initContainers[?(@.name==\\\\\\\"seed-azure-billing\\\\\\\")].image\\\"}]\"},\"name\":\"parsec\",\"namespace\":\"parsec\"},\"spec\":{\"replicas\":2,\"selector\":{\"matchLabels\":{\"app\":\"parsec\",\"component\":\"api\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"parsec\",\"component\":\"api\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"PARSEC_ANTHROPIC__BACKEND\",\"value\":\"vertex\"},{\"name\":\"PARSEC_ANTHROPIC__VERTEX_PROJECT_ID\",\"value\":\"itpc-gcp-product-all-claude\"},{\"name\":\"PARSEC_ANTHROPIC__VERTEX_REGION\",\"value\":\"us-east5\"},{\"name\":\"PARSEC_ANTHROPIC__VERTEX_CREDENTIALS_PATH\",\"value\":\"/app/gcp/service-account.json\"},{\"name\":\"PARSEC_AWS__REGION\",\"value\":\"us-east-1\"},{\"name\":\"PARSEC_GCP__CREDENTIALS_PATH\",\"value\":\"/app/gcp-billing/service-account.json\"},{\"name\":\"PARSEC_ALERT_API_KEY\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"alert-api-key\",\"name\":\"parsec-secrets\",\"optional\":true}}},{\"name\":\"PARSEC_GITHUB__TOKEN\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"github-token\",\"name\":\"parsec-secrets\",\"optional\":true}}},{\"name\":\"PARSEC_AUTH__ALLOWED_USERS\",\"valueFrom\":{\"configMapKeyRef\":{\"key\":\"allowed-users\",\"name\":\"parsec-allowed-users\",\"optional\":true}}},{\"name\":\"PARSEC_BABYLON__CLUSTERS__EAST__KUBECONFIG\",\"value\":\"/app/babylon/east.kubeconfig\"},{\"name\":\"PARSEC_BABYLON__CLUSTERS__WEST__KUBECONFIG\",\"value\":\"/app/babylon/west.kubeconfig\"},{\"name\":\"PARSEC_BABYLON__CLUSTERS__PARTNER0__KUBECONFIG\",\"value\":\"/app/babylon/partner0.kubeconfig\"},{\"name\":\"PARSEC_BABYLON__CLUSTERS__PARTNER1__KUBECONFIG\",\"value\":\"/app/babylon/partner1.kubeconfig\"},{\"name\":\"PARSEC_BABYLON__CLUSTERS__INTEGRATION__KUBECONFIG\",\"value\":\"/app/babylon/integration.kubeconfig\"},{\"name\":\"PARSEC_BABYLON__CLUSTERS__BABYDEV__KUBECONFIG\",\"value\":\"/app/babylon/babydev.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV05__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv05.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV06__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv06.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV07__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv07.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV08__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv08.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV09__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv09.kubeconfig\"},{\"name\":\"PARSEC_OCPV__CLUSTERS__OCPV10__KUBECONFIG\",\"value\":\"/app/ocpv/ocpv10.kubeconfig\"},{\"name\":\"PARSEC_ICINGA__MCP_URL\",\"value\":\"http://localhost:3000/sse\"},{\"name\":\"PARSEC_REPORTING_MCP__MCP_URL\",\"value\":\"http://reporting-mcp.demo-reporting.svc:8080/mcp\"}],\"envFrom\":[{\"secretRef\":{\"name\":\"parsec-cloud-credentials\",\"optional\":true}},{\"secretRef\":{\"name\":\"parsec-aap2-credentials\",\"optional\":true}}],\"image\":\"parsec:latest\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/api/health\",\"port\":8000},\"initialDelaySeconds\":15,\"periodSeconds\":30,\"timeoutSeconds\":5},\"name\":\"parsec\",\"ports\":[{\"containerPort\":8000,\"name\":\"http\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/api/health/ready\",\"port\":8000},\"initialDelaySeconds\":10,\"periodSeconds\":10,\"timeoutSeconds\":5},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"512Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"startupProbe\":{\"failureThreshold\":12,\"httpGet\":{\"path\":\"/api/health\",\"port\":8000},\"initialDelaySeconds\":10,\"periodSeconds\":10},\"volumeMounts\":[{\"mountPath\":\"/app/config/config.yaml\",\"name\":\"config\",\"readOnly\":true,\"subPath\":\"config.yaml\"},{\"mountPath\":\"/app/gcp\",\"name\":\"vertex-credentials\",\"readOnly\":true},{\"mountPath\":\"/app/gcp-billing\",\"name\":\"gcp-billing-credentials\",\"readOnly\":true},{\"mountPath\":\"/app/data\",\"name\":\"pricing-cache\"},{\"mountPath\":\"/app/babylon\",\"name\":\"babylon-kubeconfigs\",\"readOnly\":true},{\"mountPath\":\"/app/ocpv\",\"name\":\"ocpv-kubeconfigs\",\"readOnly\":true}]},{\"args\":[\"--transport\",\"sse\",\"--host\",\"0.0.0.0\",\"--port\",\"3000\"],\"envFrom\":[{\"secretRef\":{\"name\":\"icinga-credentials\",\"optional\":true}}],\"image\":\"quay.io/rhpds/monitoring-mcp:v0.3.1\",\"name\":\"icinga-mcp\",\"resources\":{\"limits\":{\"cpu\":\"200m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"50m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}}}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"cp /app/data-seed/ec2_pricing.json /app/data/ec2_pricing.json\"],\"image\":\"parsec:latest\",\"name\":\"seed-pricing\",\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumeMounts\":[{\"mountPath\":\"/app/data\",\"name\":\"pricing-cache\"}]},{\"command\":[\"python3\",\"scripts/refresh_azure_billing.py\",\"--init-only\"],\"image\":\"parsec:latest\",\"name\":\"seed-azure-billing\",\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumeMounts\":[{\"mountPath\":\"/app/data\",\"name\":\"pricing-cache\"}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"parsec-oauth\",\"volumes\":[{\"configMap\":{\"name\":\"parsec-config\"},\"name\":\"config\"},{\"name\":\"vertex-credentials\",\"secret\":{\"defaultMode\":256,\"secretName\":\"vertex-credentials\"}},{\"name\":\"gcp-billing-credentials\",\"secret\":{\"defaultMode\":256,\"optional\":true,\"secretName\":\"gcp-billing-credentials\"}},{\"name\":\"pricing-cache\",\"persistentVolumeClaim\":{\"claimName\":\"parsec-pricing-cache\"}},{\"name\":\"babylon-kubeconfigs\",\"secret\":{\"defaultMode\":256,\"optional\":true,\"secretName\":\"babylon-kubeconfigs\"}},{\"name\":\"ocpv-kubeconfigs\",\"secret\":{\"defaultMode\":256,\"optional\":true,\"secretName\":\"ocpv-kubeconfigs\"}}]}}}}"
+        },
+        "creationTimestamp": "2026-03-10T23:43:07Z",
+        "generation": 83,
+        "name": "parsec",
+        "namespace": "parsec",
+        "resourceVersion": "696327515",
+        "uid": "366e7b29-6931-4a60-a162-4973e330459b"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 4,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "parsec",
+            "component": "api"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-04-28T20:36:06-05:00"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "parsec",
+              "component": "api"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "PARSEC_ANTHROPIC__BACKEND",
+                    "value": "vertex"
+                  },
+                  {
+                    "name": "PARSEC_ANTHROPIC__VERTEX_PROJECT_ID",
+                    "value": "itpc-gcp-product-all-claude"
+                  },
+                  {
+                    "name": "PARSEC_ANTHROPIC__VERTEX_REGION",
+                    "value": "us-east5"
+                  },
+                  {
+                    "name": "PARSEC_ANTHROPIC__VERTEX_CREDENTIALS_PATH",
+                    "value": "/app/gcp/service-account.json"
+                  },
+                  {
+                    "name": "PARSEC_AWS__REGION",
+                    "value": "us-east-1"
+                  },
+                  {
+                    "name": "PARSEC_GCP__CREDENTIALS_PATH",
+                    "value": "/app/gcp-billing/service-account.json"
+                  },
+                  {
+                    "name": "PARSEC_ALERT_API_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "alert-api-key",
+                        "name": "parsec-secrets",
+                        "optional": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "PARSEC_GITHUB__TOKEN",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "github-token",
+                        "name": "parsec-secrets",
+                        "optional": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "PARSEC_AUTH__ALLOWED_USERS",
+                    "valueFrom": {
+                      "configMapKeyRef": {
+                        "key": "allowed-users",
+                        "name": "parsec-allowed-users",
+                        "optional": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__EAST__KUBECONFIG",
+                    "value": "/app/babylon/east.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__WEST__KUBECONFIG",
+                    "value": "/app/babylon/west.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__PARTNER0__KUBECONFIG",
+                    "value": "/app/babylon/partner0.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__PARTNER1__KUBECONFIG",
+                    "value": "/app/babylon/partner1.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__INTEGRATION__KUBECONFIG",
+                    "value": "/app/babylon/integration.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_BABYLON__CLUSTERS__BABYDEV__KUBECONFIG",
+                    "value": "/app/babylon/babydev.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV05__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv05.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV06__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv06.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV07__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv07.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV08__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv08.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV09__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv09.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_OCPV__CLUSTERS__OCPV10__KUBECONFIG",
+                    "value": "/app/ocpv/ocpv10.kubeconfig"
+                  },
+                  {
+                    "name": "PARSEC_ICINGA__MCP_URL",
+                    "value": "http://localhost:3000/sse"
+                  },
+                  {
+                    "name": "PARSEC_REPORTING_MCP__MCP_URL",
+                    "value": "http://reporting-mcp.demo-reporting.svc:8080/mcp/"
+                  },
+                  {
+                    "name": "PARSEC_REPORTING_MCP__TOKEN",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "reporting-mcp-token",
+                        "name": "parsec-secrets",
+                        "optional": true
+                      }
+                    }
+                  }
+                ],
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "parsec-cloud-credentials",
+                      "optional": true
+                    }
+                  },
+                  {
+                    "secretRef": {
+                      "name": "parsec-aap2-credentials",
+                      "optional": true
+                    }
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/parsec/parsec@sha256:86d6f5821fbc027e6c5a1fc6d8ffb94420f07ff71a421174acd1986d3b3700b9",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/health",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "name": "parsec",
+                "ports": [
+                  {
+                    "containerPort": 8000,
+                    "name": "http",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/health/ready",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/api/health",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/config/config.yaml",
+                    "name": "config",
+                    "readOnly": true,
+                    "subPath": "config.yaml"
+                  },
+                  {
+                    "mountPath": "/app/gcp",
+                    "name": "vertex-credentials",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app/gcp-billing",
+                    "name": "gcp-billing-credentials",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app/data",
+                    "name": "pricing-cache"
+                  },
+                  {
+                    "mountPath": "/app/babylon",
+                    "name": "babylon-kubeconfigs",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app/ocpv",
+                    "name": "ocpv-kubeconfigs",
+                    "readOnly": true
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "--transport",
+                  "sse",
+                  "--host",
+                  "0.0.0.0",
+                  "--port",
+                  "3000"
+                ],
+                "env": [
+                  {
+                    "name": "PARSEC_REPORTING_MCP__MCP_URL",
+                    "value": "http://reporting-mcp.demo-reporting.svc:8080/mcp/"
+                  }
+                ],
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "icinga-credentials",
+                      "optional": true
+                    }
+                  }
+                ],
+                "image": "quay.io/rhpds/monitoring-mcp:v0.3.1",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "icinga-mcp",
+                "resources": {
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "cp /app/data-seed/ec2_pricing.json /app/data/ec2_pricing.json"
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/parsec/parsec@sha256:86d6f5821fbc027e6c5a1fc6d8ffb94420f07ff71a421174acd1986d3b3700b9",
+                "imagePullPolicy": "Always",
+                "name": "seed-pricing",
+                "resources": {},
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/data",
+                    "name": "pricing-cache"
+                  }
+                ]
+              },
+              {
+                "command": [
+                  "python3",
+                  "scripts/refresh_azure_billing.py",
+                  "--init-only"
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/parsec/parsec@sha256:86d6f5821fbc027e6c5a1fc6d8ffb94420f07ff71a421174acd1986d3b3700b9",
+                "imagePullPolicy": "Always",
+                "name": "seed-azure-billing",
+                "resources": {},
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/data",
+                    "name": "pricing-cache"
+                  }
+                ]
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "parsec-oauth",
+            "serviceAccountName": "parsec-oauth",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "parsec-config"
+                },
+                "name": "config"
+              },
+              {
+                "name": "vertex-credentials",
+                "secret": {
+                  "defaultMode": 256,
+                  "secretName": "vertex-credentials"
+                }
+              },
+              {
+                "name": "gcp-billing-credentials",
+                "secret": {
+                  "defaultMode": 256,
+                  "optional": true,
+                  "secretName": "gcp-billing-credentials"
+                }
+              },
+              {
+                "name": "pricing-cache",
+                "persistentVolumeClaim": {
+                  "claimName": "parsec-pricing-cache"
+                }
+              },
+              {
+                "name": "babylon-kubeconfigs",
+                "secret": {
+                  "defaultMode": 256,
+                  "optional": true,
+                  "secretName": "babylon-kubeconfigs"
+                }
+              },
+              {
+                "name": "ocpv-kubeconfigs",
+                "secret": {
+                  "defaultMode": 256,
+                  "optional": true,
+                  "secretName": "ocpv-kubeconfigs"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 4,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-03T16:09:40Z",
+            "lastUpdateTime": "2026-04-29T01:36:47Z",
+            "message": "ReplicaSet \"parsec-569b67f995\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-05-05T19:03:32Z",
+            "lastUpdateTime": "2026-05-05T19:03:32Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 83,
+        "readyReplicas": 4,
+        "replicas": 4,
+        "updatedReplicas": 4
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

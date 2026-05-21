@@ -1,0 +1,57 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-04-28T13:47:55Z",
+        "labels": {
+          "app.kubernetes.io/name": "sandbox-api",
+          "app.kubernetes.io/version": "1.1.6"
+        },
+        "name": "sandbox-api",
+        "namespace": "babylon-sandbox-api",
+        "resourceVersion": "692657005",
+        "uid": "ba285bbe-44ac-45fb-866b-91361b3d69e9"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.3.139",
+              "nodeName": "ocp-infra01-ceph00",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "sandbox-api-5db6c6ccd4-96pz5",
+                "namespace": "babylon-sandbox-api",
+                "uid": "68ea829b-b112-4f52-a974-cd8f218a1e35"
+              }
+            },
+            {
+              "ip": "10.131.2.11",
+              "nodeName": "ocp-infra01-ceph01",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "sandbox-api-5db6c6ccd4-2l58s",
+                "namespace": "babylon-sandbox-api",
+                "uid": "63a5d7f5-2dbe-4408-9d7f-94ba5eb47747"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "api",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

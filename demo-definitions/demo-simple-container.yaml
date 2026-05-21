@@ -1,0 +1,22 @@
+demo_id: demo-simple-container
+name: Simple Container Demo
+description: A basic containerized application demo with deployment, service, route, and smoke test.
+namespace_prefix: summit-demo
+rubric_version: v0.1.0
+stages:
+  - stage_id: cluster-health
+    rubric_id: cluster-health
+  - stage_id: run-created
+    rubric_id: run-created
+  - stage_id: provision-complete
+    rubric_id: provision-complete
+  - stage_id: namespace-ready
+    rubric_id: namespace-ready
+  - stage_id: deployment-ready
+    rubric_id: deployment-ready
+  - stage_id: route-ready
+    rubric_id: route-ready
+  - stage_id: smoke-test-ready
+    rubric_id: smoke-test-ready
+  - stage_id: showroom-healthy
+    rubric_id: showroom-healthy

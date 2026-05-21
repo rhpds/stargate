@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: sdf-demo-provision-
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+    tekton.dev/pipeline: sdf-demo-provision
+spec:
+  pipelineRef:
+    name: sdf-demo-provision
+  params:
+    - name: demo-id
+      value: "demo-simple-container"
+    - name: namespace
+      value: "summit-demo-001"
+    - name: rubric-version
+      value: "v0.1.0"
+    - name: sdf-api-url
+      value: "http://summit-demo-factory:8080"

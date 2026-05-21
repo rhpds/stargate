@@ -1,0 +1,3306 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 10,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T10:48:39Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329856758",
+        "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:15Z",
+      "message": "Started the virtual machine by creating the new virtual machine instance dbserver",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:48:39Z",
+        "name": "dbserver.18acf44274faa75b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499808",
+        "uid": "0aa909f8-1d2a-49a6-9916-3da81357349d"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 6,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:09Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157840",
+        "uid": "a0c8526e-5b30-4954-a84f-ac499aad8956"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:09Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:09Z",
+        "name": "dbserver.18ad0c3e41f46ddc",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157871",
+        "uid": "e11a5e57-c30a-4d82-8569-a27f1c74474b"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host3",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host3"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:09Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157840",
+        "uid": "a0c8526e-5b30-4954-a84f-ac499aad8956"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:09Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:09Z",
+        "name": "dbserver.18ad0c3e459cf99f",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157846",
+        "uid": "f836e2c2-606a-4d06-9617-41470ab96113"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host3",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host3"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:09Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331006179",
+        "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:09Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance a0c8526e-5b30-4954-a84f-ac499aad8956",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:09Z",
+        "name": "dbserver.18ad0c3e4615fe83",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157850",
+        "uid": "b7c01cac-8801-43fb-aabc-73d517ef306b"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:09Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157847",
+        "uid": "a0c8526e-5b30-4954-a84f-ac499aad8956"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:14Z",
+      "message": "Deleted virtual machine pod virt-launcher-dbserver-x9klg",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:09Z",
+        "name": "dbserver.18ad0c3e46bde859",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158029",
+        "uid": "e857bdf6-4caf-4ca7-b8d8-01570fa575a5"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:14Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158035",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:14Z",
+      "message": "Created virtual machine pod virt-launcher-dbserver-sd8v9",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:14Z",
+        "name": "dbserver.18ad0c3f696994ad",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158040",
+        "uid": "21dc2427-7e0f-4749-9403-7c227c975476"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158479",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:29Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:29Z",
+        "name": "dbserver.18ad0c43012b3ecd",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158529",
+        "uid": "82ffe4ca-d557-4a74-83e8-bb3d872c443a"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158531",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:29Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:29Z",
+        "name": "dbserver.18ad0c43084fc9b7",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158534",
+        "uid": "fedb1ea9-9e9b-4526-be8c-dbc4d93fbb36"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:50Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324464",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:50Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:50Z",
+        "name": "dbserver.18ad0f8e20efd16d",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324478",
+        "uid": "54a711b6-b069-461a-853e-d1d3337b99a2"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:51Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324464",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:51Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:51Z",
+        "name": "dbserver.18ad0f8e254916ea",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324482",
+        "uid": "1f40d101-af76-41a5-b1c9-2f9744f95e93"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:51Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158537",
+        "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:51Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance 98035b08-06f5-4255-abe1-47aef258719b",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:51Z",
+        "name": "dbserver.18ad0f8e25bb306d",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324485",
+        "uid": "97cf4191-fff0-436d-bf5c-806d8817c0dd"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:51Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324483",
+        "uid": "98035b08-06f5-4255-abe1-47aef258719b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:56Z",
+      "message": "Deleted virtual machine pod virt-launcher-dbserver-sd8v9",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:51Z",
+        "name": "dbserver.18ad0f8e265d0132",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324917",
+        "uid": "73c020af-2d76-44a5-95bb-29ac9d9ea9d5"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:56Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324925",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:56Z",
+      "message": "Created virtual machine pod virt-launcher-dbserver-zfmlz",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:56Z",
+        "name": "dbserver.18ad0f8f545f0305",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324930",
+        "uid": "b60a6d1e-7b0c-4210-aba8-a34ce7f0b83b"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:35Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342600",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:35Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:35Z",
+        "name": "dbserver.18ad0fde66de7677",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342757",
+        "uid": "d73bc9d4-86bc-467c-aaf6-de9ec45f9ac9"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:35Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342600",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:35Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:35Z",
+        "name": "dbserver.18ad0fde6e06ce0b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342760",
+        "uid": "14da8994-227d-42ff-bb17-67613d16ce6d"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:08Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499506",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:08Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:08Z",
+        "name": "dbserver.18ad132c365f727b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499507",
+        "uid": "af2bb46c-a9db-41c6-b0a2-dcba3fedccbb"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:08Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499506",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:08Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:08Z",
+        "name": "dbserver.18ad132c4cb9e506",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499519",
+        "uid": "61a4fa02-62f2-4bd3-b587-e2291a96a008"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:08Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342763",
+        "uid": "80923046-8a4e-41ed-b9c3-343195219933"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:08Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance 99dfada6-1fcf-408c-bcbe-058939f9149d",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:08Z",
+        "name": "dbserver.18ad132c4d060fdd",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499522",
+        "uid": "391866f6-609b-4d3c-86c2-bce164584fa4"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:08Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499518",
+        "uid": "99dfada6-1fcf-408c-bcbe-058939f9149d"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:15Z",
+      "message": "Deleted virtual machine pod virt-launcher-dbserver-zfmlz",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:08Z",
+        "name": "dbserver.18ad132c4db15b33",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499804",
+        "uid": "160c4ec0-996e-4059-825b-22bfb7f1d079"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:15Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499810",
+        "uid": "0e578838-a789-45bc-8641-05997361c3c2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:15Z",
+      "message": "Created virtual machine pod virt-launcher-dbserver-rtqhq",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:15Z",
+        "name": "dbserver.18ad132dd4a7d01f",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499814",
+        "uid": "58534dcd-eb7d-4341-b85a-eaf9b6b23793"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:27Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500208",
+        "uid": "0e578838-a789-45bc-8641-05997361c3c2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:27Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:27Z",
+        "name": "dbserver.18ad1330a3519010",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500357",
+        "uid": "16e85479-f74b-4482-b362-a67b21e0a466"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:27Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "dbserver",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500208",
+        "uid": "0e578838-a789-45bc-8641-05997361c3c2"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:27Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:27Z",
+        "name": "dbserver.18ad1330a9e0ac7c",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500360",
+        "uid": "e6118cf4-4ecc-4a62-84c0-bc906c2c0c31"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T20:15:15.449343Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499813",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-rtqhq to ocp-virt6-host8",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:15Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132dd501fbaf",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499816",
+        "uid": "d6b81c48-cce8-4ef2-9e09-0c7ae68343f4"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:16Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:16Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:16Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132df7affbf8",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499847",
+        "uid": "7508b476-5fb5-4c24-bde3-0bf01bc80ff0"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:21Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:21Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:21Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132f3ba6acbd",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500058",
+        "uid": "6aabbcc6-d090-40e6-b0f8-f8ac7a8b4c1e"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:21Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:21Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" volumeMapPath \"/var/lib/kubelet/pods/adc50522-6711-43bb-a841-bf3f4a898aa1/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:21Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132f3ba7411a",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500059",
+        "uid": "7a9dd0b4-bddc-4b6a-9f9e-172ae8716fbc"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:22Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499824",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:22Z",
+      "message": "Add eth0 [10.130.38.165/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:22Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132f746c1861",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500093",
+        "uid": "58b9b5a5-e89f-433d-824d-35dd8755436d"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:24Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499824",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:24Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:24Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132fd3acff19",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500140",
+        "uid": "1d634d1a-7045-4931-a95c-db6524d49cf2"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:24Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:24Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:24Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad132fd711acb6",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500144",
+        "uid": "eed5cc6d-48b5-4b0b-84da-d622f2aa789e"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:24Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:24Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:24Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad133000695766",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500173",
+        "uid": "1b8d1f6a-7075-41d9-a3c9-70635658a616"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:24Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-rtqhq",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499815",
+        "uid": "adc50522-6711-43bb-a841-bf3f4a898aa1"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:24Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:24Z",
+        "name": "virt-launcher-dbserver-rtqhq.18ad133001226921",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331500175",
+        "uid": "bb0a0fa3-d701-48ee-bae9-d78809744eb3"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T18:08:14.378473Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158039",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-sd8v9 to ocp-virt6-host11",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:14Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c3f69c928c7",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158042",
+        "uid": "cfb36011-0cdd-46be-8640-61524f2c7cc7"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:14Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:14Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:14Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c3f8c966169",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158076",
+        "uid": "162d08b8-4449-497f-b49e-0071d0599cce"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:22Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:22Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:22Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c414bda089d",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158326",
+        "uid": "9e06395e-4658-4a16-b177-f715165e814a"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:22Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:22Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" volumeMapPath \"/var/lib/kubelet/pods/476f27a5-0801-45ba-b741-d0f14a944cfd/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:22Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c414bda6da2",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158327",
+        "uid": "3d88c2ff-f81d-418c-b863-05c16da84dc7"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158051",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:23Z",
+      "message": "Add eth0 [10.131.29.241/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:23Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c4194d2897c",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158364",
+        "uid": "7cbbb1a6-3330-4a85-b0a5-1004794cac52"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:25Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158051",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:25Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:25Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c4210aca89b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158422",
+        "uid": "804a21d6-851e-4fc2-a0c2-ebc696f8ee31"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:25Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:25Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:25Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c4213b0e6fe",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158427",
+        "uid": "3f9080c7-4d72-4572-91fa-eba7d7c8e621"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:26Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:26Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:26Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c42488448cb",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158442",
+        "uid": "5b2b8dd2-5071-4b85-85dc-bef90edcdfa1"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:26Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:26Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:26Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0c42495e9601",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158443",
+        "uid": "4fe5b1b3-6424-483d-afb4-22748b16a403"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:08:51Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-sd8v9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331158041",
+        "uid": "476f27a5-0801-45ba-b741-d0f14a944cfd"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:08:51Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:51Z",
+        "name": "virt-launcher-dbserver-sd8v9.18ad0f8e27b981f6",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324507",
+        "uid": "f33d3738-ffcb-4e68-a4f1-bff7704c1783"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host11",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host11"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:08:09Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-x9klg",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331005029",
+        "uid": "c0c4faf4-c62a-4358-95ca-650b96617c62"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:08:09Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:08:09Z",
+        "name": "virt-launcher-dbserver-x9klg.18ad0c3e48e1d8d7",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331157870",
+        "uid": "dcc6ef14-2354-4308-87fd-cd8a684abc67"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host3",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host3"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T19:08:56.155961Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324929",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-zfmlz to ocp-virt6-host7",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:08:56Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0f8f54a3b744",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324932",
+        "uid": "33f7842f-57be-4611-a226-54c6c8fbfbc8"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:09:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:09:35Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:09:35Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0f98941921e1",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331327756",
+        "uid": "11cf20b4-3109-45a3-b1fc-3f3e56a363ee"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:10:03Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:10:03Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:10:03Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0f9efda74f08",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331329188",
+        "uid": "32b90892-5f30-4143-b62b-51da8d037ff7"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:10:03Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:10:03Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-b2f8840a-5bde-47ae-b67f-18fa7e3041dc\" volumeMapPath \"/var/lib/kubelet/pods/6342d55a-95ff-4d46-808c-fc16f89e0d4c/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:10:03Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0f9efda7e707",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331329189",
+        "uid": "0081ed59-1c3e-4dc8-9241-f7dd36c8f882"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:13:58Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:13:58Z",
+      "message": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_virt-launcher-dbserver-zfmlz_sandbox-zz95m-zt-ansiblebu_6342d55a-95ff-4d46-808c-fc16f89e0d4c_0(5dd18f2ff8471a382852fae3f5efd29d7cd23d2698c0897812520237bd3a23d9): error adding pod sandbox-zz95m-zt-ansiblebu_virt-launcher-dbserver-zfmlz to CNI network \"multus-cni-network\": plugin type=\"multus-shim\" name=\"multus-cni-network\" failed (add): CmdAdd (shim): CNI request failed with status 400: 'ContainerID:\"5dd18f2ff8471a382852fae3f5efd29d7cd23d2698c0897812520237bd3a23d9\" Netns:\"/var/run/netns/4c653a38-f5b6-4f93-9b44-d1e04123e7a3\" IfName:\"eth0\" Args:\"IgnoreUnknown=1;K8S_POD_NAMESPACE=sandbox-zz95m-zt-ansiblebu;K8S_POD_NAME=virt-launcher-dbserver-zfmlz;K8S_POD_INFRA_CONTAINER_ID=5dd18f2ff8471a382852fae3f5efd29d7cd23d2698c0897812520237bd3a23d9;K8S_POD_UID=6342d55a-95ff-4d46-808c-fc16f89e0d4c\" Path:\"\" ERRORED: error configuring pod [sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-zfmlz] networking: [sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-zfmlz/6342d55a-95ff-4d46-808c-fc16f89e0d4c:ovn-kubernetes]: error adding container to network \"ovn-kubernetes\": CNI request failed with status 400: '[sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-zfmlz 5dd18f2ff8471a382852fae3f5efd29d7cd23d2698c0897812520237bd3a23d9 network default NAD default] [sandbox-zz95m-zt-ansiblebu/virt-launcher-dbserver-zfmlz 5dd18f2ff8471a382852fae3f5efd29d7cd23d2698c0897812520237bd3a23d9 network default NAD default] failed to configure pod interface: timed out waiting for OVS port binding (ovn-installed) for 0a:58:0a:81:12:f8 [10.129.18.248/21]\n'\n': StdinData: {\"auxiliaryCNIChainName\":\"vendor-cni-chain\",\"binDir\":\"/var/lib/cni/bin\",\"clusterNetwork\":\"/host/run/multus/cni/net.d/10-ovn-kubernetes.conf\",\"cniVersion\":\"0.3.1\",\"daemonSocketDir\":\"/run/multus/socket\",\"globalNamespaces\":\"default,openshift-multus,openshift-sriov-network-operator,openshift-cnv\",\"logLevel\":\"verbose\",\"logToStderr\":true,\"name\":\"multus-cni-network\",\"namespaceIsolation\":true,\"type\":\"multus-shim\"}",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:13:58Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fd5c79f3831",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331340928",
+        "uid": "c976b16e-e6d4-42e6-afb0-7cafc10c583d"
+      },
+      "reason": "FailedCreatePodSandBox",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Warning"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:13Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324973",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:13Z",
+      "message": "Add eth0 [10.129.18.248/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:13Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fd929f2bd13",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331341665",
+        "uid": "f5db382d-81f6-4abc-9567-6987afc4dae9"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:26Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324973",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:26Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:26Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fdc2b95e2c1",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342361",
+        "uid": "e6384a09-9701-49df-b15b-4dd12c48cce3"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:26Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:26Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:26Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fdc46654dc3",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342384",
+        "uid": "1c8c04e7-4266-434b-ac60-79917c3456b2"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:30Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:30Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:30Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fdd300ab552",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342529",
+        "uid": "c091368c-6b3c-4db1-ae96-bdf851fefa76"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:14:30Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:14:30Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:14:30Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad0fdd33407847",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331342535",
+        "uid": "e188958e-f5a8-4596-82ee-a576b23cf6e1"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T20:15:08Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-dbserver-zfmlz",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331324931",
+        "uid": "6342d55a-95ff-4d46-808c-fc16f89e0d4c"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T20:15:08Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T20:15:09Z",
+        "name": "virt-launcher-dbserver-zfmlz.18ad132c543d42b4",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331499541",
+        "uid": "2e5a27f5-6792-4e0a-8219-4d37bd9cf831"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host7",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host7"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:29Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-b2ss7",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1330974348",
+        "uid": "108c3f42-c297-4067-9f1f-819f4dc3746b"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:29Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:29Z",
+        "name": "virt-launcher-windows-b2ss7.18ad0b9b387c82af",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126350",
+        "uid": "0cd05d86-88b4-4691-a705-f57b3fc45015"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T17:56:33.982666Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126735",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-windows-c498b to ocp-virt6-host2",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:33Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9c56f14ac2",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126738",
+        "uid": "a49b3aa5-07f7-4069-9f4c-8a7e4586af0e"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:35Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:35Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9ca4abec59",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126773",
+        "uid": "266c6064-979c-47b2-a89d-898001590977"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:35Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" volumeMapPath \"/var/lib/kubelet/pods/dafb0468-03ab-4928-ad9d-5409c916c549/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:35Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9ca4ac6fce",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126775",
+        "uid": "6a481487-2094-45b9-80be-4a70ac0c2d9a"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:36Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126745",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:36Z",
+      "message": "Add eth0 [10.131.5.96/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:36Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9cdeafdb71",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126801",
+        "uid": "ca40d5c0-45f4-41b4-8c92-d4c110a71ee6"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126745",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:38Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:38Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9d5fac261f",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126865",
+        "uid": "b5fba15b-c9b2-4258-bc27-bc1b1a49952f"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:38Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:38Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9d62cc7cad",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126867",
+        "uid": "2cc0d05f-cd9a-4927-ae8a-486f841506da"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:38Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:38Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:38Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9d8165d425",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126886",
+        "uid": "60bce010-3a26-4ee1-9d96-ffc4d6761c85"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:39Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:39Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:39Z",
+        "name": "virt-launcher-windows-c498b.18ad0b9d8265f795",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126887",
+        "uid": "7d5398a5-8688-452c-99f9-31e28aded333"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-c498b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126737",
+        "uid": "dafb0468-03ab-4928-ad9d-5409c916c549"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:23Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:23Z",
+        "name": "virt-launcher-windows-c498b.18ad0eee18236040",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280819",
+        "uid": "2d37497b-c3d7-4cda-bf33-a2e9cd4b9189"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T19:58:07.133118Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458604",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-windows-j5qvv to ocp-virt6-host8",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:07Z",
+        "name": "virt-launcher-windows-j5qvv.18ad123e6895a4a3",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458608",
+        "uid": "4a9fdedd-5d27-4fe2-9960-71a9cf5484ea"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:07Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:07Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:07Z",
+        "name": "virt-launcher-windows-j5qvv.18ad123e8ae033cb",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458649",
+        "uid": "d2fc35b6-7f81-406e-aba7-945532db747d"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:11Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:11Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:11Z",
+        "name": "virt-launcher-windows-j5qvv.18ad123f62160d7a",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458786",
+        "uid": "8f084f0d-730c-47bc-b2c6-d01e96a145d7"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:11Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:11Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" volumeMapPath \"/var/lib/kubelet/pods/1d1ed228-5625-40f9-8db9-e4dd4b251fec/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:11Z",
+        "name": "virt-launcher-windows-j5qvv.18ad123f62168175",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458788",
+        "uid": "c22f7b76-6fca-45ea-a0c5-369a11db69f5"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:12Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458620",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:12Z",
+      "message": "Add eth0 [10.130.38.163/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:12Z",
+        "name": "virt-launcher-windows-j5qvv.18ad123fa16f08ae",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458821",
+        "uid": "a30c4a0e-b517-40c7-9a0e-2c7d38ef89a5"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:14Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458620",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:14Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:14Z",
+        "name": "virt-launcher-windows-j5qvv.18ad124024a6eb56",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458883",
+        "uid": "fa2c6bc5-4a62-452f-8288-af4e5a2d7098"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:14Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:14Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:14Z",
+        "name": "virt-launcher-windows-j5qvv.18ad124027c363d1",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458886",
+        "uid": "2deb2141-d139-4efe-b8b2-b54cfb0a6967"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:15Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:15Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:15Z",
+        "name": "virt-launcher-windows-j5qvv.18ad12404f893011",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458907",
+        "uid": "ef5c9374-9e0c-486f-b01b-fa75f737b632"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:15Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-j5qvv",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458607",
+        "uid": "1d1ed228-5625-40f9-8db9-e4dd4b251fec"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:15Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:15Z",
+        "name": "virt-launcher-windows-j5qvv.18ad1240504637ee",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458910",
+        "uid": "a7745e5f-02cf-426d-a844-1bce095be25f"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "action": "Binding",
+      "apiVersion": "v1",
+      "eventTime": "2026-05-06T18:57:29.227640Z",
+      "firstTimestamp": null,
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281156",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": null,
+      "message": "Successfully assigned sandbox-zz95m-zt-ansiblebu/virt-launcher-windows-xv54h to ocp-virt6-host14",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:29Z",
+        "name": "virt-launcher-windows-xv54h.18ad0eef648551f8",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281161",
+        "uid": "32d83344-8fe6-4ebe-89ef-853a40c875c9"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-ocp-virt6-cp3",
+      "source": {},
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:29Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:29Z",
+      "message": "AttachVolume.Attach succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" ",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:29Z",
+        "name": "virt-launcher-windows-xv54h.18ad0eef861c6bed",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281184",
+        "uid": "fb88e446-43e7-4f1d-a41b-a155608c613d"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "reportingComponent": "attachdetach-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:32Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:32Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" globalMapPath \"/var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667/dev\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:32Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef01f984119",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281297",
+        "uid": "3306b25a-e734-4d25-ac14-e84da59c5df7"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:32Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:32Z",
+      "message": "MapVolume.MapPodDevice succeeded for volume \"pvc-6d9d275c-8eaf-472c-b1c0-c3bebb96a667\" volumeMapPath \"/var/lib/kubelet/pods/dc232e80-a71c-4a15-b2c0-dee4b08ea7cb/volumeDevices/kubernetes.io~csi\"",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:32Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef01f98eab6",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281298",
+        "uid": "71649316-5853-4e07-9ac2-11167d46633d"
+      },
+      "reason": "SuccessfulMountVolume",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:33Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281170",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:33Z",
+      "message": "Add eth0 [10.130.41.231/21] from ovn-kubernetes",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:33Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef06adaf48c",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281531",
+        "uid": "5a8ece8d-9d18-427f-876d-3fc90d85f162"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281170",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:35Z",
+      "message": "Add pode888e8f205f [] from sandbox-zz95m-zt-ansiblebu/secondaryzz95m",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:35Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef0e583ccb3",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281665",
+        "uid": "a760c31c-07e4-4b56-93ec-8403941f94cf"
+      },
+      "reason": "AddedInterface",
+      "reportingComponent": "multus",
+      "reportingInstance": "",
+      "source": {
+        "component": "multus"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:35Z",
+      "message": "Container image \"registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58\" already present on machine",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:35Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef0e7dc1106",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281668",
+        "uid": "b8a35fec-9518-4401-87d7-2602316438b3"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:36Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:36Z",
+      "message": "Created container: compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:36Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef0fa62324d",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281681",
+        "uid": "de0574a6-0c7c-457f-9525-271edfb033c9"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:36Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:36Z",
+      "message": "Started container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:36Z",
+        "name": "virt-launcher-windows-xv54h.18ad0ef0fb0bb445",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281682",
+        "uid": "6b99b151-525e-412b-b90a-f9da249139ea"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:03Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{compute}",
+        "kind": "Pod",
+        "name": "virt-launcher-windows-xv54h",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281159",
+        "uid": "dc232e80-a71c-4a15-b2c0-dee4b08ea7cb"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:03Z",
+      "message": "Stopping container compute",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:03Z",
+        "name": "virt-launcher-windows-xv54h.18ad123d7529f497",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458422",
+        "uid": "069da149-0e3c-4127-97d4-1b0fc6ee080e"
+      },
+      "reason": "Killing",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "kubelet",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 10,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T10:48:09Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1329855077",
+        "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:07Z",
+      "message": "Started the virtual machine by creating the new virtual machine instance windows",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T10:48:09Z",
+        "name": "windows.18acf43b7f8facd4",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458598",
+        "uid": "c74c83ad-51c7-4047-8e1d-f4a61ab038ff"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126328",
+        "uid": "c5d684ca-2582-4a6b-bc69-ef5418b6bbba"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:29Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:29Z",
+        "name": "windows.18ad0b9b310dd6e8",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126337",
+        "uid": "2d6448c4-fe26-4049-b321-c8d460f391c9"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126328",
+        "uid": "c5d684ca-2582-4a6b-bc69-ef5418b6bbba"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:29Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:29Z",
+        "name": "windows.18ad0b9b3457b6de",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126331",
+        "uid": "b1f3ef0e-e017-4f7a-aefc-b2298731de22"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1330974618",
+        "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:29Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance c5d684ca-2582-4a6b-bc69-ef5418b6bbba",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:29Z",
+        "name": "windows.18ad0b9b34d462e9",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126335",
+        "uid": "333e172c-caf4-440d-8145-63bebddec915"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126332",
+        "uid": "c5d684ca-2582-4a6b-bc69-ef5418b6bbba"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:33Z",
+      "message": "Deleted virtual machine pod virt-launcher-windows-b2ss7",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:29Z",
+        "name": "windows.18ad0b9b358af37c",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126726",
+        "uid": "6f0cc9d1-4a5a-4d51-a632-6a3ac3cfa960"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:33Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126732",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:33Z",
+      "message": "Created virtual machine pod virt-launcher-windows-c498b",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:33Z",
+        "name": "windows.18ad0b9c56bcf200",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126736",
+        "uid": "ebbf9e93-14b7-4a3a-9314-6171fdf0d55d"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:42Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331126901",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:42Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:42Z",
+        "name": "windows.18ad0b9e52d2b3a8",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331127002",
+        "uid": "1aee0ac3-7ea9-4573-9961-65dd7ba02689"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T17:56:42Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331127004",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T17:56:42Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T17:56:42Z",
+        "name": "windows.18ad0b9e598c4ca4",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331127007",
+        "uid": "8d52f6da-598f-4019-8583-b1f152f1706b"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 2,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:23Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280707",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:23Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:23Z",
+        "name": "windows.18ad0eee0f5eb8bd",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280804",
+        "uid": "84598eff-9a62-47ad-979d-123a1978a4dc"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:23Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280707",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:23Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:23Z",
+        "name": "windows.18ad0eee144ae5cd",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280801",
+        "uid": "11904d63-266d-42dd-8e52-08c456e2ea24"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host2",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host2"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:23Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331127010",
+        "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:23Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance 435ef524-5908-493d-a90d-4b6a2cd89092",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:23Z",
+        "name": "windows.18ad0eee14be73e8",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280805",
+        "uid": "700d9f42-8833-4b7f-a08c-49b26433006b"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:23Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331280802",
+        "uid": "435ef524-5908-493d-a90d-4b6a2cd89092"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:29Z",
+      "message": "Deleted virtual machine pod virt-launcher-windows-c498b",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:23Z",
+        "name": "windows.18ad0eee1596a901",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281145",
+        "uid": "a699e8c9-c04c-4484-8904-1597f7fdc181"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:29Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281152",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:29Z",
+      "message": "Created virtual machine pod virt-launcher-windows-xv54h",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:29Z",
+        "name": "windows.18ad0eef6435fd40",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281158",
+        "uid": "abc1f96e-448d-42c6-9318-72c4d664b63b"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:38Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281719",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:38Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:38Z",
+        "name": "windows.18ad0ef19bdace07",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281823",
+        "uid": "13fe6445-e2a5-42f9-a5a7-5fbf3b3fc134"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T18:57:38Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281827",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T18:57:38Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T18:57:38Z",
+        "name": "windows.18ad0ef1a0114433",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281837",
+        "uid": "61a505fe-6f4e-47c4-a9a9-795182966f86"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:02Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458373",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:02Z",
+      "message": "Signaled Deletion",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:02Z",
+        "name": "windows.18ad123d713345be",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458404",
+        "uid": "03f09968-720d-415c-9333-5d4d77aca5d7"
+      },
+      "reason": "Deleted",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:03Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458373",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:03Z",
+      "message": "The VirtualMachineInstance was shut down.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:03Z",
+        "name": "windows.18ad123d73853c95",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458408",
+        "uid": "3ee545a9-c701-4a6d-b180-6576666d7e7f"
+      },
+      "reason": "Stopped",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host14",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host14"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:03Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachine",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331281842",
+        "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:03Z",
+      "message": "Stopped the virtual machine by deleting the virtual machine instance c4bcf927-0089-4ca0-a81d-5d0d06decd32",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:03Z",
+        "name": "windows.18ad123d74416e82",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458410",
+        "uid": "4c74e502-7d51-42da-9140-48d83d9c47b7"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 3,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:03Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458407",
+        "uid": "c4bcf927-0089-4ca0-a81d-5d0d06decd32"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:07Z",
+      "message": "Deleted virtual machine pod virt-launcher-windows-xv54h",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:03Z",
+        "name": "windows.18ad123d74a1220b",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458593",
+        "uid": "a2467f00-aecc-4aca-85ea-8bd58aaf457b"
+      },
+      "reason": "SuccessfulDelete",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:07Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458600",
+        "uid": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:07Z",
+      "message": "Created virtual machine pod virt-launcher-windows-j5qvv",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:07Z",
+        "name": "windows.18ad123e68488794",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458606",
+        "uid": "4083098b-41cb-4086-a9fc-30b2db5b9e67"
+      },
+      "reason": "SuccessfulCreate",
+      "reportingComponent": "virtualmachine-controller",
+      "reportingInstance": "",
+      "source": {
+        "component": "virtualmachine-controller"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:18Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458938",
+        "uid": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:18Z",
+      "message": "VirtualMachineInstance defined.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:18Z",
+        "name": "windows.18ad1240f803621a",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458996",
+        "uid": "e3da106e-ab30-429b-8c15-68286d0f27ad"
+      },
+      "reason": "Created",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-05-06T19:58:18Z",
+      "involvedObject": {
+        "apiVersion": "kubevirt.io/v1",
+        "kind": "VirtualMachineInstance",
+        "name": "windows",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331458998",
+        "uid": "0ba61bd9-ac04-4ab3-85ee-d42c3c0cd3a7"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-05-06T19:58:18Z",
+      "message": "VirtualMachineInstance started.",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T19:58:18Z",
+        "name": "windows.18ad1240ffee227a",
+        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "resourceVersion": "1331459004",
+        "uid": "96b57da8-b510-4fea-b3c5-7eef24f0edc2"
+      },
+      "reason": "Started",
+      "reportingComponent": "virt-handler",
+      "reportingInstance": "ocp-virt6-host8",
+      "source": {
+        "component": "virt-handler",
+        "host": "ocp-virt6-host8"
+      },
+      "type": "Normal"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

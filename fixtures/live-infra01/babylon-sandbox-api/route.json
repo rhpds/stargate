@@ -1,0 +1,63 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/tracking-id": "babylon-sandbox-api:route.openshift.io/Route:babylon-sandbox-api/restricted",
+          "haproxy.router.openshift.io/ip_whitelist": "81.64.170.58 52.52.99.133 44.211.19.138 209.132.186.246 54.67.73.192 32.223.54.53 3.128.145.117 44.206.59.146 24.186.127.113 24.191.80.219 85.93.96.130 86.49.248.60 83.198.174.164 184.169.158.160 67.233.151.201 124.149.83.173 86.193.232.251 85.16.236.35 81.64.114.201 182.66.90.254 209.132.178.49 209.132.179.1 209.132.188.14 66.187.233.202 91.209.10.253 46.125.135.185",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"route.openshift.io/v1\",\"kind\":\"Route\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/tracking-id\":\"babylon-sandbox-api:route.openshift.io/Route:babylon-sandbox-api/restricted\",\"haproxy.router.openshift.io/ip_whitelist\":\"81.64.170.58 52.52.99.133 44.211.19.138 209.132.186.246 54.67.73.192 32.223.54.53 3.128.145.117 44.206.59.146 24.186.127.113 24.191.80.219 85.93.96.130 86.49.248.60 83.198.174.164 184.169.158.160 67.233.151.201 124.149.83.173 86.193.232.251 85.16.236.35 81.64.114.201 182.66.90.254 209.132.178.49 209.132.179.1 209.132.188.14 66.187.233.202 91.209.10.253 46.125.135.185\",\"sandbox.redhat.com/ip-whitelist-description\":\"# SQUID proxies\\n# automatically used by sandbox-cli if the Red Hat VPN is on\\n# see:\\n# https://source.redhat.com/departments/strategy_and_operations/it/datacenter_infrastructure/dis/uis_wiki/squid_proxy_public__egress__ip_addresses\\n182.66.90.254\\n209.132.178.49\\n209.132.179.1\\n209.132.188.14\\n66.187.233.202\\n91.209.10.253\\n# end squid\\n46.125.135.185 - Wolfgang\\n37.66.233.11 - Gucore home\\n124.149.83.173 - Prakhar\\n85.16.236.35 - Nate\\n81.64.114.201 -- Gucore coworking\\n\"},\"labels\":{\"app.kubernetes.io/name\":\"sandbox-api\",\"app.kubernetes.io/version\":\"1.1.6\"},\"name\":\"restricted\",\"namespace\":\"babylon-sandbox-api\"},\"spec\":{\"host\":\"restricted-babylon-sandbox-api.apps.cluster.example.com\",\"port\":{\"targetPort\":\"api\"},\"tls\":{\"insecureEdgeTerminationPolicy\":\"Redirect\",\"termination\":\"edge\"},\"to\":{\"kind\":\"Service\",\"name\":\"sandbox-api\",\"weight\":100},\"wildcardPolicy\":\"None\"}}\n",
+          "sandbox.redhat.com/ip-whitelist-description": "# SQUID proxies\n# automatically used by sandbox-cli if the Red Hat VPN is on\n# see:\n# https://source.redhat.com/departments/strategy_and_operations/it/datacenter_infrastructure/dis/uis_wiki/squid_proxy_public__egress__ip_addresses\n182.66.90.254\n209.132.178.49\n209.132.179.1\n209.132.188.14\n66.187.233.202\n91.209.10.253\n# end squid\n46.125.135.185 - Wolfgang\n37.66.233.11 - Gucore home\n124.149.83.173 - Prakhar\n85.16.236.35 - Nate\n81.64.114.201 -- Gucore coworking\n"
+        },
+        "creationTimestamp": "2026-04-28T13:47:55Z",
+        "labels": {
+          "app.kubernetes.io/name": "sandbox-api",
+          "app.kubernetes.io/version": "1.1.6"
+        },
+        "name": "restricted",
+        "namespace": "babylon-sandbox-api",
+        "resourceVersion": "674486867",
+        "uid": "724fac5e-cd0b-4019-aa03-364341592743"
+      },
+      "spec": {
+        "host": "restricted-babylon-sandbox-api.apps.cluster.example.com",
+        "port": {
+          "targetPort": "api"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "sandbox-api",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      },
+      "status": {
+        "ingress": [
+          {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-04-28T13:47:55Z",
+                "status": "True",
+                "type": "Admitted"
+              }
+            ],
+            "host": "restricted-babylon-sandbox-api.apps.cluster.example.com",
+            "routerCanonicalHostname": "router-default.apps.cluster.example.com",
+            "routerName": "default",
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

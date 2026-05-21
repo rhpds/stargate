@@ -1,0 +1,20 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "name": "summit-demo-002",
+    "uid": "f1a2b3c4-d5e6-7890-abcd-ef0987654321",
+    "labels": {
+      "kubernetes.io/metadata.name": "summit-demo-002"
+    },
+    "creationTimestamp": "2026-05-05T15:00:00Z"
+  },
+  "spec": {
+    "finalizers": [
+      "kubernetes"
+    ]
+  },
+  "status": {
+    "phase": "Active"
+  }
+}

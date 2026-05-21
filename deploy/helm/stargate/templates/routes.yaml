@@ -1,0 +1,29 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: stargate
+spec:
+  host: {{ .Values.routes.frontend | default "stargate.apps.cluster.example.com" }}
+  to:
+    kind: Service
+    name: stargate-frontend
+  port:
+    targetPort: {{ .Values.oauth.enabled | ternary 4180 (.Values.frontend.port | int) }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: stargate-api
+spec:
+  host: {{ .Values.routes.api | default "stargate-api.apps.cluster.example.com" }}
+  to:
+    kind: Service
+    name: stargate-api
+  port:
+    targetPort: {{ .Values.oauth.enabled | ternary 4180 (.Values.api.port | int) }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,1021 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "34",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"cost-data-service:latest\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"cost-data-service\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"data-service\",\"tier\":\"backend\"},\"name\":\"cost-data-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"cost-data-service\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"data-service\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"cost-data-service\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"data-service\",\"tier\":\"backend\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"ENVIRONMENT\",\"value\":\"production\"},{\"name\":\"POSTGRESQL_USER\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"username\",\"name\":\"postgresql-credentials\"}}},{\"name\":\"POSTGRESQL_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"password\",\"name\":\"postgresql-credentials\"}}},{\"name\":\"POSTGRESQL_DATABASE\",\"value\":\"cost_monitor\"},{\"name\":\"REDIS_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"password\",\"name\":\"redis-credentials\"}}},{\"name\":\"POSTGRES_HOST\",\"value\":\"postgresql\"},{\"name\":\"REDIS_HOST\",\"value\":\"redis-service\"},{\"name\":\"CLOUDCOST__CLOUDS__AWS__ACCESS_KEY_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"access-key-id\",\"name\":\"aws-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__AWS__SECRET_ACCESS_KEY\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"secret-access-key\",\"name\":\"aws-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__AWS__REGION\",\"value\":\"us-east-1\"},{\"name\":\"CLOUDCOST__CLOUDS__AZURE__CLIENT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"client-id\",\"name\":\"azure-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__AZURE__CLIENT_SECRET\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"client-secret\",\"name\":\"azure-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__AZURE__TENANT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"tenant-id\",\"name\":\"azure-credentials\"}}},{\"name\":\"GOOGLE_APPLICATION_CREDENTIALS\",\"value\":\"/etc/credentials/gcp/service-account.json\"},{\"name\":\"CLOUDCOST__CLOUDS__GCP__CREDENTIALS_PATH\",\"value\":\"/etc/credentials/gcp/service-account.json\"},{\"name\":\"CLOUDCOST__CLOUDS__GCP__PROJECT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"project-id\",\"name\":\"gcp-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__GCP__BIGQUERY_BILLING_DATASET\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"bigquery-dataset\",\"name\":\"gcp-credentials\"}}},{\"name\":\"CLOUDCOST__CLOUDS__GCP__BILLING_ACCOUNT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"billing-account-id\",\"name\":\"gcp-credentials\"}}}],\"image\":\"default-route-openshift-image-registry.apps.cluster.example.com/cost-monitor/cost-data-service:latest\",\"imagePullPolicy\":\"Always\",\"livenessProbe\":{\"failureThreshold\":5,\"httpGet\":{\"path\":\"/api/health/live\",\"port\":8000},\"initialDelaySeconds\":60,\"periodSeconds\":30,\"successThreshold\":1,\"timeoutSeconds\":120},\"name\":\"cost-data-service\",\"ports\":[{\"containerPort\":8000,\"name\":\"api\",\"protocol\":\"TCP\"},{\"containerPort\":8080,\"name\":\"health\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"failureThreshold\":5,\"httpGet\":{\"path\":\"/api/health/ready\",\"port\":8000},\"initialDelaySeconds\":30,\"periodSeconds\":10,\"successThreshold\":1,\"timeoutSeconds\":60},\"resources\":{\"limits\":{\"cpu\":\"2000m\",\"memory\":\"4Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"2Gi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":false},\"startupProbe\":{\"failureThreshold\":12,\"httpGet\":{\"path\":\"/api/health/ready\",\"port\":8000},\"initialDelaySeconds\":30,\"periodSeconds\":10,\"timeoutSeconds\":5},\"volumeMounts\":[{\"mountPath\":\"/etc/credentials/gcp\",\"name\":\"gcp-credentials\",\"readOnly\":true},{\"mountPath\":\"/app/cache\",\"name\":\"data-cache\"},{\"mountPath\":\"/app/logs\",\"name\":\"logs\"},{\"mountPath\":\"/app/config/production.yaml\",\"name\":\"app-config\",\"subPath\":\"production.yaml\"}]}],\"restartPolicy\":\"Always\",\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"gcp-credentials\",\"secret\":{\"items\":[{\"key\":\"service-account.json\",\"path\":\"service-account.json\"}],\"secretName\":\"gcp-credentials\"}},{\"name\":\"data-cache\",\"persistentVolumeClaim\":{\"claimName\":\"data-cache-pvc\"}},{\"name\":\"logs\",\"persistentVolumeClaim\":{\"claimName\":\"logs-pvc\"}},{\"configMap\":{\"name\":\"cost-monitor-config\"},\"name\":\"app-config\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:17Z",
+        "generation": 37,
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "data-service",
+          "tier": "backend"
+        },
+        "name": "cost-data-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680454477",
+        "uid": "d048d983-6075-432b-8494-6229bb86fe44"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "cost-data-service",
+            "app.kubernetes.io/managed-by": "kustomize",
+            "app.kubernetes.io/name": "cost-monitor",
+            "app.kubernetes.io/version": "1.0.0",
+            "component": "data-service"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-02-04T09:00:14-06:00"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "cost-data-service",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "cost-monitor",
+              "app.kubernetes.io/version": "1.0.0",
+              "component": "data-service",
+              "tier": "backend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "ENVIRONMENT",
+                    "value": "production"
+                  },
+                  {
+                    "name": "POSTGRESQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "username",
+                        "name": "postgresql-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "POSTGRESQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "postgresql-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "cost_monitor"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "redis-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "POSTGRES_HOST",
+                    "value": "postgresql"
+                  },
+                  {
+                    "name": "REDIS_HOST",
+                    "value": "redis-service"
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AWS__ACCESS_KEY_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "access-key-id",
+                        "name": "aws-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AWS__SECRET_ACCESS_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "secret-access-key",
+                        "name": "aws-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AWS__REGION",
+                    "value": "us-east-1"
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AZURE__CLIENT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "client-id",
+                        "name": "azure-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AZURE__CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "client-secret",
+                        "name": "azure-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__AZURE__TENANT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "tenant-id",
+                        "name": "azure-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOOGLE_APPLICATION_CREDENTIALS",
+                    "value": "/etc/credentials/gcp/service-account.json"
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__GCP__CREDENTIALS_PATH",
+                    "value": "/etc/credentials/gcp/service-account.json"
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__GCP__PROJECT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "project-id",
+                        "name": "gcp-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__GCP__BIGQUERY_BILLING_DATASET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "bigquery-dataset",
+                        "name": "gcp-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CLOUDCOST__CLOUDS__GCP__BILLING_ACCOUNT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "billing-account-id",
+                        "name": "gcp-credentials"
+                      }
+                    }
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-data-service@sha256:59ef27512d7879886e3ec0f6e4af499e3dd7d7e21a932cf75479cb2e8263e9c4",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 5,
+                  "httpGet": {
+                    "path": "/api/health/live",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 60,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 120
+                },
+                "name": "cost-data-service",
+                "ports": [
+                  {
+                    "containerPort": 8000,
+                    "name": "api",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8080,
+                    "name": "health",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 5,
+                  "httpGet": {
+                    "path": "/api/health/ready",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 60
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "4Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "2Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": false
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/api/health/ready",
+                    "port": 8000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/credentials/gcp",
+                    "name": "gcp-credentials",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app/cache",
+                    "name": "data-cache"
+                  },
+                  {
+                    "mountPath": "/app/logs",
+                    "name": "logs"
+                  },
+                  {
+                    "mountPath": "/app/config/production.yaml",
+                    "name": "app-config",
+                    "subPath": "production.yaml"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "gcp-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "service-account.json",
+                      "path": "service-account.json"
+                    }
+                  ],
+                  "secretName": "gcp-credentials"
+                }
+              },
+              {
+                "name": "data-cache",
+                "persistentVolumeClaim": {
+                  "claimName": "data-cache-pvc"
+                }
+              },
+              {
+                "name": "logs",
+                "persistentVolumeClaim": {
+                  "claimName": "logs-pvc"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "cost-monitor-config"
+                },
+                "name": "app-config"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-04-30T13:16:02Z",
+            "lastUpdateTime": "2026-04-30T13:16:02Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-04-30T13:26:03Z",
+            "lastUpdateTime": "2026-04-30T13:26:03Z",
+            "message": "ReplicaSet \"cost-data-service-ff95db4b6\" has timed out progressing.",
+            "reason": "ProgressDeadlineExceeded",
+            "status": "False",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 37,
+        "readyReplicas": 1,
+        "replicas": 2,
+        "unavailableReplicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "34",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"cost-monitor-dashboard:latest\"},\"fieldPath\":\"spec.template.spec.containers[?(@.name==\\\"dashboard\\\")].image\"}]",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\",\"tier\":\"frontend\"},\"name\":\"dashboard-service\",\"namespace\":\"cost-monitor\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\"}},\"strategy\":{\"type\":\"Recreate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"dashboard\",\"tier\":\"frontend\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"ENVIRONMENT\",\"value\":\"production\"},{\"name\":\"DATA_SERVICE_URL\",\"value\":\"http://cost-data-service:8000\"},{\"name\":\"REDIS_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"password\",\"name\":\"redis-credentials\"}}},{\"name\":\"DASH_ENV\",\"value\":\"production\"},{\"name\":\"DASH_DEBUG\",\"value\":\"false\"}],\"image\":\"default-route-openshift-image-registry.apps.cluster.example.com/cost-monitor/cost-monitor-dashboard:latest\",\"imagePullPolicy\":\"Always\",\"livenessProbe\":{\"failureThreshold\":3,\"httpGet\":{\"path\":\"/_dash-layout\",\"port\":8050},\"initialDelaySeconds\":45,\"periodSeconds\":30,\"successThreshold\":1,\"timeoutSeconds\":10},\"name\":\"dashboard\",\"ports\":[{\"containerPort\":8050,\"name\":\"web\",\"protocol\":\"TCP\"},{\"containerPort\":8080,\"name\":\"health\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"failureThreshold\":3,\"httpGet\":{\"path\":\"/_dash-layout\",\"port\":8050},\"initialDelaySeconds\":15,\"periodSeconds\":10,\"successThreshold\":1,\"timeoutSeconds\":5},\"resources\":{\"limits\":{\"cpu\":\"1000m\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"200m\",\"memory\":\"1Gi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":false},\"startupProbe\":{\"failureThreshold\":12,\"httpGet\":{\"path\":\"/_dash-layout\",\"port\":8050},\"initialDelaySeconds\":15,\"periodSeconds\":10,\"timeoutSeconds\":5},\"volumeMounts\":[{\"mountPath\":\"/app/cache\",\"name\":\"dashboard-cache\"},{\"mountPath\":\"/app/config/dashboard.yaml\",\"name\":\"dashboard-config\",\"subPath\":\"dashboard.yaml\"}]}],\"restartPolicy\":\"Always\",\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"dashboard-cache\",\"persistentVolumeClaim\":{\"claimName\":\"dashboard-cache-pvc\"}},{\"configMap\":{\"name\":\"dashboard-config\"},\"name\":\"dashboard-config\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:17Z",
+        "generation": 37,
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "dashboard",
+          "tier": "frontend"
+        },
+        "name": "dashboard-service",
+        "namespace": "cost-monitor",
+        "resourceVersion": "532333662",
+        "uid": "967ef8d6-83bc-4bac-b83a-75e44f9eb086"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "cost-monitor",
+            "app.kubernetes.io/managed-by": "kustomize",
+            "app.kubernetes.io/name": "cost-monitor",
+            "app.kubernetes.io/version": "1.0.0",
+            "component": "dashboard"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-02-04T09:00:14-06:00"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "cost-monitor",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "cost-monitor",
+              "app.kubernetes.io/version": "1.0.0",
+              "component": "dashboard",
+              "tier": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "ENVIRONMENT",
+                    "value": "production"
+                  },
+                  {
+                    "name": "DATA_SERVICE_URL",
+                    "value": "http://cost-data-service:8000"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "redis-credentials"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DASH_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "DASH_DEBUG",
+                    "value": "false"
+                  }
+                ],
+                "image": "image-registry.openshift-image-registry.svc:5000/cost-monitor/cost-monitor-dashboard@sha256:fa77d5c5de5300c08b8f2ab1a703ceb2c16624c43fdcf3deff4bfa0c1cfb0b39",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/_dash-layout",
+                    "port": 8050,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 45,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 10
+                },
+                "name": "dashboard",
+                "ports": [
+                  {
+                    "containerPort": 8050,
+                    "name": "web",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8080,
+                    "name": "health",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/_dash-layout",
+                    "port": 8050,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "200m",
+                    "memory": "1Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": false
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/_dash-layout",
+                    "port": 8050,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/cache",
+                    "name": "dashboard-cache"
+                  },
+                  {
+                    "mountPath": "/app/config/dashboard.yaml",
+                    "name": "dashboard-config",
+                    "subPath": "dashboard.yaml"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "cost-monitor-oauth",
+            "serviceAccountName": "cost-monitor-oauth",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "dashboard-cache",
+                "persistentVolumeClaim": {
+                  "claimName": "dashboard-cache-pvc"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "dashboard-config"
+                },
+                "name": "dashboard-config"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-03-11T14:25:30Z",
+            "lastUpdateTime": "2026-03-11T14:25:30Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-01-29T23:56:17Z",
+            "lastUpdateTime": "2026-03-11T14:25:30Z",
+            "message": "ReplicaSet \"dashboard-service-686dd95474\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 37,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "2",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"oauth-proxy\",\"tier\":\"security\"},\"name\":\"oauth-proxy\",\"namespace\":\"cost-monitor\"},\"spec\":{\"replicas\":2,\"selector\":{\"matchLabels\":{\"app\":\"oauth-proxy\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"oauth-proxy\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"oauth-proxy\",\"app.kubernetes.io/component\":\"authentication\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/part-of\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"oauth-proxy\",\"tier\":\"security\"}},\"spec\":{\"containers\":[{\"args\":[\"-provider=openshift\",\"-http-address=:8080\",\"-https-address=\",\"-email-domain=*\",\"-upstream=http://dashboard-service:8050/\",\"-client-id=$(OAUTH_CLIENT_ID)\",\"-client-secret-file=/etc/proxy/secrets/client-secret\",\"-cookie-secret-file=/etc/proxy/secrets/session_secret\",\"-openshift-service-account=cost-monitor-oauth\",\"-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\",\"-skip-auth-regex=^/health\"],\"env\":[{\"name\":\"OAUTH_CLIENT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"client-id\",\"name\":\"oauth-proxy-secret\"}}}],\"image\":\"registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":10,\"periodSeconds\":10,\"timeoutSeconds\":5},\"name\":\"oauth-proxy\",\"ports\":[{\"containerPort\":8080,\"name\":\"http\",\"protocol\":\"TCP\"},{\"containerPort\":8443,\"name\":\"https\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/oauth/healthz\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":5,\"periodSeconds\":5,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"200m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/proxy/secrets\",\"name\":\"oauth-proxy-secret\",\"readOnly\":true},{\"mountPath\":\"/etc/tls/private\",\"name\":\"oauth-serving-cert\",\"readOnly\":true}]}],\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"cost-monitor-oauth\",\"volumes\":[{\"name\":\"oauth-proxy-secret\",\"secret\":{\"secretName\":\"oauth-proxy-secret\"}},{\"name\":\"oauth-serving-cert\",\"secret\":{\"secretName\":\"oauth-serving-cert\"}}]}}}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:18Z",
+        "generation": 2,
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/component": "authentication",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/part-of": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "oauth-proxy",
+          "tier": "security"
+        },
+        "name": "oauth-proxy",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433644",
+        "uid": "5e2b0a65-4c0f-4996-b866-4d1c72f3bd17"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 2,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "oauth-proxy",
+            "app.kubernetes.io/component": "authentication",
+            "app.kubernetes.io/managed-by": "kustomize",
+            "app.kubernetes.io/name": "cost-monitor",
+            "app.kubernetes.io/part-of": "cost-monitor",
+            "app.kubernetes.io/version": "1.0.0",
+            "component": "oauth-proxy"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-02-12T14:38:24-06:00"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app": "oauth-proxy",
+              "app.kubernetes.io/component": "authentication",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "cost-monitor",
+              "app.kubernetes.io/part-of": "cost-monitor",
+              "app.kubernetes.io/version": "1.0.0",
+              "component": "oauth-proxy",
+              "tier": "security"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "-provider=openshift",
+                  "-http-address=:8080",
+                  "-https-address=",
+                  "-email-domain=*",
+                  "-upstream=http://dashboard-service:8050/",
+                  "-client-id=$(OAUTH_CLIENT_ID)",
+                  "-client-secret-file=/etc/proxy/secrets/client-secret",
+                  "-cookie-secret-file=/etc/proxy/secrets/session_secret",
+                  "-openshift-service-account=cost-monitor-oauth",
+                  "-openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                  "-skip-auth-regex=^/health"
+                ],
+                "env": [
+                  {
+                    "name": "OAUTH_CLIENT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "client-id",
+                        "name": "oauth-proxy-secret"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:latest",
+                "imagePullPolicy": "Always",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "name": "oauth-proxy",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/oauth/healthz",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/proxy/secrets",
+                    "name": "oauth-proxy-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/etc/tls/private",
+                    "name": "oauth-serving-cert",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "cost-monitor-oauth",
+            "serviceAccountName": "cost-monitor-oauth",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "oauth-proxy-secret",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "oauth-proxy-secret"
+                }
+              },
+              {
+                "name": "oauth-serving-cert",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "oauth-serving-cert"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 2,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-01-29T23:56:18Z",
+            "lastUpdateTime": "2026-02-12T20:38:45Z",
+            "message": "ReplicaSet \"oauth-proxy-69df4654c5\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-04-30T13:16:13Z",
+            "lastUpdateTime": "2026-04-30T13:16:13Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 2,
+        "readyReplicas": 2,
+        "replicas": 2,
+        "updatedReplicas": 2
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cost-monitor\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"cache\",\"tier\":\"data\"},\"name\":\"redis\",\"namespace\":\"cost-monitor\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"redis\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"cache\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"redis\",\"app.kubernetes.io/managed-by\":\"kustomize\",\"app.kubernetes.io/name\":\"cost-monitor\",\"app.kubernetes.io/version\":\"1.0.0\",\"component\":\"cache\",\"tier\":\"data\"}},\"spec\":{\"containers\":[{\"command\":[\"redis-server\",\"/etc/redis/redis.conf\",\"--requirepass\",\"$(REDIS_PASSWORD)\"],\"env\":[{\"name\":\"REDIS_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"password\",\"name\":\"redis-credentials\"}}}],\"image\":\"registry.redhat.io/rhel9/redis-7:latest\",\"imagePullPolicy\":\"IfNotPresent\",\"livenessProbe\":{\"exec\":{\"command\":[\"redis-cli\",\"-a\",\"$(REDIS_PASSWORD)\",\"ping\"]},\"failureThreshold\":3,\"initialDelaySeconds\":30,\"periodSeconds\":10,\"successThreshold\":1,\"timeoutSeconds\":5},\"name\":\"redis\",\"ports\":[{\"containerPort\":6379,\"name\":\"redis\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"exec\":{\"command\":[\"redis-cli\",\"-a\",\"$(REDIS_PASSWORD)\",\"ping\"]},\"failureThreshold\":3,\"initialDelaySeconds\":5,\"periodSeconds\":5,\"successThreshold\":1,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"512Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":false},\"volumeMounts\":[{\"mountPath\":\"/data\",\"name\":\"redis-data\"},{\"mountPath\":\"/etc/redis/\",\"name\":\"redis-config\"}]}],\"restartPolicy\":\"Always\",\"securityContext\":{\"runAsNonRoot\":true,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"volumes\":[{\"name\":\"redis-data\",\"persistentVolumeClaim\":{\"claimName\":\"redis-pvc\"}},{\"configMap\":{\"name\":\"redis-config\"},\"name\":\"redis-config\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-01-29T23:56:18Z",
+        "generation": 1,
+        "labels": {
+          "app": "cost-monitor",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "cost-monitor",
+          "app.kubernetes.io/version": "1.0.0",
+          "component": "cache",
+          "tier": "data"
+        },
+        "name": "redis",
+        "namespace": "cost-monitor",
+        "resourceVersion": "680433627",
+        "uid": "5a079300-88b5-4703-ad51-73315a1919a4"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "redis",
+            "app.kubernetes.io/managed-by": "kustomize",
+            "app.kubernetes.io/name": "cost-monitor",
+            "app.kubernetes.io/version": "1.0.0",
+            "component": "cache"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "redis",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "cost-monitor",
+              "app.kubernetes.io/version": "1.0.0",
+              "component": "cache",
+              "tier": "data"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "redis-server",
+                  "/etc/redis/redis.conf",
+                  "--requirepass",
+                  "$(REDIS_PASSWORD)"
+                ],
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "redis-credentials"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/rhel9/redis-7:latest",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "redis-cli",
+                      "-a",
+                      "$(REDIS_PASSWORD)",
+                      "ping"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "name": "redis",
+                "ports": [
+                  {
+                    "containerPort": 6379,
+                    "name": "redis",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "redis-cli",
+                      "-a",
+                      "$(REDIS_PASSWORD)",
+                      "ping"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": false
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "redis-data"
+                  },
+                  {
+                    "mountPath": "/etc/redis/",
+                    "name": "redis-config"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "redis-data",
+                "persistentVolumeClaim": {
+                  "claimName": "redis-pvc"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "redis-config"
+                },
+                "name": "redis-config"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-01-29T23:56:18Z",
+            "lastUpdateTime": "2026-01-29T23:56:32Z",
+            "message": "ReplicaSet \"redis-854b45c865\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-04-30T13:16:12Z",
+            "lastUpdateTime": "2026-04-30T13:16:12Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

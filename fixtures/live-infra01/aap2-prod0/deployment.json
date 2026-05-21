@@ -1,0 +1,1034 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"labels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/operator-version\":\"2.4\",\"app.kubernetes.io/part-of\":\"prod0\",\"app.kubernetes.io/version\":\"f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2\"},\"name\":\"prod0-task\",\"namespace\":\"aap2-prod0\"},\"spec\":{\"replicas\":3,\"selector\":{\"matchLabels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/name\":\"prod0-task\"}},\"template\":{\"metadata\":{\"annotations\":{\"checksum-configmaps-config\":\"7c2b82758f58c7d62fa8d2281d4403d841fcfd09\",\"checksum-configmaps-pre_stop_scripts\":\"adc83b19e793491b1c6ea0fd8b46cd9f32e592fc\",\"checksum-secret-bundle_cacert\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-ldap_cacert\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-receptor_ca\":\"3aa2ba7d5ed013cdfbe7f26c9bb18c001df92203\",\"checksum-secret-receptor_work_signing\":\"d1fc1d334b150660e788c6ac78b174f4edbd3677\",\"checksum-secret-route_tls\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-secret_key\":\"93d831f4f688040ec7ad36362ea7a01646522ce1\",\"checksum-secrets-app_credentials\":\"42b00e4a6f4353f12f9967d6b49402822c22dd4d\",\"checksum-storage-persistent\":\"adc83b19e793491b1c6ea0fd8b46cd9f32e592fc\",\"kubectl.kubernetes.io/default-container\":\"prod0-task\"},\"labels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/name\":\"prod0-task\",\"app.kubernetes.io/operator-version\":\"2.4\",\"app.kubernetes.io/part-of\":\"prod0\",\"app.kubernetes.io/version\":\"f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2\"}},\"spec\":{\"containers\":[{\"args\":[\"redis-server\",\"/etc/redis.conf\"],\"image\":\"registry.redhat.io/rhel8/redis-6@sha256:d2eedb33525dea497d4296b7fda806c0a4821937219e8cfb250e713667669fdd\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"redis\",\"resources\":{\"limits\":{\"cpu\":\"1\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/redis.conf\",\"name\":\"prod0-redis-config\",\"readOnly\":true,\"subPath\":\"redis.conf\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/data\",\"name\":\"prod0-redis-data\"}]},{\"args\":[\"/usr/bin/launch_awx_task.sh\"],\"env\":[{\"name\":\"AWX_COMPONENT\",\"value\":\"task\"},{\"name\":\"SUPERVISOR_CONFIG_PATH\",\"value\":\"/etc/supervisord_task.conf\"},{\"name\":\"AWX_SKIP_MIGRATIONS\",\"value\":\"1\"},{\"name\":\"MY_POD_UID\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.uid\"}}},{\"name\":\"MY_POD_IP\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.podIP\"}}},{\"name\":\"MY_POD_NAMESPACE\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.namespace\"}}}],\"image\":\"registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"prod0-task\",\"resources\":{\"limits\":{\"cpu\":\"4\",\"memory\":\"24Gi\"},\"requests\":{\"cpu\":\"2\",\"memory\":\"8Gi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/tower/conf.d/execution_environments.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"execution_environments.py\"},{\"mountPath\":\"/etc/tower/conf.d/credentials.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"credentials.py\"},{\"mountPath\":\"/etc/tower/conf.d/ldap.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"ldap.py\"},{\"mountPath\":\"/etc/tower/SECRET_KEY\",\"name\":\"prod0-secret-key\",\"readOnly\":true,\"subPath\":\"SECRET_KEY\"},{\"mountPath\":\"/etc/tower/settings.py\",\"name\":\"prod0-settings\",\"readOnly\":true,\"subPath\":\"settings.py\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/var/run/awx-rsyslog\",\"name\":\"rsyslog-socket\"},{\"mountPath\":\"/etc/receptor/\",\"name\":\"prod0-receptor-config\"},{\"mountPath\":\"/etc/receptor/work_private_key.pem\",\"name\":\"prod0-receptor-work-signing\",\"readOnly\":true,\"subPath\":\"work-private-key.pem\"},{\"mountPath\":\"/var/run/receptor\",\"name\":\"receptor-socket\"},{\"mountPath\":\"/var/lib/awx/projects\",\"name\":\"prod0-projects\"}]},{\"args\":[\"/bin/sh\",\"-c\",\"if [ ! -f /etc/receptor/receptor.conf ]; then\\n  cp /etc/receptor/receptor-default.conf /etc/receptor/receptor.conf\\n  sed -i \\\"s/HOSTNAME/$HOSTNAME/g\\\" /etc/receptor/receptor.conf\\nfi\\nexec receptor --config /etc/receptor/receptor.conf\\n\"],\"env\":null,\"image\":\"registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel8@sha256:55d58227f4cb64ed9a8acf39734d35ff020ff89f4e48b5cc1f22ec93eebb501d\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"prod0-ee\",\"resources\":{\"limits\":{\"cpu\":\"2\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/receptor/receptor-default.conf\",\"name\":\"prod0-default-receptor-config\",\"subPath\":\"receptor.conf\"},{\"mountPath\":\"/etc/receptor/\",\"name\":\"prod0-receptor-config\"},{\"mountPath\":\"/etc/receptor/tls/ca/mesh-CA.crt\",\"name\":\"prod0-receptor-ca\",\"readOnly\":true,\"subPath\":\"tls.crt\"},{\"mountPath\":\"/etc/receptor/work_private_key.pem\",\"name\":\"prod0-receptor-work-signing\",\"readOnly\":true,\"subPath\":\"work-private-key.pem\"},{\"mountPath\":\"/etc/receptor/tls/\",\"name\":\"prod0-receptor-tls\"},{\"mountPath\":\"/var/run/receptor\",\"name\":\"receptor-socket\"},{\"mountPath\":\"/var/lib/awx/projects\",\"name\":\"prod0-projects\"}]},{\"args\":[\"/usr/bin/launch_awx_rsyslog.sh\"],\"env\":[{\"name\":\"SUPERVISOR_CONFIG_PATH\",\"value\":\"/etc/supervisord_rsyslog.conf\"}],\"image\":\"registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"prod0-rsyslog\",\"resources\":{\"requests\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/tower/conf.d/credentials.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"credentials.py\"},{\"mountPath\":\"/etc/tower/SECRET_KEY\",\"name\":\"prod0-secret-key\",\"readOnly\":true,\"subPath\":\"SECRET_KEY\"},{\"mountPath\":\"/etc/tower/settings.py\",\"name\":\"prod0-settings\",\"readOnly\":true,\"subPath\":\"settings.py\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/var/run/awx-rsyslog\",\"name\":\"rsyslog-socket\"}]}],\"initContainers\":[{\"command\":[\"/bin/sh\",\"-c\",\"hostname=$MY_POD_NAME\\nreceptor --cert-makereq bits=2048 commonname=$hostname dnsname=$hostname nodeid=$hostname outreq=/etc/receptor/tls/receptor.req outkey=/etc/receptor/tls/receptor.key\\nreceptor --cert-signreq req=/etc/receptor/tls/receptor.req cacert=/etc/receptor/tls/ca/mesh-CA.crt cakey=/etc/receptor/tls/ca/mesh-CA.key outcert=/etc/receptor/tls/receptor.crt verify=yes\\n\"],\"env\":[{\"name\":\"MY_POD_NAME\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.name\"}}}],\"image\":\"registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel8@sha256:55d58227f4cb64ed9a8acf39734d35ff020ff89f4e48b5cc1f22ec93eebb501d\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"init\",\"resources\":{\"requests\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/receptor/tls/ca/mesh-CA.crt\",\"name\":\"prod0-receptor-ca\",\"readOnly\":true,\"subPath\":\"tls.crt\"},{\"mountPath\":\"/etc/receptor/tls/ca/mesh-CA.key\",\"name\":\"prod0-receptor-ca\",\"readOnly\":true,\"subPath\":\"tls.key\"},{\"mountPath\":\"/etc/receptor/tls/\",\"name\":\"prod0-receptor-tls\"}]}],\"priorityClassName\":\"\",\"serviceAccountName\":\"prod0\",\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"app.kubernetes.io/part-of\":\"prod0\"}},\"maxSkew\":1,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"ScheduleAnyway\"}],\"volumes\":[{\"name\":\"prod0-application-credentials\",\"secret\":{\"items\":[{\"key\":\"credentials.py\",\"path\":\"credentials.py\"},{\"key\":\"ldap.py\",\"path\":\"ldap.py\"},{\"key\":\"execution_environments.py\",\"path\":\"execution_environments.py\"}],\"secretName\":\"prod0-app-credentials\"}},{\"emptyDir\":{},\"name\":\"prod0-receptor-tls\"},{\"name\":\"prod0-receptor-ca\",\"secret\":{\"secretName\":\"prod0-receptor-ca\"}},{\"name\":\"prod0-receptor-work-signing\",\"secret\":{\"secretName\":\"prod0-receptor-work-signing\"}},{\"name\":\"prod0-secret-key\",\"secret\":{\"items\":[{\"key\":\"secret_key\",\"path\":\"SECRET_KEY\"}],\"secretName\":\"prod0-secret-key\"}},{\"configMap\":{\"items\":[{\"key\":\"settings\",\"path\":\"settings.py\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-settings\"},{\"configMap\":{\"items\":[{\"key\":\"nginx_conf\",\"path\":\"nginx.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-nginx-conf\"},{\"configMap\":{\"items\":[{\"key\":\"redis_conf\",\"path\":\"redis.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-redis-config\"},{\"emptyDir\":{},\"name\":\"prod0-redis-socket\"},{\"emptyDir\":{},\"name\":\"prod0-redis-data\"},{\"emptyDir\":{},\"name\":\"rsyslog-socket\"},{\"emptyDir\":{},\"name\":\"receptor-socket\"},{\"emptyDir\":{},\"name\":\"prod0-receptor-config\"},{\"configMap\":{\"items\":[{\"key\":\"receptor_conf\",\"path\":\"receptor.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-default-receptor-config\"},{\"emptyDir\":{},\"name\":\"prod0-projects\"}]}}}}"
+        },
+        "creationTimestamp": "2026-03-10T14:24:26Z",
+        "generation": 1,
+        "labels": {
+          "app.kubernetes.io/component": "automationcontroller",
+          "app.kubernetes.io/managed-by": "automationcontroller-operator",
+          "app.kubernetes.io/operator-version": "2.4",
+          "app.kubernetes.io/part-of": "prod0",
+          "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2"
+        },
+        "name": "prod0-task",
+        "namespace": "aap2-prod0",
+        "ownerReferences": [
+          {
+            "apiVersion": "automationcontroller.ansible.com/v1beta1",
+            "kind": "AutomationController",
+            "name": "prod0",
+            "uid": "dbc0e374-6c2b-4c50-99a3-23f6ba9126ba"
+          }
+        ],
+        "resourceVersion": "681152343",
+        "uid": "e6b29a9f-19b0-4ff4-abe0-3d65f2a50e4d"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 3,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/component": "automationcontroller",
+            "app.kubernetes.io/managed-by": "automationcontroller-operator",
+            "app.kubernetes.io/name": "prod0-task"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "checksum-configmaps-config": "7c2b82758f58c7d62fa8d2281d4403d841fcfd09",
+              "checksum-configmaps-pre_stop_scripts": "adc83b19e793491b1c6ea0fd8b46cd9f32e592fc",
+              "checksum-secret-bundle_cacert": "REDACTED-dummy-password",
+              "checksum-secret-ldap_cacert": "REDACTED-dummy-password",
+              "checksum-secret-receptor_ca": "REDACTED-dummy-password",
+              "checksum-secret-receptor_work_signing": "REDACTED-dummy-password",
+              "checksum-secret-route_tls": "REDACTED-dummy-password",
+              "checksum-secret-secret_key": "REDACTED-dummy-password",
+              "checksum-secrets-app_credentials": "REDACTED-dummy-password",
+              "checksum-storage-persistent": "adc83b19e793491b1c6ea0fd8b46cd9f32e592fc",
+              "kubectl.kubernetes.io/default-container": "prod0-task"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/component": "automationcontroller",
+              "app.kubernetes.io/managed-by": "automationcontroller-operator",
+              "app.kubernetes.io/name": "prod0-task",
+              "app.kubernetes.io/operator-version": "2.4",
+              "app.kubernetes.io/part-of": "prod0",
+              "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "redis-server",
+                  "/etc/redis.conf"
+                ],
+                "image": "registry.redhat.io/rhel8/redis-6@sha256:d2eedb33525dea497d4296b7fda806c0a4821937219e8cfb250e713667669fdd",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "redis",
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/redis.conf",
+                    "name": "prod0-redis-config",
+                    "readOnly": true,
+                    "subPath": "redis.conf"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/data",
+                    "name": "prod0-redis-data"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "/usr/bin/launch_awx_task.sh"
+                ],
+                "env": [
+                  {
+                    "name": "AWX_COMPONENT",
+                    "value": "task"
+                  },
+                  {
+                    "name": "SUPERVISOR_CONFIG_PATH",
+                    "value": "/etc/supervisord_task.conf"
+                  },
+                  {
+                    "name": "AWX_SKIP_MIGRATIONS",
+                    "value": "1"
+                  },
+                  {
+                    "name": "MY_POD_UID",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.uid"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MY_POD_IP",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "status.podIP"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MY_POD_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prod0-task",
+                "resources": {
+                  "limits": {
+                    "cpu": "4",
+                    "memory": "24Gi"
+                  },
+                  "requests": {
+                    "cpu": "2",
+                    "memory": "8Gi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/tower/conf.d/execution_environments.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "execution_environments.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/conf.d/credentials.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/conf.d/ldap.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "ldap.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/SECRET_KEY",
+                    "name": "prod0-secret-key",
+                    "readOnly": true,
+                    "subPath": "SECRET_KEY"
+                  },
+                  {
+                    "mountPath": "/etc/tower/settings.py",
+                    "name": "prod0-settings",
+                    "readOnly": true,
+                    "subPath": "settings.py"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/var/run/awx-rsyslog",
+                    "name": "rsyslog-socket"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/",
+                    "name": "prod0-receptor-config"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/work_private_key.pem",
+                    "name": "prod0-receptor-work-signing",
+                    "readOnly": true,
+                    "subPath": "work-private-key.pem"
+                  },
+                  {
+                    "mountPath": "/var/run/receptor",
+                    "name": "receptor-socket"
+                  },
+                  {
+                    "mountPath": "/var/lib/awx/projects",
+                    "name": "prod0-projects"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "/bin/sh",
+                  "-c",
+                  "if [ ! -f /etc/receptor/receptor.conf ]; then\n  cp /etc/receptor/receptor-default.conf /etc/receptor/receptor.conf\n  sed -i \"s/HOSTNAME/$HOSTNAME/g\" /etc/receptor/receptor.conf\nfi\nexec receptor --config /etc/receptor/receptor.conf\n"
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel8@sha256:55d58227f4cb64ed9a8acf39734d35ff020ff89f4e48b5cc1f22ec93eebb501d",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prod0-ee",
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/receptor/receptor-default.conf",
+                    "name": "prod0-default-receptor-config",
+                    "subPath": "receptor.conf"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/",
+                    "name": "prod0-receptor-config"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/ca/mesh-CA.crt",
+                    "name": "prod0-receptor-ca",
+                    "readOnly": true,
+                    "subPath": "tls.crt"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/work_private_key.pem",
+                    "name": "prod0-receptor-work-signing",
+                    "readOnly": true,
+                    "subPath": "work-private-key.pem"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/",
+                    "name": "prod0-receptor-tls"
+                  },
+                  {
+                    "mountPath": "/var/run/receptor",
+                    "name": "receptor-socket"
+                  },
+                  {
+                    "mountPath": "/var/lib/awx/projects",
+                    "name": "prod0-projects"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "/usr/bin/launch_awx_rsyslog.sh"
+                ],
+                "env": [
+                  {
+                    "name": "SUPERVISOR_CONFIG_PATH",
+                    "value": "/etc/supervisord_rsyslog.conf"
+                  }
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prod0-rsyslog",
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/tower/conf.d/credentials.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/SECRET_KEY",
+                    "name": "prod0-secret-key",
+                    "readOnly": true,
+                    "subPath": "SECRET_KEY"
+                  },
+                  {
+                    "mountPath": "/etc/tower/settings.py",
+                    "name": "prod0-settings",
+                    "readOnly": true,
+                    "subPath": "settings.py"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/var/run/awx-rsyslog",
+                    "name": "rsyslog-socket"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "command": [
+                  "/bin/sh",
+                  "-c",
+                  "hostname=$MY_POD_NAME\nreceptor --cert-makereq bits=2048 commonname=$hostname dnsname=$hostname nodeid=$hostname outreq=/etc/receptor/tls/receptor.req outkey=/etc/receptor/tls/receptor.key\nreceptor --cert-signreq req=/etc/receptor/tls/receptor.req cacert=/etc/receptor/tls/ca/mesh-CA.crt cakey=/etc/receptor/tls/ca/mesh-CA.key outcert=/etc/receptor/tls/receptor.crt verify=yes\n"
+                ],
+                "env": [
+                  {
+                    "name": "MY_POD_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.name"
+                      }
+                    }
+                  }
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel8@sha256:55d58227f4cb64ed9a8acf39734d35ff020ff89f4e48b5cc1f22ec93eebb501d",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "init",
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/receptor/tls/ca/mesh-CA.crt",
+                    "name": "prod0-receptor-ca",
+                    "readOnly": true,
+                    "subPath": "tls.crt"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/ca/mesh-CA.key",
+                    "name": "prod0-receptor-ca",
+                    "readOnly": true,
+                    "subPath": "tls.key"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/",
+                    "name": "prod0-receptor-tls"
+                  }
+                ]
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "serviceAccount": "prod0",
+            "serviceAccountName": "prod0",
+            "terminationGracePeriodSeconds": 30,
+            "topologySpreadConstraints": [
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/part-of": "prod0"
+                  }
+                },
+                "maxSkew": 1,
+                "topologyKey": "kubernetes.io/hostname",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "prod0-application-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "credentials.py",
+                      "path": "credentials.py"
+                    },
+                    {
+                      "key": "ldap.py",
+                      "path": "ldap.py"
+                    },
+                    {
+                      "key": "execution_environments.py",
+                      "path": "execution_environments.py"
+                    }
+                  ],
+                  "secretName": "prod0-app-credentials"
+                }
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-receptor-tls"
+              },
+              {
+                "name": "prod0-receptor-ca",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "prod0-receptor-ca"
+                }
+              },
+              {
+                "name": "prod0-receptor-work-signing",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "prod0-receptor-work-signing"
+                }
+              },
+              {
+                "name": "prod0-secret-key",
+                "secret": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "secret_key",
+                      "path": "SECRET_KEY"
+                    }
+                  ],
+                  "secretName": "prod0-secret-key"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "settings",
+                      "path": "settings.py"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-settings"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "nginx_conf",
+                      "path": "nginx.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-nginx-conf"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "redis_conf",
+                      "path": "redis.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-redis-config"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-redis-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-redis-data"
+              },
+              {
+                "emptyDir": {},
+                "name": "rsyslog-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "receptor-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-receptor-config"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "receptor_conf",
+                      "path": "receptor.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-default-receptor-config"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-projects"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 3,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-03-10T14:24:26Z",
+            "lastUpdateTime": "2026-03-10T14:24:30Z",
+            "message": "ReplicaSet \"prod0-task-7f8d9bddd9\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-04-30T18:56:33Z",
+            "lastUpdateTime": "2026-04-30T18:56:33Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 3,
+        "replicas": 3,
+        "updatedReplicas": 3
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"labels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/name\":\"prod0-web\",\"app.kubernetes.io/operator-version\":\"2.4\",\"app.kubernetes.io/part-of\":\"prod0\",\"app.kubernetes.io/version\":\"f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2\"},\"name\":\"prod0-web\",\"namespace\":\"aap2-prod0\"},\"spec\":{\"replicas\":3,\"selector\":{\"matchLabels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/name\":\"prod0-web\"}},\"template\":{\"metadata\":{\"annotations\":{\"checksum-configmaps-config\":\"7c2b82758f58c7d62fa8d2281d4403d841fcfd09\",\"checksum-secret-bundle_cacert\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-ldap_cacert\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-receptor_ca\":\"3aa2ba7d5ed013cdfbe7f26c9bb18c001df92203\",\"checksum-secret-receptor_work_signing\":\"d1fc1d334b150660e788c6ac78b174f4edbd3677\",\"checksum-secret-route_tls\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\",\"checksum-secret-secret_key\":\"93d831f4f688040ec7ad36362ea7a01646522ce1\",\"checksum-secrets-app_credentials\":\"42b00e4a6f4353f12f9967d6b49402822c22dd4d\",\"checksum-storage-persistent\":\"adc83b19e793491b1c6ea0fd8b46cd9f32e592fc\",\"kubectl.kubernetes.io/default-container\":\"prod0-web\"},\"labels\":{\"app.kubernetes.io/component\":\"automationcontroller\",\"app.kubernetes.io/managed-by\":\"automationcontroller-operator\",\"app.kubernetes.io/name\":\"prod0-web\",\"app.kubernetes.io/operator-version\":\"2.4\",\"app.kubernetes.io/part-of\":\"prod0\",\"app.kubernetes.io/version\":\"f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2\"}},\"spec\":{\"containers\":[{\"args\":[\"redis-server\",\"/etc/redis.conf\"],\"image\":\"registry.redhat.io/rhel8/redis-6@sha256:d2eedb33525dea497d4296b7fda806c0a4821937219e8cfb250e713667669fdd\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"redis\",\"resources\":{\"limits\":{\"cpu\":\"1\",\"memory\":\"2Gi\"},\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/redis.conf\",\"name\":\"prod0-redis-config\",\"readOnly\":true,\"subPath\":\"redis.conf\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/data\",\"name\":\"prod0-redis-data\"}]},{\"args\":[\"/usr/bin/launch_awx_web.sh\"],\"env\":[{\"name\":\"AWX_COMPONENT\",\"value\":\"web\"},{\"name\":\"SUPERVISOR_CONFIG_PATH\",\"value\":\"/etc/supervisord_web.conf\"},{\"name\":\"MY_POD_NAMESPACE\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.namespace\"}}},{\"name\":\"MY_POD_IP\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.podIP\"}}},{\"name\":\"UWSGI_MOUNT_PATH\",\"value\":\"/\"}],\"image\":\"registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"prod0-web\",\"ports\":[{\"containerPort\":8052}],\"resources\":{\"limits\":{\"cpu\":\"2\",\"memory\":\"4Gi\"},\"requests\":{\"cpu\":\"1\",\"memory\":\"2Gi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/tower/conf.d/execution_environments.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"execution_environments.py\"},{\"mountPath\":\"/etc/tower/conf.d/credentials.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"credentials.py\"},{\"mountPath\":\"/etc/tower/conf.d/ldap.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"ldap.py\"},{\"mountPath\":\"/etc/tower/SECRET_KEY\",\"name\":\"prod0-secret-key\",\"readOnly\":true,\"subPath\":\"SECRET_KEY\"},{\"mountPath\":\"/etc/tower/settings.py\",\"name\":\"prod0-settings\",\"readOnly\":true,\"subPath\":\"settings.py\"},{\"mountPath\":\"/etc/nginx/nginx.conf\",\"name\":\"prod0-nginx-conf\",\"readOnly\":true,\"subPath\":\"nginx.conf\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/var/run/awx-rsyslog\",\"name\":\"rsyslog-socket\"},{\"mountPath\":\"/etc/receptor/tls/ca/mesh-CA.crt\",\"name\":\"prod0-receptor-ca\",\"readOnly\":true,\"subPath\":\"tls.crt\"},{\"mountPath\":\"/etc/receptor/tls/ca/mesh-CA.key\",\"name\":\"prod0-receptor-ca\",\"readOnly\":true,\"subPath\":\"tls.key\"},{\"mountPath\":\"/etc/receptor/work_public_key.pem\",\"name\":\"prod0-receptor-work-signing\",\"readOnly\":true,\"subPath\":\"work-public-key.pem\"},{\"mountPath\":\"/var/log/tower\",\"name\":\"prod0-web-log\"}]},{\"args\":[\"/usr/bin/launch_awx_rsyslog.sh\"],\"env\":[{\"name\":\"SUPERVISOR_CONFIG_PATH\",\"value\":\"/etc/supervisord_rsyslog.conf\"}],\"image\":\"registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"prod0-rsyslog\",\"resources\":{\"requests\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}},\"volumeMounts\":[{\"mountPath\":\"/etc/tower/conf.d/credentials.py\",\"name\":\"prod0-application-credentials\",\"readOnly\":true,\"subPath\":\"credentials.py\"},{\"mountPath\":\"/etc/tower/SECRET_KEY\",\"name\":\"prod0-secret-key\",\"readOnly\":true,\"subPath\":\"SECRET_KEY\"},{\"mountPath\":\"/etc/tower/settings.py\",\"name\":\"prod0-settings\",\"readOnly\":true,\"subPath\":\"settings.py\"},{\"mountPath\":\"/var/run/redis\",\"name\":\"prod0-redis-socket\"},{\"mountPath\":\"/var/run/awx-rsyslog\",\"name\":\"rsyslog-socket\"}]}],\"initContainers\":null,\"priorityClassName\":\"\",\"serviceAccountName\":\"prod0\",\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"app.kubernetes.io/part-of\":\"prod0\"}},\"maxSkew\":1,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"ScheduleAnyway\"}],\"volumes\":[{\"name\":\"prod0-receptor-ca\",\"secret\":{\"secretName\":\"prod0-receptor-ca\"}},{\"name\":\"prod0-receptor-work-signing\",\"secret\":{\"secretName\":\"prod0-receptor-work-signing\"}},{\"name\":\"prod0-application-credentials\",\"secret\":{\"items\":[{\"key\":\"credentials.py\",\"path\":\"credentials.py\"},{\"key\":\"ldap.py\",\"path\":\"ldap.py\"},{\"key\":\"execution_environments.py\",\"path\":\"execution_environments.py\"}],\"secretName\":\"prod0-app-credentials\"}},{\"name\":\"prod0-secret-key\",\"secret\":{\"items\":[{\"key\":\"secret_key\",\"path\":\"SECRET_KEY\"}],\"secretName\":\"prod0-secret-key\"}},{\"configMap\":{\"items\":[{\"key\":\"settings\",\"path\":\"settings.py\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-settings\"},{\"configMap\":{\"items\":[{\"key\":\"nginx_conf\",\"path\":\"nginx.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-nginx-conf\"},{\"configMap\":{\"items\":[{\"key\":\"redis_conf\",\"path\":\"redis.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-redis-config\"},{\"emptyDir\":{},\"name\":\"prod0-redis-socket\"},{\"emptyDir\":{},\"name\":\"prod0-redis-data\"},{\"emptyDir\":{},\"name\":\"rsyslog-socket\"},{\"emptyDir\":{},\"name\":\"receptor-socket\"},{\"emptyDir\":{},\"name\":\"prod0-web-log\"},{\"configMap\":{\"items\":[{\"key\":\"receptor_conf\",\"path\":\"receptor.conf\"}],\"name\":\"prod0-automationcontroller-configmap\"},\"name\":\"prod0-receptor-config\"}]}}}}"
+        },
+        "creationTimestamp": "2026-03-10T14:24:32Z",
+        "generation": 1,
+        "labels": {
+          "app.kubernetes.io/component": "automationcontroller",
+          "app.kubernetes.io/managed-by": "automationcontroller-operator",
+          "app.kubernetes.io/name": "prod0-web",
+          "app.kubernetes.io/operator-version": "2.4",
+          "app.kubernetes.io/part-of": "prod0",
+          "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2"
+        },
+        "name": "prod0-web",
+        "namespace": "aap2-prod0",
+        "ownerReferences": [
+          {
+            "apiVersion": "automationcontroller.ansible.com/v1beta1",
+            "kind": "AutomationController",
+            "name": "prod0",
+            "uid": "dbc0e374-6c2b-4c50-99a3-23f6ba9126ba"
+          }
+        ],
+        "resourceVersion": "694723705",
+        "uid": "fe210085-be96-42a1-bc21-fb11ff0fec9a"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 3,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/component": "automationcontroller",
+            "app.kubernetes.io/managed-by": "automationcontroller-operator",
+            "app.kubernetes.io/name": "prod0-web"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "checksum-configmaps-config": "7c2b82758f58c7d62fa8d2281d4403d841fcfd09",
+              "checksum-secret-bundle_cacert": "REDACTED-dummy-password",
+              "checksum-secret-ldap_cacert": "REDACTED-dummy-password",
+              "checksum-secret-receptor_ca": "REDACTED-dummy-password",
+              "checksum-secret-receptor_work_signing": "REDACTED-dummy-password",
+              "checksum-secret-route_tls": "REDACTED-dummy-password",
+              "checksum-secret-secret_key": "REDACTED-dummy-password",
+              "checksum-secrets-app_credentials": "REDACTED-dummy-password",
+              "checksum-storage-persistent": "adc83b19e793491b1c6ea0fd8b46cd9f32e592fc",
+              "kubectl.kubernetes.io/default-container": "prod0-web"
+            },
+            "creationTimestamp": null,
+            "labels": {
+              "app.kubernetes.io/component": "automationcontroller",
+              "app.kubernetes.io/managed-by": "automationcontroller-operator",
+              "app.kubernetes.io/name": "prod0-web",
+              "app.kubernetes.io/operator-version": "2.4",
+              "app.kubernetes.io/part-of": "prod0",
+              "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "redis-server",
+                  "/etc/redis.conf"
+                ],
+                "image": "registry.redhat.io/rhel8/redis-6@sha256:d2eedb33525dea497d4296b7fda806c0a4821937219e8cfb250e713667669fdd",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "redis",
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "1Gi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/redis.conf",
+                    "name": "prod0-redis-config",
+                    "readOnly": true,
+                    "subPath": "redis.conf"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/data",
+                    "name": "prod0-redis-data"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "/usr/bin/launch_awx_web.sh"
+                ],
+                "env": [
+                  {
+                    "name": "AWX_COMPONENT",
+                    "value": "web"
+                  },
+                  {
+                    "name": "SUPERVISOR_CONFIG_PATH",
+                    "value": "/etc/supervisord_web.conf"
+                  },
+                  {
+                    "name": "MY_POD_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MY_POD_IP",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "status.podIP"
+                      }
+                    }
+                  },
+                  {
+                    "name": "UWSGI_MOUNT_PATH",
+                    "value": "/"
+                  }
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prod0-web",
+                "ports": [
+                  {
+                    "containerPort": 8052,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "4Gi"
+                  },
+                  "requests": {
+                    "cpu": "1",
+                    "memory": "2Gi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/tower/conf.d/execution_environments.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "execution_environments.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/conf.d/credentials.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/conf.d/ldap.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "ldap.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/SECRET_KEY",
+                    "name": "prod0-secret-key",
+                    "readOnly": true,
+                    "subPath": "SECRET_KEY"
+                  },
+                  {
+                    "mountPath": "/etc/tower/settings.py",
+                    "name": "prod0-settings",
+                    "readOnly": true,
+                    "subPath": "settings.py"
+                  },
+                  {
+                    "mountPath": "/etc/nginx/nginx.conf",
+                    "name": "prod0-nginx-conf",
+                    "readOnly": true,
+                    "subPath": "nginx.conf"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/var/run/awx-rsyslog",
+                    "name": "rsyslog-socket"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/ca/mesh-CA.crt",
+                    "name": "prod0-receptor-ca",
+                    "readOnly": true,
+                    "subPath": "tls.crt"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/tls/ca/mesh-CA.key",
+                    "name": "prod0-receptor-ca",
+                    "readOnly": true,
+                    "subPath": "tls.key"
+                  },
+                  {
+                    "mountPath": "/etc/receptor/work_public_key.pem",
+                    "name": "prod0-receptor-work-signing",
+                    "readOnly": true,
+                    "subPath": "work-public-key.pem"
+                  },
+                  {
+                    "mountPath": "/var/log/tower",
+                    "name": "prod0-web-log"
+                  }
+                ]
+              },
+              {
+                "args": [
+                  "/usr/bin/launch_awx_rsyslog.sh"
+                ],
+                "env": [
+                  {
+                    "name": "SUPERVISOR_CONFIG_PATH",
+                    "value": "/etc/supervisord_rsyslog.conf"
+                  }
+                ],
+                "image": "registry.redhat.io/ansible-automation-platform-24/controller-rhel8@sha256:f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2f",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prod0-rsyslog",
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/tower/conf.d/credentials.py",
+                    "name": "prod0-application-credentials",
+                    "readOnly": true,
+                    "subPath": "credentials.py"
+                  },
+                  {
+                    "mountPath": "/etc/tower/SECRET_KEY",
+                    "name": "prod0-secret-key",
+                    "readOnly": true,
+                    "subPath": "SECRET_KEY"
+                  },
+                  {
+                    "mountPath": "/etc/tower/settings.py",
+                    "name": "prod0-settings",
+                    "readOnly": true,
+                    "subPath": "settings.py"
+                  },
+                  {
+                    "mountPath": "/var/run/redis",
+                    "name": "prod0-redis-socket"
+                  },
+                  {
+                    "mountPath": "/var/run/awx-rsyslog",
+                    "name": "rsyslog-socket"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "serviceAccount": "prod0",
+            "serviceAccountName": "prod0",
+            "terminationGracePeriodSeconds": 30,
+            "topologySpreadConstraints": [
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/part-of": "prod0"
+                  }
+                },
+                "maxSkew": 1,
+                "topologyKey": "kubernetes.io/hostname",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "prod0-receptor-ca",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "prod0-receptor-ca"
+                }
+              },
+              {
+                "name": "prod0-receptor-work-signing",
+                "secret": {
+                  "defaultMode": 420,
+                  "secretName": "prod0-receptor-work-signing"
+                }
+              },
+              {
+                "name": "prod0-application-credentials",
+                "secret": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "credentials.py",
+                      "path": "credentials.py"
+                    },
+                    {
+                      "key": "ldap.py",
+                      "path": "ldap.py"
+                    },
+                    {
+                      "key": "execution_environments.py",
+                      "path": "execution_environments.py"
+                    }
+                  ],
+                  "secretName": "prod0-app-credentials"
+                }
+              },
+              {
+                "name": "prod0-secret-key",
+                "secret": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "secret_key",
+                      "path": "SECRET_KEY"
+                    }
+                  ],
+                  "secretName": "prod0-secret-key"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "settings",
+                      "path": "settings.py"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-settings"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "nginx_conf",
+                      "path": "nginx.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-nginx-conf"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "redis_conf",
+                      "path": "redis.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-redis-config"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-redis-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-redis-data"
+              },
+              {
+                "emptyDir": {},
+                "name": "rsyslog-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "receptor-socket"
+              },
+              {
+                "emptyDir": {},
+                "name": "prod0-web-log"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "items": [
+                    {
+                      "key": "receptor_conf",
+                      "path": "receptor.conf"
+                    }
+                  ],
+                  "name": "prod0-automationcontroller-configmap"
+                },
+                "name": "prod0-receptor-config"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 3,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-03-10T14:24:32Z",
+            "lastUpdateTime": "2026-03-10T14:24:33Z",
+            "message": "ReplicaSet \"prod0-web-54d5fff8fb\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-05-05T06:35:15Z",
+            "lastUpdateTime": "2026-05-05T06:35:15Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 3,
+        "replicas": 3,
+        "updatedReplicas": 3
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

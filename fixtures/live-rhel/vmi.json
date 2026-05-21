@@ -1,0 +1,233 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "kubevirt.io/v1",
+      "kind": "VirtualMachineInstance",
+      "metadata": {
+        "annotations": {
+          "kubevirt.io/latest-observed-api-version": "v1",
+          "kubevirt.io/pci-topology-version": "v3",
+          "kubevirt.io/storage-observed-api-version": "v1",
+          "kubevirt.io/vm-generation": "1"
+        },
+        "creationTimestamp": "2026-05-06T18:33:47Z",
+        "finalizers": [
+          "kubevirt.io/virtualMachineControllerFinalize",
+          "foregroundDeleteVirtualMachine"
+        ],
+        "generation": 10,
+        "labels": {
+          "kubevirt.io/nodeName": "ocp-virt6-host8",
+          "vm.cnv.io/name": "rhel"
+        },
+        "name": "rhel",
+        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "ownerReferences": [
+          {
+            "apiVersion": "kubevirt.io/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "VirtualMachine",
+            "name": "rhel",
+            "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
+          }
+        ],
+        "resourceVersion": "1331222514",
+        "uid": "033e5e85-2544-43e4-bf17-001c2ca1d67a"
+      },
+      "spec": {
+        "architecture": "amd64",
+        "domain": {
+          "cpu": {
+            "cores": 1,
+            "model": "host-passthrough"
+          },
+          "devices": {
+            "disks": [
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "rhel-2dclz"
+              },
+              {
+                "disk": {
+                  "bus": "virtio"
+                },
+                "name": "cloudinitdisk"
+              }
+            ],
+            "interfaces": [
+              {
+                "masquerade": {},
+                "model": "virtio",
+                "name": "default"
+              }
+            ]
+          },
+          "features": {
+            "acpi": {
+              "enabled": true
+            }
+          },
+          "firmware": {
+            "bootloader": {
+              "efi": {
+                "secureBoot": false
+              }
+            },
+            "serial": "3b5634b5-09f1-4a7d-ba8a-0286df0e8d66",
+            "uuid": "9f916b1a-3828-52f9-a0c7-a4e222a20fc9"
+          },
+          "machine": {
+            "type": "pc-q35-rhel9.2.0"
+          },
+          "memory": {
+            "guest": "4G"
+          },
+          "resources": {}
+        },
+        "evictionStrategy": "LiveMigrate",
+        "hostname": "rhel",
+        "networks": [
+          {
+            "name": "default",
+            "pod": {}
+          }
+        ],
+        "subdomain": "lab",
+        "volumes": [
+          {
+            "dataVolume": {
+              "name": "rhel-2dclz"
+            },
+            "name": "rhel-2dclz"
+          },
+          {
+            "cloudInitNoCloud": {
+              "networkDataBase64": "bmV0d29yazogMg==",
+              "userDataBase64": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgotIHNzaC1lZDI1NTE5IEFBQUFDM056YUMxbFpESTFOVEU1QUFBQUlJaUhuRUN3Z0xudUZvQzRBb3labHQ5TXNSTWxUbEhEMHlBSjJ6elVzVzdyCg=="
+            },
+            "name": "cloudinitdisk"
+          }
+        ]
+      },
+      "status": {
+        "activePods": {
+          "c91039f6-f60f-4226-82d6-54899f75f71c": "ocp-virt6-host8"
+        },
+        "conditions": [
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-05-06T18:33:50Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "message": "All of the VMI's DVs are bound and ready",
+            "reason": "AllDVsReady",
+            "status": "True",
+            "type": "DataVolumesReady"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "LiveMigratable"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": null,
+            "status": "True",
+            "type": "StorageLiveMigratable"
+          }
+        ],
+        "currentCPUTopology": {
+          "cores": 1
+        },
+        "guestOSInfo": {},
+        "interfaces": [
+          {
+            "infoSource": "domain",
+            "ipAddress": "10.130.38.130",
+            "ipAddresses": [
+              "10.130.38.130"
+            ],
+            "linkState": "up",
+            "mac": "0a:58:0a:82:26:82",
+            "name": "default",
+            "podInterfaceName": "eth0",
+            "queueCount": 1
+          }
+        ],
+        "launcherContainerImageVersion": "registry.redhat.io/container-native-virtualization/virt-launcher-rhel9@sha256:ad3fbb2a2d12e1659518ccd6400ea6d41196559f966244af6f520ba15e520f58",
+        "machine": {
+          "type": "pc-q35-rhel9.2.0"
+        },
+        "memory": {
+          "guestAtBoot": "4G",
+          "guestCurrent": "3906252Ki",
+          "guestRequested": "4G"
+        },
+        "migrationMethod": "BlockMigration",
+        "migrationTransport": "Unix",
+        "nodeName": "ocp-virt6-host8",
+        "phase": "Running",
+        "phaseTransitionTimestamps": [
+          {
+            "phase": "Pending",
+            "phaseTransitionTimestamp": "2026-05-06T18:33:47Z"
+          },
+          {
+            "phase": "Scheduling",
+            "phaseTransitionTimestamp": "2026-05-06T18:33:47Z"
+          },
+          {
+            "phase": "Scheduled",
+            "phaseTransitionTimestamp": "2026-05-06T18:33:50Z"
+          },
+          {
+            "phase": "Running",
+            "phaseTransitionTimestamp": "2026-05-06T18:33:54Z"
+          }
+        ],
+        "qosClass": "Burstable",
+        "runtimeUser": 107,
+        "selinuxContext": "system_u:object_r:container_file_t:s0:c73,c219",
+        "virtualMachineRevisionName": "revision-start-vm-797c4ac9-7f4a-4285-86a1-76dd4bc586a0-1",
+        "volumeStatus": [
+          {
+            "name": "cloudinitdisk",
+            "size": 1048576,
+            "target": "vdb"
+          },
+          {
+            "name": "rhel-2dclz",
+            "persistentVolumeClaimInfo": {
+              "accessModes": [
+                "ReadWriteMany"
+              ],
+              "capacity": {
+                "storage": "38Gi"
+              },
+              "claimName": "rhel-2dclz",
+              "filesystemOverhead": "0",
+              "requests": {
+                "storage": "40G"
+              },
+              "volumeMode": "Block"
+            },
+            "target": "vda"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

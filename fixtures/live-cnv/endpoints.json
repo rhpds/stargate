@@ -1,0 +1,277 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:48Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "bastion",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329315",
+        "uid": "880f74e4-0498-46be-9077-94648c06734c"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.129.43.124",
+              "nodeName": "ocp-virt6-host15",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-bastion-ps87z",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "438c7429-65ce-4c73-af6f-a1dfd90b7289"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "bastion-8181",
+              "port": 8181,
+              "protocol": "TCP"
+            },
+            {
+              "name": "bastion-80",
+              "port": 80,
+              "protocol": "TCP"
+            },
+            {
+              "name": "bastion-443",
+              "port": 443,
+              "protocol": "TCP"
+            },
+            {
+              "name": "bastion-8080",
+              "port": 8080,
+              "protocol": "TCP"
+            },
+            {
+              "name": "bastion-3000",
+              "port": 3000,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T13:14:06Z"
+        },
+        "creationTimestamp": "2026-05-06T13:14:06Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller"
+        },
+        "name": "bastion-ssh",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329965",
+        "uid": "c4307c93-ae33-475a-9be3-538951dab409"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.129.43.124",
+              "nodeName": "ocp-virt6-host15",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-bastion-ps87z",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "438c7429-65ce-4c73-af6f-a1dfd90b7289"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:50Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "controller",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329393",
+        "uid": "0bd04b83-4557-4555-a914-b360074d34c0"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.5.44",
+              "nodeName": "ocp-virt6-host",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-controller-js5q2",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "3f5d001f-7400-458f-9804-f99a66342399"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "controller-5000",
+              "port": 5000,
+              "protocol": "TCP"
+            },
+            {
+              "name": "controller-443",
+              "port": 443,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T13:13:53Z"
+        },
+        "creationTimestamp": "2026-05-06T13:13:53Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "node1",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329432",
+        "uid": "621c4b04-9d0b-4540-92d7-89e81f1f0149"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.129.36.61",
+              "nodeName": "ocp-virt6-host9",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-node1-bfpkv",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "45ef1f36-3584-44c2-bf4b-fd08388668bd"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "annotations": {
+          "endpoints.kubernetes.io/last-change-trigger-time": "2026-05-06T13:13:53Z"
+        },
+        "creationTimestamp": "2026-05-06T13:13:53Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "node2",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329461",
+        "uid": "25f4dff6-0e39-4ba6-b2bf-9eadd6f9e18f"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.27.110",
+              "nodeName": "ocp-virt6-host6",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-node2-z8zj2",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "ed74f0f1-37cb-4596-8113-2b50001f79ac"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "port": 22,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Endpoints",
+      "metadata": {
+        "creationTimestamp": "2026-05-06T13:13:54Z",
+        "labels": {
+          "endpoints.kubernetes.io/managed-by": "endpoint-controller",
+          "service.kubernetes.io/headless": ""
+        },
+        "name": "ssap",
+        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "resourceVersion": "1330329524",
+        "uid": "a22316be-3eb1-46f5-97e7-aba3b9ca9984"
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.130.5.45",
+              "nodeName": "ocp-virt6-host",
+              "targetRef": {
+                "kind": "Pod",
+                "name": "virt-launcher-ssap-2blsn",
+                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "uid": "c5a4e5df-3079-4276-a82d-a0bb27aa9310"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "ssap-443",
+              "port": 443,
+              "protocol": "TCP"
+            },
+            {
+              "name": "ssap-22",
+              "port": 22,
+              "protocol": "TCP"
+            },
+            {
+              "name": "ssap-7007",
+              "port": 7007,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

@@ -1,0 +1,22 @@
+id: namespace-ready
+version: v0.1.0
+stage: namespace-ready
+timeout_seconds: 60
+entry_criteria: []
+exit_criteria:
+  - name: namespace_exists
+    required: true
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  namespace_missing:
+    when:
+      - namespace_exists == false
+    recommended_action: create_namespace
+allowed_remediations:
+  - create_namespace
+forbidden_remediations:
+  - delete_namespace

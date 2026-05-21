@@ -1,0 +1,129 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sdf-collect-evidence
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  description: >
+    Collects OpenShift resource state for a namespace and submits
+    evidence to the SDF API. Read-only — no cluster mutation.
+  params:
+    - name: run-id
+      type: string
+    - name: stage-id
+      type: string
+    - name: namespace
+      type: string
+    - name: sdf-api-url
+      type: string
+      default: "http://summit-demo-factory:8080"
+  results:
+    - name: evidence-count
+      description: Number of evidence items submitted
+  steps:
+    - name: start-stage
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        curl -sf -X POST "$(params.sdf-api-url)/runs/$(params.run-id)/stages/$(params.stage-id)/start" \
+          -H "Content-Type: application/json" || true
+        echo "Stage $(params.stage-id) started"
+
+    - name: collect-resources
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        NAMESPACE="$(params.namespace)"
+        STAGE="$(params.stage-id)"
+        EVIDENCE_DIR="/workspace/evidence"
+        mkdir -p "${EVIDENCE_DIR}"
+
+        case "${STAGE}" in
+          namespace-ready)
+            oc get namespace "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/namespace.json" 2>/dev/null || echo '{"kind":"Namespace","status":{"phase":"Missing"}}' > "${EVIDENCE_DIR}/namespace.json"
+            ;;
+          deployment-ready)
+            oc get deployment -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/deployments.json" 2>/dev/null || echo '{"kind":"DeploymentList","items":[]}' > "${EVIDENCE_DIR}/deployments.json"
+            oc get pods -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/pods.json" 2>/dev/null || echo '{"kind":"PodList","items":[]}' > "${EVIDENCE_DIR}/pods.json"
+            ;;
+          route-ready)
+            oc get svc -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/services.json" 2>/dev/null || echo '{"kind":"ServiceList","items":[]}' > "${EVIDENCE_DIR}/services.json"
+            oc get endpoints -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/endpoints.json" 2>/dev/null || echo '{"kind":"EndpointsList","items":[]}' > "${EVIDENCE_DIR}/endpoints.json"
+            oc get route -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/routes.json" 2>/dev/null || echo '{"kind":"RouteList","items":[]}' > "${EVIDENCE_DIR}/routes.json"
+            ;;
+          *)
+            oc get all -n "${NAMESPACE}" -o json > "${EVIDENCE_DIR}/all.json" 2>/dev/null || echo '{}' > "${EVIDENCE_DIR}/all.json"
+            ;;
+        esac
+
+        oc get events -n "${NAMESPACE}" --sort-by=.lastTimestamp -o json > "${EVIDENCE_DIR}/events.json" 2>/dev/null || echo '{"kind":"EventList","items":[]}' > "${EVIDENCE_DIR}/events.json"
+
+        echo "Collected resources for stage ${STAGE} in namespace ${NAMESPACE}"
+        ls -la "${EVIDENCE_DIR}/"
+
+    - name: submit-evidence
+      image: registry.access.redhat.com/ubi9/python-311:latest
+      script: |
+        #!/usr/bin/env python3
+        import json
+        import os
+        import sys
+        import urllib.request
+
+        api_url = "$(params.sdf-api-url)"
+        run_id = "$(params.run-id)"
+        stage_id = "$(params.stage-id)"
+        evidence_dir = "/workspace/evidence"
+        count = 0
+
+        for filename in sorted(os.listdir(evidence_dir)):
+            if not filename.endswith(".json"):
+                continue
+            filepath = os.path.join(evidence_dir, filename)
+            with open(filepath) as f:
+                data = json.load(f)
+
+            observed = {}
+            kind = data.get("kind", "")
+
+            if kind == "Namespace":
+                observed["namespace_exists"] = data.get("status", {}).get("phase") == "Active"
+            elif kind == "PodList":
+                items = data.get("items", [])
+                crashloop = 0
+                for pod in items:
+                    for cs in pod.get("status", {}).get("containerStatuses", []):
+                        if cs.get("state", {}).get("waiting", {}).get("reason") == "CrashLoopBackOff":
+                            crashloop += 1
+                observed["no_crashloop_pods"] = crashloop == 0
+            elif "items" in data:
+                observed[f"{kind.lower()}_count"] = len(data.get("items", []))
+
+            evidence_payload = {
+                "type": "openshift_resource_state",
+                "source": "oc",
+                "observed": observed,
+                "result": "pass" if not any(v is False for v in observed.values() if isinstance(v, bool)) else "fail",
+            }
+
+            url = f"{api_url}/runs/{run_id}/stages/{stage_id}/evidence"
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(evidence_payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                urllib.request.urlopen(req)
+                count += 1
+            except Exception as e:
+                print(f"Warning: failed to submit {filename}: {e}", file=sys.stderr)
+
+        print(f"Submitted {count} evidence items")
+        results_path = "$(results.evidence-count.path)"
+        with open(results_path, "w") as f:
+            f.write(str(count))
