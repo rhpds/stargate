@@ -136,6 +136,38 @@ tests/                  Test suite
 | `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning |
 | `scripts/test-auto-remediation.sh` | E2E auto-remediation test suite |
 
+## Roadmap
+
+### Ops Stability (Immediate)
+
+- [ ] **Cluster scanner SA tokens** — Create `stargate-scanner` ServiceAccount with `cluster-reader` role and 1-year token on each cluster (ocpv05-09, infra02, ocp-us-east-1). Use `scripts/refresh-kubeconfigs.sh` per cluster. Currently using user OAuth tokens that expire daily.
+- [ ] **Remove ocpv10** — DNS unreachable (`api.ocpv10.dal10.infra.demo.redhat.com`), likely decommissioned. Already removed from scanner config, verify no other references.
+
+### Auto-Remediation (Short-Term)
+
+- [ ] **E2E test with real lab** — Pick a low-risk lab, set to `low_risk_auto` via Admin > Auto-Remediation tab, trigger a known failure in `stargate-test`, verify detect → classify → recommend → execute → verify cycle works end-to-end. Run `scripts/test-auto-remediation.sh`.
+- [ ] **Approval queue UX** — The approval queue stores and executes on approval, but the frontend `ApprovalQueue` component needs richer detail: show action parameters, risk level, evidence context, and execution result after approval.
+- [ ] **Remediation effectiveness tracking** — When auto-remediation executes, measure: did the failure resolve? How long did recovery take? Build a dashboard view showing success rates by action type and failure class.
+
+### CI/CD (Short-Term)
+
+- [ ] **Automated builds** — Set up OpenShift BuildConfig or connect existing Tekton pipeline (`deploy/tekton/pipelines/stargate-ci.yaml`) to trigger on git push. Currently builds are manual from laptop via `podman build`.
+- [ ] **Helm-first deployment** — Install helm, switch from ad-hoc `oc` commands to `helm upgrade --install` using the existing Helm chart (`deploy/helm/stargate/`). Chart already has full templates for API, scanner, frontend, postgres, OAuth, RBAC.
+- [ ] **Environment promotion** — Add ArgoCD or Tekton deploy stages for dev → staging → production promotion.
+
+### Intelligence (Medium-Term)
+
+- [ ] **Close the feedback loop** — 625 LLM classification proposals are pending review. Wire the approval flow: ops reviews proposal → approved proposals become deterministic rules → rules run without LLM. Track accuracy over time.
+- [ ] **Watch mode with alerting** — Add state-transition detection (PASS→FAIL) that triggers Slack/PagerDuty notifications. The event bus and nano-agent pipeline exist but no external notification consumers are wired.
+- [ ] **Remediation learning** — Track which remediations succeed/fail. Automatically adjust confidence scores and promote proven remediations from `manual_approval` to `auto_execute`.
+
+### Platform (Longer-Term)
+
+- [ ] **Multi-tenant RBAC** — Add role-based access so team leads only see their labs. Currently all authenticated users see everything.
+- [ ] **Prometheus metrics export** — Expose StarGate's own metrics (`/metrics`) for Grafana: API latency, scan cycle times, failure rates, remediation success %, LLM cost tracking.
+- [ ] **AgnosticV webhook sync** — Currently cloned at startup. Set up a webhook or periodic git pull so new lab configs are picked up automatically.
+- [ ] **Capacity planning dashboard** — Extend the forecast tab beyond 7-hour projections. Add weekly/monthly capacity trends, cluster growth modeling, and pool exhaustion prediction.
+
 ## License
 
 Internal Red Hat use.
