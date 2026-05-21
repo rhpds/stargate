@@ -1,0 +1,75 @@
+# Unified local dev stack — StarGate + Launchpad
+#
+# Usage:
+#   podman-compose -f podman-compose.local.yml up -d
+#
+# This runs both platforms with a shared postgres instance.
+# StarGate monitors Launchpad labs via webhook callbacks.
+#
+# Ports:
+#   8090  — StarGate API
+#   3000  — StarGate Frontend
+#   8000  — Launchpad API
+#   5432  — Shared PostgreSQL
+
+version: "3.8"
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-local-dbs.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  stargate-api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - "8090:8090"
+    environment:
+      STARGATE_DATABASE_URL: postgresql://stargate:stargate@postgres:5432/stargate
+      STARGATE_EXECUTION_TARGET: mock
+      STARGATE_ADMIN_API_KEY: local-dev-key
+      STARGATE_CORS_ORIGINS: "http://localhost:3000,http://localhost:8090,http://localhost:8000"
+      STARGATE_SSL_VERIFY: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  stargate-frontend:
+    build:
+      context: .
+      dockerfile: Containerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      API_PROXY_TARGET: http://stargate-api:8090
+
+  launchpad-api:
+    build:
+      context: ../launchpad/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      LAUNCHPAD_MODE: mock
+      DATABASE_URL: postgresql://launchpad:launchpad@postgres:5432/launchpad
+      STARGATE_API_URL: http://stargate-api:8090
+      STARGATE_API_KEY: local-dev-key
+      STARGATE_SSL_VERIFY: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
