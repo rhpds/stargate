@@ -584,3 +584,66 @@
   commands:
     - "poolboy:scale:{pool}:{min_available}"
   forbidden_when: []
+
+# --- Launchpad AI Partner Demo remediations ---
+
+- id: launchpad_reclaim_session
+  risk: low
+  mode: auto_execute
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+    - failure_class == launchpad_session_expired
+    - failure_class == launchpad_cleanup_failed
+  commands:
+    - "oc delete namespace {namespace} --wait=true --timeout=120s"
+  forbidden_when:
+    - "namespace == openshift-*"
+    - "namespace == partner-ai-launchpad"
+  callback:
+    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    payload:
+      session_id: "{session_id}"
+      result: "success"
+      namespace_deleted: true
+
+- id: launchpad_release_placement
+  risk: low
+  mode: auto_execute
+  execution_method: rhdp_sandbox_api
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+    - failure_class == launchpad_session_expired
+    - failure_class == launchpad_cleanup_failed
+  commands:
+    - "sandbox-api:delete:{placement_uuid}"
+  forbidden_when: []
+  callback:
+    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    payload:
+      session_id: "{session_id}"
+      result: "success"
+      placement_released: true
+
+- id: launchpad_reclaim_workshop
+  risk: medium
+  mode: auto_execute
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+    - failure_class == launchpad_workshop_ended
+    - failure_class == launchpad_workshop_cleanup_failed
+  commands:
+    - "oc delete namespace {namespace} --wait=true --timeout=120s"
+  forbidden_when:
+    - "namespace == openshift-*"
+    - "namespace == partner-ai-launchpad"
+  callback:
+    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    payload:
+      session_id: "{session_id}"
+      result: "success"
+      namespace_deleted: true
