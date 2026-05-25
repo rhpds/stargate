@@ -574,7 +574,7 @@
           "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
         },
         "creationTimestamp": "2026-04-30T18:56:29Z",
-        "generateName": "prod0-task-7f8d9bddd9-",
+        "generateName": "prod0-task-REDACTED",
         "labels": {
           "app.kubernetes.io/component": "automationcontroller",
           "app.kubernetes.io/managed-by": "automationcontroller-operator",
@@ -584,7 +584,7 @@
           "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2",
           "pod-template-hash": "7f8d9bddd9"
         },
-        "name": "prod0-task-7f8d9bddd9-59fxc",
+        "name": "prod0-task-REDACTED",
         "namespace": "aap2-prod0",
         "ownerReferences": [
           {
@@ -592,7 +592,7 @@
             "blockOwnerDeletion": true,
             "controller": true,
             "kind": "ReplicaSet",
-            "name": "prod0-task-7f8d9bddd9",
+            "name": "prod0-task-REDACTED",
             "uid": "61cd5e42-a587-421d-ae36-062bb174d844"
           }
         ],
@@ -1563,7 +1563,7 @@
           "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
         },
         "creationTimestamp": "2026-04-30T18:56:30Z",
-        "generateName": "prod0-task-7f8d9bddd9-",
+        "generateName": "prod0-task-REDACTED",
         "labels": {
           "app.kubernetes.io/component": "automationcontroller",
           "app.kubernetes.io/managed-by": "automationcontroller-operator",
@@ -1573,7 +1573,7 @@
           "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2",
           "pod-template-hash": "7f8d9bddd9"
         },
-        "name": "prod0-task-7f8d9bddd9-fclmh",
+        "name": "prod0-task-REDACTED",
         "namespace": "aap2-prod0",
         "ownerReferences": [
           {
@@ -1581,7 +1581,7 @@
             "blockOwnerDeletion": true,
             "controller": true,
             "kind": "ReplicaSet",
-            "name": "prod0-task-7f8d9bddd9",
+            "name": "prod0-task-REDACTED",
             "uid": "61cd5e42-a587-421d-ae36-062bb174d844"
           }
         ],
@@ -2552,7 +2552,7 @@
           "seccomp.security.alpha.kubernetes.io/pod": "runtime/default"
         },
         "creationTimestamp": "2026-03-10T14:24:26Z",
-        "generateName": "prod0-task-7f8d9bddd9-",
+        "generateName": "prod0-task-REDACTED",
         "labels": {
           "app.kubernetes.io/component": "automationcontroller",
           "app.kubernetes.io/managed-by": "automationcontroller-operator",
@@ -2562,7 +2562,7 @@
           "app.kubernetes.io/version": "f97ee7bed5a4ccd9f023a54e6371184f536bfc7f17ee700d02d43ee66f2d1c2",
           "pod-template-hash": "7f8d9bddd9"
         },
-        "name": "prod0-task-7f8d9bddd9-vtxj2",
+        "name": "prod0-task-REDACTED",
         "namespace": "aap2-prod0",
         "ownerReferences": [
           {
@@ -2570,7 +2570,7 @@
             "blockOwnerDeletion": true,
             "controller": true,
             "kind": "ReplicaSet",
-            "name": "prod0-task-7f8d9bddd9",
+            "name": "prod0-task-REDACTED",
             "uid": "61cd5e42-a587-421d-ae36-062bb174d844"
           }
         ],
