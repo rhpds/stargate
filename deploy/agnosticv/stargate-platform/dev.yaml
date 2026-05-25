@@ -1,0 +1,12 @@
+---
+# Dev stage — CNV clusters (ocpv05-10), mock execution, minimal resources
+
+stargate_execution_target: mock
+stargate_dry_run: "true"
+stargate_scanner_clusters: ""
+stargate_postgres_storage: 5Gi
+stargate_oauth_enabled: false
+
+__meta__:
+  deployer:
+    scm_ref: main
