@@ -59,13 +59,26 @@ uvicorn api.app:app --host 0.0.0.0 --port 8090 --reload
 cd frontend && npm ci && npm run dev
 ```
 
-### OpenShift Deployment
+### OpenShift Deployment (RHDP Pipeline)
 
+StarGate is packaged as an AgnosticV Catalog Item and deployed through the standard RHDP pipeline:
+
+```
+deploy/agnosticv/stargate-platform/
+├── common.yaml        # Base CI definition
+├── dev.yaml           # CNV clusters, mock execution
+├── integration.yaml   # Staging, real scanners (3 clusters)
+└── prod.yaml          # Production, all scanners + collectors
+```
+
+**Build and tag images:**
 ```bash
-# Login to cluster
-oc login --server=https://api.cluster.example.com:6443
+./scripts/build-and-tag.sh --push
+```
 
-# Deploy (builds images + helm install)
+**Manual deploy (ad-hoc, for development only):**
+```bash
+oc login --server=https://api.cluster.example.com:6443
 ./scripts/deploy-infra01.sh --build
 ```
 
@@ -135,7 +148,8 @@ tests/                  Test suite
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/deploy-infra01.sh` | Build and deploy to ocpv-infra01 |
+| `scripts/build-and-tag.sh` | Build images with git-SHA tags for reproducible deploys |
+| `scripts/deploy-infra01.sh` | Ad-hoc build and deploy (development only) |
 | `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning |
 | `scripts/test-auto-remediation.sh` | E2E auto-remediation test suite |
 
@@ -166,10 +180,14 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - [ ] **E2E test with Launchpad labs** — Deploy labs via Launchpad, enable `low_risk_auto` in StarGate, inject failures, verify RHDP-routed remediation works end-to-end.
 - [ ] **Approval queue UX** — Show action parameters, risk level, execution method (Kubernetes vs RHDP), and result after approval.
 
-### CI/CD (Short-Term)
+### RHDP Deployment Pipeline (Short-Term)
 
-- [ ] **Automated builds** — Connect Tekton pipeline or OpenShift BuildConfig to trigger on git push.
-- [ ] **Helm-first deployment** — Switch from ad-hoc `oc` to `helm upgrade --install` using existing Helm chart.
+- [x] **AgnosticV Catalog Item** — StarGate packaged as a proper CI with dev/integration/prod stages.
+- [x] **Git-SHA image tagging** — `scripts/build-and-tag.sh` produces reproducible tagged images.
+- [ ] **AgnosticD role** — Create Ansible role `stargate_deploy` wrapping Helm install for RHDP pipeline.
+- [ ] **Devel deployment** — Deploy StarGate dev CI on CNV cluster via AgnosticV/Babylon.
+- [ ] **Integration gate** — Test on staging cluster before promoting to prod.
+- [ ] **CI review with Ashok/Tony** — Get CI structure reviewed and approved for the pipeline.
 
 ### Intelligence (Medium-Term)
 
