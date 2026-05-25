@@ -1,0 +1,16 @@
+---
+# Prod stage — full deployment, all scanners, all collectors
+
+stargate_execution_target: test
+stargate_dry_run: "false"
+stargate_scanner_clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+stargate_postgres_storage: 20Gi
+stargate_oauth_enabled: true
+stargate_ssl_verify: "false"
+
+__meta__:
+  deployer:
+    scm_ref: main
+    execution_environment:
+      image: quay.io/agnosticd/ee-multicloud:chained-2026-05-04
+      pull: missing
