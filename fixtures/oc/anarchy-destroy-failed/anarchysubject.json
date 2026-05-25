@@ -14,10 +14,10 @@
       "poolboy.gpte.redhat.com/resource-index": "0",
       "poolboy.gpte.redhat.com/resource-provider-name": "ai-quickstarts.ai-qs-ppe-comp-tenant.event",
       "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
-      "poolboy.gpte.redhat.com/resource-requester-email": "jappleii@redhat.com",
+      "poolboy.gpte.redhat.com/resource-requester-email": "user@redhat.com",
       "poolboy.gpte.redhat.com/resource-requester-name": "John Apple II [72138]",
-      "poolboy.gpte.redhat.com/resource-requester-preferred-username": "jappleii@redhat.com",
-      "poolboy.gpte.redhat.com/resource-requester-user": "jappleii@redhat.com"
+      "poolboy.gpte.redhat.com/resource-requester-preferred-username": "user@redhat.com",
+      "poolboy.gpte.redhat.com/resource-requester-user": "user@redhat.com"
     },
     "creationTimestamp": "2026-04-29T21:43:56Z",
     "deletionGracePeriodSeconds": 0,
@@ -58,7 +58,7 @@
         "cluster_admin_agnosticd_sa_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRVTU1ZIn0.eyJzdWIiOiJkdW1teSJ9.REDACTED",
         "guid": "49rj2",
         "platform": "RHPDS",
-        "requester_email": "jappleii@redhat.com",
+        "requester_email": "user@redhat.com",
         "sandbox_openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
         "sandbox_openshift_apps_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
         "sandbox_openshift_cluster": "cluster-4px7h",
@@ -78,7 +78,7 @@
         "litellm_key_alias": "virtkey-49rj2",
         "litellm_key_duration": "7d",
         "litellm_key_id": "3dc026fb32af88ad67881acf835d3e312084563868f32b20735322ff8d753081",
-        "litellm_virtual_key": "REDACTED-dummy-value",
+        "litellm_virtual_key": "sk-REDACTED",
         "openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
         "openshift_cluster_ingress_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
         "openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.redhatworkshops.io",
@@ -89,7 +89,7 @@
       "provision_message_body": "[]",
       "provision_messages": [
         "LiteMaaS API Base URL: https://litellm.example.com/v1",
-        "LiteMaaS Virtual Key: REDACTED-dummy-value",
+        "LiteMaaS Virtual Key: sk-REDACTED",
         "Available Models: llama-scout-17b",
         "Key Duration: 7d",
         "Lab instructions: https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/"

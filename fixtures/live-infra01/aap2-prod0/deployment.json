@@ -547,7 +547,7 @@
           {
             "lastTransitionTime": "2026-03-10T14:24:26Z",
             "lastUpdateTime": "2026-03-10T14:24:30Z",
-            "message": "ReplicaSet \"prod0-task-7f8d9bddd9\" has successfully progressed.",
+            "message": "ReplicaSet \"prod0-task-REDACTED\" has successfully progressed.",
             "reason": "NewReplicaSetAvailable",
             "status": "True",
             "type": "Progressing"

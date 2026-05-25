@@ -91,11 +91,11 @@
               },
               {
                 "name": "RCARS_CURATOR_EMAILS_STR",
-                "value": "ankay@redhat.com"
+                "value": "user@redhat.com"
               },
               {
                 "name": "RCARS_ADMIN_EMAILS_STR",
-                "value": "nstephan@redhat.com,sborenst@redhat.com"
+                "value": "user@redhat.com,user@redhat.com"
               },
               {
                 "name": "RCARS_STALE_DAYS",
