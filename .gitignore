@@ -39,7 +39,8 @@ node_modules/
 # Runtime artifacts
 *.db
 scheduler.log
-test-receipts/
+test-receipts/*.json
+!test-receipts/.gitkeep
 scan-history/
 backups/
 stargate-synthetic-client-emulator/
