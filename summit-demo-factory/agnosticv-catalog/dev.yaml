@@ -1,0 +1,4 @@
+---
+# Dev overrides — latest images, relaxed resources.
+
+stargate_image: "quay.io/intel-redhat/stargate:dev"

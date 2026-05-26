@@ -1,0 +1,15 @@
+{
+  "kind": "ShowroomHealth",
+  "metadata": {
+    "name": "showroom",
+    "namespace": "summit-demo-002"
+  },
+  "status": {
+    "pod_running": true,
+    "route_reachable": true,
+    "readyz_status": 503,
+    "healthz_status": 503,
+    "content_loaded": false,
+    "response_time_ms": 12000
+  }
+}

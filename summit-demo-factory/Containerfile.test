@@ -1,0 +1,14 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+
+LABEL name="summit-demo-factory-test" \
+      summary="Summit Demo Factory test runner"
+
+WORKDIR /opt/app-root/src
+
+COPY pyproject.toml ./
+
+RUN pip install --no-cache-dir ".[dev,api]"
+
+COPY . .
+
+CMD ["pytest", "-v", "--tb=short"]

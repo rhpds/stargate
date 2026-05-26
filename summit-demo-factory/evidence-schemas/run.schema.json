@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Run",
+  "type": "object",
+  "required": ["run_id", "demo_id", "namespace", "requested_by", "status", "rubric_version"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "demo_id": { "type": "string", "minLength": 1 },
+    "namespace": { "type": "string", "minLength": 1 },
+    "requested_by": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["pending", "running", "completed", "failed"] },
+    "rubric_version": { "type": "string", "minLength": 1 },
+    "git_sha": { "type": ["string", "null"] },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

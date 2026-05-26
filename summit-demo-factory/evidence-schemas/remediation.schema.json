@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Remediation",
+  "type": "object",
+  "required": ["id", "risk", "mode", "scope"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "risk": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "mode": { "type": "string", "enum": ["recommend_only", "manual_approval", "auto_execute"] },
+    "scope": { "type": "string", "minLength": 1 },
+    "requires_approval": { "type": "boolean", "default": true },
+    "allowed_when": { "type": "array", "items": { "type": "string" } },
+    "commands": { "type": "array", "items": { "type": "string" } },
+    "forbidden_when": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

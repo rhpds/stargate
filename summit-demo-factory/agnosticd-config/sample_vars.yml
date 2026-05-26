@@ -1,0 +1,17 @@
+---
+# Sample variables — copy and customize for your deployment
+
+guid: test01
+ocp_project_name: stargate-test01
+
+stargate_image: "quay.io/intel-redhat/stargate:dev"
+
+deploy_database: true
+postgres_user: stargate
+postgres_storage_size: "5Gi"
+
+# Integration — set these to connect StarGate to Launchpad and DeepField
+launchpad_api_url: "https://launchpad.apps.infra01.example.com"
+launchpad_api_key: ""
+deepfield_api_url: "https://deepfield.apps.infra01.example.com"
+deepfield_api_key: ""

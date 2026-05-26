@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Evidence",
+  "type": "object",
+  "required": ["evidence_id", "run_id", "stage_id", "type", "source", "result", "timestamp"],
+  "properties": {
+    "evidence_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "stage_id": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "resource": {
+      "type": ["object", "null"],
+      "properties": {
+        "kind": { "type": "string" },
+        "namespace": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["kind", "namespace", "name"]
+    },
+    "observed": { "type": "object" },
+    "result": { "type": "string", "enum": ["pass", "warn", "fail", "retry", "escalate", "indeterminate"] },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "raw_ref": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

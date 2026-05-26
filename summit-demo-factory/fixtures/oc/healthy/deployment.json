@@ -1,0 +1,36 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "demo-app",
+    "namespace": "summit-demo-001",
+    "uid": "d1e2f3a4-b5c6-7890-1234-567890abcdef",
+    "creationTimestamp": "2026-05-05T14:01:00Z"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "demo-app"
+      }
+    }
+  },
+  "status": {
+    "replicas": 1,
+    "readyReplicas": 1,
+    "availableReplicas": 1,
+    "updatedReplicas": 1,
+    "conditions": [
+      {
+        "type": "Available",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:02:00Z"
+      },
+      {
+        "type": "Progressing",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:01:30Z"
+      }
+    ]
+  }
+}

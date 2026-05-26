@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rubric",
+  "type": "object",
+  "required": ["id", "version", "stage", "exit_criteria"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "stage": { "type": "string", "minLength": 1 },
+    "timeout_seconds": { "type": ["integer", "null"], "minimum": 1 },
+    "entry_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "required": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "exit_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "required": { "type": "boolean", "default": true }
+        }
+      },
+      "minItems": 1
+    },
+    "outcomes": {
+      "type": "object",
+      "properties": {
+        "pass": { "$ref": "#/$defs/outcome_rule" },
+        "warn": { "$ref": "#/$defs/outcome_rule" },
+        "fail": { "$ref": "#/$defs/outcome_rule" }
+      }
+    },
+    "failure_classes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["when", "recommended_action"],
+        "properties": {
+          "when": { "type": "array", "items": { "type": "string" } },
+          "recommended_action": { "type": "string" }
+        }
+      }
+    },
+    "allowed_remediations": { "type": "array", "items": { "type": "string" } },
+    "forbidden_remediations": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "outcome_rule": {
+      "type": "object",
+      "required": ["when"],
+      "properties": {
+        "when": { "type": "string" }
+      }
+    }
+  }
+}

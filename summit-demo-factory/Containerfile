@@ -1,0 +1,23 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+
+LABEL name="summit-demo-factory" \
+      version="0.1.0" \
+      summary="Summit Demo Factory Control Plane API" \
+      description="Control plane for provisioning, validating, and observing Summit demo environments" \
+      io.k8s.display-name="Summit Demo Factory" \
+      io.openshift.tags="summit,demo,factory,control-plane"
+
+WORKDIR /opt/app-root/src
+
+COPY pyproject.toml ./
+
+RUN pip install --no-cache-dir ".[api]"
+
+COPY api/ api/
+COPY rubrics/ rubrics/
+COPY reports/ reports/
+COPY evidence-schemas/ evidence-schemas/
+
+EXPOSE 8080
+
+CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8080"]

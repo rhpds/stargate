@@ -1,0 +1,12 @@
+---
+# Destroy — remove StarGate namespace and all resources
+- name: "StarGate — Destroy"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Delete StarGate namespace
+      kubernetes.core.k8s:
+        state: absent
+        kind: Namespace
+        name: "{{ ocp_project_name }}"

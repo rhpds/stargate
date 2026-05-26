@@ -32,7 +32,6 @@ htmlcov/
 
 # Node
 node_modules/
-dist/
 
 # Podman/Docker
 *.tar
@@ -44,3 +43,4 @@ test-receipts/
 scan-history/
 backups/
 stargate-synthetic-client-emulator/
+code.txt

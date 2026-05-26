@@ -1,0 +1,49 @@
+id: cluster-health
+version: v0.1.0
+stage: cluster-health
+timeout_seconds: 30
+entry_criteria: []
+exit_criteria:
+  - name: cluster_reachable
+    required: true
+  - name: cpu_usage_acceptable
+    required: true
+  - name: memory_usage_acceptable
+    required: true
+  - name: no_critical_alerts
+    required: true
+  - name: nodes_healthy
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  cluster_unreachable:
+    when:
+      - cluster_reachable == false
+    recommended_action: check_cluster_connectivity
+  cluster_overloaded:
+    when:
+      - cluster_reachable == true
+      - cpu_usage_acceptable == false
+    recommended_action: check_cluster_resource_usage
+  cluster_memory_pressure:
+    when:
+      - cluster_reachable == true
+      - memory_usage_acceptable == false
+    recommended_action: check_cluster_resource_usage
+  cluster_critical_alerts:
+    when:
+      - cluster_reachable == true
+      - no_critical_alerts == false
+    recommended_action: check_cluster_alerts
+allowed_remediations:
+  - check_cluster_connectivity
+  - check_cluster_resource_usage
+  - check_cluster_alerts
+forbidden_remediations:
+  - delete_namespace

@@ -1,0 +1,4 @@
+---
+# Prod overrides — pinned images.
+
+stargate_image: "quay.io/intel-redhat/stargate:v0.2.0"

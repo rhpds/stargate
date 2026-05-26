@@ -1,0 +1,16 @@
+---
+# Post-software — verify deployment health
+- name: "StarGate — Verify"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Wait for StarGate API to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: summit-demo-factory
+        namespace: "{{ ocp_project_name }}"
+      register: _deploy
+      until: _deploy.resources[0].status.readyReplicas | default(0) >= 1
+      retries: 30
+      delay: 10
