@@ -1,9 +1,11 @@
 """Integration endpoints — receives events from Launchpad and other platforms."""
 
 import logging
-from typing import Literal
+import os
+from collections import OrderedDict
+from typing import Literal, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from api.app import repository
@@ -14,6 +16,28 @@ from api.app.api._helpers import load_rubric_for_stage
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["integration"])
+
+INTEGRATION_API_KEY = os.environ.get("INTEGRATION_API_KEY")
+
+_seen_events: OrderedDict = OrderedDict()
+_MAX_SEEN = 10000
+
+
+def _verify_api_key(request: Request):
+    if not INTEGRATION_API_KEY:
+        return
+    key = request.headers.get("X-API-Key")
+    if key != INTEGRATION_API_KEY:
+        raise HTTPException(401, "Invalid or missing X-API-Key")
+
+
+def _check_duplicate(event_id: str) -> bool:
+    if event_id in _seen_events:
+        return True
+    _seen_events[event_id] = True
+    if len(_seen_events) > _MAX_SEEN:
+        _seen_events.popitem(last=False)
+    return False
 
 
 class IntegrationEvent(BaseModel):
@@ -31,8 +55,13 @@ class EvaluateResponse(BaseModel):
 
 
 @router.post("/integration/events")
-async def receive_event(event: IntegrationEvent):
+async def receive_event(event: IntegrationEvent, request: Request):
     """Receive lifecycle events from Launchpad or other integrated platforms."""
+    _verify_api_key(request)
+
+    if _check_duplicate(event.event_id):
+        return {"received": True, "event_id": event.event_id, "duplicate": True}
+
     if event.source == "launchpad":
         payload = event.payload
         session_id = payload.get("session_id", "unknown")
@@ -77,7 +106,8 @@ async def receive_event(event: IntegrationEvent):
 
 
 @router.get("/integration/evaluate", response_model=EvaluateResponse)
-async def evaluate_provision(catalog_item: str, tenant: str):
+async def evaluate_provision(catalog_item: str, tenant: str, request: Request):
+    _verify_api_key(request)
     """Pre-flight check for Launchpad provisioning requests."""
     reasons = []
     level = "allowed"
