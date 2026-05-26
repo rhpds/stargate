@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "summit-demo-factory"
+version = "0.1.0"
+description = "Control plane for provisioning, validating, and observing Summit demo environments"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+    "jsonschema>=4.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-asyncio>=0.23",
+]
+api = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "httpx>=0.28",
+    "asyncpg>=0.30",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: marks tests requiring podman-compose services (PostgreSQL)",
+]
+
+[tool.setuptools.packages.find]
+include = ["api*", "cli*", "collectors*", "reports*"]

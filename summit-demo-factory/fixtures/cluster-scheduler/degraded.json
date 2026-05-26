@@ -1,0 +1,15 @@
+{
+  "kind": "ClusterHealth",
+  "metadata": {
+    "name": "cnv-us-east-ocp-3"
+  },
+  "metrics": {
+    "health_score": 35,
+    "cpu_usage_pct": 94,
+    "memory_usage_pct": 88,
+    "critical_alerts": 2,
+    "unhealthy_nodes": 1,
+    "total_nodes": 12,
+    "vm_count": 190
+  }
+}

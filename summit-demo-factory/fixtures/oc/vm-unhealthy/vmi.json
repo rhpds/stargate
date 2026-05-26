@@ -1,0 +1,25 @@
+{
+  "apiVersion": "kubevirt.io/v1",
+  "kind": "VirtualMachineInstance",
+  "metadata": {
+    "name": "demo-vm",
+    "namespace": "summit-vm-002",
+    "creationTimestamp": "2026-05-05T15:04:10Z"
+  },
+  "spec": {
+    "domain": {
+      "cpu": { "cores": 2 },
+      "memory": { "guest": "4Gi" }
+    }
+  },
+  "status": {
+    "phase": "Scheduling",
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "False",
+        "lastTransitionTime": "2026-05-05T15:04:10Z"
+      }
+    ]
+  }
+}

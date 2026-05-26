@@ -1,0 +1,37 @@
+{
+  "apiVersion": "route.openshift.io/v1",
+  "kind": "Route",
+  "metadata": {
+    "name": "demo-app",
+    "namespace": "summit-demo-002",
+    "creationTimestamp": "2026-05-05T15:01:00Z"
+  },
+  "spec": {
+    "host": "demo-app-summit-demo-002.apps.cluster.example.com",
+    "to": {
+      "kind": "Service",
+      "name": "demo-app",
+      "weight": 100
+    },
+    "port": {
+      "targetPort": 8080
+    },
+    "tls": {
+      "termination": "edge"
+    }
+  },
+  "status": {
+    "ingress": [
+      {
+        "host": "demo-app-summit-demo-002.apps.cluster.example.com",
+        "conditions": [
+          {
+            "type": "Admitted",
+            "status": "True",
+            "lastTransitionTime": "2026-05-05T15:01:05Z"
+          }
+        ]
+      }
+    ]
+  }
+}

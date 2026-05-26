@@ -1,0 +1,36 @@
+id: smoke-test-ready
+version: v0.1.0
+stage: smoke-test-ready
+timeout_seconds: 120
+entry_criteria:
+  - name: route_reachable
+    required: true
+exit_criteria:
+  - name: smoke_test_passed
+    required: true
+  - name: expected_response_received
+    required: true
+  - name: response_time_acceptable
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  smoke_test_failed:
+    when:
+      - smoke_test_passed == false
+    recommended_action: inspect_application_logs
+  unexpected_response:
+    when:
+      - smoke_test_passed == true
+      - expected_response_received == false
+    recommended_action: inspect_application_output
+allowed_remediations:
+  - inspect_application_logs
+  - inspect_application_output
+forbidden_remediations:
+  - delete_namespace

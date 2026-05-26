@@ -1,0 +1,13 @@
+---
+# Pre-software — verify cluster access
+- name: "StarGate — Pre-flight"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify OpenShift connectivity
+      kubernetes.core.k8s_info:
+        kind: Namespace
+        name: default
+      register: _ns
+      failed_when: _ns.resources | length == 0

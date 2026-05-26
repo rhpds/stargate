@@ -1,0 +1,47 @@
+{
+  "apiVersion": "serving.kserve.io/v1beta1",
+  "kind": "InferenceService",
+  "metadata": {
+    "name": "demo-model",
+    "namespace": "summit-model-002",
+    "creationTimestamp": "2026-05-05T15:01:00Z"
+  },
+  "spec": {
+    "predictor": {
+      "model": {
+        "modelFormat": {
+          "name": "onnx"
+        },
+        "runtime": "ovms",
+        "storageUri": "s3://models/demo-model/v1"
+      }
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "False",
+        "lastTransitionTime": "2026-05-05T15:05:00Z",
+        "reason": "RevisionFailed",
+        "message": "Revision \"demo-model-predictor-00001\" failed with message: Unable to fetch image"
+      },
+      {
+        "type": "PredictorReady",
+        "status": "False",
+        "lastTransitionTime": "2026-05-05T15:05:00Z",
+        "reason": "RevisionFailed"
+      }
+    ],
+    "modelStatus": {
+      "states": {
+        "activeModelState": "FailedToLoad",
+        "targetModelState": "Loaded"
+      },
+      "lastFailureInfo": {
+        "reason": "ModelLoadFailed",
+        "message": "Unable to fetch model from storage"
+      }
+    }
+  }
+}

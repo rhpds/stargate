@@ -1,0 +1,11 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "name": "summit-model-002",
+    "creationTimestamp": "2026-05-05T15:00:00Z"
+  },
+  "status": {
+    "phase": "Active"
+  }
+}
