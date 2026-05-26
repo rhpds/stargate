@@ -1,5 +1,6 @@
 """Summit Demo Factory API — FastAPI application."""
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -21,6 +22,8 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
+cors_origins = os.environ.get("CORS_ORIGINS", "http://localhost:8080").split(",")
+
 app = FastAPI(
     title="Summit Demo Factory",
     description="Control plane for provisioning, validating, and observing Summit demo environments",
@@ -30,9 +33,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[o.strip() for o in cors_origins],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "X-API-Key", "Authorization"],
 )
 
 app.include_router(runs_router)

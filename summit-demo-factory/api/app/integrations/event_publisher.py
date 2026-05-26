@@ -16,13 +16,14 @@ DEEPFIELD_API_URL = os.environ.get("DEEPFIELD_API_URL")
 DEEPFIELD_API_KEY = os.environ.get("DEEPFIELD_API_KEY")
 LAUNCHPAD_API_URL = os.environ.get("LAUNCHPAD_API_URL")
 LAUNCHPAD_API_KEY = os.environ.get("LAUNCHPAD_API_KEY")
+SSL_VERIFY = os.environ.get("INTEGRATION_SSL_VERIFY", "true").lower() != "false"
 
 
 async def _push(base_url: Optional[str], api_key: Optional[str], payload: dict):
     if not base_url:
         return
     try:
-        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+        async with httpx.AsyncClient(verify=SSL_VERIFY, timeout=5.0) as client:
             headers = {"X-API-Key": api_key} if api_key else {}
             await client.post(f"{base_url}/integration/events", json=payload, headers=headers)
     except Exception as e:
@@ -45,7 +46,7 @@ async def notify_launchpad(session_id: str, result: str, errors: Optional[list[s
     if not LAUNCHPAD_API_URL:
         return
     try:
-        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+        async with httpx.AsyncClient(verify=SSL_VERIFY, timeout=5.0) as client:
             headers = {"X-API-Key": LAUNCHPAD_API_KEY} if LAUNCHPAD_API_KEY else {}
             await client.post(
                 f"{LAUNCHPAD_API_URL}/callbacks/cleanup-result",
