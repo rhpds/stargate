@@ -1,0 +1,42 @@
+{
+  "apiVersion": "serving.kserve.io/v1beta1",
+  "kind": "InferenceService",
+  "metadata": {
+    "name": "demo-model",
+    "namespace": "summit-model-001",
+    "creationTimestamp": "2026-05-05T14:01:00Z"
+  },
+  "spec": {
+    "predictor": {
+      "model": {
+        "modelFormat": {
+          "name": "onnx"
+        },
+        "runtime": "ovms",
+        "storageUri": "s3://models/demo-model/v1"
+      }
+    }
+  },
+  "status": {
+    "url": "https://demo-model-summit-model-001.apps.cluster.example.com",
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:03:00Z"
+      },
+      {
+        "type": "PredictorReady",
+        "status": "True",
+        "lastTransitionTime": "2026-05-05T14:02:45Z"
+      }
+    ],
+    "modelStatus": {
+      "states": {
+        "activeModelState": "Loaded",
+        "targetModelState": "Loaded"
+      },
+      "lastFailureInfo": null
+    }
+  }
+}

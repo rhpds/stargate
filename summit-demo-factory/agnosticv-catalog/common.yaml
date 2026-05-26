@@ -1,0 +1,53 @@
+---
+# AgnosticV Catalog Entry — StarGate (Summit Demo Factory)
+# Validation control plane for demo environment correctness.
+
+__meta__:
+  catalog:
+    display_name: "StarGate — Demo Validation Control Plane"
+    description: >
+      Evidence-driven rubric evaluation for demo environment correctness.
+      Deterministic rubrics catch 80%+ of failures as patterns. LLM is called
+      only for novel/unclassified failures with full context. Integrates with
+      Launchpad (provisioning) and DeepField (fleet monitoring).
+    category: Labs
+    keywords:
+      - stargate
+      - validation
+      - rubric
+      - demo-factory
+      - intel
+    labels:
+      Provider: RHDP
+
+  deployer:
+    scm_url: https://github.com/agnosticd/agnosticd-v2
+    scm_ref: main
+    execution_environment:
+      image: quay.io/agnosticd/ee-multicloud:latest
+      pull: missing
+    actions:
+      destroy:
+        disable: false
+      start:
+        disable: false
+      stop:
+        disable: false
+
+env_type: stargate-demo-factory
+agnosticd_open_environment: false
+cloud_provider: none
+
+# Container images
+stargate_image: "quay.io/intel-redhat/stargate:latest"
+postgres_image: "registry.redhat.io/rhel9/postgresql-16:latest"
+
+# Database
+deploy_database: true
+postgres_storage_size: "5Gi"
+
+# Integration (optional — graceful degradation when not set)
+launchpad_api_url: ""
+launchpad_api_key: ""
+deepfield_api_url: ""
+deepfield_api_key: ""

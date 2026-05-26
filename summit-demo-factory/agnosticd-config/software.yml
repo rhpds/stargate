@@ -1,0 +1,231 @@
+---
+# Stage 2: Deploy StarGate to OpenShift
+- name: "StarGate — Deploy"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    postgres_password: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+    database_url: "postgresql://{{ postgres_user }}:{{ postgres_password }}@stargate-postgres.{{ ocp_project_name }}.svc:5432/stargate"
+
+  tasks:
+    # --- Namespace ---
+    - name: Create StarGate namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ ocp_project_name }}"
+            labels:
+              app.kubernetes.io/part-of: stargate
+              guid: "{{ guid }}"
+
+    # --- Secrets ---
+    - name: Create StarGate secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: summit-demo-factory-db
+            namespace: "{{ ocp_project_name }}"
+          type: Opaque
+          stringData:
+            database-url: "{{ database_url }}"
+            postgres-user: "{{ postgres_user }}"
+            postgres-password: "{{ postgres_password }}"
+
+    - name: Create integration secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: summit-demo-factory-integration
+            namespace: "{{ ocp_project_name }}"
+          type: Opaque
+          stringData:
+            launchpad-api-url: "{{ launchpad_api_url }}"
+            launchpad-api-key: "{{ launchpad_api_key }}"
+            deepfield-api-url: "{{ deepfield_api_url }}"
+            deepfield-api-key: "{{ deepfield_api_key }}"
+
+    # --- PostgreSQL ---
+    - name: Create PostgreSQL PVC
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: stargate-postgres-data
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: "{{ postgres_storage_size }}"
+      when: deploy_database | bool
+
+    - name: Deploy PostgreSQL
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: stargate-postgres
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: stargate-postgres
+            template:
+              metadata:
+                labels:
+                  app: stargate-postgres
+              spec:
+                containers:
+                  - name: postgres
+                    image: "{{ postgres_image }}"
+                    env:
+                      - name: POSTGRESQL_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: summit-demo-factory-db
+                            key: postgres-user
+                      - name: POSTGRESQL_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: summit-demo-factory-db
+                            key: postgres-password
+                      - name: POSTGRESQL_DATABASE
+                        value: stargate
+                    ports:
+                      - containerPort: 5432
+                    volumeMounts:
+                      - name: data
+                        mountPath: /var/lib/pgsql/data
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 256Mi
+                      limits:
+                        cpu: "1"
+                        memory: 512Mi
+                volumes:
+                  - name: data
+                    persistentVolumeClaim:
+                      claimName: stargate-postgres-data
+      when: deploy_database | bool
+
+    - name: Create PostgreSQL service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: stargate-postgres
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            selector:
+              app: stargate-postgres
+            ports:
+              - port: 5432
+      when: deploy_database | bool
+
+    # --- StarGate API ---
+    - name: Deploy StarGate API
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: summit-demo-factory
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            replicas: "{{ stargate_replicas }}"
+            selector:
+              matchLabels:
+                app: summit-demo-factory
+            template:
+              metadata:
+                labels:
+                  app: summit-demo-factory
+              spec:
+                containers:
+                  - name: api
+                    image: "{{ stargate_image }}"
+                    ports:
+                      - containerPort: 8080
+                    env:
+                      - name: DATABASE_URL
+                        valueFrom:
+                          secretKeyRef:
+                            name: summit-demo-factory-db
+                            key: database-url
+                    envFrom:
+                      - secretRef:
+                          name: summit-demo-factory-integration
+                          optional: true
+                    resources:
+                      requests:
+                        cpu: "{{ stargate_cpu_request }}"
+                        memory: 128Mi
+                      limits:
+                        cpu: 500m
+                        memory: "{{ stargate_memory_limit }}"
+                    readinessProbe:
+                      httpGet:
+                        path: /health
+                        port: 8080
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    livenessProbe:
+                      httpGet:
+                        path: /health
+                        port: 8080
+                      initialDelaySeconds: 10
+                      periodSeconds: 30
+
+    - name: Create StarGate service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: summit-demo-factory
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            selector:
+              app: summit-demo-factory
+            ports:
+              - port: 8080
+                targetPort: 8080
+
+    - name: Create StarGate route
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: summit-demo-factory
+            namespace: "{{ ocp_project_name }}"
+          spec:
+            to:
+              kind: Service
+              name: summit-demo-factory
+            port:
+              targetPort: 8080
+            tls:
+              termination: edge
+              insecureEdgeTerminationPolicy: Redirect

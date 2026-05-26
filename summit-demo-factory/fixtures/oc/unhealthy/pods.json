@@ -1,0 +1,54 @@
+{
+  "apiVersion": "v1",
+  "kind": "PodList",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "demo-app-5c8d9e7f1-q3w2e",
+        "namespace": "summit-demo-002",
+        "labels": {
+          "app": "demo-app",
+          "pod-template-hash": "5c8d9e7f1"
+        },
+        "creationTimestamp": "2026-05-05T15:01:15Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "demo-app",
+            "image": "registry.example.com/demo-app:v1.0.0"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {"type": "Ready", "status": "False"},
+          {"type": "ContainersReady", "status": "False"}
+        ],
+        "containerStatuses": [
+          {
+            "name": "demo-app",
+            "ready": false,
+            "restartCount": 5,
+            "state": {
+              "waiting": {
+                "reason": "CrashLoopBackOff",
+                "message": "back-off 5m0s restarting failed container=demo-app"
+              }
+            },
+            "lastState": {
+              "terminated": {
+                "exitCode": 1,
+                "reason": "Error",
+                "finishedAt": "2026-05-05T15:10:00Z"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

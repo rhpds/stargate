@@ -1,0 +1,43 @@
+id: route-ready
+version: v0.1.0
+stage: route-ready
+timeout_seconds: 180
+entry_criteria:
+  - name: service_exists
+    required: true
+exit_criteria:
+  - name: route_exists
+    required: true
+  - name: service_has_ready_endpoints
+    required: true
+  - name: health_endpoint_returns_200
+    required: true
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  service_has_no_endpoints:
+    when:
+      - service_exists == true
+      - ready_endpoint_count == 0
+    recommended_action: inspect_service_selector_and_pod_labels
+  route_missing:
+    when:
+      - route_exists == false
+    recommended_action: check_route_manifest
+  health_check_failed:
+    when:
+      - route_exists == true
+      - service_has_ready_endpoints == true
+      - health_endpoint_returns_200 == false
+    recommended_action: inspect_application_health
+allowed_remediations:
+  - collect_service_and_pod_labels
+  - inspect_application_health
+forbidden_remediations:
+  - delete_namespace
+  - delete_source_snapshot

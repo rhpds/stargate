@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stage",
+  "type": "object",
+  "required": ["run_id", "stage_id", "status"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "stage_id": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["pending", "running", "passed", "warned", "failed"] },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" },
+    "duration_seconds": { "type": ["number", "null"], "minimum": 0 },
+    "result": {
+      "type": ["object", "null"],
+      "properties": {
+        "outcome": { "type": "string", "enum": ["pass", "warn", "fail", "retry", "escalate", "indeterminate"] },
+        "failure_class": { "type": ["string", "null"] },
+        "message": { "type": ["string", "null"] }
+      },
+      "required": ["outcome"]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,156 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sdf-demo-provision
+  labels:
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  description: >
+    Provisions and validates a Summit demo environment through
+    staged rubric gates. Each stage collects evidence from the
+    cluster and evaluates it against the rubric. Failed gates
+    block pipeline promotion.
+  params:
+    - name: demo-id
+      type: string
+    - name: namespace
+      type: string
+    - name: rubric-version
+      type: string
+      default: "v0.1.0"
+    - name: sdf-api-url
+      type: string
+      default: "http://summit-demo-factory:8080"
+
+  tasks:
+    # Step 1: Create the run
+    - name: create-run
+      taskRef:
+        name: sdf-create-run
+      params:
+        - name: demo-id
+          value: "$(params.demo-id)"
+        - name: namespace
+          value: "$(params.namespace)"
+        - name: rubric-version
+          value: "$(params.rubric-version)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    # Step 2: Namespace ready gate
+    - name: collect-namespace
+      runAfter: ["create-run"]
+      taskRef:
+        name: sdf-collect-evidence
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "namespace-ready"
+        - name: namespace
+          value: "$(params.namespace)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    - name: gate-namespace
+      runAfter: ["collect-namespace"]
+      taskRef:
+        name: sdf-evaluate-gate
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "namespace-ready"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    # Step 3: Deployment ready gate
+    - name: collect-deployment
+      runAfter: ["gate-namespace"]
+      taskRef:
+        name: sdf-collect-evidence
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "deployment-ready"
+        - name: namespace
+          value: "$(params.namespace)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    - name: gate-deployment
+      runAfter: ["collect-deployment"]
+      taskRef:
+        name: sdf-evaluate-gate
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "deployment-ready"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    # Step 4: Route ready gate
+    - name: collect-route
+      runAfter: ["gate-deployment"]
+      taskRef:
+        name: sdf-collect-evidence
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "route-ready"
+        - name: namespace
+          value: "$(params.namespace)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    - name: gate-route
+      runAfter: ["collect-route"]
+      taskRef:
+        name: sdf-evaluate-gate
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "route-ready"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    # Step 5: Smoke test gate
+    - name: collect-smoke
+      runAfter: ["gate-route"]
+      taskRef:
+        name: sdf-collect-evidence
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "smoke-test-ready"
+        - name: namespace
+          value: "$(params.namespace)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+    - name: gate-smoke
+      runAfter: ["collect-smoke"]
+      taskRef:
+        name: sdf-evaluate-gate
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: stage-id
+          value: "smoke-test-ready"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"
+
+  finally:
+    - name: report
+      taskRef:
+        name: sdf-report
+      params:
+        - name: run-id
+          value: "$(tasks.create-run.results.run-id)"
+        - name: sdf-api-url
+          value: "$(params.sdf-api-url)"

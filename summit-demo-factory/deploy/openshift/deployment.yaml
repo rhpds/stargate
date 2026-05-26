@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summit-demo-factory
+  labels:
+    app: summit-demo-factory
+    app.kubernetes.io/name: summit-demo-factory
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: summit-demo-factory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: summit-demo-factory
+  template:
+    metadata:
+      labels:
+        app: summit-demo-factory
+    spec:
+      containers:
+        - name: api
+          image: summit-demo-factory:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: summit-demo-factory-db
+                  key: database-url
+            - name: DEEPFIELD_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: summit-demo-factory-integration
+                  key: deepfield-api-url
+                  optional: true
+            - name: DEEPFIELD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: summit-demo-factory-integration
+                  key: deepfield-api-key
+                  optional: true
+            - name: LAUNCHPAD_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: summit-demo-factory-integration
+                  key: launchpad-api-url
+                  optional: true
+            - name: LAUNCHPAD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: summit-demo-factory-integration
+                  key: launchpad-api-key
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: summit-demo-factory
+  labels:
+    app: summit-demo-factory
+spec:
+  selector:
+    app: summit-demo-factory
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: summit-demo-factory
+  labels:
+    app: summit-demo-factory
+spec:
+  to:
+    kind: Service
+    name: summit-demo-factory
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge

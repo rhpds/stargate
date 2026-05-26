@@ -1,0 +1,26 @@
+---
+# StarGate — default variables for agnosticd deployment
+
+env_type: stargate-demo-factory
+guid: "{{ guid }}"
+ocp_project_name: "stargate-{{ guid }}"
+
+# Container images
+stargate_image: "quay.io/intel-redhat/stargate:latest"
+postgres_image: "registry.redhat.io/rhel9/postgresql-16:latest"
+
+# Replicas & resources
+stargate_replicas: 1
+stargate_cpu_request: "100m"
+stargate_memory_limit: "256Mi"
+
+# Database
+deploy_database: true
+postgres_user: stargate
+postgres_storage_size: "5Gi"
+
+# Integration URLs (optional — graceful degradation)
+launchpad_api_url: ""
+launchpad_api_key: ""
+deepfield_api_url: ""
+deepfield_api_key: ""
