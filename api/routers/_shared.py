@@ -251,11 +251,16 @@ def _fetch_labagator_labs() -> List[Dict]:
     """Fetch labs from Labagator API. Cached 60s."""
     if _labagator_cache["labs"] is not None and time.time() - _labagator_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _labagator_cache["labs"]
+    labagator_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
+    if not labagator_url:
+        _labagator_cache["labs"] = []
+        _labagator_cache["ts"] = time.time()
+        return []
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/labs/?limit=200"
+            labagator_url + "/labs/?limit=200"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -279,11 +284,15 @@ def _fetch_labagator_sessions() -> List[Dict]:
     """Fetch sessions from Labagator API. Cached 60s."""
     if _labagator_cache["sessions"] is not None and time.time() - _labagator_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _labagator_cache["sessions"]
+    labagator_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
+    if not labagator_url:
+        _labagator_cache["sessions"] = []
+        return []
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/room-sessions/?limit=500"
+            labagator_url + "/room-sessions/?limit=500"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -304,11 +313,16 @@ def _fetch_demolition_sessions() -> List[Dict]:
     """Fetch sessions from Demolition API. Cached 60s."""
     if _demolition_cache["data"] is not None and time.time() - _demolition_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _demolition_cache["data"]
+    demolition_url = os.environ.get("STARGATE_DEMOLITION_URL", "")
+    if not demolition_url:
+        _demolition_cache["data"] = []
+        _demolition_cache["ts"] = time.time()
+        return []
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_DEMOLITION_URL", "") + "/integration/sessions"
+            demolition_url + "/integration/sessions"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
