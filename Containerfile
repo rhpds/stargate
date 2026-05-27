@@ -23,7 +23,6 @@ RUN pip install --no-cache-dir \
 
 COPY engine/ engine/
 COPY collectors/ collectors/
-COPY normalizers/ normalizers/
 COPY proposals/ proposals/
 COPY api/ api/
 COPY db/ db/
