@@ -60,6 +60,10 @@ def require_admin(request: Request = None, api_key: str = Security(_api_key_head
         oauth_user = request.headers.get("x-forwarded-user", "")
         if oauth_user:
             return
+        # Allow same-origin browser requests (frontend served from same container)
+        fetch_site = request.headers.get("sec-fetch-site", "")
+        if fetch_site == "same-origin":
+            return
         origin = request.headers.get("origin", "")
         referer = request.headers.get("referer", "")
         allowed = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
