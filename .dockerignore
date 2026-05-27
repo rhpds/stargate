@@ -7,3 +7,8 @@ stargate-synthetic-client-emulator/
 __pycache__/
 *.pyc
 node_modules/
+secrets/
+fixtures/
+docs/
+tests/
+scheduler.log
