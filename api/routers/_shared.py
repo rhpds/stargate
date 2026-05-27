@@ -60,6 +60,13 @@ def require_admin(request: Request = None, api_key: str = Security(_api_key_head
         oauth_user = request.headers.get("x-forwarded-user", "")
         if oauth_user:
             return
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        allowed = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+        if origin and any(origin == a for a in allowed):
+            return
+        if referer and any(referer.startswith(a) for a in allowed):
+            return
     if not ADMIN_API_KEY:
         raise HTTPException(status_code=503, detail="Admin API key not configured")
     raise HTTPException(status_code=403, detail="Invalid or missing API key")
