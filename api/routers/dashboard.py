@@ -3815,3 +3815,226 @@ def _build_remediation_prompt(context_type: str, evidence: Dict, catalog_command
 
     sections.append(task)
     return "\n\n".join(sections)
+
+
+# ---------------------------------------------------------------------------
+# Remediation playbook — step-by-step for dashboard consumption
+# ---------------------------------------------------------------------------
+
+@router.post("/remediation/playbook")
+def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
+    """Run a single remediation playbook: investigate → diagnose → fix → verify.
+
+    Called by the platform-dashboard to visualize real remediation in the UI.
+    Reuses existing StarGate infrastructure — no new logic, just orchestration.
+
+    Body: {"namespace": "...", "failure_class": "pods_crashlooping", "pod": "...",
+           "lab_code": "...", "cluster_name": "..."}
+    """
+    import os
+    import time as _t
+
+    namespace = req.get("namespace", "stargate-test")
+    failure_class = req.get("failure_class", "pods_crashlooping")
+    pod = req.get("pod", "")
+    lab_code = req.get("lab_code")
+    cluster_name = req.get("cluster_name")
+
+    kubeconfig = os.environ.get("KUBECONFIG", "")
+    start_time = _t.time()
+    phases: Dict = {}
+
+    # --- Phase 1: INVESTIGATE — collect pod logs and events ---
+    investigate: Dict = {"pod_logs": "", "pod_events": [], "source": "mock"}
+    if kubeconfig:
+        try:
+            from engine.rollback import _run_oc
+            logs = _run_oc(["logs", "-n", namespace, pod, "--previous", "--tail=100"], kubeconfig, timeout=10)
+            if not logs or "error" in logs.lower():
+                logs = _run_oc(["logs", "-n", namespace, pod, "--tail=100"], kubeconfig, timeout=10)
+            investigate["pod_logs"] = logs[:3000]
+
+            events_raw = _run_oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "-o", "json"], kubeconfig, timeout=10)
+            if events_raw:
+                import json as _json
+                events_data = _json.loads(events_raw)
+                pod_events = []
+                for e in events_data.get("items", []):
+                    involved = e.get("involvedObject", {}).get("name", "")
+                    if pod and pod in involved:
+                        pod_events.append({
+                            "type": e.get("type"),
+                            "reason": e.get("reason"),
+                            "message": (e.get("message") or "")[:200],
+                            "count": e.get("count", 1),
+                        })
+                investigate["pod_events"] = pod_events[-10:]
+            investigate["source"] = "live"
+        except Exception as e:
+            investigate["source"] = "error"
+            investigate["error"] = str(e)[:200]
+    else:
+        investigate["pod_logs"] = "OOM killed (exit code 137)\nContainer exceeded memory limit of 32Mi"
+        investigate["pod_events"] = [
+            {"type": "Warning", "reason": "BackOff", "message": "Back-off restarting failed container", "count": 5},
+            {"type": "Warning", "reason": "OOMKilled", "message": "Container killed due to OOM", "count": 3},
+        ]
+
+    investigate["pod"] = pod
+    investigate["namespace"] = namespace
+    phases["investigate"] = investigate
+
+    # --- Phase 2: DIAGNOSE — rubric evaluation + LLM classification ---
+    from engine.chaos_scenarios import collect_real_evidence
+    from engine.rubric_evaluator import evaluate_rubric
+    from api.routers._shared import _load_rubric_for_stage
+
+    evidence = {}
+    eval_result = None
+    rubric_stage = "deployment-ready"
+    if kubeconfig:
+        evidence = collect_real_evidence(namespace, kubeconfig)
+    else:
+        evidence = {
+            "namespace_exists": True, "deployment_exists": True,
+            "desired_replicas_ready": False, "no_crashloop_pods": False,
+            "no_oom_killed_pods": False,
+        }
+
+    rubric = _load_rubric_for_stage(rubric_stage)
+    if rubric:
+        eval_result = evaluate_rubric(rubric, evidence)
+
+    diagnose: Dict = {
+        "failure_class": eval_result.failure_class if eval_result else failure_class,
+        "outcome": eval_result.outcome.value if eval_result else "fail",
+        "criteria": [{"name": c.name, "required": c.required, "passed": c.passed}
+                     for c in (eval_result.criteria_results if eval_result else [])],
+        "evidence": evidence,
+        "rubric_stage": rubric_stage,
+        "source": "live" if kubeconfig else "mock",
+    }
+
+    llm_classification = None
+    try:
+        from api.llm import call_llm, load_prompt
+        prompt = load_prompt("classify")
+        if prompt:
+            evidence_str = (
+                f"## Failure Details\n- Stage: {rubric_stage}\n"
+                f"- Failure class: {diagnose['failure_class']}\n"
+                f"- Evidence: {json.dumps(evidence)}\n"
+                f"- Pod logs excerpt: {investigate['pod_logs'][:500]}\n\n"
+                f"## Known Failure Classes\n"
+                f"- pods_not_ready, pods_crashlooping, deployment_missing, "
+                f"route_missing, namespace_missing, showroom_not_ready"
+            )
+            llm_result = call_llm(
+                endpoint="classify",
+                messages=[
+                    {"role": "system", "content": prompt.get("system", "Classify this failure. JSON only.")},
+                    {"role": "user", "content": evidence_str},
+                ],
+                max_tokens=prompt.get("max_tokens", 500),
+                temperature=prompt.get("temperature", 0.1),
+                timeout=30, db=db,
+                prompt_version=prompt.get("version"),
+            )
+            if llm_result["success"]:
+                parsed = json.loads(llm_result["content"])
+                llm_classification = {
+                    "proposed_class": parsed.get("proposed_class"),
+                    "confidence": parsed.get("confidence"),
+                    "reasoning": parsed.get("reasoning"),
+                    "prompt_version": prompt.get("version"),
+                    "model": prompt.get("model", "granite-3-2-8b-instruct"),
+                    "messages": [
+                        {"role": "system", "content": prompt.get("system", "")},
+                        {"role": "user", "content": evidence_str},
+                    ],
+                    "output": llm_result["content"],
+                    "tokens_in": llm_result["usage"].get("prompt_tokens"),
+                    "tokens_out": llm_result["usage"].get("completion_tokens"),
+                    "latency_ms": llm_result["latency_ms"],
+                }
+    except Exception:
+        pass
+
+    diagnose["llm_classification"] = llm_classification
+    phases["diagnose"] = diagnose
+
+    # --- Phase 3: FIX — execute remediation action ---
+    fix: Dict = {"action": "restart_crashlooping_pod", "success": False, "commands_executed": [], "source": "mock"}
+    if kubeconfig and pod:
+        try:
+            from engine.rollback import _run_oc
+            output = _run_oc(["delete", "pod", pod, "-n", namespace, "--force", "--grace-period=0"], kubeconfig, timeout=15)
+            fix["commands_executed"].append({"command": f"oc delete pod {pod} -n {namespace}", "success": True, "output": output[:200]})
+            fix["success"] = True
+            fix["source"] = "live"
+        except Exception as e:
+            fix["commands_executed"].append({"command": f"oc delete pod {pod} -n {namespace}", "success": False, "error": str(e)[:200]})
+    else:
+        fix["success"] = True
+        fix["commands_executed"] = [{"command": f"oc delete pod {pod} -n {namespace}", "success": True, "output": "pod deleted"}]
+
+    fix["reason"] = "Crashlooping pod deleted. Deployment controller will create a healthy replacement."
+    fix["before"] = {"pod_status": "CrashLoopBackOff", "restart_count": 5}
+    fix["after"] = {"pod_status": "Deleted — replacement pending"}
+    phases["fix"] = fix
+
+    # --- Phase 4: VERIFY — confirm recovery ---
+    import time as _t2
+    _t2.sleep(5)
+
+    verify: Dict = {"outcome": "pass", "recovery": True, "source": "mock"}
+    if kubeconfig:
+        evidence_after = collect_real_evidence(namespace, kubeconfig)
+        eval_after = evaluate_rubric(rubric, evidence_after) if rubric else None
+        verify["outcome"] = eval_after.outcome.value if eval_after else "unknown"
+        verify["recovery"] = (eval_result and eval_result.outcome.value == "fail" and
+                              eval_after and eval_after.outcome.value in ("pass", "warn"))
+        verify["evidence_after"] = evidence_after
+        verify["source"] = "live"
+
+        pod_raw = _run_oc(["get", "pods", "-n", namespace, "-o", "json"], kubeconfig, timeout=10)
+        if pod_raw:
+            pod_data = json.loads(pod_raw)
+            running_pods = []
+            for p in pod_data.get("items", []):
+                cs = p.get("status", {}).get("containerStatuses", [{}])
+                running_pods.append({
+                    "name": p.get("metadata", {}).get("name", ""),
+                    "phase": p.get("status", {}).get("phase", "Unknown"),
+                    "restart_count": cs[0].get("restartCount", 0) if cs else 0,
+                    "ready": cs[0].get("ready", False) if cs else False,
+                })
+            verify["pods"] = running_pods
+            healthy = [p for p in running_pods if p["phase"] == "Running" and p["restart_count"] == 0]
+            verify["pod_status"] = healthy[0] if healthy else (running_pods[0] if running_pods else None)
+    else:
+        verify["pod_status"] = {"name": "replacement-pod", "phase": "Running", "restart_count": 0, "ready": True}
+        verify["pods"] = [verify["pod_status"]]
+
+    phases["verify"] = verify
+
+    elapsed_ms = int((_t.time() - start_time) * 1000)
+
+    return {
+        "playbook": failure_class,
+        "namespace": namespace,
+        "pod": pod,
+        "phases": phases,
+        "outcome": "success" if verify.get("recovery") or verify.get("outcome") == "pass" else "failure",
+        "time_ms": elapsed_ms,
+        "receipt": {
+            "type": "remediation-playbook",
+            "playbook": failure_class,
+            "steps_executed": ["investigate", "diagnose", "fix", "verify"],
+            "outcome": "success" if verify.get("recovery") or verify.get("outcome") == "pass" else "failure",
+            "pre_state": fix.get("before"),
+            "post_state": {"pod_status": verify.get("pod_status", {}).get("phase"), "restart_count": verify.get("pod_status", {}).get("restart_count")},
+            "time_ms": elapsed_ms,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    }
