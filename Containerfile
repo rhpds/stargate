@@ -31,6 +31,8 @@ COPY constraints/ constraints/
 COPY rubrics/ rubrics/
 COPY remediations/ remediations/
 COPY prompts/ prompts/
+COPY failure-classes/ failure-classes/
+COPY integrations/ integrations/
 COPY evidence-schemas/ evidence-schemas/
 COPY cli/ cli/
 COPY --from=frontend-build /app/dist frontend/dist/
