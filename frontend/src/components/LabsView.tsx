@@ -68,19 +68,14 @@ export default function LabsView({ data, onSelect, selectedCode }: Props) {
     { key: 'title', getter: (l: Deployment) => l.title },
     { key: 'stage', getter: (l: Deployment) => l.labagator_status },
     { key: 'cloud', getter: (l: Deployment) => l.cloud },
-    { key: 'sessions', getter: (l: Deployment) => l.sessions },
-    { key: 'sandboxes', getter: (l: Deployment) => l.instances_started },
+    { key: 'instances', getter: (l: Deployment) => l.instances_started },
     { key: 'capacity', getter: (l: Deployment) => l.instances_total > 0 ? l.instances_started : l.provisioned },
-    { key: 'smoke', getter: (l: Deployment) => l.demolition_status },
-    { key: 'readiness', getter: (l: Deployment) => {
-      const hasSmoke = l.demolition_status !== 'none';
-      const isDeployed = l.instances_started > 0 || l.provisioned > 0 || l.capacity > 0
-        || hasSmoke || l.cloud === 'Tenant Namespace';
+    { key: 'health', getter: (l: Deployment) => {
+      const isDeployed = l.instances_started > 0 || l.provisioned > 0 || l.capacity > 0 || l.cloud === 'Tenant Namespace';
       const checks = [
         l.labagator_status === 'in_development' || l.labagator_status === 'ready',
-        l.sessions > 0,
         isDeployed,
-        l.demolition_status === 'pass',
+        l.instances_failed === 0,
       ];
       return checks.filter(Boolean).length;
     }},
@@ -188,42 +183,35 @@ export default function LabsView({ data, onSelect, selectedCode }: Props) {
           <Tr>
             <Th {...labSort.getSortParams(0)}>Lab Code</Th>
             <Th {...labSort.getSortParams(1)}>Title</Th>
-            <Th {...labSort.getSortParams(2)}>Stage</Th>
+            <Th {...labSort.getSortParams(2)}>Status</Th>
             <Th {...labSort.getSortParams(3)}>Cloud</Th>
             <Th>Tags</Th>
-            <Th {...labSort.getSortParams(4)}>Usage</Th>
-            <Th {...labSort.getSortParams(5)}>Sandboxes</Th>
-            <Th {...labSort.getSortParams(6)}>Capacity</Th>
-            <Th {...labSort.getSortParams(7)}>Smoke Test</Th>
-            <Th {...labSort.getSortParams(8)}>Readiness</Th>
-            <Th {...labSort.getSortParams(9)}>Last Scanned</Th>
+            <Th {...labSort.getSortParams(4)}>Instances</Th>
+            <Th {...labSort.getSortParams(5)}>Capacity</Th>
+            <Th {...labSort.getSortParams(6)}>Health</Th>
+            <Th {...labSort.getSortParams(7)}>Last Evaluated</Th>
             <Th>Change</Th>
             <Th>Next Action</Th>
           </Tr>
         </Thead>
         <Tbody>
           {labSort.sorted.map(lab => {
-            const hasSmoke = lab.demolition_status !== 'none';
-            const isDeployed = lab.instances_started > 0 || lab.provisioned > 0 || lab.capacity > 0
-              || hasSmoke || lab.cloud === 'Tenant Namespace';
-            const readyCount = [
+            const isDeployed = lab.instances_started > 0 || lab.provisioned > 0 || lab.capacity > 0 || lab.cloud === 'Tenant Namespace';
+            const healthChecks = [
               lab.labagator_status === 'in_development' || lab.labagator_status === 'ready',
-              lab.sessions > 0,
               isDeployed,
-              lab.demolition_status === 'pass',
-            ].filter(Boolean).length;
-            const isReady = readyCount === 4;
-            const isAlmostReady = readyCount === 3;
-            const isBlocked = lab.sessions > 0 && !isDeployed && lab.instances_failed === 0;
+              lab.instances_failed === 0,
+            ];
+            const healthScore = healthChecks.filter(Boolean).length;
+            const isHealthy = healthScore === healthChecks.length;
+            const isBlocked = !isDeployed && lab.instances_failed > 0;
 
-            const rowStyle: React.CSSProperties = isReady
+            const rowStyle: React.CSSProperties = isHealthy
               ? { background: 'var(--sg-color--healthy-bg)', borderLeft: '4px solid var(--sg-color--healthy)' }
               : lab.instances_failed > 0
               ? { background: 'var(--sg-color--critical-bg)', borderLeft: '4px solid var(--sg-color--critical)' }
               : isBlocked
               ? { borderLeft: '4px solid var(--sg-color--warning)' }
-              : isAlmostReady
-              ? { borderLeft: '4px solid var(--sg-color--info)' }
               : {};
 
             return (
@@ -238,15 +226,20 @@ export default function LabsView({ data, onSelect, selectedCode }: Props) {
                     .slice(0, 3)
                     .map(t => <Label key={t} isCompact color="blue" style={{ marginRight: '2px', marginBottom: '1px', fontSize: '0.7rem' }}>{t}</Label>)}
                 </Td>
-                <Td>{lab.sessions > 0 ? <strong>{lab.sessions}</strong> : <span style={{ color: 'var(--rh-color--text-secondary)' }}>0</span>}</Td>
-                <Td>{lab.instances_started > 0 ? <strong>{lab.instances_started}</strong> : <span style={{ color: 'var(--rh-color--text-secondary)' }}>0</span>}</Td>
+                <Td>
+                  {lab.instances_started > 0
+                    ? <strong>{lab.instances_started}</strong>
+                    : <span style={{ color: 'var(--rh-color--text-secondary)' }}>0</span>}
+                  {lab.instances_failed > 0 && <span style={{ color: 'var(--sg-color--critical)', marginLeft: '4px', fontSize: '0.8rem' }}>({lab.instances_failed} failed)</span>}
+                </Td>
                 <Td><CapacityCell lab={lab} /></Td>
-                <Td><SmokeTestCell lab={lab} /></Td>
-                <Td style={{ minWidth: '140px' }}><ReadinessCell lab={lab} readyCount={readyCount} /></Td>
+                <Td style={{ minWidth: '100px' }}>
+                  <HealthCell healthScore={healthScore} total={healthChecks.length} />
+                </Td>
                 <Td style={{ fontSize: '0.8rem' }}>
                   {lab.last_scanned
                     ? <span title={new Date(lab.last_scanned).toLocaleString()}>{formatScanTime(lab.last_scanned)}</span>
-                    : <span style={{ color: 'var(--sg-color--warning)', fontSize: '0.8rem' }} title="No provisioning, no smoke tests, no instances — nothing to scan">Not deployed</span>}
+                    : <span style={{ color: 'var(--sg-color--warning)', fontSize: '0.8rem' }}>Not evaluated</span>}
                 </Td>
                 <Td><DeltaCell code={lab.lab_code} deltas={deltaData?.deltas} /></Td>
                 <Td>
@@ -316,22 +309,14 @@ function CapacityCell({ lab }: { lab: Deployment }) {
   return <span style={{ color: 'var(--sg-color--warning)', fontSize: '0.85rem' }}>No pools</span>;
 }
 
-function SmokeTestCell({ lab }: { lab: Deployment }) {
-  if (lab.demolition_status === 'pass') {
-    return (
-      <Label isCompact color="green">
-        Pass ({lab.demolition_completed}/{lab.demolition_total})
-      </Label>
-    );
-  }
-  if (lab.demolition_status === 'fail') {
-    return (
-      <Label isCompact color="red">
-        Fail ({lab.demolition_failed}/{lab.demolition_total})
-      </Label>
-    );
-  }
-  return <span style={{ color: 'var(--rh-color--text-secondary)', fontSize: '0.85rem' }}>Not tested</span>;
+function HealthCell({ healthScore, total }: { healthScore: number; total: number }) {
+  const pct = (healthScore / total) * 100;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <Progress value={pct} size="sm" style={{ minWidth: 60 }} variant={pct >= 100 ? undefined : pct >= 67 ? 'warning' : 'danger'} />
+      <span style={{ fontSize: '0.75rem', color: 'var(--rh-color--text-secondary, #6a6e73)' }}>{healthScore}/{total}</span>
+    </div>
+  );
 }
 
 function formatScanTime(iso: string): string {
@@ -352,10 +337,10 @@ function DeltaCell({ code, deltas }: { code: string; deltas?: Record<string, Rec
   if (!d) return <span style={{ color: 'var(--rh-color--text-secondary, #6a6e73)' }}>-</span>;
 
   const items: { label: string; dir: string }[] = [];
-  if (d.instances) items.push({ label: 'Provisioned', dir: d.instances });
-  if (d.capacity) items.push({ label: 'Pools', dir: d.capacity });
-  if (d.smoke) items.push({ label: 'Smoke Test', dir: d.smoke });
-  if (d.status) items.push({ label: 'Dev Stage', dir: d.status });
+  if (d.instances) items.push({ label: 'Instances', dir: d.instances });
+  if (d.capacity) items.push({ label: 'Capacity', dir: d.capacity });
+  if (d.health) items.push({ label: 'Health', dir: d.health });
+  if (d.status) items.push({ label: 'Status', dir: d.status });
 
   if (items.length === 0) return <span style={{ color: 'var(--rh-color--text-secondary, #6a6e73)' }}>-</span>;
 
@@ -377,28 +362,3 @@ function DeltaCell({ code, deltas }: { code: string; deltas?: Record<string, Rec
   );
 }
 
-function ReadinessCell({ lab, readyCount }: { lab: Deployment; readyCount: number }) {
-  const hasSmoke = lab.demolition_status !== 'none';
-  const isDeployed = lab.instances_started > 0 || lab.provisioned > 0 || lab.capacity > 0
-    || hasSmoke || lab.cloud === 'Tenant Namespace';
-  const checks = [
-    { label: 'Content', done: lab.labagator_status === 'in_development' || lab.labagator_status === 'ready' },
-    { label: 'Sessions', done: lab.sessions > 0 },
-    { label: 'Deployed', done: isDeployed },
-    { label: 'Smoke', done: lab.demolition_status === 'pass' },
-  ];
-  const pct = (readyCount / 4) * 100;
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <Progress value={pct} size="sm" style={{ minWidth: 60 }} variant={pct >= 100 ? undefined : pct >= 50 ? 'warning' : 'danger'} />
-      <span style={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'var(--rh-color--text-secondary, #6a6e73)' }}>
-        {checks.map(c => (
-          <span key={c.label} style={{ color: c.done ? 'var(--sg-color--healthy)' : 'var(--sg-color--critical)', marginRight: '3px' }} title={c.label}>
-            {c.label[0]}
-          </span>
-        ))}
-      </span>
-    </div>
-  );
-}
