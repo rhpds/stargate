@@ -3,6 +3,7 @@ secrets/
 *.kubeconfig
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.crt
