@@ -4,468 +4,422 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == service_has_no_endpoints
+  - failure_class == service_has_no_endpoints
   commands:
-    - "oc get svc {service} -n {namespace} -o yaml"
-    - "oc get pods -n {namespace} --show-labels"
+  - oc get svc {service} -n {namespace} -o yaml
+  - oc get pods -n {namespace} --show-labels
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_pod_status
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == pods_not_ready
+  - failure_class == pods_not_ready
   commands:
-    - "oc get pods -n {namespace} -o wide"
-    - "oc describe pods -n {namespace}"
+  - oc get pods -n {namespace} -o wide
+  - oc describe pods -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_pod_logs
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == pods_crashlooping
+  - failure_class == pods_crashlooping
   commands:
-    - "oc logs -n {namespace} --previous {pod}"
-    - "oc get events -n {namespace} --sort-by=.lastTimestamp"
+  - oc logs -n {namespace} --previous {pod}
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_application_health
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == health_check_failed
+  - failure_class == health_check_failed
   commands:
-    - "curl -s -o /dev/null -w '%{http_code}' {route_url}/health"
-    - "oc logs -n {namespace} {pod} --tail=50"
+  - curl -s -o /dev/null -w '%{http_code}' {route_url}/health
+  - oc logs -n {namespace} {pod} --tail=50
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_application_logs
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == smoke_test_failed
+  - failure_class == smoke_test_failed
   commands:
-    - "oc logs -n {namespace} {pod} --tail=100"
+  - oc logs -n {namespace} {pod} --tail=100
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: create_namespace
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: true
   allowed_when:
-    - failure_class == namespace_missing
+  - failure_class == namespace_missing
   commands:
-    - "oc new-project {namespace}"
+  - oc new-project {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_deployment_manifest
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == deployment_missing
+  - failure_class == deployment_missing
   commands:
-    - "oc get deployment -n {namespace} -o yaml"
-    - "ls deploy/openshift/"
+  - oc get deployment -n {namespace} -o yaml
+  - ls deploy/openshift/
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_route_manifest
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == route_missing
+  - failure_class == route_missing
   commands:
-    - "oc get route -n {namespace} -o yaml"
-    - "oc get svc -n {namespace}"
+  - oc get route -n {namespace} -o yaml
+  - oc get svc -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_application_output
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == unexpected_response
+  - failure_class == unexpected_response
   commands:
-    - "curl -s {route_url}/"
-    - "oc logs -n {namespace} {pod} --tail=50"
+  - curl -s {route_url}/
+  - oc logs -n {namespace} {pod} --tail=50
   forbidden_when:
-    - "namespace == openshift-*"
-
-# --- OpenShift Virtualization remediations ---
-
+  - namespace == openshift-*
 - id: check_datavolume_manifest
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == datavolume_missing
+  - failure_class == datavolume_missing
   commands:
-    - "oc get dv -n {namespace}"
-    - "oc get pvc -n {namespace}"
+  - oc get dv -n {namespace}
+  - oc get pvc -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_datavolume_status
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == datavolume_failed
+  - failure_class == datavolume_failed
   commands:
-    - "oc get dv -n {namespace} -o yaml"
-    - "oc get events -n {namespace} --sort-by=.lastTimestamp"
+  - oc get dv -n {namespace} -o yaml
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_pvc_status
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == pvc_not_bound
+  - failure_class == pvc_not_bound
   commands:
-    - "oc get pvc -n {namespace} -o yaml"
-    - "oc get events -n {namespace} --field-selector reason=ProvisioningFailed"
+  - oc get pvc -n {namespace} -o yaml
+  - oc get events -n {namespace} --field-selector reason=ProvisioningFailed
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_vm_manifest
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == vm_missing
+  - failure_class == vm_missing
   commands:
-    - "oc get vm -n {namespace}"
-    - "oc get dv -n {namespace}"
+  - oc get vm -n {namespace}
+  - oc get dv -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_vmi_status
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == vmi_not_running
+  - failure_class == vmi_not_running
   commands:
-    - "oc get vmi -n {namespace} -o yaml"
-    - "virtctl console {vm_name} -n {namespace} --timeout=5"
-    - "oc get events -n {namespace} --sort-by=.lastTimestamp"
+  - oc get vmi -n {namespace} -o yaml
+  - virtctl console {vm_name} -n {namespace} --timeout=5
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_guest_agent
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == guest_agent_not_connected
+  - failure_class == guest_agent_not_connected
   commands:
-    - "oc get vmi -n {namespace} -o jsonpath='{.status.conditions}'"
-    - "virtctl ssh {vm_name} -n {namespace} -- systemctl status qemu-guest-agent"
+  - oc get vmi -n {namespace} -o jsonpath='{.status.conditions}'
+  - virtctl ssh {vm_name} -n {namespace} -- systemctl status qemu-guest-agent
   forbidden_when:
-    - "namespace == openshift-*"
-
-# --- OpenShift AI / KServe remediations ---
-
+  - namespace == openshift-*
 - id: check_inferenceservice_manifest
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == inferenceservice_missing
+  - failure_class == inferenceservice_missing
   commands:
-    - "oc get inferenceservice -n {namespace}"
-    - "oc get servingruntime -n {namespace}"
+  - oc get inferenceservice -n {namespace}
+  - oc get servingruntime -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_inferenceservice_status
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == inferenceservice_not_ready
+  - failure_class == inferenceservice_not_ready
   commands:
-    - "oc get inferenceservice -n {namespace} -o yaml"
-    - "oc get pods -n {namespace} -l serving.kserve.io/inferenceservice={isvc_name}"
-    - "oc get events -n {namespace} --sort-by=.lastTimestamp"
+  - oc get inferenceservice -n {namespace} -o yaml
+  - oc get pods -n {namespace} -l serving.kserve.io/inferenceservice={isvc_name}
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_model_serving_logs
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == inference_failed
+  - failure_class == inference_failed
   commands:
-    - "oc logs -n {namespace} -l serving.kserve.io/inferenceservice={isvc_name} --tail=100"
-    - "curl -s {inference_url}/v2/health/ready"
+  - oc logs -n {namespace} -l serving.kserve.io/inferenceservice={isvc_name} --tail=100
+  - curl -s {inference_url}/v2/health/ready
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_anarchysubject
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == anarchysubject_missing
+  - failure_class == anarchysubject_missing
   commands:
-    - "oc get anarchysubject -n {namespace}"
+  - oc get anarchysubject -n {namespace}
   forbidden_when: []
-
 - id: inspect_provision_job
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == provision_failed
+  - failure_class == provision_failed
   commands:
-    - "oc describe anarchysubject -n {namespace}"
+  - oc describe anarchysubject -n {namespace}
   forbidden_when: []
-
 - id: inspect_anarchy_state
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == provision_not_started
+  - failure_class == provision_not_started
   commands:
-    - "oc get anarchysubject -n {namespace} -o jsonpath='{.status.state}'"
+  - oc get anarchysubject -n {namespace} -o jsonpath='{.status.state}'
   forbidden_when: []
-
 - id: inspect_showroom_pod
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == showroom_pod_down
+  - failure_class == showroom_pod_down
   commands:
-    - "oc get pods -l app=showroom -n {namespace}"
+  - oc get pods -l app=showroom -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: inspect_showroom_health
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == showroom_not_ready
+  - failure_class == showroom_not_ready
   commands:
-    - "curl -s {showroom_url}/healthz"
+  - curl -s {showroom_url}/healthz
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_showroom_content
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == showroom_content_missing
+  - failure_class == showroom_content_missing
   commands:
-    - "curl -s -o /dev/null -w '%{http_code}' {showroom_url}/content/"
+  - curl -s -o /dev/null -w '%{http_code}' {showroom_url}/content/
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: check_cluster_connectivity
   risk: low
   mode: recommend_only
   scope: cluster
   requires_approval: false
   allowed_when:
-    - failure_class == cluster_unreachable
+  - failure_class == cluster_unreachable
   commands:
-    - "oc get nodes --no-headers"
+  - oc get nodes --no-headers
   forbidden_when: []
-
 - id: check_cluster_resource_usage
   risk: low
   mode: recommend_only
   scope: cluster
   requires_approval: false
   allowed_when:
-    - failure_class == cluster_overloaded
-    - failure_class == cluster_memory_pressure
+  - failure_class == cluster_overloaded
+  - failure_class == cluster_memory_pressure
   commands:
-    - "oc adm top nodes"
+  - oc adm top nodes
   forbidden_when: []
-
 - id: check_cluster_alerts
   risk: low
   mode: recommend_only
   scope: cluster
   requires_approval: false
   allowed_when:
-    - failure_class == cluster_critical_alerts
+  - failure_class == cluster_critical_alerts
   commands:
-    - "oc get alerts -A 2>/dev/null || echo 'Not available'"
+  - oc get alerts -A 2>/dev/null || echo 'Not available'
   forbidden_when: []
-
 - id: verify_run_creation
   risk: low
   mode: recommend_only
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == run_metadata_incomplete
+  - failure_class == run_metadata_incomplete
   commands:
-    - "sdf report {run_id}"
+  - sdf report {run_id}
   forbidden_when: []
-
-# --- Build TDD remediations ---
-
 - id: create_unit_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == no_unit_tests
+  - failure_class == no_unit_tests
   commands:
-    - "pytest --co tests/"
+  - pytest --co tests/
   forbidden_when: []
-
 - id: fix_unit_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == unit_tests_failing
+  - failure_class == unit_tests_failing
   commands:
-    - "pytest -v --tb=short tests/"
+  - pytest -v --tb=short tests/
   forbidden_when: []
-
 - id: create_integration_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == no_integration_tests
+  - failure_class == no_integration_tests
   commands:
-    - "pytest --co tests/ -m integration"
+  - pytest --co tests/ -m integration
   forbidden_when: []
-
 - id: fix_integration_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == integration_tests_failing
+  - failure_class == integration_tests_failing
   commands:
-    - "pytest -v --tb=short tests/ -m integration"
+  - pytest -v --tb=short tests/ -m integration
   forbidden_when: []
-
 - id: create_contract_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == no_contract_tests
+  - failure_class == no_contract_tests
   commands:
-    - "pytest --co tests/test_json_schema_contracts.py"
+  - pytest --co tests/test_json_schema_contracts.py
   forbidden_when: []
-
 - id: fix_contract_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == contract_tests_failing
+  - failure_class == contract_tests_failing
   commands:
-    - "pytest -v --tb=short tests/test_json_schema_contracts.py"
+  - pytest -v --tb=short tests/test_json_schema_contracts.py
   forbidden_when: []
-
 - id: create_e2e_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == no_e2e_tests
+  - failure_class == no_e2e_tests
   commands:
-    - "pytest --co tests/test_e2e_simulated.py"
+  - pytest --co tests/test_e2e_simulated.py
   forbidden_when: []
-
 - id: fix_e2e_tests
   risk: low
   mode: recommend_only
   scope: build
   requires_approval: false
   allowed_when:
-    - failure_class == e2e_tests_failing
+  - failure_class == e2e_tests_failing
   commands:
-    - "pytest -v --tb=short tests/test_e2e_simulated.py"
+  - pytest -v --tb=short tests/test_e2e_simulated.py
   forbidden_when: []
-
 - id: inspect_pool_capacity
   risk: low
   mode: recommend_only
   scope: cluster
   requires_approval: false
   allowed_when:
-    - failure_class == pool_exhausted
-    - failure_class == pool_capacity_low
+  - failure_class == pool_exhausted
+  - failure_class == pool_capacity_low
   commands:
-    - "oc get resourcepools -n {namespace} -o wide"
-    - "oc describe resourcepool {pool} -n {namespace}"
+  - oc get resourcepools -n {namespace} -o wide
+  - oc describe resourcepool {pool} -n {namespace}
   forbidden_when: []
-
 - id: scale_pool
   risk: medium
   mode: manual_approval
   scope: cluster
   requires_approval: true
   allowed_when:
-    - failure_class == pool_exhausted
+  - failure_class == pool_exhausted
   commands:
-    - "oc patch resourcepool {pool} -n {namespace} --type=merge -p '{\"spec\":{\"minAvailable\":5}}'"
+  - oc patch resourcepool {pool} -n {namespace} --type=merge -p '{"spec":{"minAvailable":5}}'
   forbidden_when: []
-
-# --- Auto-execute remediations (low risk, Kubernetes-native) ---
-
 - id: restart_crashlooping_pod
   risk: low
   mode: auto_execute
@@ -473,12 +427,11 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == pods_crashlooping
+  - failure_class == pods_crashlooping
   commands:
-    - "oc delete pod {pod} -n {namespace} --force --grace-period=0"
+  - oc delete pod {pod} -n {namespace} --force --grace-period=0
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: restart_not_ready_deployment
   risk: low
   mode: auto_execute
@@ -486,12 +439,11 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == pods_not_ready
+  - failure_class == pods_not_ready
   commands:
-    - "oc rollout restart deployment/{deployment} -n {namespace}"
+  - oc rollout restart deployment/{deployment} -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: restart_failed_health_check
   risk: low
   mode: auto_execute
@@ -499,12 +451,11 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == health_check_failed
+  - failure_class == health_check_failed
   commands:
-    - "oc rollout restart deployment/{deployment} -n {namespace}"
+  - oc rollout restart deployment/{deployment} -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
+  - namespace == openshift-*
 - id: restart_showroom
   risk: low
   mode: auto_execute
@@ -512,15 +463,12 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == showroom_pod_down
-    - failure_class == showroom_not_ready
+  - failure_class == showroom_pod_down
+  - failure_class == showroom_not_ready
   commands:
-    - "oc rollout restart deployment/showroom -n {namespace}"
+  - oc rollout restart deployment/showroom -n {namespace}
   forbidden_when:
-    - "namespace == openshift-*"
-
-# --- Medium risk (requires approval) ---
-
+  - namespace == openshift-*
 - id: recreate_missing_namespace
   risk: medium
   mode: manual_approval
@@ -528,14 +476,11 @@
   scope: namespace
   requires_approval: true
   allowed_when:
-    - failure_class == namespace_missing
+  - failure_class == namespace_missing
   commands:
-    - "sandbox-api:replace:{placement_uuid}"
+  - sandbox-api:replace:{placement_uuid}
   forbidden_when:
-    - "namespace == openshift-*"
-
-# --- RHDP-managed remediations (go through RHDP APIs, not raw oc) ---
-
+  - namespace == openshift-*
 - id: retry_failed_provision
   risk: medium
   mode: manual_approval
@@ -543,11 +488,10 @@
   scope: namespace
   requires_approval: true
   allowed_when:
-    - failure_class == provision_failed
+  - failure_class == provision_failed
   commands:
-    - "anarchy:retry:{anarchy_subject}"
+  - anarchy:retry:{anarchy_subject}
   forbidden_when: []
-
 - id: destroy_stuck_provision
   risk: medium
   mode: manual_approval
@@ -555,11 +499,10 @@
   scope: namespace
   requires_approval: true
   allowed_when:
-    - failure_class == provision_not_started
+  - failure_class == provision_not_started
   commands:
-    - "anarchy:destroy:{anarchy_subject}"
+  - anarchy:destroy:{anarchy_subject}
   forbidden_when: []
-
 - id: reclaim_sandbox_placement
   risk: medium
   mode: manual_approval
@@ -567,11 +510,10 @@
   scope: namespace
   requires_approval: true
   allowed_when:
-    - failure_class == namespace_missing
+  - failure_class == namespace_missing
   commands:
-    - "sandbox-api:delete:{placement_uuid}"
+  - sandbox-api:delete:{placement_uuid}
   forbidden_when: []
-
 - id: scale_pool_rhdp
   risk: medium
   mode: manual_approval
@@ -579,14 +521,11 @@
   scope: cluster
   requires_approval: true
   allowed_when:
-    - failure_class == pool_exhausted
-    - failure_class == pool_capacity_low
+  - failure_class == pool_exhausted
+  - failure_class == pool_capacity_low
   commands:
-    - "poolboy:scale:{pool}:{min_available}"
+  - poolboy:scale:{pool}:{min_available}
   forbidden_when: []
-
-# --- Launchpad AI Partner Demo remediations ---
-
 - id: launchpad_reclaim_session
   risk: low
   mode: auto_execute
@@ -594,20 +533,19 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == launchpad_session_expired
-    - failure_class == launchpad_cleanup_failed
+  - failure_class == launchpad_session_expired
+  - failure_class == launchpad_cleanup_failed
   commands:
-    - "oc delete namespace {namespace} --wait=true --timeout=120s"
+  - oc delete namespace {namespace} --wait=true --timeout=120s
   forbidden_when:
-    - "namespace == openshift-*"
-    - "namespace == partner-ai-launchpad"
+  - namespace == openshift-*
+  - namespace == partner-ai-launchpad
   callback:
-    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    url: '{launchpad_api_url}/callbacks/cleanup-result'
     payload:
-      session_id: "{session_id}"
-      result: "success"
+      session_id: '{session_id}'
+      result: success
       namespace_deleted: true
-
 - id: launchpad_release_placement
   risk: low
   mode: auto_execute
@@ -615,18 +553,17 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == launchpad_session_expired
-    - failure_class == launchpad_cleanup_failed
+  - failure_class == launchpad_session_expired
+  - failure_class == launchpad_cleanup_failed
   commands:
-    - "sandbox-api:delete:{placement_uuid}"
+  - sandbox-api:delete:{placement_uuid}
   forbidden_when: []
   callback:
-    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    url: '{launchpad_api_url}/callbacks/cleanup-result'
     payload:
-      session_id: "{session_id}"
-      result: "success"
+      session_id: '{session_id}'
+      result: success
       placement_released: true
-
 - id: launchpad_reclaim_workshop
   risk: medium
   mode: auto_execute
@@ -634,16 +571,860 @@
   scope: namespace
   requires_approval: false
   allowed_when:
-    - failure_class == launchpad_workshop_ended
-    - failure_class == launchpad_workshop_cleanup_failed
+  - failure_class == launchpad_workshop_ended
+  - failure_class == launchpad_workshop_cleanup_failed
   commands:
-    - "oc delete namespace {namespace} --wait=true --timeout=120s"
+  - oc delete namespace {namespace} --wait=true --timeout=120s
   forbidden_when:
-    - "namespace == openshift-*"
-    - "namespace == partner-ai-launchpad"
+  - namespace == openshift-*
+  - namespace == partner-ai-launchpad
   callback:
-    url: "{launchpad_api_url}/callbacks/cleanup-result"
+    url: '{launchpad_api_url}/callbacks/cleanup-result'
     payload:
-      session_id: "{session_id}"
-      result: "success"
+      session_id: '{session_id}'
+      result: success
       namespace_deleted: true
+- id: inspect_alertmanager_misconfigured
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == alertmanager_misconfigured
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_api_resolution_error
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == api_resolution_error
+  commands:
+  - oc get crd | grep <resource>
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_argocd_sync_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == argocd_sync_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_assisted_installer_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == assisted_installer_failed
+  commands:
+  - oc logs -n assisted-installer -l app=assisted-installer
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_attendee_capacity_exceeded
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == attendee_capacity_exceeded
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_backoff_limit_exceeded
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == backoff_limit_exceeded
+  commands:
+  - oc logs job/{job} -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_cdi_storage_incomplete
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == cdi_storage_incomplete
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ceph_health_error
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ceph_health_error
+  commands:
+  - oc get pods -n openshift-storage | grep osd
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ceph_health_warning
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ceph_health_warning
+  commands:
+  - oc get cephcluster -n openshift-storage -o yaml | grep -A10 health
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_certificate_error
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == certificate_error
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_claim_misbound
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == claim_misbound
+  commands:
+  - oc get pvc -n {namespace} -o yaml | grep volumeName
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_cluster_not_upgradeable
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == cluster_not_upgradeable
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_cluster_overloaded_during_event
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == cluster_overloaded_during_event
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_concurrent_destroy_failure
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == concurrent_destroy_failure
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_connection_refused
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == connection_refused
+  commands:
+  - oc get nodes on the target cluster
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_datasource_unrecognized
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == datasource_unrecognized
+  commands:
+  - oc get crd | grep datavolumes
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_deprecated_api
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == deprecated_api
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_dns_propagation_delay
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == dns_propagation_delay
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_dns_resolution_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == dns_resolution_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ec2_capacity_exhausted
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ec2_capacity_exhausted
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_eda_config_error
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == eda_config_error
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_etcd_compaction_needed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == etcd_compaction_needed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_etcd_slow
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == etcd_slow
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_hpa_metric_failure
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == hpa_metric_failure
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_image_pull_backoff
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == image_pull_backoff
+  commands:
+  - oc get events -n {namespace} | grep -i pull
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_image_pull_secret_missing
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == image_pull_secret_missing
+  commands:
+  - oc create secret docker-registry {name} --docker-server=REGISTRY --docker-username=USER
+    --docker-password=TOKEN
+  - oc secrets link default {name} --for=pull
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_image_registry_unavailable
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == image_registry_unavailable
+  commands:
+  - oc get pods -n openshift-image-registry
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ingress_5xx_spike
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ingress_5xx_spike
+  commands:
+  - oc get endpoints -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ingress_tls_error
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ingress_tls_error
+  commands:
+  - oc get route {route} -n {namespace} -o yaml | grep -A5 tls
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_insights_cve
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == insights_cve
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_insights_recommendation
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == insights_recommendation
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_invalid_configuration
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == invalid_configuration
+  commands:
+  - oc get events -n {namespace} --field-selector=reason=InvalidConfiguration
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_job_cancelled
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == job_cancelled
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_kube_api_errors
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == kube_api_errors
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_lab_content_missing
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == lab_content_missing
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_machine_provision_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == machine_provision_failed
+  commands:
+  - oc get machines -n openshift-machine-api
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_monitoring_target_down
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == monitoring_target_down
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_network_policy_denial
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == network_policy_denial
+  commands:
+  - oc get networkpolicy -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_node_disk_pressure
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == node_disk_pressure
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_node_kernel_error
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == node_kernel_error
+  commands:
+  - oc adm node-logs {node} --since=-1h | grep -i error
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_node_memory_pressure
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == node_memory_pressure
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_node_not_ready
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == node_not_ready
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_node_pressure
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == node_pressure
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_oom_killed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == oom_killed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_operator_degraded
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == operator_degraded
+  commands:
+  - oc get co | grep -v 'True.*False.*False'
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_operator_install_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == operator_install_failed
+  commands:
+  - oc get installplan -A | grep -v Complete
+  - oc get catalogsource -n openshift-marketplace
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_outdated_vmi_workloads
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == outdated_vmi_workloads
+  commands:
+  - oc get vmi -A | grep -v Running
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_pdb_at_limit
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pdb_at_limit
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_persistent_volume_errors
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == persistent_volume_errors
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_pod_pending
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pod_pending
+  commands:
+  - oc describe pod {pod} -n {namespace} | grep -A10 Events
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_pool_exhausted_under_load
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pool_exhausted_under_load
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_provisioning_sli_breach
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == provisioning_sli_breach
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_pvc_binding_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pvc_binding_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_quota_exceeded
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == quota_exceeded
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_readiness_probe_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == readiness_probe_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_resolution_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == resolution_failed
+  commands:
+  - oc get catalogsource -n openshift-marketplace
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_scheduling_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == scheduling_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_service_unavailable
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == service_unavailable
+  commands:
+  - oc get pods -n {namespace} | grep -v Running
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_session_rush_timeout
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == session_rush_timeout
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_showroom_not_reachable
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == showroom_not_reachable
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_ssh_connection_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == ssh_connection_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_sync_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == sync_failed
+  commands:
+  - oc logs deployment/{operator} -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_vault_decryption_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == vault_decryption_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_vm_creation_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == vm_creation_failed
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_vm_migration_backoff
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == vm_migration_backoff
+  commands:
+  - oc get vmi -n {namespace} -o yaml | grep -A10 migrationState
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_vm_provisioning_timeout
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == vm_provisioning_timeout
+  commands:
+  - oc get datavolume -n {namespace}
+  - oc get vm -n {namespace} -o yaml | grep -A5 status
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_volume_attach_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == volume_attach_failed
+  commands:
+  - oc describe pv {pv_name}
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_volume_mount_failed
+  risk: high
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == volume_mount_failed
+  commands:
+  - oc describe pod {pod} -n {namespace} | grep -A5 Volumes
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_volume_resize_failed
+  risk: medium
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == volume_resize_failed
+  commands:
+  - oc get sc {storageclass} -o yaml | grep allowVolumeExpansion
+  forbidden_when:
+  - namespace == openshift-*
+- id: inspect_watchdog
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == watchdog
+  commands:
+  - oc get events -n {namespace} --sort-by=.lastTimestamp
+  forbidden_when:
+  - namespace == openshift-*
