@@ -1,0 +1,26 @@
+---
+# Quick local test: deploy StarGate dev instance on a CNV cluster
+#
+# Usage:
+#   ansible-playbook deploy/ansible/deploy-dev.yaml \
+#     -e openshift_api_url=https://api.ocpv05.dal10.infra.demo.redhat.com:6443 \
+#     -e openshift_cluster_admin_token=sha256~xxx
+#
+# This simulates what AgnosticD would do when Babylon triggers the dev CI.
+
+- name: Deploy StarGate (dev)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    stargate_namespace: stargate-dev
+    stargate_image: quay.io/rhpds/stargate-api:latest
+    stargate_execution_target: mock
+    stargate_dry_run: "true"
+    stargate_oauth_enabled: false
+    stargate_postgres_storage: 5Gi
+    stargate_scanner_clusters: ""
+
+  roles:
+    - stargate_deploy

@@ -60,6 +60,17 @@ def require_admin(request: Request = None, api_key: str = Security(_api_key_head
         oauth_user = request.headers.get("x-forwarded-user", "")
         if oauth_user:
             return
+        # Allow same-origin browser requests (frontend served from same container)
+        fetch_site = request.headers.get("sec-fetch-site", "")
+        if fetch_site == "same-origin":
+            return
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        allowed = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+        if origin and any(origin == a for a in allowed):
+            return
+        if referer and any(referer.startswith(a) for a in allowed):
+            return
     if not ADMIN_API_KEY:
         raise HTTPException(status_code=503, detail="Admin API key not configured")
     raise HTTPException(status_code=403, detail="Invalid or missing API key")
@@ -236,15 +247,99 @@ def _make_ssl_context():
     return ctx
 
 
+def _fetch_launchpad_catalog() -> List[Dict]:
+    """Fetch catalog items from Launchpad API. Cached 60s. Used when Labagator unavailable."""
+    cache_key = "_launchpad_catalog"
+    if hasattr(_fetch_launchpad_catalog, cache_key):
+        cached = getattr(_fetch_launchpad_catalog, cache_key)
+        if cached["data"] is not None and time.time() - cached["ts"] < _EXTERNAL_CACHE_TTL:
+            return cached["data"]
+
+    launchpad_url = os.environ.get("STARGATE_LAUNCHPAD_URL", "")
+    launchpad_key = os.environ.get("STARGATE_LAUNCHPAD_API_KEY", "")
+    if not launchpad_url:
+        return []
+    import urllib.request as urllib_req
+    import urllib.error
+    try:
+        req = urllib_req.Request(launchpad_url + "/catalog")
+        if launchpad_key:
+            req.add_header("X-API-Key", launchpad_key)
+        resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
+        data = json.loads(resp.read())
+        items = data if isinstance(data, list) else data.get("items", [])
+        # Map to Labagator-compatible shape so frontend works
+        labs = []
+        for item in items:
+            labs.append({
+                "lab_code": item.get("catalog_item_id", ""),
+                "title": item.get("display_name", item.get("catalog_item_id", "")),
+                "status": item.get("status", "active"),
+                "cloud": "openshift",
+                "deploy_mode": item.get("provision_method", "direct"),
+                "ci_name": item.get("catalog_item_id", ""),
+            })
+        setattr(_fetch_launchpad_catalog, cache_key, {"data": labs, "ts": time.time()})
+        return labs
+    except Exception as e:
+        logging.getLogger("stargate").warning(f"Launchpad catalog fetch failed: {e}")
+        return []
+
+
+def _fetch_launchpad_sessions() -> List[Dict]:
+    """Fetch active sessions from Launchpad API. Cached 60s."""
+    cache_key = "_launchpad_sessions"
+    if hasattr(_fetch_launchpad_sessions, cache_key):
+        cached = getattr(_fetch_launchpad_sessions, cache_key)
+        if cached["data"] is not None and time.time() - cached["ts"] < _EXTERNAL_CACHE_TTL:
+            return cached["data"]
+
+    launchpad_url = os.environ.get("STARGATE_LAUNCHPAD_URL", "")
+    launchpad_key = os.environ.get("STARGATE_LAUNCHPAD_API_KEY", "")
+    if not launchpad_url:
+        return []
+    import urllib.request as urllib_req
+    import urllib.error
+    try:
+        req = urllib_req.Request(launchpad_url + "/lab-sessions")
+        if launchpad_key:
+            req.add_header("X-API-Key", launchpad_key)
+        resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
+        data = json.loads(resp.read())
+        sessions = data if isinstance(data, list) else data.get("sessions", [])
+        # Map to Labagator-compatible session shape
+        mapped = []
+        for s in sessions:
+            mapped.append({
+                "lab_code": s.get("catalog_item_id", ""),
+                "session_date": s.get("created_at", "")[:10] if s.get("created_at") else "",
+                "status": s.get("state", "active"),
+                "attendees": 1,
+                "namespace": s.get("namespace", ""),
+                "session_id": s.get("session_id", ""),
+            })
+        setattr(_fetch_launchpad_sessions, cache_key, {"data": mapped, "ts": time.time()})
+        return mapped
+    except Exception as e:
+        logging.getLogger("stargate").warning(f"Launchpad sessions fetch failed: {e}")
+        return []
+
+
 def _fetch_labagator_labs() -> List[Dict]:
-    """Fetch labs from Labagator API. Cached 60s."""
+    """Fetch labs from Labagator API. Cached 60s. Falls back to Launchpad."""
     if _labagator_cache["labs"] is not None and time.time() - _labagator_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _labagator_cache["labs"]
+    labagator_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
+    if not labagator_url:
+        labs = _fetch_launchpad_catalog()
+        _labagator_cache["labs"] = labs
+        _labagator_cache["ts"] = time.time()
+        return labs
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/labs/?limit=200"
+            labagator_url + "/labs/?limit=200"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -265,14 +360,19 @@ def _fetch_labagator_labs() -> List[Dict]:
 
 
 def _fetch_labagator_sessions() -> List[Dict]:
-    """Fetch sessions from Labagator API. Cached 60s."""
+    """Fetch sessions from Labagator API. Cached 60s. Falls back to Launchpad."""
     if _labagator_cache["sessions"] is not None and time.time() - _labagator_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _labagator_cache["sessions"]
+    labagator_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
+    if not labagator_url:
+        sessions = _fetch_launchpad_sessions()
+        _labagator_cache["sessions"] = sessions
+        return sessions
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_LABAGATOR_URL", "") + "/room-sessions/?limit=500"
+            labagator_url + "/room-sessions/?limit=500"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())
@@ -293,11 +393,16 @@ def _fetch_demolition_sessions() -> List[Dict]:
     """Fetch sessions from Demolition API. Cached 60s."""
     if _demolition_cache["data"] is not None and time.time() - _demolition_cache["ts"] < _EXTERNAL_CACHE_TTL:
         return _demolition_cache["data"]
+    demolition_url = os.environ.get("STARGATE_DEMOLITION_URL", "")
+    if not demolition_url:
+        _demolition_cache["data"] = []
+        _demolition_cache["ts"] = time.time()
+        return []
     import urllib.request as urllib_req
     import urllib.error
     try:
         req = urllib_req.Request(
-            os.environ.get("STARGATE_DEMOLITION_URL", "") + "/integration/sessions"
+            demolition_url + "/integration/sessions"
         )
         resp = urllib_req.urlopen(req, timeout=15, context=_make_ssl_context())
         data = json.loads(resp.read())

@@ -1,0 +1,39 @@
+---
+stargate_namespace: stargate
+stargate_image: quay.io/rhpds/stargate-api:latest
+stargate_postgres_image: docker.io/library/postgres:15
+stargate_postgres_storage: 10Gi
+
+# Auth
+stargate_admin_api_key: ""
+stargate_oauth_enabled: true
+stargate_oauth_cookie_secret: ""
+stargate_oauth_proxy_image: registry.redhat.io/openshift4/ose-oauth-proxy:latest
+
+# LLM — always via MAAS
+stargate_llm_model: granite-3-2-8b-instruct
+stargate_litellm_url: ""
+stargate_litellm_api_key: ""
+
+# Scanner
+stargate_scanner_clusters: ""
+stargate_ssl_verify: "false"
+
+# Execution
+stargate_execution_target: mock
+stargate_dry_run: "true"
+
+# Data source URLs (set per environment)
+stargate_labagator_url: ""
+stargate_demolition_url: ""
+stargate_dashboard_url: ""
+stargate_sandbox_api_metrics_url: ""
+
+# Kubeconfigs secret (pre-existing)
+stargate_kubeconfigs_secret: stargate-kubeconfigs
+
+# Resource limits
+stargate_api_cpu_request: 250m
+stargate_api_cpu_limit: "1"
+stargate_api_memory_request: 512Mi
+stargate_api_memory_limit: 1Gi

@@ -1,0 +1,12 @@
+---
+# Integration stage — shared staging, real scanners, MAAS LLM
+
+stargate_execution_target: test
+stargate_dry_run: "false"
+stargate_scanner_clusters: ocpv05,ocpv06,ocpv07
+stargate_postgres_storage: 10Gi
+stargate_oauth_enabled: true
+
+__meta__:
+  deployer:
+    scm_ref: main
