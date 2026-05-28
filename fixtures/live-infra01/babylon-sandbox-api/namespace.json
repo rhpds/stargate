@@ -5,7 +5,7 @@
     "annotations": {
       "openshift.io/description": "",
       "openshift.io/display-name": "",
-      "openshift.io/requester": "gucore@redhat.com",
+      "openshift.io/requester": "user@example.com",
       "openshift.io/sa.scc.mcs": "s0:c40,c15",
       "openshift.io/sa.scc.supplemental-groups": "1001590000/10000",
       "openshift.io/sa.scc.uid-range": "1001590000/10000"

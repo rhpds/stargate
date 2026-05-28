@@ -79,7 +79,7 @@
               },
               {
                 "name": "ANTHROPIC_VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "CLOUD_ML_REGION",
@@ -91,11 +91,11 @@
               },
               {
                 "name": "RCARS_CURATOR_EMAILS_STR",
-                "value": "ankay@redhat.com"
+                "value": "user@example.com"
               },
               {
                 "name": "RCARS_ADMIN_EMAILS_STR",
-                "value": "nstephan@redhat.com,sborenst@redhat.com"
+                "value": "user@example.com,user@example.com"
               },
               {
                 "name": "RCARS_STALE_DAYS",
@@ -4500,7 +4500,7 @@
               },
               {
                 "name": "ANTHROPIC_VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "CLOUD_ML_REGION",
@@ -5083,7 +5083,7 @@
               },
               {
                 "name": "ANTHROPIC_VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "CLOUD_ML_REGION",
