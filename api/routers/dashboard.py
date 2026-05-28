@@ -3819,6 +3819,48 @@ def _build_remediation_prompt(context_type: str, evidence: Dict, catalog_command
 
 
 # ---------------------------------------------------------------------------
+# Corpus — failure class knowledge base
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/corpus")
+def dashboard_corpus():
+    """Get corpus statistics — failure classes, sources, coverage."""
+    from engine.corpus_runner import get_corpus_stats
+    return get_corpus_stats()
+
+
+@router.post("/dashboard/corpus/mine")
+def dashboard_corpus_mine(db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Run all miners and load results into the DB."""
+    from engine.corpus_runner import run_all_miners
+    return run_all_miners(db=db)
+
+
+@router.get("/dashboard/corpus/classes")
+def dashboard_corpus_classes(source: Optional[str] = None):
+    """List all failure classes, optionally filtered by source."""
+    from engine.failure_class_loader import get_all_classes, get_classes_by_source, reload
+    reload()
+    if source:
+        classes = get_classes_by_source(source)
+    else:
+        classes = get_all_classes()
+    return {
+        "total": len(classes),
+        "source": source,
+        "classes": {
+            name: {
+                "severity": data.get("severity"),
+                "description": data.get("description", ""),
+                "remediation_count": len(data.get("remediation", [])),
+                "source": data.get("_source"),
+            }
+            for name, data in sorted(classes.items())
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Remediation playbook — step-by-step for dashboard consumption
 # ---------------------------------------------------------------------------
 
