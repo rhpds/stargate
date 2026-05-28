@@ -1478,24 +1478,20 @@ def propose_classification(req: dict, db: Session = Depends(get_db), _auth=Depen
                 freq_lines.append(f"- {fc}: {ct}")
             evidence_parts.append("\n".join(freq_lines))
 
-    evidence_parts.append("""## Known Failure Classes
+    # Load all known failure classes from YAML corpus
+    try:
+        from engine.failure_class_loader import get_all_classes, reload
+        reload()
+        all_classes = get_all_classes()
+        class_lines = [f"- {name}: {data.get('description', '')}" for name, data in sorted(all_classes.items())]
+        evidence_parts.append("## Known Failure Classes ({} total)\n{}".format(len(class_lines), "\n".join(class_lines)))
+    except Exception:
+        evidence_parts.append("""## Known Failure Classes
 - pods_not_ready: deployment exists but pods not running
 - pods_crashlooping: pods in CrashLoopBackOff
 - deployment_missing: no deployment found in namespace
 - route_missing: no route object exists
-- service_missing: no service object exists
-- service_has_no_endpoints: service exists but no ready endpoints
 - namespace_missing: namespace does not exist
-- datavolume_missing: no DataVolume for VM storage
-- datavolume_not_ready: DataVolume exists but not succeeded
-- datavolume_failed: DataVolume in failed state
-- vmi_not_running: VirtualMachineInstance not in Running phase
-- vm_missing: VirtualMachine object not found
-- showroom_not_reachable: showroom route HTTP check failed
-- showroom_not_ready: showroom responds but readyz != 200
-- showroom_pod_down: showroom pod not running
-- health_check_failed: application health endpoint not responding
-- guest_agent_not_connected: VM guest agent not connected (optional)
 - cluster_unreachable: cannot connect to cluster API
 - cluster_overloaded: cluster CPU/memory exceeds thresholds
 - provision_failed: AnarchySubject provisioning failed""")
@@ -3969,6 +3965,7 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
                 f"- Evidence: {json.dumps(evidence)}\n"
                 f"- Pod logs excerpt: {investigate['pod_logs'][:500]}\n\n"
                 f"## Known Failure Classes\n"
+                f"- " + ", ".join(sorted(get_all_classes().keys())[:30]) if 'get_all_classes' in dir() else
                 f"- pods_not_ready, pods_crashlooping, deployment_missing, "
                 f"route_missing, namespace_missing, showroom_not_ready"
             )
