@@ -29,11 +29,8 @@ done
 
 # Check for known key values (add your specific keys here)
 KNOWN_KEYS=(
-    'd6d3ad6e4a3b4c68876919f2ac588782'
-    'e42626831e854fe0a1eeac160a87b4bd'
-    '324e9e1cd6cb94ff9b51b25e2ae09af1'
-    'sk-YgLaSn9ILTPxaUwdDbmpGQ'
-    'deepfield2026x'
+    # Add specific key values to scan for here
+    # Never commit actual keys — use patterns only
 )
 
 for key in "${KNOWN_KEYS[@]}"; do
