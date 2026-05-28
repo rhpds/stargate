@@ -29,11 +29,8 @@ done
 
 # Check for known key values (add your specific keys here)
 KNOWN_KEYS=(
-    'REDACTED-dummy-value'
-    'REDACTED-dummy-value'
-    'REDACTED-dummy-value'
-    'REDACTED-dummy-value'
-    'REDACTED-dummy-value'
+    # Add specific key values to scan for here
+    # Never commit actual keys — use patterns only
 )
 
 for key in "${KNOWN_KEYS[@]}"; do
