@@ -10,8 +10,8 @@ export function useOverview() {
   return useQuery({ queryKey: ['overview'], queryFn: api.getOverview, refetchInterval: 30_000 });
 }
 
-export function useSummitDashboard() {
-  return useQuery({ queryKey: ['dashboard-summit'], queryFn: api.getSummitDashboard, refetchInterval: 30_000 });
+export function useDeploymentsDashboard() {
+  return useQuery({ queryKey: ['deployments'], queryFn: api.getDeploymentsDashboard, refetchInterval: 30_000 });
 }
 
 export function useClustersDashboard() {

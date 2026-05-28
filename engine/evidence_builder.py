@@ -144,9 +144,9 @@ def _workload_complexity() -> str:
     agv_dir = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
     if not agv_dir:
         return ""
-    from constraints.agnosticv_loader import load_all_summit_constraints
+    from constraints.agnosticv_loader import load_all_constraints
     from engine.workload_complexity import compute_complexity_score
-    all_c = load_all_summit_constraints(Path(agv_dir))
+    all_c = load_all_constraints(Path(agv_dir))
     if not all_c:
         return ""
     scored = sorted(

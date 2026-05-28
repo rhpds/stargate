@@ -5,7 +5,7 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { useSummitDashboard } from '../api/hooks';
+import { useDeploymentsDashboard } from '../api/hooks';
 import type { PoolEntry, PoolsDashboard } from '../api/types';
 import StatusLabel from './StatusLabel';
 import AIAnalysis from './AIAnalysis';
@@ -18,7 +18,7 @@ interface Props {
 export default function PoolDrawer({ pool, dashboard }: Props) {
   const prov = dashboard.provisioning;
   const byState = prov.by_state;
-  const { data: summit } = useSummitDashboard();
+  const { data: summit } = useDeploymentsDashboard();
 
   const dependentLabs = (summit?.labs ?? []).filter(l => {
     const poolName = pool.name.toLowerCase();

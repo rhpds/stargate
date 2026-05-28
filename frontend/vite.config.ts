@@ -22,6 +22,7 @@ export default defineConfig({
       '/admin/remediation': apiTarget,
       '/admin/approval-queue': apiTarget,
       '/admin/receipts': apiTarget,
+      '/api/v1': apiTarget,
     },
   },
   test: {

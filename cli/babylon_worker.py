@@ -346,16 +346,18 @@ def run_collection() -> Dict:
     # Demolition
     print("  Collecting Demolition data...")
     try:
-        from collectors.demolition.collect_demolition import summarize_sessions, find_summit_sessions
+        from collectors.demolition.collect_demolition import summarize_sessions, find_tracked_sessions
         results["demolition"] = summarize_sessions()
         demo = results["demolition"]
         print(f"    {demo.get('total_sessions', 0)} sessions, {demo.get('overall_pass_rate', 0)}% pass rate")
         print(f"    Runs: {demo.get('total_passed', 0)} passed, {demo.get('total_failed', 0)} failed")
 
-        results["demolition_summit"] = find_summit_sessions()
-        summit_demo = results["demolition_summit"]
-        failing_summit = [s for s in summit_demo if s.get("failed", 0) > 0]
-        print(f"    Summit sessions: {len(summit_demo)} total, {len(failing_summit)} with failures")
+        event_prefix = os.environ.get("STARGATE_EVENT_PREFIX", "")
+        results["demolition_tracked"] = find_tracked_sessions(prefix=event_prefix)
+        results["demolition_summit"] = results["demolition_tracked"]
+        tracked = results["demolition_tracked"]
+        failing = [s for s in tracked if s.get("failed", 0) > 0]
+        print(f"    Tracked sessions: {len(tracked)} total, {len(failing)} with failures")
     except Exception as e:
         results["demolition"] = {"error": str(e)}
         print(f"    Error: {e}")

@@ -135,7 +135,7 @@ def _warm_caches():
         from db.database import get_db
         from api.routers.dashboard import dashboard_summit
         db = next(get_db())
-        dashboard_summit(db=db, include_summit=False)
+        dashboard_summit(db=db, include_all=False)
         db.close()
         logger.info("Cache warm: summit dashboard pre-built")
     except Exception as e:
@@ -232,12 +232,14 @@ from api.routers.admin import router as admin_router
 from api.routers.runs import router as runs_router
 from api.routers.dashboard import router as dashboard_router
 from api.routers.integration import router as integration_router
+from api.routers.capacity import router as capacity_router
 
 app.include_router(health_router)
 app.include_router(admin_router)
 app.include_router(runs_router)
 app.include_router(dashboard_router)
 app.include_router(integration_router)
+app.include_router(capacity_router)
 
 # Serve frontend static files if dist/ exists (combined deployment)
 from pathlib import Path as _Path
