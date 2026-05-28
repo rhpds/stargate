@@ -47,6 +47,22 @@ class EventBus:
         # Persist to DB
         self._persist_event(event)
 
+        # Publish to Kafka
+        try:
+            from integrations.kafka_publisher import publish_event as kafka_publish
+            kafka_publish(event.event_type, {
+                "event_type": event.event_type,
+                "run_id": event.run_id,
+                "stage_id": event.stage_id,
+                "lab_code": event.lab_code,
+                "cluster_name": event.cluster_name,
+                "outcome": event.outcome,
+                "failure_class": event.failure_class,
+                "message": event.message,
+            })
+        except Exception:
+            pass
+
         # Deliver to consumers
         for consumer in self.consumers:
             if consumer.should_receive(event):
