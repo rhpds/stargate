@@ -155,14 +155,14 @@ def parse_aap_failure(raw: Dict) -> Dict:
     role = raw.get("role", "")
     combined = f"{error_msg} {task} {role}"
 
-    failure_class = "unclassified"
-    matched_data = {}
-
-    for cls_name, cls_data in AAP_FAILURE_CLASSES.items():
-        if re.search(cls_data["pattern"], combined, re.IGNORECASE):
-            failure_class = cls_name
-            matched_data = cls_data
-            break
+    from engine.failure_class_loader import classify_by_pattern
+    failure_class, matched_data = classify_by_pattern(combined, source="aap2_grafana")
+    if failure_class == "unclassified":
+        for cls_name, cls_data in AAP_FAILURE_CLASSES.items():
+            if re.search(cls_data["pattern"], combined, re.IGNORECASE):
+                failure_class = cls_name
+                matched_data = cls_data
+                break
 
     return {
         "failure_class": failure_class,

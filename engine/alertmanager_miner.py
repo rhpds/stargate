@@ -165,18 +165,18 @@ def parse_alert(alert: Dict, cluster: str = "unknown") -> Dict:
     severity = labels.get("severity", "info")
     description = annotations.get("description", annotations.get("summary", ""))
 
-    failure_class = "unclassified_alert"
+    from engine.failure_class_loader import classify_by_alertname
+    failure_class, matched = classify_by_alertname(alertname, description)
+    if failure_class == "unclassified_alert":
+        if alertname == "InsightsRecommendationActive" and re.search(r"CVE-\d{4}-\d+", description):
+            failure_class = "insights_cve"
+        else:
+            for cls_name, cls_data in ALERT_FAILURE_CLASSES.items():
+                if alertname in cls_data.get("alertnames", []):
+                    failure_class = cls_name
+                    break
 
-    # Special handling for InsightsRecommendationActive — check if it's a CVE
-    if alertname == "InsightsRecommendationActive" and re.search(r"CVE-\d{4}-\d+", description):
-        failure_class = "insights_cve"
-    else:
-        for cls_name, cls_data in ALERT_FAILURE_CLASSES.items():
-            if alertname in cls_data.get("alertnames", []):
-                failure_class = cls_name
-                break
-
-    cls_data = ALERT_FAILURE_CLASSES.get(failure_class, {})
+    cls_data = matched if matched else ALERT_FAILURE_CLASSES.get(failure_class, {})
     return {
         "failure_class": failure_class,
         "alertname": alertname,
