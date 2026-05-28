@@ -47,7 +47,11 @@ AAP_CONTROLLERS = [
 _cache: Dict[str, Any] = {"data": None, "ts": 0}
 _CACHE_TTL = 300
 
-_LAB_CODE_PATTERN = re.compile(r'(?:summit-2026|summit-2025)\.(lb\d{4})', re.IGNORECASE)
+_EVENT_PREFIX = os.environ.get("STARGATE_EVENT_PREFIX", "")
+_LAB_CODE_PATTERN = re.compile(
+    rf'(?:{re.escape(_EVENT_PREFIX)}\.)?(lb\d{{4}}|zt-[a-z]+|launchpad-[a-z]+)',
+    re.IGNORECASE,
+) if _EVENT_PREFIX else re.compile(r'(?:\w+\.)(lb\d{4}|zt-[a-z-]+|launchpad-[a-z-]+)', re.IGNORECASE)
 
 
 def extract_lab_code(job_name: str) -> Optional[str]:

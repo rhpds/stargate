@@ -1,6 +1,6 @@
 import type {
   HealthStatus,
-  SummitDashboard,
+  DeploymentsDashboard,
   OverviewData,
   PoolsDashboard,
   ClustersDashboard,
@@ -85,7 +85,7 @@ export const api = {
 
   // Dashboard v2
   getOverview: () => request<OverviewData>('/dashboard/overview'),
-  getSummitDashboard: () => request<SummitDashboard>('/dashboard/summit'),
+  getDeploymentsDashboard: () => request<DeploymentsDashboard>('/dashboard/deployments'),
   getClustersDashboard: () => request<ClustersDashboard>('/dashboard/clusters'),
   getPoolsDashboard: () => request<PoolsDashboard>('/dashboard/pools'),
   getClusterNodes: (name: string) => request<ClusterNodes>(`/dashboard/nodes/${name}`),

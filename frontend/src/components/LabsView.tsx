@@ -11,13 +11,13 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import type { SummitDashboard, SummitLab } from '../api/types';
+import type { DeploymentsDashboard, Deployment } from '../api/types';
 import { useLabDeltas } from '../api/hooks';
 import { useTableSort } from '../hooks/useTableSort';
 
 interface Props {
-  data: SummitDashboard;
-  onSelect: (lab: SummitLab) => void;
+  data: DeploymentsDashboard;
+  onSelect: (lab: Deployment) => void;
   selectedCode: string | null;
 }
 
@@ -64,15 +64,15 @@ export default function LabsView({ data, onSelect, selectedCode }: Props) {
   }, [data.labs, search, statusFilter, readyFilter, smokeFilter, tagFilter, scheduleFilter]);
 
   const labCols = useMemo(() => [
-    { key: 'code', getter: (l: SummitLab) => l.lab_code },
-    { key: 'title', getter: (l: SummitLab) => l.title },
-    { key: 'stage', getter: (l: SummitLab) => l.labagator_status },
-    { key: 'cloud', getter: (l: SummitLab) => l.cloud },
-    { key: 'sessions', getter: (l: SummitLab) => l.sessions },
-    { key: 'sandboxes', getter: (l: SummitLab) => l.instances_started },
-    { key: 'capacity', getter: (l: SummitLab) => l.instances_total > 0 ? l.instances_started : l.provisioned },
-    { key: 'smoke', getter: (l: SummitLab) => l.demolition_status },
-    { key: 'readiness', getter: (l: SummitLab) => {
+    { key: 'code', getter: (l: Deployment) => l.lab_code },
+    { key: 'title', getter: (l: Deployment) => l.title },
+    { key: 'stage', getter: (l: Deployment) => l.labagator_status },
+    { key: 'cloud', getter: (l: Deployment) => l.cloud },
+    { key: 'sessions', getter: (l: Deployment) => l.sessions },
+    { key: 'sandboxes', getter: (l: Deployment) => l.instances_started },
+    { key: 'capacity', getter: (l: Deployment) => l.instances_total > 0 ? l.instances_started : l.provisioned },
+    { key: 'smoke', getter: (l: Deployment) => l.demolition_status },
+    { key: 'readiness', getter: (l: Deployment) => {
       const hasSmoke = l.demolition_status !== 'none';
       const isDeployed = l.instances_started > 0 || l.provisioned > 0 || l.capacity > 0
         || hasSmoke || l.cloud === 'Tenant Namespace';
@@ -84,7 +84,7 @@ export default function LabsView({ data, onSelect, selectedCode }: Props) {
       ];
       return checks.filter(Boolean).length;
     }},
-    { key: 'scanned', getter: (l: SummitLab) => l.last_scanned ?? '' },
+    { key: 'scanned', getter: (l: Deployment) => l.last_scanned ?? '' },
   ], []);
 
   const labSort = useTableSort(filtered, labCols, { index: 4, direction: 'desc' });
@@ -281,7 +281,7 @@ function StageLabel({ status }: { status: string }) {
   return <Label isCompact color="grey">{status}</Label>;
 }
 
-function CapacityCell({ lab }: { lab: SummitLab }) {
+function CapacityCell({ lab }: { lab: Deployment }) {
   if (lab.instances_total > 0) {
     const color = lab.instances_started === lab.instances_total
       ? 'var(--sg-color--healthy)'
@@ -316,7 +316,7 @@ function CapacityCell({ lab }: { lab: SummitLab }) {
   return <span style={{ color: 'var(--sg-color--warning)', fontSize: '0.85rem' }}>No pools</span>;
 }
 
-function SmokeTestCell({ lab }: { lab: SummitLab }) {
+function SmokeTestCell({ lab }: { lab: Deployment }) {
   if (lab.demolition_status === 'pass') {
     return (
       <Label isCompact color="green">
@@ -377,7 +377,7 @@ function DeltaCell({ code, deltas }: { code: string; deltas?: Record<string, Rec
   );
 }
 
-function ReadinessCell({ lab, readyCount }: { lab: SummitLab; readyCount: number }) {
+function ReadinessCell({ lab, readyCount }: { lab: Deployment; readyCount: number }) {
   const hasSmoke = lab.demolition_status !== 'none';
   const isDeployed = lab.instances_started > 0 || lab.provisioned > 0 || lab.capacity > 0
     || hasSmoke || lab.cloud === 'Tenant Namespace';

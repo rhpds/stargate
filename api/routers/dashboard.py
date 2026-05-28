@@ -1,4 +1,4 @@
-"""Dashboard router — summit overview, cluster health, lab detail, pipeline, trends,
+"""Dashboard router — deployment overview, cluster health, lab detail, pipeline, trends,
 provisioning, remediation, and all other /dashboard/* endpoints."""
 
 import json
@@ -28,7 +28,7 @@ from api.routers._shared import (
     limiter,
     require_admin,
     PIPELINE_STAGES,
-    _summit_response_cache,
+    _deployments_cache,
     _FILE_CACHE_TTL,
 )
 
@@ -96,12 +96,12 @@ def _get_capacity_evidence_for_summary(db=None) -> str:
 
     try:
         from engine.workload_complexity import compute_complexity_score
-        from constraints.agnosticv_loader import load_all_summit_constraints
+        from constraints.agnosticv_loader import load_all_constraints
         import os
         agv_dir = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
         if agv_dir:
             from pathlib import Path
-            all_c = load_all_summit_constraints(Path(agv_dir))
+            all_c = load_all_constraints(Path(agv_dir))
             scored = [(slug, compute_complexity_score(c)) for slug, c in list(all_c.items())[:30]]
             top = sorted(scored, key=lambda x: -x[1]["score"])[:5]
             if top:
@@ -172,9 +172,10 @@ def _get_schedule_status(session_dates: List[str]) -> str:
 # Summit overview
 # ---------------------------------------------------------------------------
 
+@router.get("/dashboard/deployments")
 @router.get("/dashboard/labs")
 @router.get("/dashboard/summit")
-def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False):
+def dashboard_summit(db: Session = Depends(get_db), include_all: bool = False):
     """Lab overview — all labs with combined status from Labagator + Babylon + StarGate.
 
     Accessible via /dashboard/labs (primary) or /dashboard/summit (backward compat).
@@ -182,26 +183,26 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
     Excludes warning-level failure classes (guest_agent_not_connected,
     health_check_failed) from failure counts — these are tuned as optional.
 
-    By default, summit-specific labs (ci_name starting with 'summit-') are excluded
-    in continuous ops mode. Pass ?include_summit=true to show them.
+    By default, event-specific labs (ci_name starting with 'summit-') are excluded
+    in continuous ops mode. Pass ?include_all=true to show them.
     """
-    if not include_summit and _summit_response_cache["data"]:
-        age = time.time() - _summit_response_cache["ts"]
+    if not include_all and _deployments_cache["data"]:
+        age = time.time() - _deployments_cache["ts"]
         if age < _FILE_CACHE_TTL:
-            return _summit_response_cache["data"]
+            return _deployments_cache["data"]
         if age < _FILE_CACHE_TTL * 5:
             import threading
-            if not _summit_response_cache.get("_refreshing"):
-                _summit_response_cache["_refreshing"] = True
+            if not _deployments_cache.get("_refreshing"):
+                _deployments_cache["_refreshing"] = True
                 def _bg():
                     try:
-                        dashboard_summit(db=db, include_summit=False)
+                        dashboard_summit(db=db, include_all=False)
                     except Exception:
                         pass
                     finally:
-                        _summit_response_cache["_refreshing"] = False
+                        _deployments_cache["_refreshing"] = False
                 threading.Thread(target=_bg, daemon=True).start()
-            return _summit_response_cache["data"]
+            return _deployments_cache["data"]
 
     import ssl
     import urllib.request as urllib_req
@@ -217,7 +218,7 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
     attendees_by_lab: Dict[str, int] = {}
     days_by_lab: Dict[str, List[str]] = {}
 
-    SUMMIT_DAY_MAP: Dict[str, str] = {}
+    EVENT_DAY_MAP: Dict[str, str] = {}
 
     session_dates_by_lab: Dict[str, List[str]] = {}
 
@@ -231,7 +232,7 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
             sdate = s.get("session_date", "")
             if sdate and code:
                 session_dates_by_lab.setdefault(code, []).append(sdate)
-            day = SUMMIT_DAY_MAP.get(sdate)
+            day = EVENT_DAY_MAP.get(sdate)
             if day and code:
                 if code not in days_by_lab:
                     days_by_lab[code] = []
@@ -373,8 +374,8 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
     except Exception:
         pass
 
-    # Map summit pool names to LB codes for per-lab provisioning data
-    # Pool name: summit-2026.lb1208-image-mode.event → LB1208
+    # Map pool names to LB codes for per-lab provisioning data
+    # Pool name: prefix.lb1208-type.event → LB1208
     babylon = _load_latest_babylon()
     all_pools_raw = babylon.get("pools", {}).get("all_pools", babylon.get("pools", {}).get("summit_pools", []))
     lab_pool_data: Dict[str, Dict] = {}
@@ -391,7 +392,7 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
             lab_pool_data[lb_num]["min"] += sp.get("min", 0)
             lab_pool_data[lb_num]["pools"].append(name)
 
-    # Instance mapping from Babylon AnarchySubjects (all labs, not just summit)
+    # Instance mapping from Babylon AnarchySubjects
     summit_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
 
     # Build labs list — filter junk entries and merge sub-labs
@@ -495,8 +496,8 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
         agv_dir = _os.environ.get("STARGATE_AGNOSTICV_DIR", "")
         agnosticv_dir = Path(agv_dir) if agv_dir else Path(__file__).parent.parent.parent / "github review" / "agnosticv"
         if agnosticv_dir.exists():
-            from constraints.agnosticv_loader import load_all_summit_constraints
-            all_constraints = load_all_summit_constraints(agnosticv_dir)
+            from constraints.agnosticv_loader import load_all_constraints
+            all_constraints = load_all_constraints(agnosticv_dir)
             if all_constraints:
                 from api.contracts import record_source_fetch
                 record_source_fetch("agnosticv")
@@ -608,7 +609,7 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
     labs.sort(key=lambda l: l["lab_code"])
 
     from api.routers._shared import EVENT_PREFIX
-    if not include_summit and not EVENT_PREFIX:
+    if not include_all and not EVENT_PREFIX:
         labs = [l for l in labs if not (l.get("ci_name") or "").startswith("summit-")]
 
     total = len(labs)
@@ -624,9 +625,9 @@ def dashboard_summit(db: Session = Depends(get_db), include_summit: bool = False
         "pools": pools,
         "labs": labs,
     }
-    if not include_summit:
-        _summit_response_cache["data"] = result
-        _summit_response_cache["ts"] = time.time()
+    if not include_all:
+        _deployments_cache["data"] = result
+        _deployments_cache["ts"] = time.time()
     return result
 
 
@@ -2760,8 +2761,8 @@ def dashboard_catalog(db: Session = Depends(get_db)):
         agv_dir = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
         if agv_dir:
             from pathlib import Path
-            from constraints.agnosticv_loader import load_all_summit_constraints
-            all_constraints = load_all_summit_constraints(Path(agv_dir))
+            from constraints.agnosticv_loader import load_all_constraints
+            all_constraints = load_all_constraints(Path(agv_dir))
             if all_constraints:
                 sources_found.append("agnosticv")
                 for item in items:
@@ -2969,12 +2970,12 @@ def dashboard_capacity_analysis(request: Request, db: Session = Depends(get_db),
     # Workload complexity
     complexities = {}
     try:
-        from constraints.agnosticv_loader import load_all_summit_constraints
+        from constraints.agnosticv_loader import load_all_constraints
         import os
         agv_dir = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
         if agv_dir:
             from pathlib import Path
-            all_constraints = load_all_summit_constraints(Path(agv_dir))
+            all_constraints = load_all_constraints(Path(agv_dir))
             for slug, constraints in list(all_constraints.items())[:30]:
                 complexities[slug] = compute_complexity_score(constraints)
             evidence_parts.append(f"## Workload Complexity (top 30)\n{json.dumps({k: v['score'] for k, v in sorted(complexities.items(), key=lambda x: -x[1]['score'])[:15]}, indent=2)}")

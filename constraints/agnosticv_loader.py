@@ -145,7 +145,7 @@ def load_lab_constraints(common_yaml_path: Path) -> Dict[str, Any]:
     return constraints
 
 
-def load_all_summit_constraints(agnosticv_dir: Path) -> Dict[str, Dict]:
+def load_all_constraints(agnosticv_dir: Path) -> Dict[str, Dict]:
     """Load constraints for all labs across all AgnosticV directories."""
     labs = {}
 

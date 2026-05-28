@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useLabDetail } from '../api/hooks';
-import type { SummitLab, SummitPool } from '../api/types';
+import type { Deployment, PoolEntry } from '../api/types';
 import StatusLabel from './StatusLabel';
 import AIAnalysis from './AIAnalysis';
 import FeedbackForm from './FeedbackForm';
@@ -18,8 +18,8 @@ import { api } from '../api/client';
 import type { PipelineStage } from '../api/types';
 
 interface Props {
-  lab: SummitLab;
-  pool: SummitPool | null;
+  lab: Deployment;
+  pool: PoolEntry | null;
 }
 
 export default function LabDrawer({ lab, pool }: Props) {
@@ -116,11 +116,11 @@ export default function LabDrawer({ lab, pool }: Props) {
             </DescriptionListDescription>
           </DescriptionListGroup>
         )}
-        {lab.summit_days.length > 0 && (
+        {lab.schedule_dates.length > 0 && (
           <DescriptionListGroup>
             <DescriptionListTerm>Summit Days</DescriptionListTerm>
             <DescriptionListDescription>
-              {lab.summit_days.map(d => <Label key={d} isCompact color="blue" style={{ marginRight: '4px' }}>{d}</Label>)}
+              {lab.schedule_dates.map(d => <Label key={d} isCompact color="blue" style={{ marginRight: '4px' }}>{d}</Label>)}
             </DescriptionListDescription>
           </DescriptionListGroup>
         )}

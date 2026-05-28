@@ -531,5 +531,5 @@ def list_all_constraints():
     agnosticv_dir = Path(__file__).parent.parent.parent.parent / "github review" / "agnosticv"
     if not agnosticv_dir.exists():
         return {"error": "AgnosticV repo not found"}
-    from constraints.agnosticv_loader import load_all_summit_constraints
-    return load_all_summit_constraints(agnosticv_dir)
+    from constraints.agnosticv_loader import load_all_constraints
+    return load_all_constraints(agnosticv_dir)

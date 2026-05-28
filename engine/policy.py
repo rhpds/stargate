@@ -76,8 +76,8 @@ def generate_recommendations(
         if code:
             sessions_by_lab.setdefault(code, []).append(s)
 
-    summit_pools = pools.get("summit_pools", [])
-    pools_by_name = {p.get("name", ""): p for p in summit_pools}
+    all_pools = pools.get("all_pools", pools.get("summit_pools", []))
+    pools_by_name = {p.get("name", ""): p for p in all_pools}
     exhausted_pools = pools.get("exhausted_pools", [])
     low_pools = pools.get("low", []) if isinstance(pools.get("low"), list) else []
     prov_state = pools.get("provisioning", {}) if "provisioning" in pools else {}
@@ -108,7 +108,7 @@ def generate_recommendations(
                 "lab_code": lab["lab_code"],
                 "title": lab.get("title", ""),
                 "sessions": lab["sessions"],
-                "summit_days": lab.get("summit_days", []),
+                "schedule_dates": lab.get("schedule_dates", []),
                 "attendees": lab.get("total_attendees", 0),
                 "recommendation": f"Allocate pool for {lab['lab_code']} — {lab['sessions']} session(s) scheduled, no provisioning",
                 "suggested_pool": pool_match,
@@ -122,7 +122,7 @@ def generate_recommendations(
                         "session_details": [{"date": s.get("session_date"), "room": s.get("room"), "attendees": s.get("attendees")} for s in lab_sessions[:5]],
                         "lab_status": lab.get("labagator_status"),
                         "total_attendees": lab.get("total_attendees", 0),
-                        "summit_days": lab.get("summit_days", []),
+                        "schedule_dates": lab.get("schedule_dates", []),
                     },
                     "source_babylon": {
                         "instances_started": lab.get("instances_started", 0),
@@ -199,7 +199,7 @@ def generate_recommendations(
     rule = rules.get("pool_exhaustion")
     if rule:
         available_max = (rule.thresholds or {}).get("available_max", 1)
-        for pool in summit_pools:
+        for pool in all_pools:
             available = pool.get("available", 0)
             min_required = pool.get("min", 0)
             if min_required > 0 and available <= available_max:
@@ -295,7 +295,7 @@ def generate_recommendations(
                 continue
             if lab.get("sessions", 0) == 0:
                 continue
-            days = lab.get("summit_days", [])
+            days = lab.get("schedule_dates", [])
 
             failed_ct = lab.get("demolition_failed", 0)
             total_ct = lab.get("demolition_total", 0)
@@ -306,11 +306,11 @@ def generate_recommendations(
 
             recommendations.append({
                 "type": rule.id,
-                "urgency": rule.get_urgency(has_summit_days=bool(days)),
+                "urgency": rule.get_urgency(has_schedule=bool(days)),
                 "lab_code": lab["lab_code"],
                 "title": lab.get("title", ""),
                 "sessions": lab["sessions"],
-                "summit_days": days,
+                "schedule_dates": days,
                 "failed_count": failed_ct,
                 "total_count": total_ct,
                 "recommendation": f"{lab['lab_code']} failing smoke test ({failed_ct}/{total_ct}) — has {lab['sessions']} session(s) on {', '.join(days)}",
@@ -326,7 +326,7 @@ def generate_recommendations(
                     },
                     "source_labagator": {
                         "sessions": lab["sessions"],
-                        "summit_days": days,
+                        "schedule_dates": days,
                         "next_session": lab_sessions[0] if lab_sessions else None,
                         "total_attendees": lab.get("total_attendees", 0),
                     },
@@ -542,11 +542,11 @@ def _find_pool_match(ci_name: str, cloud: str, pools: Dict) -> Optional[str]:
     if not ci_name:
         return None
 
-    summit_pools = pools.get("summit_pools", [])
+    all_pool_list = pools.get("all_pools", pools.get("summit_pools", []))
     slug = ci_name.split(".", 1)[1] if "." in ci_name else ci_name
     lb_part = slug.split("-")[0] if slug else ""
 
-    for pool in summit_pools:
+    for pool in all_pool_list:
         name = pool.get("name", "")
         if lb_part and lb_part in name:
             return name

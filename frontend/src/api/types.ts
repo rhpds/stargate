@@ -5,7 +5,7 @@ export interface HealthStatus {
 
 // --- Summit Dashboard ---
 
-export interface SummitLab {
+export interface Deployment {
   lab_code: string;
   title: string;
   labagator_status: string;
@@ -27,7 +27,7 @@ export interface SummitLab {
   instances_total: number;
   instances_failed: number;
   instances_destroying: number;
-  summit_days: string[];
+  schedule_dates: string[];
   session_dates: string[];
   schedule_status: 'active' | 'completed' | 'upcoming' | 'no_sessions';
   next_action: { action: string | null; urgency: string | null; detail: string };
@@ -37,7 +37,7 @@ export interface SummitLab {
   last_scanned: string | null;
 }
 
-export interface SummitPool {
+export interface PoolEntry {
   pool: string;
   health: number | null;
   evaluations: number;
@@ -50,14 +50,14 @@ export interface SummitPool {
   failure_classes: Record<string, number>;
 }
 
-export interface SummitDashboard {
+export interface DeploymentsDashboard {
   timestamp: string;
   total_labs: number;
   provisioned_count: number;
   with_sessions: number;
   labagator_available: boolean;
-  pools: Record<string, SummitPool>;
-  labs: SummitLab[];
+  pools: Record<string, PoolEntry>;
+  labs: Deployment[];
 }
 
 // --- Overview ---
@@ -636,7 +636,7 @@ export interface Recommendation {
   cluster?: string;
   pool_name?: string;
   sessions?: number;
-  summit_days?: string[];
+  schedule_dates?: string[];
   attendees?: number;
   stuck_count?: number;
   cpu?: number;

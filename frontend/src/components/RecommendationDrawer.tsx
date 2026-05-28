@@ -104,11 +104,11 @@ export default function RecommendationDrawer({ recommendation: r }: Props) {
           </DescriptionListGroup>
         )}
 
-        {r.summit_days && r.summit_days.length > 0 && (
+        {r.schedule_dates && r.schedule_dates.length > 0 && (
           <DescriptionListGroup>
             <DescriptionListTerm>Event Days</DescriptionListTerm>
             <DescriptionListDescription>
-              {r.summit_days.map(d => <Label key={d} isCompact color="blue" style={{ marginRight: 4 }}>{d}</Label>)}
+              {r.schedule_dates.map(d => <Label key={d} isCompact color="blue" style={{ marginRight: 4 }}>{d}</Label>)}
             </DescriptionListDescription>
           </DescriptionListGroup>
         )}
