@@ -21,14 +21,14 @@ from api.routers._shared import (
     require_admin,
 )
 
-router = APIRouter(dependencies=[Depends(require_admin)])
+router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
 # Scheduler management
 # ---------------------------------------------------------------------------
 
-@router.post("/admin/scheduler/start")
+@router.post("/admin/scheduler/start", dependencies=[Depends(require_admin)])
 @limiter.limit("10/minute")
 def admin_scheduler_start(
     request: Request,
@@ -66,7 +66,7 @@ def admin_scheduler_start(
         }
 
 
-@router.post("/admin/scheduler/stop")
+@router.post("/admin/scheduler/stop", dependencies=[Depends(require_admin)])
 def admin_scheduler_stop():
     """Stop the scanner scheduler."""
     import api.routers._shared as _shared
@@ -475,7 +475,7 @@ def admin_llm_evaluation(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/admin/llm/feedback")
+@router.post("/admin/llm/feedback", dependencies=[Depends(require_admin)])
 def admin_llm_feedback(req: dict, db: Session = Depends(get_db)):
     """Submit feedback on an LLM response."""
     from db.models import LLMFeedback
@@ -651,7 +651,7 @@ def admin_llm_auto_status():
     return {"enabled": is_enabled()}
 
 
-@router.post("/admin/llm/auto")
+@router.post("/admin/llm/auto", dependencies=[Depends(require_admin)])
 def admin_llm_auto_toggle(req: dict):
     """Enable or disable auto-LLM analysis. Body: {"enabled": true/false}"""
     from engine.auto_llm import set_enabled, is_enabled
@@ -690,7 +690,7 @@ def admin_audit_trail(limit: int = 50, db: Session = Depends(get_db)):
 # Synthetic integration endpoints
 # ===========================================================================
 
-@router.post("/admin/evidence-source")
+@router.post("/admin/evidence-source", dependencies=[Depends(require_admin)])
 def set_evidence_source(req: dict):
     """Toggle between real and synthetic evidence sources."""
     import api.routers._shared as _shared
@@ -710,7 +710,7 @@ def get_evidence_source():
     return {"source": _shared._evidence_source, "scenario": _shared._synthetic_scenario}
 
 
-@router.post("/admin/dry-run")
+@router.post("/admin/dry-run", dependencies=[Depends(require_admin)])
 def set_dry_run(req: dict):
     """Toggle dry-run mode."""
     import api.routers._shared as _shared
@@ -738,7 +738,7 @@ def get_approval_queue(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/admin/approval-queue/{action_id}/approve")
+@router.post("/admin/approval-queue/{action_id}/approve", dependencies=[Depends(require_admin)])
 def approve_action(action_id: int, db: Session = Depends(get_db)):
     """Approve a pending action."""
     from db.models import PendingAction
@@ -767,7 +767,7 @@ def approve_action(action_id: int, db: Session = Depends(get_db)):
     return {"id": action.id, "status": "approved", "execution": execution_result}
 
 
-@router.post("/admin/approval-queue/{action_id}/reject")
+@router.post("/admin/approval-queue/{action_id}/reject", dependencies=[Depends(require_admin)])
 def reject_action(action_id: int, db: Session = Depends(get_db)):
     """Reject a pending action."""
     from db.models import PendingAction
@@ -805,7 +805,7 @@ def get_audit_trail(limit: int = 50, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/admin/validate")
+@router.post("/admin/validate", dependencies=[Depends(require_admin)])
 def validate_scenarios(db: Session = Depends(get_db)):
     """Run all synthetic scenarios and compare against expected outcomes."""
     results = []
@@ -852,7 +852,7 @@ def validate_scenarios(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/admin/run-phase-d-test")
+@router.post("/admin/run-phase-d-test", dependencies=[Depends(require_admin)])
 def run_phase_d_test(db: Session = Depends(get_db)):
     """Phase D proof: emulator → policy → mock validate → execute → verify → receipt.
 
@@ -945,7 +945,7 @@ def run_phase_d_test(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/admin/run-chaos-test")
+@router.post("/admin/run-chaos-test", dependencies=[Depends(require_admin)])
 def run_chaos_test(db: Session = Depends(get_db)):
     """Chaos test: deploy broken workloads → evaluate → LLM diagnose → fix → verify recovery.
 
@@ -1044,7 +1044,7 @@ def get_remediation_config(lab_code: str, db: Session = Depends(get_db)):
     }
 
 
-@router.put("/admin/remediation/config/{lab_code}")
+@router.put("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 def update_remediation_config(lab_code: str, request: Request, body: dict, db: Session = Depends(get_db)):
     """Create or update remediation config for a lab."""
@@ -1089,7 +1089,7 @@ def update_remediation_config(lab_code: str, request: Request, body: dict, db: S
     }
 
 
-@router.delete("/admin/remediation/config/{lab_code}")
+@router.delete("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 def delete_remediation_config(lab_code: str, request: Request, db: Session = Depends(get_db)):
     """Reset a lab to default recommend_only mode."""

@@ -1,0 +1,14 @@
+scan-history/
+backups/
+test-receipts/
+stargate.db
+stargate-synthetic-client-emulator/
+.git/
+__pycache__/
+*.pyc
+node_modules/
+secrets/
+fixtures/
+docs/
+tests/
+scheduler.log

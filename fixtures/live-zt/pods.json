@@ -2513,7 +2513,7 @@
               "0",
               "--ovmf-path",
               "/usr/share/OVMF",
-              "--disk-memory-limit",
+              "--disk-REDACTED",
               "2000000000",
               "--run-as-nonroot"
             ],
@@ -2928,7 +2928,7 @@
               "0",
               "--ovmf-path",
               "/usr/share/OVMF",
-              "--disk-memory-limit",
+              "--disk-REDACTED",
               "2000000000",
               "--run-as-nonroot"
             ],
@@ -3338,7 +3338,7 @@
               "0",
               "--ovmf-path",
               "/usr/share/OVMF",
-              "--disk-memory-limit",
+              "--disk-REDACTED",
               "2000000000",
               "--run-as-nonroot"
             ],
@@ -3753,7 +3753,7 @@
               "0",
               "--ovmf-path",
               "/usr/share/OVMF",
-              "--disk-memory-limit",
+              "--disk-REDACTED",
               "2000000000",
               "--run-as-nonroot"
             ],
@@ -4168,7 +4168,7 @@
               "0",
               "--ovmf-path",
               "/usr/share/OVMF",
-              "--disk-memory-limit",
+              "--disk-REDACTED",
               "2000000000",
               "--run-as-nonroot"
             ],

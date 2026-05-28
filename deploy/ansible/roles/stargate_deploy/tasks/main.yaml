@@ -1,0 +1,316 @@
+---
+- name: Create StarGate namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ stargate_namespace }}"
+
+- name: Create StarGate secrets
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: stargate-secrets
+        namespace: "{{ stargate_namespace }}"
+      type: Opaque
+      stringData:
+        postgres-password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+        litellm-api-key: "{{ stargate_litellm_api_key }}"
+        admin-api-key: "{{ stargate_admin_api_key | default(lookup('password', '/dev/null length=48 chars=ascii_letters,digits'), true) }}"
+
+- name: Deploy PostgreSQL
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: stargate-postgres
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: stargate-postgres
+        template:
+          metadata:
+            labels:
+              app: stargate-postgres
+          spec:
+            containers:
+            - name: postgres
+              image: "{{ stargate_postgres_image }}"
+              ports:
+              - containerPort: 5432
+              env:
+              - name: POSTGRES_USER
+                value: stargate
+              - name: POSTGRES_DB
+                value: stargate
+              - name: POSTGRES_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: stargate-secrets
+                    key: postgres-password
+              volumeMounts:
+              - name: data
+                mountPath: /var/lib/postgresql/data
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+            volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: stargate-postgres-pvc
+
+- name: Create PostgreSQL PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: stargate-postgres-pvc
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: "{{ stargate_postgres_storage }}"
+
+- name: Create PostgreSQL Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: stargate-postgres
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        selector:
+          app: stargate-postgres
+        ports:
+        - port: 5432
+          targetPort: 5432
+
+- name: Create OAuth ServiceAccount
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: stargate-oauth
+        namespace: "{{ stargate_namespace }}"
+        annotations:
+          serviceaccounts.openshift.io/oauth-redirectreference.primary: |
+            {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"stargate"}}
+  when: stargate_oauth_enabled | bool
+
+- name: Grant auth-delegator to OAuth SA
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: "stargate-oauth-auth-delegator"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:auth-delegator
+      subjects:
+      - kind: ServiceAccount
+        name: stargate-oauth
+        namespace: "{{ stargate_namespace }}"
+  when: stargate_oauth_enabled | bool
+
+- name: Deploy StarGate API
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: stargate
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: stargate
+        template:
+          metadata:
+            labels:
+              app: stargate
+          spec:
+            serviceAccountName: "{{ 'stargate-oauth' if (stargate_oauth_enabled | bool) else 'default' }}"
+            securityContext:
+              runAsNonRoot: true
+            containers:
+            - name: stargate
+              image: "{{ stargate_image }}"
+              ports:
+              - containerPort: 8090
+              env:
+              - name: POSTGRES_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: stargate-secrets
+                    key: postgres-password
+              - name: STARGATE_DATABASE_URL
+                value: "postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate"
+              - name: STARGATE_SSL_VERIFY
+                value: "{{ stargate_ssl_verify }}"
+              - name: STARGATE_LITELLM_API_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: stargate-secrets
+                    key: litellm-api-key
+              - name: STARGATE_ADMIN_API_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: stargate-secrets
+                    key: admin-api-key
+              - name: STARGATE_LITELLM_URL
+                value: "{{ stargate_litellm_url }}"
+              - name: STARGATE_LLM_MODEL
+                value: "{{ stargate_llm_model }}"
+              - name: STARGATE_EXECUTION_TARGET
+                value: "{{ stargate_execution_target }}"
+              - name: STARGATE_DRY_RUN
+                value: "{{ stargate_dry_run }}"
+              - name: STARGATE_LABAGATOR_URL
+                value: "{{ stargate_labagator_url }}"
+              - name: STARGATE_DEMOLITION_URL
+                value: "{{ stargate_demolition_url }}"
+              - name: STARGATE_DASHBOARD_URL
+                value: "{{ stargate_dashboard_url }}"
+              - name: STARGATE_SANDBOX_API_METRICS_URL
+                value: "{{ stargate_sandbox_api_metrics_url }}"
+              - name: STARGATE_CORS_ORIGINS
+                value: "{{ stargate_dashboard_url }}"
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+              - name: kubeconfigs
+                mountPath: /opt/app-root/src/secrets
+                readOnly: true
+              resources:
+                requests:
+                  cpu: "{{ stargate_api_cpu_request }}"
+                  memory: "{{ stargate_api_memory_request }}"
+                limits:
+                  cpu: "{{ stargate_api_cpu_limit }}"
+                  memory: "{{ stargate_api_memory_limit }}"
+              livenessProbe:
+                httpGet:
+                  path: /health
+                  port: 8090
+                initialDelaySeconds: 15
+                periodSeconds: 30
+              readinessProbe:
+                httpGet:
+                  path: /health
+                  port: 8090
+                initialDelaySeconds: 5
+                periodSeconds: 10
+            - name: oauth-proxy
+              image: "{{ stargate_oauth_proxy_image }}"
+              ports:
+              - containerPort: 4180
+                name: proxy
+              args:
+              - --https-address=
+              - --http-address=:4180
+              - --upstream=http://localhost:8090
+              - --cookie-secret={{ stargate_oauth_cookie_secret | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits'), true) }}
+              - --cookie-name=_stargate_oauth
+              - --provider=openshift
+              - --openshift-service-account=stargate-oauth
+              - --pass-user-headers=true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+              when: stargate_oauth_enabled | bool
+            volumes:
+            - name: kubeconfigs
+              secret:
+                secretName: "{{ stargate_kubeconfigs_secret }}"
+                optional: true
+
+- name: Create StarGate Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: stargate
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        selector:
+          app: stargate
+        ports:
+        - name: proxy
+          port: 4180
+          targetPort: 4180
+        - name: api
+          port: 8090
+          targetPort: 8090
+
+- name: Create StarGate Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: stargate
+        namespace: "{{ stargate_namespace }}"
+      spec:
+        to:
+          kind: Service
+          name: stargate
+        port:
+          targetPort: "{{ 4180 if (stargate_oauth_enabled | bool) else 8090 }}"
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+
+- name: Wait for StarGate API to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: stargate
+    namespace: "{{ stargate_namespace }}"
+  register: stargate_deploy
+  until: (stargate_deploy.resources[0].status.readyReplicas | default(0)) >= 1
+  retries: 30
+  delay: 10
+
+- name: Get StarGate route URL
+  kubernetes.core.k8s_info:
+    kind: Route
+    name: stargate
+    namespace: "{{ stargate_namespace }}"
+  register: stargate_route
+
+- name: Report StarGate URL
+  debug:
+    msg: "StarGate deployed at https://{{ stargate_route.resources[0].spec.host }}"

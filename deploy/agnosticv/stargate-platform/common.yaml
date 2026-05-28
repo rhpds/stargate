@@ -1,0 +1,134 @@
+---
+# -------------------------------------------------------------------
+# --- Catalog Item: StarGate Platform
+# --- Continuous operations platform for Red Hat Demo Platform.
+# --- Monitors OpenShift clusters, evaluates lab readiness via rubrics,
+# --- classifies failures with AI (Granite LLM via MAAS/LiteLLM),
+# --- and auto-remediates with per-lab gradual rollout.
+# -------------------------------------------------------------------
+
+#include /includes/agd-v2-mapping.yaml
+#include /includes/catalog-icon-openshift.yaml
+#include /includes/terms-of-service.yaml
+
+#include /includes/access-restriction-admins-only.yaml
+
+# -------------------------------------------------------------------
+# Mandatory Variables
+# -------------------------------------------------------------------
+
+config: openshift-workloads
+cloud_provider: none
+num_users: 0
+
+clusters:
+- default:
+    api_url: "{{ openshift_api_url }}"
+    api_token: "{{ openshift_cluster_admin_token }}"
+
+# ===================================================================
+# StarGate Configuration
+# ===================================================================
+
+stargate_namespace: stargate
+stargate_image_tag: "{{ stargate_image_tag | default('latest') }}"
+stargate_image_registry: "{{ stargate_image_registry | default('quay.io/rhpds') }}"
+
+# LLM — always via MAAS/LiteLLM, never direct GPU
+stargate_llm_model: granite-3-2-8b-instruct
+stargate_litellm_url: ""
+stargate_litellm_api_key: ""
+
+# Scanner
+stargate_scanner_clusters: ""
+stargate_ssl_verify: "false"
+
+# Execution
+stargate_execution_target: mock
+stargate_dry_run: "true"
+
+# Database
+stargate_postgres_storage: 10Gi
+
+# OAuth
+stargate_oauth_enabled: true
+stargate_oauth_cookie_secret: ""
+
+# ===================================================================
+# Additional Collections
+# ===================================================================
+
+tag: main
+requirements_content:
+  collections:
+
+  - name: https://github.com/agnosticd/core_workloads.git
+    type: git
+    version: "{{ tag }}"
+
+# ===================================================================
+# Workloads
+# ===================================================================
+
+workloads:
+
+- name: stargate_deploy
+  role: "{{ stargate_deploy_role | default('rhpds.stargate.deploy') }}"
+  vars:
+    stargate_namespace: "{{ stargate_namespace }}"
+    stargate_image: "{{ stargate_image_registry }}/stargate-api:{{ stargate_image_tag }}"
+    stargate_postgres_storage: "{{ stargate_postgres_storage }}"
+    stargate_oauth_enabled: "{{ stargate_oauth_enabled }}"
+    stargate_oauth_cookie_secret: "{{ stargate_oauth_cookie_secret }}"
+    stargate_execution_target: "{{ stargate_execution_target }}"
+    stargate_dry_run: "{{ stargate_dry_run }}"
+    stargate_llm_model: "{{ stargate_llm_model }}"
+    stargate_litellm_url: "{{ stargate_litellm_url }}"
+    stargate_litellm_api_key: "{{ stargate_litellm_api_key }}"
+    stargate_scanner_clusters: "{{ stargate_scanner_clusters }}"
+    stargate_ssl_verify: "{{ stargate_ssl_verify }}"
+
+# ===================================================================
+# Babylon Metadata
+# ===================================================================
+
+__meta__:
+  owners:
+    maintainer:
+    - name: Jack Kershaw
+      email: jkershaw@redhat.com
+  catalog:
+    display_name: "StarGate Platform — Continuous Operations"
+    category: Infrastructure
+    namespace: babylon-catalog-{{ stage | default('?') }}
+    keywords:
+    - openshift
+    - operations
+    - monitoring
+    - remediation
+    - ai
+    - stargate
+    labels:
+      Provider: RHDP
+    reportingLabels:
+      primaryBU: Hybrid_Platforms
+    parameters: []
+    workshopUiDisabled: true
+
+  deployer:
+    scm_url: https://github.com/rhpds/stargate
+    scm_ref: main
+    execution_environment:
+      image: quay.io/agnosticd/ee-multicloud:chained-2026-02-23
+      pull: missing
+    actions:
+      destroy:
+        disable: false
+      start:
+        disable: true
+      status:
+        disable: true
+      stop:
+        disable: true
+      update:
+        disable: false

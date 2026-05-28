@@ -137,6 +137,20 @@ def scan_cluster(name: str, kubeconfig: str) -> Optional[Dict]:
         sandbox_crashloop = 0
         total_vms = 0
         ocp4_labs = set()
+        all_sandbox_namespaces = set()
+
+        _include_prefixes = os.environ.get(
+            "STARGATE_INCLUDE_NS",
+            "sandbox-,launchpad-,stargate,deepfield,platform-dashboard,intel-rh-,demolition-,labagator-,cost-monitor,fleetview-",
+        ).split(",")
+        _exclude_prefixes = os.environ.get(
+            "STARGATE_EXCLUDE_NS", "openshift-,kube-"
+        ).split(",")
+
+        def _is_tracked(ns):
+            if any(ns.startswith(p.strip()) for p in _exclude_prefixes if p.strip()):
+                return False
+            return any(ns.startswith(p.strip()) for p in _include_prefixes if p.strip())
 
         for line in pods_out.strip().split("\n"):
             if not line:
@@ -146,7 +160,8 @@ def scan_cluster(name: str, kubeconfig: str) -> Optional[Dict]:
                 continue
             ns, pod, ready, status = parts[0], parts[1], parts[2], parts[3]
 
-            if ns.startswith("sandbox-"):
+            if _is_tracked(ns):
+                all_sandbox_namespaces.add(ns)
                 if status == "Running":
                     sandbox_active.add(ns)
                 elif status not in ("Completed", "Succeeded", "Terminating"):
@@ -165,6 +180,7 @@ def scan_cluster(name: str, kubeconfig: str) -> Optional[Dict]:
         result["sandbox_crashloop"] = sandbox_crashloop
         result["total_vms"] = total_vms
         result["ocp4_cluster_labs"] = len(ocp4_labs)
+        result["all_sandbox_namespaces"] = sorted(all_sandbox_namespaces)
         if node_count > 0:
             result["vms_per_node"] = round(total_vms / node_count, 1)
 

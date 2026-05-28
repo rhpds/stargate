@@ -5,7 +5,7 @@ RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-FROM registry.access.redhat.com/ubi9/python-39:latest
+FROM registry.access.redhat.com/ubi9/python-311:latest
 
 USER 0
 RUN curl -sL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux-amd64-rhel8.tar.gz" \
