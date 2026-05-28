@@ -3839,6 +3839,7 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
     pod = req.get("pod", "")
     lab_code = req.get("lab_code")
     cluster_name = req.get("cluster_name")
+    mock_context = req.get("mock_context", {})
 
     kubeconfig = os.environ.get("KUBECONFIG", "")
     start_time = _t.time()
@@ -3874,11 +3875,10 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
             investigate["source"] = "error"
             investigate["error"] = str(e)[:200]
     else:
-        investigate["pod_logs"] = "OOM killed (exit code 137)\nContainer exceeded memory limit of 32Mi"
-        investigate["pod_events"] = [
+        investigate["pod_logs"] = mock_context.get("logs", "Pod failure detected — no live logs available")
+        investigate["pod_events"] = mock_context.get("events", [
             {"type": "Warning", "reason": "BackOff", "message": "Back-off restarting failed container", "count": 5},
-            {"type": "Warning", "reason": "OOMKilled", "message": "Container killed due to OOM", "count": 3},
-        ]
+        ])
 
     investigate["pod"] = pod
     investigate["namespace"] = namespace
@@ -3978,8 +3978,8 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
         fix["success"] = True
         fix["commands_executed"] = [{"command": f"oc delete pod {pod} -n {namespace}", "success": True, "output": "pod deleted"}]
 
-    fix["reason"] = "Crashlooping pod deleted. Deployment controller will create a healthy replacement."
-    fix["before"] = {"pod_status": "CrashLoopBackOff", "restart_count": 5}
+    fix["reason"] = "Failing pod deleted. Deployment controller will create a healthy replacement."
+    fix["before"] = {"pod_status": mock_context.get("before_status", "Failed"), "restart_count": mock_context.get("evidence", {}).get("restart_count", 0)}
     fix["after"] = {"pod_status": "Deleted — replacement pending"}
     phases["fix"] = fix
 
