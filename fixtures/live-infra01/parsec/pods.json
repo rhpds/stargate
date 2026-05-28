@@ -4205,7 +4205,7 @@
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_REGION",
@@ -4958,7 +4958,7 @@
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_REGION",
@@ -5711,7 +5711,7 @@
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_REGION",
@@ -6464,7 +6464,7 @@
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_PROJECT_ID",
-                "value": "itpc-gcp-product-all-claude"
+                "value": "my-gcp-project-example"
               },
               {
                 "name": "PARSEC_ANTHROPIC__VERTEX_REGION",
