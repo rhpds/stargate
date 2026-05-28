@@ -109,6 +109,29 @@ def on_startup():
     tw.start()
     ts = threading.Thread(target=_auto_start_scanner, daemon=True)
     ts.start()
+    tc = threading.Thread(target=_corpus_mining_loop, daemon=True)
+    tc.start()
+
+
+def _corpus_mining_loop():
+    """Run corpus miners every 30 minutes to build the failure knowledge base."""
+    import time as _tc
+    _tc.sleep(60)
+    logger = logging.getLogger("stargate")
+    while not _shutdown_event.is_set():
+        try:
+            from engine.corpus_runner import run_all_miners
+            from db.database import get_db
+            db = next(get_db())
+            result = run_all_miners(db=db)
+            logger.info(
+                "Corpus mining: %d findings from %d sources, %d total classes",
+                result["total_findings"], len(result["by_source"]), result["total_failure_classes"],
+            )
+            db.close()
+        except Exception as e:
+            logger.warning("Corpus mining failed: %s", e)
+        _shutdown_event.wait(1800)
 
 
 def _auto_start_scanner():
