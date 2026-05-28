@@ -51,3 +51,7 @@ app.conf.beat_schedule = {
 }
 
 app.autodiscover_tasks(["tasks"])
+
+# Explicit imports to ensure tasks register with shared_task
+import tasks.scanner  # noqa: F401
+import tasks.maintenance  # noqa: F401

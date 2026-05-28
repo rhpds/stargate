@@ -2,12 +2,12 @@
 
 import logging
 
-from celery_app import app
+from celery import shared_task
 
 logger = logging.getLogger("stargate.tasks.maintenance")
 
 
-@app.task(bind=True, max_retries=1)
+@shared_task(bind=True, max_retries=1)
 def mv_refresh(self):
     """Refresh materialized views and run calibration."""
     try:
@@ -40,7 +40,7 @@ def mv_refresh(self):
         return {"error": str(e)}
 
 
-@app.task
+@shared_task
 def warm_caches():
     """Pre-fetch external API caches."""
     try:
@@ -55,7 +55,7 @@ def warm_caches():
         return {"error": str(e)}
 
 
-@app.task(bind=True, max_retries=1, soft_time_limit=300)
+@shared_task(bind=True, max_retries=1, soft_time_limit=300)
 def corpus_mine(self):
     """Run all corpus miners and load results into DB."""
     try:
