@@ -1,0 +1,106 @@
+id: infrastructure-failures
+version: "1.0"
+description: Infrastructure-level failure classifications — storage, networking, nodes
+source: infrastructure
+
+classes:
+  ceph_health_warning:
+    pattern: "(HEALTH_WARN|degraded PG|slow OSD|nearfull)"
+    severity: warning
+    remediation:
+      - Check Ceph cluster status in openshift-storage namespace
+      - "oc get cephcluster -n openshift-storage -o yaml | grep -A10 health"
+      - Investigate degraded placement groups
+      - Check OSD disk utilization
+
+  ceph_health_error:
+    pattern: "(HEALTH_ERR|down OSD|data loss|inconsistent)"
+    severity: critical
+    remediation:
+      - IMMEDIATE — potential data loss risk
+      - Check which OSDs are down
+      - "oc get pods -n openshift-storage | grep osd"
+      - Contact storage team
+
+  ingress_5xx_spike:
+    pattern: "(HTTP 502|HTTP 503|HTTP 504|gateway timeout|bad gateway)"
+    severity: high
+    remediation:
+      - Check backend pod health for the affected route
+      - Verify the service has healthy endpoints
+      - "oc get endpoints -n {namespace}"
+      - Check ingress controller logs
+
+  ingress_tls_error:
+    pattern: "(TLS handshake|certificate verify|ssl_error|tls_error)"
+    severity: high
+    remediation:
+      - Check certificate expiry on the route
+      - Verify the serving cert secret exists
+      - "oc get route {route} -n {namespace} -o yaml | grep -A5 tls"
+
+  node_disk_pressure:
+    pattern: "(DiskPressure|disk.*full|no space left|filesystem.*full)"
+    severity: critical
+    remediation:
+      - Identify large files or containers consuming disk
+      - Clean up old images and unused containers
+      - "crictl rmi --prune on the affected node"
+      - Consider expanding the node disk
+
+  node_kernel_error:
+    pattern: "(kernel.*error|oom_kill|segfault|hardware error|MCE)"
+    severity: critical
+    remediation:
+      - Check dmesg on the affected node
+      - "oc adm node-logs {node} --since=-1h | grep -i error"
+      - Consider cordoning the node for investigation
+
+  operator_install_failed:
+    pattern: "(InstallPlan.*failed|CSV.*pending|operator.*install.*fail)"
+    severity: high
+    remediation:
+      - Check operator subscription and catalog source
+      - "oc get installplan -A | grep -v Complete"
+      - Verify the catalog source is healthy
+      - "oc get catalogsource -n openshift-marketplace"
+
+  operator_degraded:
+    pattern: "(operator.*degraded|ClusterOperator.*Degraded|condition.*Degraded)"
+    severity: high
+    remediation:
+      - "oc get co | grep -v 'True.*False.*False'"
+      - Check operator pod logs
+      - Review operator conditions for specific error messages
+
+  machine_provision_failed:
+    pattern: "(machine.*provision.*fail|MachineCreation|instance.*failed)"
+    severity: high
+    remediation:
+      - Check cloud provider credentials and quotas
+      - "oc get machines -n openshift-machine-api"
+      - Review machine events for specific error
+
+  network_policy_denial:
+    pattern: "(network.*policy.*deny|egress.*blocked|ingress.*blocked)"
+    severity: medium
+    remediation:
+      - Review network policies in the namespace
+      - "oc get networkpolicy -n {namespace}"
+      - Check if the policy matches the intended traffic
+
+  etcd_compaction_needed:
+    pattern: "(etcd.*compaction|database.*size|mvcc.*too large)"
+    severity: warning
+    remediation:
+      - Schedule etcd defragmentation during maintenance
+      - Monitor etcd database size trend
+      - Check for high churn resources (frequent updates)
+
+  image_registry_unavailable:
+    pattern: "(registry.*unavail|image.*registry.*error|push.*failed.*registry)"
+    severity: high
+    remediation:
+      - Check image registry pods in openshift-image-registry
+      - Verify registry storage is available
+      - "oc get pods -n openshift-image-registry"
