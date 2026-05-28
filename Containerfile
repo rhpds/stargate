@@ -19,7 +19,8 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir \
     pydantic==2.13.3 pyyaml==6.0.3 jsonschema==4.25.1 \
     fastapi==0.128.8 uvicorn==0.39.0 psycopg2-binary==2.9.12 \
-    sqlalchemy==2.0.49 slowapi==0.1.9 prometheus-client==0.25.0 alembic==1.16.5
+    sqlalchemy==2.0.49 slowapi==0.1.9 prometheus-client==0.25.0 alembic==1.16.5 \
+    "celery[redis]==5.5.3"
 
 COPY engine/ engine/
 COPY collectors/ collectors/
@@ -33,6 +34,8 @@ COPY remediations/ remediations/
 COPY prompts/ prompts/
 COPY failure-classes/ failure-classes/
 COPY integrations/ integrations/
+COPY celery_app.py .
+COPY tasks/ tasks/
 COPY evidence-schemas/ evidence-schemas/
 COPY cli/ cli/
 COPY --from=frontend-build /app/dist frontend/dist/
