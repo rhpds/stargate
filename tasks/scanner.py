@@ -2,12 +2,12 @@
 
 import logging
 
-from celery_app import app
+from celery import shared_task
 
 logger = logging.getLogger("stargate.tasks.scanner")
 
 
-@app.task(bind=True, max_retries=2, default_retry_delay=30)
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
 def scanner_tick(self):
     """Run one scan tick across all configured clusters."""
     try:
@@ -25,7 +25,7 @@ def scanner_tick(self):
         raise self.retry(exc=e)
 
 
-@app.task(bind=True, max_retries=1)
+@shared_task(bind=True, max_retries=1)
 def write_scan_history(self):
     """Write scan results to scan-history files and DB."""
     try:
