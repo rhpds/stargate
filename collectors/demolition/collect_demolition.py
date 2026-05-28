@@ -103,23 +103,28 @@ def summarize_sessions(base_url: str = DEFAULT_URL) -> Dict:
     }
 
 
-def find_summit_sessions(base_url: str = DEFAULT_URL) -> List[Dict]:
-    """Find Demolition sessions related to Summit labs."""
+def find_tracked_sessions(base_url: str = DEFAULT_URL, prefix: str = "") -> List[Dict]:
+    """Find Demolition sessions matching a prefix filter (or all if empty)."""
     sessions = collect_sessions(base_url)
-    summit = []
+    tracked = []
     for s in sessions:
         name = s.get("name", "").lower()
         url = s.get("workshop_url", "").lower()
-        if "summit" in name or "summit" in url or "lb" in name:
-            result = s.get("last_result") or {}
-            summit.append({
-                "id": s.get("id"),
-                "name": s.get("name", "")[:80],
-                "status": s.get("status"),
-                "workers": s.get("worker_count"),
-                "workshop_url": s.get("workshop_url", "")[:80],
-                "completed": result.get("completed", 0),
-                "failed": result.get("failed", 0),
-                "total": result.get("total", 0),
-            })
-    return summit
+        if prefix and prefix.lower() not in name and prefix.lower() not in url:
+            continue
+        result = s.get("last_result") or {}
+        tracked.append({
+            "id": s.get("id"),
+            "name": s.get("name", "")[:80],
+            "status": s.get("status"),
+            "workers": s.get("worker_count"),
+            "workshop_url": s.get("workshop_url", "")[:80],
+            "completed": result.get("completed", 0),
+            "failed": result.get("failed", 0),
+            "total": result.get("total", 0),
+        })
+    return tracked
+
+
+# Backward compat
+find_summit_sessions = find_tracked_sessions

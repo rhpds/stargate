@@ -10,8 +10,8 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { useOverview, useSummitDashboard, usePoolsDashboard, usePipeline, useRecommendations } from '../api/hooks';
-import type { SummitLab, ClusterScan, PoolEntry, PipelineStage, Recommendation } from '../api/types';
+import { useOverview, useDeploymentsDashboard, usePoolsDashboard, usePipeline, useRecommendations } from '../api/hooks';
+import type { Deployment, ClusterScan, PoolEntry, PipelineStage, Recommendation } from '../api/types';
 import type { ErrorRow } from '../components/ErrorsView';
 import OverviewCards from '../components/OverviewCards';
 import ReadinessBanner from '../components/ReadinessBanner';
@@ -41,7 +41,7 @@ const CatalogView = lazy(() => import('../components/CatalogView'));
 type View = 'labs' | 'clusters' | 'pools' | 'errors' | 'pipeline' | 'nodes' | 'recommendations' | 'provisioning' | 'security' | 'forecast' | 'catalog';
 
 type Selected =
-  | { type: 'lab'; item: SummitLab }
+  | { type: 'lab'; item: Deployment }
   | { type: 'cluster'; item: ClusterScan }
   | { type: 'pool'; item: PoolEntry }
   | { type: 'error'; item: ErrorRow }
@@ -53,7 +53,7 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<Selected | null>(null);
 
   const { data: overview, isLoading: loadingOverview, isError: errorOverview } = useOverview();
-  const { data: summit, isLoading: loadingSummit } = useSummitDashboard();
+  const { data: summit, isLoading: loadingSummit } = useDeploymentsDashboard();
   const { data: pools, isLoading: loadingPools } = usePoolsDashboard();
   const { data: pipeline, isLoading: loadingPipeline } = usePipeline();
   const { data: recs } = useRecommendations();

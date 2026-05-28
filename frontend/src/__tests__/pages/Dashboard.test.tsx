@@ -17,7 +17,7 @@ vi.mock('../../api/hooks', () => ({
     isLoading: false,
     isError: false,
   }),
-  useSummitDashboard: () => ({
+  useDeploymentsDashboard: () => ({
     data: {
       timestamp: '2026-05-07T12:00:00Z',
       total_labs: 2,
@@ -28,8 +28,8 @@ vi.mock('../../api/hooks', () => ({
         'zt-rhel': { pool: 'zt-rhel', health: 92.1, evaluations: 100, passed: 80, failed: 8, warned: 12, instances: 50, clusters: ['ocpv06'], top_failure_class: null, failure_classes: {} },
       },
       labs: [
-        { lab_code: 'LB1088', title: 'Code Red', labagator_status: 'in_development', cloud: 'CNV', deploy_mode: 'per_attendee', ci_name: 'summit-2026.lb1088', pool: 'zt-rhel', sessions: 2, provisioned: 3, capacity: 5, pool_available: 2, pool_count: 1, demolition_status: 'pass', summit_days: ['Day 1'], total_attendees: 40, instances_started: 3, instances_failed: 0, instances_total: 3, instances_destroying: 0, agnosticv_tags: [], last_scanned: null },
-        { lab_code: 'LB1237', title: 'RHEL 10', labagator_status: 'planning', cloud: 'CNV', deploy_mode: null, ci_name: '', pool: null, sessions: 0, provisioned: 0, capacity: 0, pool_available: 0, pool_count: 0, demolition_status: 'none', summit_days: [], total_attendees: 0, instances_started: 0, instances_failed: 0, instances_total: 0, instances_destroying: 0, agnosticv_tags: [], last_scanned: null },
+        { lab_code: 'LB1088', title: 'Code Red', labagator_status: 'in_development', cloud: 'CNV', deploy_mode: 'per_attendee', ci_name: 'summit-2026.lb1088', pool: 'zt-rhel', sessions: 2, provisioned: 3, capacity: 5, pool_available: 2, pool_count: 1, demolition_status: 'pass', schedule_dates: ['Day 1'], total_attendees: 40, instances_started: 3, instances_failed: 0, instances_total: 3, instances_destroying: 0, agnosticv_tags: [], last_scanned: null },
+        { lab_code: 'LB1237', title: 'RHEL 10', labagator_status: 'planning', cloud: 'CNV', deploy_mode: null, ci_name: '', pool: null, sessions: 0, provisioned: 0, capacity: 0, pool_available: 0, pool_count: 0, demolition_status: 'none', schedule_dates: [], total_attendees: 0, instances_started: 0, instances_failed: 0, instances_total: 0, instances_destroying: 0, agnosticv_tags: [], last_scanned: null },
       ],
     },
     isLoading: false,

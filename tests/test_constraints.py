@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from constraints.agnosticv_loader import load_lab_constraints, load_all_summit_constraints
+from constraints.agnosticv_loader import load_lab_constraints, load_all_constraints
 from constraints.classifier import classify_constraints, ConstraintViolation
 
 AGNOSTICV_DIR = Path(__file__).parent.parent.parent / "github review" / "agnosticv"
@@ -35,7 +35,7 @@ class TestAgnosticVLoader:
 
     @pytest.mark.skipif(not SUMMIT_DIR.exists(), reason="AgnosticV repo not cloned")
     def test_load_all_summit(self):
-        labs = load_all_summit_constraints(AGNOSTICV_DIR)
+        labs = load_all_constraints(AGNOSTICV_DIR)
         assert len(labs) > 30
         # Verify no errors in most labs
         errors = {k: v for k, v in labs.items() if "error" in v}
