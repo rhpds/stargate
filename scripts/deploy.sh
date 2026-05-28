@@ -58,9 +58,9 @@ if [ -n "${SET_SECRET}" ]; then
   echo "Updating secret: ${KEY}"
 
   if [ -f "$DEPLOYER_TOKEN" ]; then
-    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" 2>&1 | tail -1
+    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" --insecure-skip-tls-verify=true 2>/dev/null || true
   fi
-  oc project "$NS" 2>/dev/null
+  oc project "$NS" 2>/dev/null || true
 
   oc patch secret stargate-secrets -n "$NS" \
     -p "{\"stringData\":{\"${KEY}\":\"${VALUE}\"}}"
@@ -81,43 +81,33 @@ if [ "$SYNC_ENV" = true ]; then
   echo "Syncing env vars from secrets/.env..."
 
   if [ -f "$DEPLOYER_TOKEN" ]; then
-    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" 2>&1 | tail -1
+    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" --insecure-skip-tls-verify=true 2>/dev/null || true
   fi
-  oc project "$NS" 2>/dev/null
+  oc project "$NS" 2>/dev/null || true
 
-  # Read .env, skip comments and empty lines, build oc set env args
-  ENV_ARGS=""
-  SECRETS=""
+  # Read .env and apply each var individually
   while IFS= read -r line; do
     [[ -z "$line" || "$line" =~ ^# ]] && continue
     KEY="${line%%=*}"
     VALUE="${line#*=}"
+    [ -z "$KEY" ] && continue
 
-    # Secrets go to the OCP secret, env vars go to the deployment
     case "$KEY" in
       STARGATE_LITELLM_API_KEY|STARGATE_ADMIN_API_KEY)
         if [ -n "$VALUE" ]; then
-          SECRETS="${SECRETS} --from-literal=${KEY}=${VALUE}"
+          echo "  Secret: ${KEY}"
+          oc patch secret stargate-secrets -n "$NS" \
+            -p "{\"stringData\":{\"${KEY}\":\"${VALUE}\"}}" 2>/dev/null || \
+          oc create secret generic stargate-secrets -n "$NS" \
+            --from-literal="${KEY}=${VALUE}" --dry-run=client -o yaml | oc apply -f -
         fi
         ;;
       *)
-        ENV_ARGS="${ENV_ARGS} ${KEY}=${VALUE}"
+        echo "  Env: ${KEY}"
+        oc set env deployment/stargate-api -n "$NS" -c stargate "${KEY}=${VALUE}" 2>/dev/null || true
         ;;
     esac
   done < "$ENV_FILE"
-
-  # Update secrets if any
-  if [ -n "$SECRETS" ]; then
-    echo "  Updating secrets..."
-    oc create secret generic stargate-secrets -n "$NS" \
-      ${SECRETS} --dry-run=client -o yaml | oc apply -f -
-  fi
-
-  # Update env vars on deployment
-  if [ -n "$ENV_ARGS" ]; then
-    echo "  Updating env vars..."
-    oc set env deployment/stargate-api -n "$NS" -c stargate ${ENV_ARGS}
-  fi
 
   echo "  Restarting..."
   oc rollout restart deployment/stargate-api -n "$NS"
@@ -157,9 +147,9 @@ if [ "$DEPLOY" = true ]; then
   echo "3. Deploying..."
 
   if [ -f "$DEPLOYER_TOKEN" ]; then
-    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" 2>&1 | tail -1
+    oc login --token="$(cat "$DEPLOYER_TOKEN")" --server="$CLUSTER" --insecure-skip-tls-verify=true 2>/dev/null || true
   fi
-  oc project "$NS" 2>/dev/null
+  oc project "$NS" 2>/dev/null || true
 
   oc rollout restart deployment/stargate-api -n "$NS"
   oc rollout status deployment/stargate-api -n "$NS" --timeout=180s
