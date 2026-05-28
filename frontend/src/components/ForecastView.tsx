@@ -20,7 +20,7 @@ export default function ForecastView() {
           <CardBody>
             <div style={{ display: 'flex', gap: '2rem', fontSize: '0.95rem' }}>
               <div>Peak hour: <strong>{data.summary.peak_hour || '—'}</strong></div>
-              <div>Peak attendees: <strong>{data.summary.peak_attendees}</strong></div>
+              <div>Peak attendees: <strong>{data.summary.peak_instances}</strong></div>
               <div>High-risk hours: <strong style={{ color: data.summary.high_risk_hours > 0 ? 'var(--sg-color--critical)' : undefined }}>{data.summary.high_risk_hours}</strong></div>
             </div>
           </CardBody>
@@ -31,15 +31,15 @@ export default function ForecastView() {
         <CardTitle>Hourly Forecast (Next 7 Hours)</CardTitle>
         <CardBody>
           <Table aria-label="Forecast" variant="compact">
-            <Thead><Tr><Th>Hour</Th><Th>Sessions</Th><Th>Labs</Th><Th>Attendees</Th><Th>New Sandboxes</Th><Th>Pools Available</Th><Th>Risk</Th></Tr></Thead>
+            <Thead><Tr><Th>Hour</Th><Th>Sessions</Th><Th>Labs</Th><Th>Instances</Th><Th>New Workloads</Th><Th>Pools Available</Th><Th>Risk</Th></Tr></Thead>
             <Tbody>
               {data.forecast_hours.map(h => (
                 <Tr key={h.hour}>
                   <Td><strong>{h.hour}</strong></Td>
-                  <Td>{h.sessions_starting}</Td>
+                  <Td>{h.deployments_starting}</Td>
                   <Td style={{ fontSize: '0.8rem' }}>{h.labs.join(', ') || '—'}</Td>
-                  <Td>{h.total_attendees}</Td>
-                  <Td>{h.estimated_new_sandboxes}</Td>
+                  <Td>{h.total_instances}</Td>
+                  <Td>{h.estimated_new_workloads}</Td>
                   <Td>{h.pools_available_now}</Td>
                   <Td><Label isCompact color={h.risk === 'high' ? 'red' : h.risk === 'medium' ? 'orange' : 'green'}>{h.risk}</Label></Td>
                 </Tr>

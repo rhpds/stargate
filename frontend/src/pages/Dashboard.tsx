@@ -110,7 +110,7 @@ export default function Dashboard() {
             <Content component="h1">Platform Readiness</Content>
           </Content>
           <ToggleGroup aria-label="Dashboard view">
-            <ToggleGroupItem text="Labs" isSelected={view === 'labs'} onChange={(_e, sel) => sel && handleViewChange('labs')} />
+            <ToggleGroupItem text="Deployments" isSelected={view === 'labs'} onChange={(_e, sel) => sel && handleViewChange('labs')} />
             <ToggleGroupItem text="Clusters" isSelected={view === 'clusters'} onChange={(_e, sel) => sel && handleViewChange('clusters')} />
             <ToggleGroupItem text="Pools" isSelected={view === 'pools'} onChange={(_e, sel) => sel && handleViewChange('pools')} />
             <ToggleGroupItem text="Errors" isSelected={view === 'errors'} onChange={(_e, sel) => sel && handleViewChange('errors')} />
