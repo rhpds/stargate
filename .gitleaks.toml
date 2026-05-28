@@ -1,0 +1,25 @@
+# Gitleaks config — blocks secrets from being committed
+# Install: brew install gitleaks
+# Run manually: gitleaks detect --source . --verbose
+# Pre-commit hook runs automatically on every commit
+
+title = "StarGate Secret Detection"
+
+[allowlist]
+  paths = [
+    '''node_modules''',
+    '''__pycache__''',
+    '''\.git''',
+    '''frontend/dist''',
+  ]
+  regexTarget = "line"
+  regexes = [
+    '''REDACTED''',
+    '''replace-with''',
+    '''changeme''',
+    '''EXAMPLE''',
+    '''dummy''',
+    '''placeholder''',
+    '''sk-automation-workspace-setup''',
+    '''lookup\('password\'''',
+  ]
