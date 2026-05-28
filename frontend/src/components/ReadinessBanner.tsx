@@ -42,7 +42,7 @@ function renderGates(data: ReadinessData) {
       <GateLine name="Health" color={gateColor(gates.health.status)}>
         <strong>{gates.health.value}%</strong> cluster health (target: {gates.health.target}%)
       </GateLine>
-      <GateLine name="Sessions" color={gateColor(gates.sessions.status)}>
+      <GateLine name="Deployments" color={gateColor(gates.sessions.status)}>
         <strong>{gates.sessions.value}</strong> / {gates.sessions.target} labs with sessions ({gates.sessions.pct}%)
       </GateLine>
       <GateLine name="Infrastructure" color={gateColor(gates.infrastructure.status)}>

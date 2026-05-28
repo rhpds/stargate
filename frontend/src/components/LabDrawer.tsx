@@ -118,7 +118,7 @@ export default function LabDrawer({ lab, pool }: Props) {
         )}
         {lab.schedule_dates.length > 0 && (
           <DescriptionListGroup>
-            <DescriptionListTerm>Summit Days</DescriptionListTerm>
+            <DescriptionListTerm>Schedule</DescriptionListTerm>
             <DescriptionListDescription>
               {lab.schedule_dates.map(d => <Label key={d} isCompact color="blue" style={{ marginRight: '4px' }}>{d}</Label>)}
             </DescriptionListDescription>
@@ -126,7 +126,7 @@ export default function LabDrawer({ lab, pool }: Props) {
         )}
         {lab.demolition_status !== 'none' && (
           <DescriptionListGroup>
-            <DescriptionListTerm>Smoke Test</DescriptionListTerm>
+            <DescriptionListTerm>Health Check</DescriptionListTerm>
             <DescriptionListDescription>
               {lab.demolition_status === 'pass'
                 ? <Label isCompact color="green">Pass ({lab.demolition_completed}/{lab.demolition_total})</Label>
@@ -304,7 +304,7 @@ export default function LabDrawer({ lab, pool }: Props) {
 
         return (
           <>
-            <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Smoke Tests (Demolition)</h4>
+            <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Health Checks (Verification)</h4>
 
             {latest && (
               <div style={{ padding: '0.75rem', background: latest.failed > 0 ? 'var(--sg-color--critical-bg)' : 'var(--sg-color--healthy-bg)', borderRadius: '4px', marginBottom: '0.75rem' }}>
@@ -349,7 +349,7 @@ export default function LabDrawer({ lab, pool }: Props) {
             {sorted.length > 1 && (
               <>
                 <h4 style={{ marginBottom: '0.25rem', fontSize: '0.9rem' }}>Test History ({sorted.length} runs)</h4>
-                <Table aria-label="Demolition history" variant="compact">
+                <Table aria-label="Verification history" variant="compact">
                   <Thead><Tr><Th>Run</Th><Th>Status</Th><Th>Passed</Th><Th>Failed</Th><Th>Total</Th><Th>Rate</Th></Tr></Thead>
                   <Tbody>
                     {sorted.slice(0, 5).map(d => (

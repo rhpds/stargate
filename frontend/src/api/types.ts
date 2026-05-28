@@ -18,7 +18,7 @@ export interface Deployment {
   capacity: number;
   pool_available: number;
   pool_count: number;
-  total_attendees: number;
+  total_instances: number;
   demolition_status: 'pass' | 'fail' | 'none';
   demolition_completed: number;
   demolition_failed: number;
@@ -255,9 +255,9 @@ export interface SecurityData {
 
 export interface ForecastData {
   generated_at: string;
-  forecast_hours: Array<{ hour: string; timestamp: string; sessions_starting: number; labs: string[]; total_attendees: number; estimated_new_sandboxes: number; pools_available_now: number; risk: string }>;
+  forecast_hours: Array<{ hour: string; timestamp: string; deployments_starting: number; labs: string[]; total_instances: number; estimated_new_workloads: number; pools_available_now: number; risk: string }>;
   cluster_projections: Array<{ cluster: string; current_cpu: number; current_vms: number; current_sandboxes: number; capacity_warning: boolean }>;
-  summary: { peak_hour: string | null; peak_attendees: number; high_risk_hours: number };
+  summary: { peak_hour: string | null; peak_instances: number; high_risk_hours: number };
 }
 
 // --- Approval Queue ---
