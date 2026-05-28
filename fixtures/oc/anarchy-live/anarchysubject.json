@@ -14,10 +14,10 @@
       "poolboy.gpte.redhat.com/resource-pool-namespace": "poolboy",
       "poolboy.gpte.redhat.com/resource-provider-name": "enterprise.aap-product-demos-cnv-aap25.prod",
       "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
-      "poolboy.gpte.redhat.com/resource-requester-email": "tanshah@redhat.com",
+      "poolboy.gpte.redhat.com/resource-requester-email": "user@example.com",
       "poolboy.gpte.redhat.com/resource-requester-name": "Tanay Shah [128434]",
-      "poolboy.gpte.redhat.com/resource-requester-preferred-username": "tanshah@redhat.com",
-      "poolboy.gpte.redhat.com/resource-requester-user": "tanshah@redhat.com"
+      "poolboy.gpte.redhat.com/resource-requester-preferred-username": "user@example.com",
+      "poolboy.gpte.redhat.com/resource-requester-user": "user@example.com"
     },
     "creationTimestamp": "2026-05-05T20:29:14Z",
     "finalizers": [
