@@ -1,0 +1,94 @@
+id: summit-failures
+version: "1.0"
+description: Summit event-specific failure classifications — high-concurrency provisioning
+source: summit
+
+classes:
+  pool_exhausted_under_load:
+    pattern: "(pool.*exhausted|no handles available|pool.*depleted)"
+    severity: critical
+    team: platform-ops
+    remediation:
+      - Scale pool minimum handles before session start
+      - Pre-provision handles 30 minutes before peak sessions
+      - Monitor pool velocity to predict exhaustion
+
+  session_rush_timeout:
+    pattern: "(provision.*timeout.*session|concurrent.*provision|too many.*requests)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - Stagger session start times across rooms
+      - Pre-provision environments before attendees arrive
+      - Increase provisioning concurrency limits
+
+  showroom_not_reachable:
+    pattern: "(showroom.*not reachable|showroom.*503|showroom.*timeout)"
+    severity: high
+    team: lab-developer
+    remediation:
+      - Check showroom pod health in the sandbox namespace
+      - Verify route is created and DNS resolves
+      - Check if the pod has enough memory (showroom builds can be heavy)
+
+  lab_content_missing:
+    pattern: "(content.*not found|lab.*missing|workshop.*404)"
+    severity: medium
+    team: lab-developer
+    remediation:
+      - Verify showroom content git repo is accessible
+      - Check content build logs in the showroom pod
+      - Ensure the lab content branch exists
+
+  attendee_capacity_exceeded:
+    pattern: "(capacity.*exceeded|max.*attendees|session.*full)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Scale pool to match registered attendee count
+      - Add overflow pool for walk-in attendees
+
+  smoke_test_failed:
+    pattern: "(smoke.*test.*fail|demolition.*fail|health.*check.*fail)"
+    severity: high
+    team: lab-developer
+    remediation:
+      - Run Demolition smoke test manually to identify failing step
+      - Check application endpoints are responding
+      - Verify all workload components are deployed
+
+  provisioning_sli_breach:
+    pattern: "(SLI.*breach|provision.*SLI|success.*rate.*below)"
+    severity: critical
+    team: platform-ops
+    remediation:
+      - Identify failing catalog items in AAP job history
+      - Check if a specific cluster is causing failures
+      - Escalate to the AgnosticD role maintainer
+
+  cluster_overloaded_during_event:
+    pattern: "(cluster.*overloaded|CPU.*90|node.*pressure.*event)"
+    severity: critical
+    team: platform-ops
+    remediation:
+      - Migrate workloads to less loaded clusters
+      - Drain non-essential namespaces
+      - Scale up node pool if autoscaler is enabled
+
+  dns_propagation_delay:
+    pattern: "(DNS.*propagation|wildcard.*DNS|route.*not resolving)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Check wildcard DNS configuration for the cluster
+      - Verify ingress controller is healthy
+      - DNS propagation can take up to 5 minutes after route creation
+
+  concurrent_destroy_failure:
+    pattern: "(destroy.*concurrent|cleanup.*timeout|reclaim.*stuck)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Stagger destroy operations to avoid API throttling
+      - Increase destroy job parallelism in AAP
+      - Check for stuck AnarchySubjects
