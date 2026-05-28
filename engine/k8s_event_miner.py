@@ -129,6 +129,116 @@ K8S_FAILURE_CLASSES = {
             "Consider scaling the cluster or freeing resources",
         ],
     },
+    "claim_misbound": {
+        "pattern": r"(ClaimMisbound|claim is bound to a non-existent|pvc.*misbound)",
+        "severity": "high",
+        "remediation": [
+            "Delete the misbound PVC and recreate it",
+            "Check if the PV was manually deleted",
+            "oc get pvc -n {namespace} -o yaml | grep volumeName",
+        ],
+    },
+    "volume_attach_failed": {
+        "pattern": r"(FailedAttachVolume|AttachVolume.*failed|Multi-Attach error)",
+        "severity": "high",
+        "remediation": [
+            "Check if the volume is still attached to another node",
+            "Force detach the volume if the previous node is down",
+            "oc describe pv {pv_name}",
+            "Verify the CSI driver is healthy",
+        ],
+    },
+    "volume_mount_failed": {
+        "pattern": r"(FailedMount|MountVolume.*failed|Unable to attach or mount)",
+        "severity": "high",
+        "remediation": [
+            "Check volume and mount path configuration",
+            "Verify the Secret or ConfigMap referenced in the volume exists",
+            "oc describe pod {pod} -n {namespace} | grep -A5 Volumes",
+        ],
+    },
+    "invalid_configuration": {
+        "pattern": r"(InvalidConfiguration|invalid.*config|configuration.*error)",
+        "severity": "medium",
+        "remediation": [
+            "Review the resource configuration for syntax errors",
+            "Check CRD validation rules",
+            "oc get events -n {namespace} --field-selector=reason=InvalidConfiguration",
+        ],
+    },
+    "deprecated_api": {
+        "pattern": r"(deprecatedAnnotation|deprecated.*API|deprecated.*version)",
+        "severity": "low",
+        "remediation": [
+            "Update resource to use the current API version",
+            "Check deprecation warnings in oc logs",
+            "No immediate action needed — will break on future upgrades",
+        ],
+    },
+    "sync_failed": {
+        "pattern": r"(SyncFailed|reconcil.*failed|ReconcileFailed)",
+        "severity": "medium",
+        "remediation": [
+            "Check operator logs for the failing controller",
+            "Verify the operand configuration is valid",
+            "oc logs deployment/{operator} -n {namespace}",
+        ],
+    },
+    "image_pull_secret_missing": {
+        "pattern": r"(FailedToRetrieveImagePullSecret|pull secret.*not found|imagePullSecrets)",
+        "severity": "high",
+        "remediation": [
+            "Create or link the image pull secret in the namespace",
+            "oc create secret docker-registry {name} --docker-server=REGISTRY --docker-username=USER --docker-password=TOKEN",
+            "oc secrets link default {name} --for=pull",
+        ],
+    },
+    "backoff_limit_exceeded": {
+        "pattern": r"(BackoffLimitExceeded|Job has reached the specified backoff limit)",
+        "severity": "high",
+        "remediation": [
+            "Check job pod logs for the failure reason",
+            "Increase backoff limit if the failure is transient",
+            "Fix the underlying job configuration",
+            "oc logs job/{job} -n {namespace}",
+        ],
+    },
+    "volume_resize_failed": {
+        "pattern": r"(VolumeResizeFailed|failed to resize|expand.*volume)",
+        "severity": "medium",
+        "remediation": [
+            "Check if the storage class supports volume expansion",
+            "Verify available storage capacity",
+            "oc get sc {storageclass} -o yaml | grep allowVolumeExpansion",
+        ],
+    },
+    "resolution_failed": {
+        "pattern": r"(ResolutionFailed|failed to resolve|OLM.*resolution)",
+        "severity": "medium",
+        "remediation": [
+            "Check operator catalog source health",
+            "Verify the operator subscription channel exists",
+            "oc get catalogsource -n openshift-marketplace",
+        ],
+    },
+    "datasource_unrecognized": {
+        "pattern": r"(UnrecognizedDataSourceKind|unrecognized.*datasource|unknown.*source)",
+        "severity": "medium",
+        "remediation": [
+            "Check if the CDI (Containerized Data Importer) operator is installed",
+            "Verify DataVolume source type is supported",
+            "oc get crd | grep datavolumes",
+        ],
+    },
+    "pod_pending": {
+        "pattern": r"(Pending|pod.*pending|awaiting.*scheduling)",
+        "severity": "medium",
+        "remediation": [
+            "Check if resource requests exceed available node capacity",
+            "Verify node affinity and taints/tolerations",
+            "oc describe pod {pod} -n {namespace} | grep -A10 Events",
+        ],
+    },
 }
 
 

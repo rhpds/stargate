@@ -44,12 +44,58 @@ class TestEventMiner:
         assert parse_k8s_event(raw)["failure_class"] == "hpa_metric_failure"
 
 
+class TestNewFailureClasses:
+    def test_classify_claim_misbound(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "ClaimMisbound", "message": "claim is bound to a non-existent PV", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "claim_misbound"
+
+    def test_classify_volume_attach(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "FailedAttachVolume", "message": "Multi-Attach error", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "volume_attach_failed"
+
+    def test_classify_volume_mount(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "FailedMount", "message": "MountVolume.SetUp failed", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "volume_mount_failed"
+
+    def test_classify_deprecated_api(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "deprecatedAnnotation", "message": "deprecated API version", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "deprecated_api"
+
+    def test_classify_backoff_limit(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "BackoffLimitExceeded", "message": "Job has reached the specified backoff limit", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "backoff_limit_exceeded"
+
+    def test_classify_datasource_unrecognized(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "UnrecognizedDataSourceKind", "message": "unrecognized datasource kind", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "datasource_unrecognized"
+
+    def test_classify_image_pull_secret(self):
+        from engine.k8s_event_miner import parse_k8s_event
+        raw = {"type": "Warning", "reason": "FailedToRetrieveImagePullSecret", "message": "pull secret not found", "namespace": "test", "cluster": "ocpv05"}
+        assert parse_k8s_event(raw)["failure_class"] == "image_pull_secret_missing"
+
+
 class TestK8sFailureClasses:
     def test_classes_registered(self):
         from engine.k8s_event_miner import K8S_FAILURE_CLASSES
         assert "image_pull_backoff" in K8S_FAILURE_CLASSES
         assert "vm_migration_backoff" in K8S_FAILURE_CLASSES
         assert "hpa_metric_failure" in K8S_FAILURE_CLASSES
+        assert "claim_misbound" in K8S_FAILURE_CLASSES
+        assert "volume_attach_failed" in K8S_FAILURE_CLASSES
+        assert "deprecated_api" in K8S_FAILURE_CLASSES
+        assert "backoff_limit_exceeded" in K8S_FAILURE_CLASSES
+        assert "datasource_unrecognized" in K8S_FAILURE_CLASSES
+
+    def test_total_classes_count(self):
+        from engine.k8s_event_miner import K8S_FAILURE_CLASSES
+        assert len(K8S_FAILURE_CLASSES) >= 24
 
     def test_each_class_has_remediation(self):
         from engine.k8s_event_miner import K8S_FAILURE_CLASSES
