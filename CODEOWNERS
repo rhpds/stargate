@@ -1,0 +1,5 @@
+# Failure classifications, rubrics, and remediations require ops review
+failure-classes/    @rhpds/platform-ops
+rubrics/            @rhpds/platform-ops
+remediations/       @rhpds/platform-ops
+prompts/            @rhpds/platform-ops

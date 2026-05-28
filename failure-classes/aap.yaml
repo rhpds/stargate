@@ -1,0 +1,124 @@
+id: aap-failures
+version: "1.0"
+description: AAP2 provisioning job failure classifications
+source: aap2_grafana
+
+classes:
+  vm_provisioning_timeout:
+    pattern: "(Wait till VM is running|VMI does not exist|printableStatus.*Provisioning|attempts.*30)"
+    description: VirtualMachine stuck in Provisioning — VMI never created or started
+    severity: high
+    team: platform-ops
+    remediation:
+      - Check DataVolume status in the sandbox namespace
+      - Verify storage class has available capacity (ocs-storagecluster-ceph-rbd)
+      - Check node scheduling constraints and resource availability
+      - Verify Assisted Installer pods are running
+      - "oc get datavolume -n {namespace}"
+      - "oc get vm -n {namespace} -o yaml | grep -A5 status"
+
+  ec2_capacity_exhausted:
+    pattern: "(InsufficientInstanceCapacity|Unable to start instances)"
+    description: AWS EC2 capacity exhausted — cannot start instances in region
+    severity: high
+    team: infra
+    remediation:
+      - Retry in a different availability zone
+      - Use a different instance type
+      - Contact AWS support for capacity increase
+      - Check AWS Service Health Dashboard for region issues
+
+  ssh_connection_failed:
+    pattern: "(Shared connection to .* closed|ssh.*connection refused|Connection reset by peer)"
+    description: SSH connection to bastion or target host failed
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Verify bastion host is running and accessible
+      - Check SSH key configuration and permissions
+      - Verify network connectivity to target host
+      - Retry provisioning — may be transient network issue
+
+  service_unavailable:
+    pattern: "(503.*Service Unavailable|Status code was 503|HTTP Error 503)"
+    description: Application returned 503 — service not ready during provisioning
+    severity: medium
+    team: lab-developer
+    remediation:
+      - Wait for application pods to become ready
+      - Check pod readiness probes and startup time
+      - Verify route and service configuration
+      - "oc get pods -n {namespace} | grep -v Running"
+
+  vault_decryption_failed:
+    pattern: "(Decryption failed|no vault secrets were found|AnsibleVaultError)"
+    description: Ansible Vault decryption failed — missing or wrong vault password
+    severity: critical
+    team: platform-ops
+    remediation:
+      - Verify vault password file is accessible to the execution environment
+      - Check that the correct vault ID is configured
+      - Verify secret injection from external secrets manager
+      - Contact platform-ops to check vault configuration
+
+  eda_config_error:
+    pattern: "(rulebook_id.*required|Failed to create.*rulebook)"
+    description: Event-Driven Ansible configuration error — missing required fields
+    severity: medium
+    team: lab-developer
+    remediation:
+      - Update the ansible playbook to include the required rulebook_id field
+      - Check EDA controller API for required request fields
+      - Verify rulebook exists in the EDA controller
+
+  api_resolution_error:
+    pattern: "(error resolving resource|Internal error occurred.*resolving)"
+    description: Kubernetes API internal error — CRD or resource resolution failed
+    severity: high
+    team: platform-ops
+    remediation:
+      - Verify the CRD is installed on the target cluster
+      - Check API server health and connectivity
+      - "oc get crd | grep <resource>"
+      - Retry provisioning — API server may recover
+
+  assisted_installer_failed:
+    pattern: "(Assisted Installer|installer Pods in Error|Start cluster installation.*Timeout)"
+    description: OpenShift Assisted Installer failed — cluster installation did not complete
+    severity: high
+    team: platform-ops
+    remediation:
+      - Check assisted-installer pod logs
+      - Verify host discovery and validation passed
+      - Check network connectivity between hosts
+      - "oc logs -n assisted-installer -l app=assisted-installer"
+
+  job_cancelled:
+    pattern: "(canceled due to receiving a shutdown signal|Task was canceled)"
+    description: Job was cancelled due to platform shutdown — not a real failure
+    severity: low
+    team: platform-ops
+    remediation:
+      - No action needed — job was cancelled by platform shutdown
+      - Retry the job after platform restart
+
+  vm_creation_failed:
+    pattern: "(Create VMs.*FAILED|virt_roadshow_vmware)"
+    description: Virtual machine creation failed in VMware/CNV workload
+    severity: high
+    team: lab-developer
+    remediation:
+      - Check VMware/CNV resource availability
+      - Verify storage and network configuration for VMs
+      - Check workload role configuration
+
+  connection_refused:
+    pattern: "(Connection refused|Failed to establish a new connection|Max retries exceeded)"
+    description: Connection to cluster API or service refused — cluster may be down
+    severity: high
+    team: platform-ops
+    remediation:
+      - Verify the target cluster is running and API is accessible
+      - Check certificate validity and renewal status
+      - "oc get nodes on the target cluster"
+      - Check cluster-bot or monitoring for cluster health

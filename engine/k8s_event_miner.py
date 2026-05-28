@@ -249,16 +249,17 @@ def parse_k8s_event(raw: Dict) -> Dict:
     message = raw.get("message", "")
     combined = f"{reason} {message}"
 
-    failure_class = "unclassified"
-    severity = "low"
-    remediation = []
-
-    for cls_name, cls_data in K8S_FAILURE_CLASSES.items():
-        if re.search(cls_data["pattern"], combined, re.IGNORECASE):
-            failure_class = cls_name
-            severity = cls_data["severity"]
-            remediation = cls_data["remediation"]
-            break
+    from engine.failure_class_loader import classify_by_pattern
+    failure_class, matched = classify_by_pattern(combined, source="k8s_events")
+    severity = matched.get("severity", "low")
+    remediation = matched.get("remediation", [])
+    if failure_class == "unclassified":
+        for cls_name, cls_data in K8S_FAILURE_CLASSES.items():
+            if re.search(cls_data["pattern"], combined, re.IGNORECASE):
+                failure_class = cls_name
+                severity = cls_data["severity"]
+                remediation = cls_data["remediation"]
+                break
 
     return {
         "failure_class": failure_class,
