@@ -107,6 +107,32 @@ def on_startup():
     t.start()
     tw = threading.Thread(target=_warm_caches, daemon=True)
     tw.start()
+    ts = threading.Thread(target=_auto_start_scanner, daemon=True)
+    ts.start()
+
+
+def _auto_start_scanner():
+    """Auto-start scanner after a short delay so the API is ready."""
+    import time as _ts
+    _ts.sleep(10)
+    logger = logging.getLogger("stargate")
+    try:
+        from api.routers._shared import _scheduler_lock
+        import api.routers._shared as _shared
+        with _scheduler_lock:
+            if _shared._scheduler is not None:
+                return
+            from cli.scheduler import Scheduler
+            from cli.scan import load_clusters
+            clusters = load_clusters()
+            if not clusters:
+                logger.info("Scanner auto-start: no clusters configured")
+                return
+            _shared._scheduler = Scheduler(clusters=clusters, api_url="http://localhost:8090")
+            available, unavailable = _shared._scheduler.start()
+            logger.info(f"Scanner auto-started: {len(available)} clusters available, {len(unavailable)} unavailable")
+    except Exception as e:
+        logger.warning(f"Scanner auto-start failed: {e}")
 
 
 def _warm_caches():
