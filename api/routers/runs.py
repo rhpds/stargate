@@ -525,6 +525,13 @@ def get_lab_constraints(lab_id: str):
     return constraints
 
 
+@router.get("/api/failure-classes")
+async def get_failure_classes():
+    """Return all failure classes for cross-product sync."""
+    from engine.failure_class_loader import get_all_classes
+    return {"classes": get_all_classes(), "count": len(get_all_classes())}
+
+
 @router.get("/constraints")
 def list_all_constraints():
     """List constraints for all Summit 2026 labs."""
