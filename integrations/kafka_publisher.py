@@ -80,8 +80,22 @@ def publish_to_kafka(topic: str, payload: dict, key: str = None) -> Optional[dic
         return {}
 
 
+_audit_ledger = None
+
+
+def _get_ledger():
+    global _audit_ledger
+    if _audit_ledger is None:
+        from engine.audit_ledger import AuditLedger
+        _audit_ledger = AuditLedger(source="stargate")
+    return _audit_ledger
+
+
 def publish_event(event_type: str, payload: dict) -> None:
     payload["_kafka_topic"] = get_topic_for_event(event_type)
     payload["_published_at"] = datetime.now(timezone.utc).isoformat()
     publish_to_kafka(payload["_kafka_topic"], payload, key=payload.get("run_id"))
-    publish_to_kafka(AUDIT_TOPIC, payload, key=payload.get("run_id"))
+    # Hash-chain the audit entry for tamper detection
+    ledger = _get_ledger()
+    audit_entry = ledger.append({"event_type": event_type, **payload})
+    publish_to_kafka(AUDIT_TOPIC, audit_entry, key=payload.get("run_id"))
