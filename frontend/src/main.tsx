@@ -1,5 +1,4 @@
-import '@patternfly/react-core/dist/styles/base.css';
-import './styles/redhat-theme.css';
+import './styles/index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
