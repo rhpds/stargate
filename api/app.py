@@ -98,10 +98,26 @@ def _clone_agnosticv():
         logger.warning(f"AgnosticV clone failed: {e}")
 
 
+def _register_event_consumers():
+    """Register cross-product event consumers on the event bus."""
+    try:
+        from api.routers._shared import _event_bus
+        from events.consumers import DeepFieldConsumer
+        consumer = DeepFieldConsumer()
+        if consumer.url:
+            _event_bus.register_consumer(consumer)
+            logger.info("DeepField event consumer registered → %s", consumer.url)
+        else:
+            logger.info("DeepField consumer skipped — STARGATE_DEEPFIELD_URL not set")
+    except Exception as e:
+        logger.warning("Failed to register event consumers: %s", e)
+
+
 @app.on_event("startup")
 def on_startup():
     init_db()
     _clone_agnosticv()
+    _register_event_consumers()
     import threading
     t = threading.Thread(target=_mv_refresh_loop, daemon=True)
     t.start()
