@@ -324,9 +324,16 @@ class ClusterWorker:
         failed = 0
         failure_classes: Dict[str, int] = {}
 
+        # Load lab mappings for namespace→lab resolution
+        lab_mappings = self._get_lab_mappings()
+
         outcome_changes = []
         for ns in batch:
-            result = self._collect_namespace(ns)
+            lab_code = None
+            if lab_mappings:
+                from engine.namespace_matcher import match_namespace_to_lab
+                lab_code = match_namespace_to_lab(ns, lab_mappings)
+            result = self._collect_namespace(ns, lab_code=lab_code)
             if result:
                 persisted += 1
                 ns_outcome = "pass"
@@ -362,7 +369,7 @@ class ClusterWorker:
             "outcome_changes": outcome_changes,
         }
 
-    def _collect_namespace(self, namespace: str) -> Optional[Dict]:
+    def _collect_namespace(self, namespace: str, lab_code: Optional[str] = None) -> Optional[Dict]:
         """Collect evidence from a single namespace and persist via API."""
         tmpdir = tempfile.mkdtemp(prefix=f"sg-{self.state.name}-")
 
@@ -398,7 +405,7 @@ class ClusterWorker:
              "--stages", stages,
              "--api-url", self.api_url,
              "--demo-id", demo_id,
-             "--lab-code", namespace,
+             "--lab-code", lab_code or namespace,
              "--cluster-name", self.state.name,
              "--format", "json"],
             capture_output=True, text=True,
@@ -410,6 +417,19 @@ class ClusterWorker:
             return json.loads(r.stdout)
         except Exception:
             return None
+
+    def _get_lab_mappings(self) -> list:
+        """Fetch lab mappings from API for namespace→lab resolution."""
+        if not self.api_url:
+            return []
+        try:
+            import urllib.request
+            req = urllib.request.Request(f"{self.api_url}/labs/mappings")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                return data.get("mappings", [])
+        except Exception:
+            return []
 
     def _check_showroom_health(self, namespace: str, tmpdir: str):
         """Check showroom readiness via route URL."""

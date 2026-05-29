@@ -525,6 +525,23 @@ def get_lab_constraints(lab_id: str):
     return constraints
 
 
+@router.get("/labs/mappings")
+async def get_lab_mappings():
+    """Return all lab mappings for namespace→lab resolution."""
+    from db.database import get_db
+    from db.models import LabMapping
+    db = next(get_db())
+    try:
+        mappings = db.query(LabMapping).all()
+        return {"mappings": [
+            {"lab_code": m.lab_code, "namespace_pattern": m.namespace_pattern,
+             "ci_base": m.ci_base, "clusters": m.clusters}
+            for m in mappings if m.namespace_pattern
+        ]}
+    finally:
+        db.close()
+
+
 @router.get("/api/failure-classes")
 async def get_failure_classes():
     """Return all failure classes for cross-product sync."""
