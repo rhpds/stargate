@@ -1,9 +1,10 @@
-"""Event consumers — Slack, webhook, log."""
+"""Event consumers — Slack, webhook, log, DeepField integration."""
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.request
 from typing import Optional
 
@@ -140,3 +141,68 @@ class WebhookConsumer(EventConsumer):
             urllib.request.urlopen(req, timeout=10)
         except Exception as e:
             logger.error(f"Webhook delivery to {self.url} failed: {e}")
+
+
+class DeepFieldConsumer(EventConsumer):
+    """Forwards evaluation events to DeepField's integration API.
+
+    Only active when STARGATE_DEEPFIELD_URL env var is set. Never crashes
+    the event bus — all exceptions are caught and logged.
+    """
+    name = "deepfield"
+
+    # Event types we forward to DeepField
+    _FORWARD_TYPES = {"evaluation.passed", "evaluation.failed", "evaluation.warned"}
+
+    # Map StarGate event types to DeepField event types
+    _EVENT_TYPE_MAP = {
+        "evaluation.passed": "stargate_stage_passed",
+        "evaluation.failed": "stargate_stage_failed",
+        "evaluation.warned": "stargate_stage_failed",
+    }
+
+    def __init__(self, url: Optional[str] = None):
+        self.url = url or os.environ.get("STARGATE_DEEPFIELD_URL", "")
+
+    def should_receive(self, event: Event) -> bool:
+        if not self.url:
+            return False
+        if event.filtered:
+            return False
+        return event.event_type in self._FORWARD_TYPES
+
+    def deliver(self, event: Event):
+        try:
+            deepfield_event_type = self._EVENT_TYPE_MAP.get(
+                event.event_type, "stargate_stage_failed"
+            )
+
+            payload = {
+                "source": "stargate",
+                "event_type": deepfield_event_type,
+                "event_id": event.event_id,
+                "timestamp": event.timestamp,
+                "payload": {
+                    "run_id": event.run_id,
+                    "stage_id": event.stage_id,
+                    "lab_code": event.lab_code,
+                    "cluster": event.cluster_name,
+                    "outcome": event.outcome,
+                    "failure_class": event.failure_class,
+                },
+            }
+
+            endpoint = f"{self.url.rstrip('/')}/integration/events"
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                endpoint,
+                data=data,
+                headers={"Content-Type": "application/json"},
+            )
+            urllib.request.urlopen(req, timeout=10)
+            logger.info(
+                "DeepField event delivered: %s run=%s stage=%s",
+                deepfield_event_type, event.run_id, event.stage_id,
+            )
+        except Exception as e:
+            logger.error("DeepField delivery failed: %s", e)
