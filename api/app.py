@@ -100,6 +100,7 @@ def _clone_agnosticv():
 
 def _register_event_consumers():
     """Register cross-product event consumers on the event bus."""
+    logger = logging.getLogger("stargate")
     try:
         from api.routers._shared import _event_bus
         from events.consumers import DeepFieldConsumer
