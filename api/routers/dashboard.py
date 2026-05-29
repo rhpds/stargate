@@ -3857,6 +3857,45 @@ def dashboard_corpus_classes(source: Optional[str] = None):
 
 
 # ---------------------------------------------------------------------------
+# Audit ledger — hash-chained tamper-proof trail
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/audit-ledger")
+def dashboard_audit_ledger():
+    """Get the current audit ledger chain with integrity verification."""
+    try:
+        from integrations.kafka_publisher import _get_ledger
+        ledger = _get_ledger()
+        chain = ledger.export_chain()
+        valid = ledger.verify_chain()
+        return {
+            "chain_length": len(chain),
+            "chain_valid": valid,
+            "latest_hash": chain[-1]["hash"] if chain else None,
+            "latest_sequence": chain[-1]["sequence"] if chain else -1,
+            "entries": chain[-20:],
+        }
+    except Exception as e:
+        return {"chain_length": 0, "chain_valid": True, "error": str(e)}
+
+
+@router.post("/dashboard/audit-ledger/verify")
+def verify_audit_chain(chain: list):
+    """Verify an exported audit chain for tamper detection."""
+    from engine.audit_ledger import AuditLedger
+    valid = AuditLedger.verify_exported_chain(chain)
+    broken_at = None
+    if not valid:
+        for i, entry in enumerate(chain):
+            if i == 0:
+                continue
+            if entry.get("prev_hash") != chain[i-1].get("hash"):
+                broken_at = i
+                break
+    return {"valid": valid, "entries_checked": len(chain), "broken_at_sequence": broken_at}
+
+
+# ---------------------------------------------------------------------------
 # Remediation playbook — step-by-step for dashboard consumption
 # ---------------------------------------------------------------------------
 
