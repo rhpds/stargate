@@ -42,9 +42,10 @@ def _load_all() -> None:
     logger.info("Loaded %d failure classes from %d files", len(_cache), len(list(FAILURE_CLASSES_DIR.glob("*.yaml"))))
 
 
-def get_all_classes() -> Dict[str, Dict]:
+def get_all_classes() -> list:
+    """Return all failure classes as a list of dicts with 'name' field included."""
     _load_all()
-    return dict(_cache)
+    return [{"name": cls_name, **cls_data} for cls_name, cls_data in _cache.items()]
 
 
 def get_class(name: str) -> Optional[Dict]:
