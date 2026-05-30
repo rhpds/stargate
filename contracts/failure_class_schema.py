@@ -31,10 +31,18 @@ CATEGORY_MAP = {
 def normalize_raw_class(raw: dict) -> dict:
     """Convert a StarGate failure class (from YAML loader) to the shared wire format."""
     patterns = raw.get("patterns", [])
+    if not patterns:
+        pattern_str = raw.get("pattern", "")
+        if pattern_str:
+            patterns = [p.strip() for p in pattern_str.strip("()").split("|") if p.strip()]
+    if not patterns:
+        alertnames = raw.get("alertnames", [])
+        if alertnames:
+            patterns = alertnames if isinstance(alertnames, list) else [alertnames]
     if isinstance(patterns, str):
         patterns = [patterns]
 
-    source = raw.get("source", "unknown")
+    source = raw.get("source", raw.get("_source", "unknown"))
 
     return {
         "name": raw.get("name", raw.get("failure_class", "")),

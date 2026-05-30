@@ -28,6 +28,7 @@ COPY proposals/ proposals/
 COPY api/ api/
 COPY db/ db/
 COPY events/ events/
+COPY contracts/ contracts/
 COPY constraints/ constraints/
 COPY rubrics/ rubrics/
 COPY remediations/ remediations/
