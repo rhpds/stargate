@@ -98,7 +98,7 @@ function StatsBar({ overview }: { overview: OverviewData }) {
 
 function LabGrid({ labs, navigate }: { labs: Deployment[]; navigate: (path: string) => void }) {
   if (labs.length === 0) {
-    return <p className="text-[#6A6E73] text-sm">No labs found.</p>;
+    return <p className="text-[#6A6E73] text-sm">No labs evaluated yet — scanner will discover labs from cluster namespaces</p>;
   }
 
   return (
@@ -196,7 +196,7 @@ function ClusterStrip({
 
 function PoolBadges({ pools }: { pools: PoolEntry[] }) {
   if (pools.length === 0) {
-    return <p className="text-[#6A6E73] text-sm">No pools found.</p>;
+    return <p className="text-[#6A6E73] text-sm">No pools configured</p>;
   }
 
   return (
@@ -270,8 +270,13 @@ export default function EcosystemHealth() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        <p className="text-[#6A6E73]">Loading...</p>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 animate-pulse space-y-6">
+        <div className="h-10 bg-[#212121] rounded w-64" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="bg-[#212121] rounded-lg h-20" />)}
+        </div>
+        <div className="bg-[#212121] rounded-xl h-48" />
+        <div className="bg-[#212121] rounded-xl h-32" />
       </div>
     );
   }
@@ -327,6 +332,9 @@ export default function EcosystemHealth() {
       {/* 5. Top Failure Classes */}
       <section>
         <SectionHeader>Top Failure Classes</SectionHeader>
+        {ov.labs.total === 0 && Object.keys(ov.errors.failure_classes ?? {}).length > 0 && (
+          <p className="text-xs text-[#F0AB00] mb-3">Failures detected across cluster — lab mappings will connect these to specific demos</p>
+        )}
         <FailureClassChart failures={ov.errors.failure_classes ?? {}} />
       </section>
     </div>

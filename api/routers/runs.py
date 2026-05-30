@@ -544,9 +544,12 @@ async def get_lab_mappings():
 
 @router.get("/api/failure-classes")
 async def get_failure_classes():
-    """Return all failure classes for cross-product sync."""
+    """Return all failure classes in normalized shared schema for cross-product sync."""
     from engine.failure_class_loader import get_all_classes
-    return {"classes": get_all_classes(), "count": len(get_all_classes())}
+    from contracts.failure_class_schema import normalize_raw_class
+    raw = get_all_classes()
+    normalized = [normalize_raw_class(c) for c in raw]
+    return {"classes": normalized, "count": len(normalized)}
 
 
 @router.get("/constraints")
