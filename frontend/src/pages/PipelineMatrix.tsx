@@ -44,6 +44,7 @@ export default function PipelineMatrix() {
 
   const data = matrixQuery.data as EvaluationMatrix;
   const { labs, stages, matrix } = data;
+  const ecosystemLabs = new Set((data as any).ecosystem_labs ?? []);
 
   if (labs.length === 0 || stages.length === 0) {
     return (
@@ -92,14 +93,16 @@ export default function PipelineMatrix() {
           <tbody>
             {labs.map((lab) => {
               const labRow = matrix[lab] ?? {};
+              const isEco = ecosystemLabs.has(lab);
               return (
                 <tr
                   key={lab}
-                  className="hover:bg-[#2a2a2a] cursor-pointer transition"
+                  className={`hover:bg-[#2a2a2a] cursor-pointer transition ${isEco ? 'border-l-2 border-l-[#EE0000]' : 'opacity-60'}`}
                   onClick={() => navigate(`/lab/${lab}`)}
                 >
-                  <td className="text-sm text-white p-2 truncate sticky left-0 bg-[#212121] z-10 max-w-[200px]" title={lab}>
-                    {lab}
+                  <td className="text-sm p-2 truncate sticky left-0 bg-[#212121] z-10 max-w-[200px]" title={lab}>
+                    <span className={isEco ? 'text-white font-medium' : 'text-[#8A8D90]'}>{lab}</span>
+                    {isEco && <span className="ml-1.5 text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
                   </td>
                   {stages.map((stage) => {
                     const outcome = labRow[stage];
