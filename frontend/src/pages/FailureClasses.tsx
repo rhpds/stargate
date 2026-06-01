@@ -1,4 +1,5 @@
-import { useOverview } from '../api/hooks';
+import { useState } from 'react';
+import { useOverview, useRemediation } from '../api/hooks';
 import type { OverviewData } from '../api/types';
 
 /* ---- sub-components ---- */
@@ -24,6 +25,10 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export default function FailureClasses() {
   const overview = useOverview();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const remediation = useRemediation();
 
   if (overview.isLoading) {
     return (
@@ -82,7 +87,11 @@ export default function FailureClasses() {
               </div>
               {/* Table rows */}
               {entries.map(([cls, count]) => (
-                <div key={cls} className="grid grid-cols-[200px_1fr_60px] gap-3 items-center py-1">
+                <div
+                  key={cls}
+                  className={`grid grid-cols-[200px_1fr_60px] gap-3 items-center py-1 cursor-pointer rounded px-1 ${selectedClass === cls ? 'bg-[#2e2e2e]' : 'hover:bg-[#2a2a2a]'}`}
+                  onClick={() => { setSelectedClass(selectedClass === cls ? null : cls); setAiAnalysis(null); }}
+                >
                   <span className="text-sm text-white truncate" title={cls}>
                     {cls}
                   </span>
@@ -91,7 +100,7 @@ export default function FailureClasses() {
                       className="h-5 rounded"
                       style={{
                         width: `${(count / maxCount) * 100}%`,
-                        backgroundColor: '#C9190B',
+                        backgroundColor: selectedClass === cls ? '#EE0000' : '#C9190B',
                       }}
                     />
                   </div>
@@ -102,6 +111,50 @@ export default function FailureClasses() {
           )}
         </div>
       </section>
+
+      {/* Detail panel for selected failure class */}
+      {selectedClass && (
+        <section>
+          <SectionHeader>{selectedClass}</SectionHeader>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-white font-bold text-lg">{failureClasses[selectedClass]}</span>
+                <span className="text-[#6A6E73] ml-2">occurrences</span>
+              </div>
+              <button
+                className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+                disabled={aiLoading}
+                onClick={() => {
+                  setAiLoading(true);
+                  setAiAnalysis(null);
+                  remediation.mutate(
+                    { failure_class: selectedClass, context_type: 'failure_class' },
+                    {
+                      onSuccess: (data: any) => {
+                        setAiAnalysis(data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
+                        setAiLoading(false);
+                      },
+                      onError: (err: any) => {
+                        setAiAnalysis(`Analysis failed: ${err.message}`);
+                        setAiLoading(false);
+                      },
+                    },
+                  );
+                }}
+              >
+                {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
+              </button>
+            </div>
+
+            {aiAnalysis && (
+              <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 text-sm text-[#C9C9C9] whitespace-pre-wrap font-mono">
+                {aiAnalysis}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
