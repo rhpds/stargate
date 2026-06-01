@@ -3,6 +3,7 @@ provisioning, remediation, and all other /dashboard/* endpoints."""
 
 import json
 import logging
+import os
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -1903,17 +1904,31 @@ def dashboard_evaluation_matrix(db: Session = Depends(get_db)):
             matrix[lab_code] = {}
         matrix[lab_code][stage_id] = outcome.lower() if outcome else "unknown"
 
-    labs = sorted(matrix.keys())
+    ecosystem = sorted(k for k in matrix if _is_ecosystem_ns(k))
+    infrastructure = sorted(k for k in matrix if not _is_ecosystem_ns(k))
+    labs = ecosystem + infrastructure
 
     return {
         "labs": labs,
         "stages": PIPELINE_STAGES,
         "matrix": matrix,
+        "ecosystem_labs": ecosystem,
+        "infrastructure_labs": infrastructure,
     }
 
 
+ECOSYSTEM_PREFIXES = os.environ.get(
+    "STARGATE_ECOSYSTEM_NS",
+    "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
+).split(",")
+
+
+def _is_ecosystem_ns(ns: str) -> bool:
+    return any(ns.startswith(p.strip()) for p in ECOSYSTEM_PREFIXES if p.strip())
+
+
 @router.get("/dashboard/labs-pipeline")
-def dashboard_labs_pipeline(db: Session = Depends(get_db)):
+def dashboard_labs_pipeline(db: Session = Depends(get_db), ecosystem_only: bool = False):
     """Per-lab pipeline status — latest outcome per stage for each lab with evaluations."""
     from db.models import EvaluationRecord
     from sqlalchemy import func
@@ -1964,6 +1979,10 @@ def dashboard_labs_pipeline(db: Session = Depends(get_db)):
 
     result = []
     for lab_code in sorted(labs_map.keys()):
+        is_eco = _is_ecosystem_ns(lab_code)
+        if ecosystem_only and not is_eco:
+            continue
+
         entry = labs_map[lab_code]
         stages = entry["stages"]
         summit_lab = labs_by_code.get(lab_code, {})
@@ -1988,14 +2007,16 @@ def dashboard_labs_pipeline(db: Session = Depends(get_db)):
             "fail_count": fail_count,
             "health_pct": round((pass_count / max(evaluated, 1)) * 100, 1),
             "furthest_stage": furthest,
+            "is_ecosystem": is_eco,
         })
 
-    result.sort(key=lambda x: x["fail_count"], reverse=True)
+    result.sort(key=lambda x: (not x["is_ecosystem"], -x["fail_count"]))
 
     return {
         "labs": result,
         "stage_order": PIPELINE_STAGES,
         "total_labs": len(result),
+        "ecosystem_count": sum(1 for r in result if r["is_ecosystem"]),
     }
 
 
