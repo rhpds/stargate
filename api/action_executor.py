@@ -8,6 +8,7 @@ flow through execute_action() which checks:
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -82,8 +83,22 @@ def execute_action(
         except Exception as e:
             logger.warning(f"Failed to write audit entry: {e}")
 
+    # Gate -1: namespace allowlist — NEVER remediate outside our ecosystem
+    REMEDIATION_ALLOWED_PREFIXES = os.environ.get(
+        "STARGATE_REMEDIATION_NS",
+        "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
+    ).split(",")
+    target_ns = target or parameters.get("namespace", "")
+    ns_allowed = target_ns == TEST_NAMESPACE or any(
+        target_ns.startswith(p.strip()) for p in REMEDIATION_ALLOWED_PREFIXES if p.strip()
+    )
+    if not ns_allowed:
+        _update_audit(db, audit_id, "blocked_namespace")
+        logger.warning(f"BLOCKED: {action_type} on {target_ns} — outside remediation namespace allowlist")
+        return {"executed": False, "reason": "namespace_not_allowed", "namespace": target_ns, "audit_id": audit_id}
+
     # Gate 0: lab execution mode (stargate-test always passes)
-    is_test_ns = target == TEST_NAMESPACE or parameters.get("namespace") == TEST_NAMESPACE
+    is_test_ns = target_ns == TEST_NAMESPACE
     if not is_test_ns:
         mode = _get_lab_execution_mode(db, lab_code)
         if mode == "recommend_only":

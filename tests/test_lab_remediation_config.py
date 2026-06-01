@@ -71,7 +71,7 @@ class TestExecutionGate:
         with patch("api.action_executor._get_lab_execution_mode", return_value="recommend_only"):
             result = execute_action(
                 action_type="cleanup_stuck",
-                target="some-namespace",
+                target="launchpad-test-ns",
                 parameters={},
                 lab_code="test-lab",
             )
@@ -90,6 +90,48 @@ class TestExecutionGate:
             )
         assert result["reason"] == "dry_run"
 
+    def test_blocks_remediation_outside_ecosystem_namespaces(self):
+        from api.action_executor import execute_action
+        result = execute_action(
+            action_type="cleanup_stuck",
+            target="openshift-monitoring",
+            parameters={},
+            lab_code="test",
+        )
+        assert result["executed"] is False
+        assert result["reason"] == "namespace_not_allowed"
+
+    def test_allows_remediation_in_ecosystem_namespaces(self):
+        from api.action_executor import execute_action
+        with patch("api.action_executor._get_lab_execution_mode", return_value="recommend_only"):
+            result = execute_action(
+                action_type="cleanup_stuck",
+                target="deepfield-prod",
+                parameters={},
+                lab_code="test",
+            )
+        assert result["reason"] == "recommend_only"
+
+    def test_allows_remediation_in_launchpad_namespace(self):
+        from api.action_executor import execute_action
+        with patch("api.action_executor._get_lab_execution_mode", return_value="recommend_only"):
+            result = execute_action(
+                action_type="cleanup_stuck",
+                target="launchpad-demo-123",
+                parameters={},
+                lab_code="test",
+            )
+        assert result["reason"] == "recommend_only"
+
+    def test_blocks_kube_system_namespace(self):
+        from api.action_executor import execute_action
+        result = execute_action(
+            action_type="cleanup_stuck",
+            target="kube-system",
+            parameters={},
+        )
+        assert result["reason"] == "namespace_not_allowed"
+
     def test_no_lab_code_defaults_recommend_only(self):
         from api.action_executor import _get_lab_execution_mode
         mode = _get_lab_execution_mode(None, None)
@@ -101,7 +143,7 @@ class TestExecutionGate:
              patch("engine.catalog_loader.get_commands_for_action", return_value=[]):
             result = execute_action(
                 action_type="pool_exhaustion",
-                target="some-ns",
+                target="launchpad-test-ns",
                 parameters={},
                 lab_code="my-lab",
             )
@@ -116,7 +158,7 @@ class TestExecutionGate:
              patch("api.action_executor._check_rate_limit", return_value=True):
             result = execute_action(
                 action_type="cleanup_stuck",
-                target="some-ns",
+                target="launchpad-test-ns",
                 parameters={},
                 lab_code="my-lab",
                 db=mock_db,
