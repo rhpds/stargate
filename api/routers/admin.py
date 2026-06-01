@@ -403,10 +403,13 @@ def admin_llm_timeline(hours: int = 24, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/llm/recent")
-def admin_llm_recent(limit: int = 50, db: Session = Depends(get_db)):
-    """Recent LLM calls with details."""
+def admin_llm_recent(limit: int = 50, endpoint: str = None, db: Session = Depends(get_db)):
+    """Recent LLM calls with details. Filter by endpoint name."""
     from db.models import LLMMetric
-    metrics = db.query(LLMMetric).order_by(LLMMetric.called_at.desc()).limit(limit).all()
+    query = db.query(LLMMetric)
+    if endpoint:
+        query = query.filter(LLMMetric.endpoint == endpoint)
+    metrics = query.order_by(LLMMetric.called_at.desc()).limit(limit).all()
     return [
         {
             "id": m.id,

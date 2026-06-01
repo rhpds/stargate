@@ -178,7 +178,13 @@ export const api = {
   // LLM Admin
   getLLMMetrics: () => request<LLMMetrics>('/admin/llm/metrics'),
   getLLMTimeline: (hours?: number) => request<LLMTimeline>(`/admin/llm/metrics/timeline${hours ? `?hours=${hours}` : ''}`),
-  getLLMRecent: (limit?: number) => request<LLMCallRecord[]>(`/admin/llm/recent${limit ? `?limit=${limit}` : ''}`),
+  getLLMRecent: (limit?: number, endpoint?: string) => {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (endpoint) params.set('endpoint', endpoint);
+    const qs = params.toString();
+    return request<LLMCallRecord[]>(`/admin/llm/recent${qs ? `?${qs}` : ''}`);
+  },
   getLLMEvaluation: () => request<LLMEvaluation>('/admin/llm/evaluation'),
   getLLMDrift: () => request<LLMDrift>('/admin/llm/drift'),
   getLLMConfig: () => request<LLMConfig>('/admin/llm/config'),
