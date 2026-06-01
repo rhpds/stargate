@@ -3,7 +3,7 @@ export interface HealthStatus {
   service: string;
 }
 
-// --- Summit Dashboard ---
+// --- Deployments ---
 
 export interface Deployment {
   lab_code: string;
@@ -37,7 +37,7 @@ export interface Deployment {
   last_scanned: string | null;
 }
 
-export interface PoolEntry {
+export interface PoolEvalSummary {
   pool: string;
   health: number | null;
   evaluations: number;
@@ -56,7 +56,7 @@ export interface DeploymentsDashboard {
   provisioned_count: number;
   with_sessions: number;
   labagator_available: boolean;
-  pools: Record<string, PoolEntry>;
+  pools: Record<string, PoolEvalSummary>;
   labs: Deployment[];
 }
 
@@ -81,7 +81,7 @@ export interface OverviewData {
   timestamp: string;
   labs: { total: number; with_sessions: number; status_counts: Record<string, number> };
   clusters: { total: number; healthy: number; warning: number; critical: number; scans: ClusterScan[] };
-  pools: { total: number; exhausted: number; low: number; all_pools: PoolEntry[]; summit_pools: PoolEntry[] };
+  pools: { total: number; exhausted: number; low: number; all_pools: PoolEntry[] };
   provisioning: { total: number; started: number; failed: number; failure_rate: number; by_state: Record<string, number> };
   errors: { total_failures: number; top_class: string | null; failure_classes: Record<string, number>; systemic: number };
 }
@@ -94,7 +94,6 @@ export interface PoolEntry {
   ready: number;
   min: number;
   status: string;
-  is_summit?: boolean;
 }
 
 export interface PoolsDashboard {
