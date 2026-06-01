@@ -239,7 +239,7 @@ class LLMMetric(Base):
     error_type = Column(String(100), nullable=True)
     error_message = Column(Text, nullable=True)
     prompt_hash = Column(String(64), nullable=True, index=True)
-    response_preview = Column(String(500), nullable=True)
+    response_preview = Column(Text, nullable=True)
     lab_code = Column(String(255), nullable=True, index=True)
     cluster_name = Column(String(255), nullable=True)
     failure_class = Column(String(255), nullable=True)
