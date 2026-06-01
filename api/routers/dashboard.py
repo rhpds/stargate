@@ -811,10 +811,11 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @router.get("/dashboard/overview")
-def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60):
+def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60, cluster: str = None):
     """Unified summary stats for all dashboard views.
 
     Accepts since_minutes query param to filter evaluations by time window.
+    Accepts cluster query param to scope to a specific cluster.
     Default: 60 (last hour). Use 0 for all-time.
     """
     from db.models import EvaluationRecord
@@ -902,11 +903,13 @@ def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60):
     prov = babylon.get("provisioning", {})
     summit_prov = prov
 
-    # Error stats from DB — filtered by time window
+    # Error stats from DB — filtered by time window and cluster
     eval_query = db.query(EvaluationRecord).filter(EvaluationRecord.outcome == "fail")
     if since_minutes > 0:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
         eval_query = eval_query.filter(EvaluationRecord.evaluated_at >= cutoff)
+    if cluster:
+        eval_query = eval_query.filter(EvaluationRecord.cluster_name == cluster)
     all_evals = eval_query.all()
     real_failures = [e for e in all_evals if (e.failure_class or "unclassified") not in WARNING_CLASSES]
     failure_classes: Dict[str, int] = {}
@@ -1888,7 +1891,7 @@ def dashboard_evaluation_matrix(db: Session = Depends(get_db)):
     )
 
     rows = (
-        db.query(EvaluationRecord.lab_code, EvaluationRecord.stage_id, EvaluationRecord.outcome)
+        db.query(EvaluationRecord.lab_code, EvaluationRecord.stage_id, EvaluationRecord.outcome, EvaluationRecord.cluster_name)
         .join(
             subq,
             (EvaluationRecord.lab_code == subq.c.lab_code)
@@ -1899,21 +1902,28 @@ def dashboard_evaluation_matrix(db: Session = Depends(get_db)):
     )
 
     matrix: Dict[str, Dict[str, str]] = {}
-    for lab_code, stage_id, outcome in rows:
+    lab_clusters: Dict[str, str] = {}
+    for lab_code, stage_id, outcome, cluster_name in rows:
         if lab_code not in matrix:
             matrix[lab_code] = {}
         matrix[lab_code][stage_id] = outcome.lower() if outcome else "unknown"
+        if cluster_name:
+            lab_clusters[lab_code] = cluster_name
 
     ecosystem = sorted(k for k in matrix if _is_ecosystem_ns(k))
     infrastructure = sorted(k for k in matrix if not _is_ecosystem_ns(k))
     labs = ecosystem + infrastructure
 
+    all_clusters = sorted(set(lab_clusters.values()))
+
     return {
         "labs": labs,
         "stages": PIPELINE_STAGES,
         "matrix": matrix,
+        "lab_clusters": lab_clusters,
         "ecosystem_labs": ecosystem,
         "infrastructure_labs": infrastructure,
+        "clusters": all_clusters,
     }
 
 

@@ -84,7 +84,13 @@ export const api = {
   getHealth: () => request<HealthStatus>('/health'),
 
   // Dashboard v2
-  getOverview: (sinceMinutes?: number) => request<OverviewData>(`/dashboard/overview${sinceMinutes ? `?since_minutes=${sinceMinutes}` : ''}`),
+  getOverview: (sinceMinutes?: number, cluster?: string) => {
+    const params = new URLSearchParams();
+    if (sinceMinutes) params.set('since_minutes', String(sinceMinutes));
+    if (cluster) params.set('cluster', cluster);
+    const qs = params.toString();
+    return request<OverviewData>(`/dashboard/overview${qs ? `?${qs}` : ''}`);
+  },
   getDeploymentsDashboard: () => request<DeploymentsDashboard>('/dashboard/deployments'),
   getClustersDashboard: () => request<ClustersDashboard>('/dashboard/clusters'),
   getPoolsDashboard: () => request<PoolsDashboard>('/dashboard/pools'),

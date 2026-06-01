@@ -8,9 +8,9 @@ export function useHealth() {
 }
 
 export function useOverview() {
-  const { range } = useTimeRange();
+  const { range, cluster } = useTimeRange();
   const sinceMinutes = Math.round(range.ms / 60000);
-  return useQuery({ queryKey: ['overview', sinceMinutes], queryFn: () => api.getOverview(sinceMinutes), refetchInterval: 30_000 });
+  return useQuery({ queryKey: ['overview', sinceMinutes, cluster], queryFn: () => api.getOverview(sinceMinutes, cluster || undefined), refetchInterval: 30_000 });
 }
 
 export function useDeploymentsDashboard() {

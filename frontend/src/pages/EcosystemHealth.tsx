@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useOverview,
@@ -5,6 +6,7 @@ import {
   useClustersDashboard,
   usePoolsDashboard,
 } from '../api/hooks';
+import { useTimeRange } from '../components/TimeRangeContext';
 import type { OverviewData, DeploymentsDashboard, ClustersDashboard, PoolsDashboard, Deployment, ClusterScan, ClusterSummary, PoolEntry } from '../api/types';
 
 /* ---- helpers ---- */
@@ -260,10 +262,18 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export default function EcosystemHealth() {
   const navigate = useNavigate();
+  const { setClusters } = useTimeRange();
   const overview = useOverview();
   const deployments = useDeploymentsDashboard();
   const clusters = useClustersDashboard();
   const pools = usePoolsDashboard();
+
+  const ov = overview.data as OverviewData | undefined;
+  useEffect(() => {
+    if (ov?.clusters?.scans) {
+      setClusters(ov!.clusters.scans.map(s => s.cluster).sort());
+    }
+  }, [ov?.clusters?.scans?.length]);
 
   const isLoading = overview.isLoading || deployments.isLoading || clusters.isLoading || pools.isLoading;
   const hasError = overview.isError || deployments.isError || clusters.isError || pools.isError;
@@ -289,7 +299,6 @@ export default function EcosystemHealth() {
     );
   }
 
-  const ov = overview.data as OverviewData;
   const deps = deployments.data as DeploymentsDashboard;
   const cls = clusters.data as ClustersDashboard;
   const pls = pools.data as PoolsDashboard;
@@ -305,7 +314,7 @@ export default function EcosystemHealth() {
       </div>
 
       {/* 1. Stats bar */}
-      <StatsBar overview={ov} />
+      {ov && <StatsBar overview={ov} />}
 
       {/* 2. Lab Grid */}
       <section>
@@ -317,7 +326,7 @@ export default function EcosystemHealth() {
       <section>
         <SectionHeader>Cluster Health</SectionHeader>
         <ClusterStrip
-          scans={ov.clusters.scans ?? []}
+          scans={ov!.clusters.scans ?? []}
           summaries={cls.clusters ?? []}
           navigate={navigate}
         />
@@ -332,10 +341,10 @@ export default function EcosystemHealth() {
       {/* 5. Top Failure Classes */}
       <section>
         <SectionHeader>Top Failure Classes</SectionHeader>
-        {ov.labs.total === 0 && Object.keys(ov.errors.failure_classes ?? {}).length > 0 && (
+        {ov!.labs.total === 0 && Object.keys(ov!.errors.failure_classes ?? {}).length > 0 && (
           <p className="text-xs text-[#F0AB00] mb-3">Failures detected across cluster — lab mappings will connect these to specific demos</p>
         )}
-        <FailureClassChart failures={ov.errors.failure_classes ?? {}} />
+        <FailureClassChart failures={ov!.errors.failure_classes ?? {}} />
       </section>
     </div>
   );
