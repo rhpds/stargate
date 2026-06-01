@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { FeedbackRequest, ExecutionMode } from './types';
+import { useTimeRange } from '../components/TimeRangeContext';
 
 export function useHealth() {
   return useQuery({ queryKey: ['health'], queryFn: api.getHealth, refetchInterval: 30_000 });
 }
 
 export function useOverview() {
-  return useQuery({ queryKey: ['overview'], queryFn: api.getOverview, refetchInterval: 30_000 });
+  const { range } = useTimeRange();
+  const sinceMinutes = Math.round(range.ms / 60000);
+  return useQuery({ queryKey: ['overview', sinceMinutes], queryFn: () => api.getOverview(sinceMinutes), refetchInterval: 30_000 });
 }
 
 export function useDeploymentsDashboard() {
