@@ -84,7 +84,7 @@ export const api = {
   getHealth: () => request<HealthStatus>('/health'),
 
   // Dashboard v2
-  getOverview: () => request<OverviewData>('/dashboard/overview'),
+  getOverview: (sinceMinutes?: number) => request<OverviewData>(`/dashboard/overview${sinceMinutes ? `?since_minutes=${sinceMinutes}` : ''}`),
   getDeploymentsDashboard: () => request<DeploymentsDashboard>('/dashboard/deployments'),
   getClustersDashboard: () => request<ClustersDashboard>('/dashboard/clusters'),
   getPoolsDashboard: () => request<PoolsDashboard>('/dashboard/pools'),

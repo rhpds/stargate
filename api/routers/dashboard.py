@@ -810,8 +810,12 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @router.get("/dashboard/overview")
-def dashboard_overview(db: Session = Depends(get_db)):
-    """Unified summary stats for all dashboard views."""
+def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60):
+    """Unified summary stats for all dashboard views.
+
+    Accepts since_minutes query param to filter evaluations by time window.
+    Default: 60 (last hour). Use 0 for all-time.
+    """
     from db.models import EvaluationRecord
 
     WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed"}
@@ -897,8 +901,12 @@ def dashboard_overview(db: Session = Depends(get_db)):
     prov = babylon.get("provisioning", {})
     summit_prov = prov
 
-    # Error stats from DB
-    all_evals = db.query(EvaluationRecord).filter(EvaluationRecord.outcome == "fail").all()
+    # Error stats from DB — filtered by time window
+    eval_query = db.query(EvaluationRecord).filter(EvaluationRecord.outcome == "fail")
+    if since_minutes > 0:
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
+        eval_query = eval_query.filter(EvaluationRecord.evaluated_at >= cutoff)
+    all_evals = eval_query.all()
     real_failures = [e for e in all_evals if (e.failure_class or "unclassified") not in WARNING_CLASSES]
     failure_classes: Dict[str, int] = {}
     for e in real_failures:
