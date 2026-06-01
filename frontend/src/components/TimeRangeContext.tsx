@@ -22,6 +22,10 @@ interface TimeRangeContextValue {
   setRange: (r: TimeRange) => void;
   since: () => number;
   sinceISO: () => string;
+  cluster: string;
+  setCluster: (c: string) => void;
+  clusters: string[];
+  setClusters: (c: string[]) => void;
 }
 
 const DEFAULT: TimeRange = { key: '1h', label: '1h', ms: 60 * 60 * 1000 };
@@ -31,14 +35,20 @@ const Ctx = createContext<TimeRangeContextValue>({
   setRange: () => {},
   since: () => Date.now() - DEFAULT.ms,
   sinceISO: () => new Date(Date.now() - DEFAULT.ms).toISOString(),
+  cluster: '',
+  setCluster: () => {},
+  clusters: [],
+  setClusters: () => {},
 });
 
 export function TimeRangeProvider({ children }: { children: ReactNode }) {
   const [range, setRange] = useState<TimeRange>(DEFAULT);
+  const [cluster, setCluster] = useState('');
+  const [clusters, setClusters] = useState<string[]>([]);
   const since = () => Date.now() - range.ms;
   const sinceISO = () => new Date(since()).toISOString();
   return (
-    <Ctx.Provider value={{ range, setRange, since, sinceISO }}>
+    <Ctx.Provider value={{ range, setRange, since, sinceISO, cluster, setCluster, clusters, setClusters }}>
       {children}
     </Ctx.Provider>
   );
@@ -63,6 +73,34 @@ export function TimeRangePicker() {
           }`}
         >
           {r.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ClusterPicker() {
+  const { cluster, setCluster, clusters } = useTimeRange();
+  if (clusters.length === 0) return null;
+  return (
+    <div className="flex gap-0.5 bg-[#1a1a1a] rounded-lg p-0.5">
+      <button
+        onClick={() => setCluster('')}
+        className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+          !cluster ? 'bg-[#EE0000] text-white' : 'text-[#6A6E73] hover:text-white'
+        }`}
+      >
+        All
+      </button>
+      {clusters.map(c => (
+        <button
+          key={c}
+          onClick={() => setCluster(cluster === c ? '' : c)}
+          className={`px-2.5 py-1 rounded text-xs font-medium transition ${
+            cluster === c ? 'bg-[#EE0000] text-white' : 'text-[#6A6E73] hover:text-white'
+          }`}
+        >
+          {c}
         </button>
       ))}
     </div>

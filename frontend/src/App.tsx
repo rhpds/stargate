@@ -1,7 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TimeRangeProvider, TimeRangePicker } from './components/TimeRangeContext';
+import { TimeRangeProvider, TimeRangePicker, ClusterPicker } from './components/TimeRangeContext';
 import EcosystemHealth from './pages/EcosystemHealth';
 import LabDetail from './pages/LabDetail';
 import PipelineMatrix from './pages/PipelineMatrix';
@@ -78,6 +78,7 @@ export default function App() {
                       </NavLink>
                     ))}
                   </nav>
+                  <ClusterPicker />
                   <TimeRangePicker />
                 </div>
               </div>
