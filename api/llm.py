@@ -234,7 +234,7 @@ def call_llm(
                 error_type=error_type,
                 error_message=error_message,
                 prompt_hash=prompt_hash,
-                response_preview=content[:500] if content else None,
+                response_preview=content if content else None,
                 lab_code=ctx.get("lab_code"),
                 cluster_name=ctx.get("cluster_name"),
                 failure_class=ctx.get("failure_class"),
