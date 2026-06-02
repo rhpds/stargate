@@ -147,6 +147,8 @@ function ApprovalQueue({
 }
 
 function ActivityTable({ activity }: { activity: RemediationActivity[] }) {
+  const [expandedAct, setExpandedAct] = useState<number | null>(null);
+
   if (activity.length === 0) {
     return <p className="text-[#6A6E73] text-sm">No remediation activity recorded.</p>;
   }
@@ -159,24 +161,53 @@ function ActivityTable({ activity }: { activity: RemediationActivity[] }) {
         <span>Status</span>
         <span>Executed</span>
       </div>
-      {activity.map((act) => (
-        <div
-          key={act.id}
-          className="grid grid-cols-[1fr_120px_80px_140px] gap-2 items-center py-1.5 border-b border-[#1a1a1a]"
-        >
-          <span className="text-sm text-white truncate">{act.action_type}</span>
-          <span className="text-xs text-[#6A6E73] truncate">{act.target}</span>
-          <span>
-            <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: statusColor(act.status), color: '#fff' }}
+      {activity.map((act) => {
+        let parsed: any = null;
+        if (act.result) {
+          try { parsed = JSON.parse(act.result); } catch { /* ignore */ }
+        }
+        return (
+          <div key={act.id}>
+            <div
+              className={`grid grid-cols-[1fr_120px_80px_140px] gap-2 items-center py-1.5 border-b border-[#1a1a1a] ${act.result ? 'cursor-pointer hover:bg-[#2a2a2a] rounded' : ''}`}
+              onClick={() => act.result && setExpandedAct(expandedAct === act.id ? null : act.id)}
             >
-              {act.status}
-            </span>
-          </span>
-          <span className="text-xs text-[#6A6E73]">{relativeTime(act.executed_at ?? act.created_at)}</span>
-        </div>
-      ))}
+              <span className="text-sm text-white truncate">{act.action_type}</span>
+              <span className="text-xs text-[#6A6E73] truncate">{act.target}</span>
+              <span>
+                <span
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: statusColor(act.status), color: '#fff' }}
+                >
+                  {act.status}
+                </span>
+              </span>
+              <span className="text-xs text-[#6A6E73]">{relativeTime(act.executed_at ?? act.created_at)}</span>
+            </div>
+            {expandedAct === act.id && parsed && (
+              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 mb-1 mx-1 space-y-2">
+                <div className="grid grid-cols-[100px_1fr] gap-1 text-sm">
+                  <span className="text-[#6A6E73]">Success</span>
+                  <span className={parsed.success ? 'text-[#3E8635] font-bold' : 'text-[#C9190B] font-bold'}>
+                    {parsed.success ? 'YES' : 'NO'}
+                  </span>
+                  <span className="text-[#6A6E73]">Mode</span>
+                  <span className="text-white">{parsed.mode || 'live'}</span>
+                </div>
+                {(parsed.commands || parsed.commands_executed)?.map((cmd: any, ci: number) => (
+                  <div key={ci} className={`text-xs font-mono rounded px-3 py-1 ${cmd.success ? 'text-[#C9C9C9]' : 'text-[#C9190B]'}`}>
+                    <span className={`font-bold mr-2 ${cmd.success ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
+                      {cmd.success ? 'OK' : 'FAIL'}
+                    </span>
+                    {cmd.command}
+                    {cmd.result && <span className="text-[#6A6E73] ml-2">→ {cmd.result}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -588,11 +619,97 @@ export default function Remediation() {
                       )}
 
                       {remediateResult && (
-                        <div className={`text-sm rounded p-3 ${remediateResult.executed ? 'bg-[#1a2e1a] border border-[#3E8635] text-[#3E8635]' : 'bg-[#2e1a1a] border border-[#C9190B] text-[#C9190B]'}`}>
-                          {remediateResult.executed
-                            ? `Remediation executed on ${r.namespace}`
-                            : `Remediation blocked: ${remediateResult.reason || remediateResult.error || 'unknown'}`
-                          }
+                        <div className={`rounded p-4 space-y-2 ${remediateResult.executed ? 'bg-[#1a2e1a] border border-[#3E8635]' : 'bg-[#2e1a1a] border border-[#C9190B]'}`}>
+                          <div className={`text-sm font-bold ${remediateResult.executed ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
+                            {remediateResult.executed
+                              ? `Remediation executed on ${r.namespace}`
+                              : `Remediation blocked: ${remediateResult.reason || remediateResult.error || 'unknown'}`
+                            }
+                          </div>
+
+                          {remediateResult.result && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-[120px_1fr] gap-1 text-sm">
+                                <span className="text-[#6A6E73]">Mode</span>
+                                <span className="text-white">{remediateResult.result.mode || 'live'}</span>
+                                <span className="text-[#6A6E73]">Action</span>
+                                <span className="text-white">{remediateResult.result.action_type}</span>
+                                <span className="text-[#6A6E73]">Target</span>
+                                <span className="text-white">{remediateResult.result.target || r.namespace}</span>
+                                <span className="text-[#6A6E73]">Success</span>
+                                <span className={remediateResult.result.success ? 'text-[#3E8635] font-bold' : 'text-[#C9190B] font-bold'}>
+                                  {remediateResult.result.success ? 'YES' : 'NO'}
+                                </span>
+                                {remediateResult.audit_id && (
+                                  <>
+                                    <span className="text-[#6A6E73]">Audit ID</span>
+                                    <span className="text-white">#{remediateResult.audit_id}</span>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Commands executed */}
+                              {remediateResult.result.commands && remediateResult.result.commands.length > 0 && (
+                                <div>
+                                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Commands Executed</div>
+                                  {remediateResult.result.commands.map((cmd: any, ci: number) => (
+                                    <div key={ci} className={`text-xs font-mono rounded px-3 py-1.5 mb-1 ${
+                                      cmd.success ? 'bg-[#0d1a0d] border border-[#3E8635] text-[#C9C9C9]' : 'bg-[#1a0d0d] border border-[#C9190B] text-[#C9C9C9]'
+                                    }`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`font-bold ${cmd.success ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
+                                          {cmd.success ? 'OK' : 'FAIL'}
+                                        </span>
+                                        <span>{cmd.command}</span>
+                                      </div>
+                                      {cmd.result && <div className="text-[#8A8D90] mt-0.5 ml-12">{cmd.result}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {remediateResult.result.commands_executed && remediateResult.result.commands_executed.length > 0 && (
+                                <div>
+                                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Commands Executed</div>
+                                  {remediateResult.result.commands_executed.map((cmd: any, ci: number) => (
+                                    <div key={ci} className={`text-xs font-mono rounded px-3 py-1.5 mb-1 ${
+                                      cmd.success ? 'bg-[#0d1a0d] border border-[#3E8635] text-[#C9C9C9]' : 'bg-[#1a0d0d] border border-[#C9190B] text-[#C9C9C9]'
+                                    }`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`font-bold ${cmd.success ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
+                                          {cmd.success ? 'OK' : 'FAIL'}
+                                        </span>
+                                        <span>{cmd.command}</span>
+                                      </div>
+                                      {cmd.result && <div className="text-[#8A8D90] mt-0.5 ml-12">{cmd.result}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* State after (mock mode) */}
+                              {remediateResult.result.state_after && (
+                                <div>
+                                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">State After Execution</div>
+                                  <div className="text-xs text-[#C9C9C9] bg-[#0d0d0d] rounded px-3 py-2 font-mono">
+                                    {JSON.stringify(remediateResult.result.state_after, null, 2)}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Errors */}
+                              {remediateResult.result.errors && remediateResult.result.errors.length > 0 && (
+                                <div>
+                                  <div className="text-xs text-[#C9190B] uppercase tracking-wider font-bold mb-1">Errors</div>
+                                  {remediateResult.result.errors.map((err: any, ei: number) => (
+                                    <div key={ei} className="text-xs text-[#C9190B] bg-[#1a0d0d] rounded px-3 py-1.5 mb-1 font-mono">
+                                      {err.command}: {err.error}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
