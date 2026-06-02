@@ -83,6 +83,12 @@ def execute_oc_action(
     commands_executed = []
     errors = []
 
+    dep = params.get("deployment", "app")
+    image = params.get("image", "registry.access.redhat.com/ubi9/ubi-minimal:latest")
+    _validate_k8s_name(dep, "deployment")
+    if image and not re.match(r"^[a-zA-Z0-9._/:\-]+$", image):
+        raise ValueError(f"Invalid image: {image!r}")
+
     for cmd_str in commands_planned:
         parts = cmd_str.split()
         if parts[0] == "oc":
@@ -90,8 +96,6 @@ def execute_oc_action(
 
         try:
             if "create deployment" in cmd_str:
-                dep = params.get("deployment", "app")
-                image = params.get("image", "registry.access.redhat.com/ubi9/ubi-minimal:latest")
                 result = _run_oc([
                     "create", "deployment", dep,
                     f"--image={image}",
@@ -100,7 +104,6 @@ def execute_oc_action(
                 commands_executed.append({"command": cmd_str, "result": result, "success": "created" in result.lower() or "already exists" in result.lower()})
 
             elif "scale" in cmd_str:
-                dep = params.get("deployment", "app")
                 replicas = str(params.get("replicas", 3))
                 result = _run_oc([
                     "scale", f"deployment/{dep}",
@@ -110,18 +113,23 @@ def execute_oc_action(
                 commands_executed.append({"command": cmd_str, "result": result, "success": "scaled" in result.lower() or result == ""})
 
             elif "delete pod" in cmd_str:
-                pod = cmd_str.split("delete pod ")[1].split(" ")[0] if "delete pod " in cmd_str else "unknown"
+                pod = params.get("pod", "")
+                if not pod:
+                    for p in params.get("pods", []):
+                        if p in cmd_str:
+                            pod = p
+                            break
+                _validate_k8s_name(pod, "pod")
                 result = _run_oc(["delete", "pod", pod, "-n", namespace, "--ignore-not-found"], kubeconfig)
                 commands_executed.append({"command": cmd_str, "result": result, "success": True})
 
             elif "rollout restart" in cmd_str:
-                dep = params.get("deployment", "showroom")
                 result = _run_oc(["rollout", "restart", f"deployment/{dep}", "-n", namespace], kubeconfig)
                 commands_executed.append({"command": cmd_str, "result": result, "success": "restarted" in result.lower() or result == ""})
 
             else:
-                result = _run_oc(parts, kubeconfig)
-                commands_executed.append({"command": cmd_str, "result": result, "success": True})
+                logger.warning(f"Unrecognized command pattern, skipping: {cmd_str}")
+                commands_executed.append({"command": cmd_str, "result": "skipped: unrecognized command pattern", "success": False})
 
         except Exception as e:
             errors.append({"command": cmd_str, "error": str(e)})

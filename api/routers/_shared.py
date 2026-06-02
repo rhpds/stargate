@@ -75,23 +75,10 @@ def _origin_from_url(url: str) -> str:
 def require_admin(request: Request = None, api_key: str = Security(_api_key_header)):
     if api_key and ADMIN_API_KEY and api_key == ADMIN_API_KEY:
         return
-    if request:
-        if TRUST_PROXY_AUTH:
-            oauth_user = request.headers.get("x-forwarded-user", "")
-            if oauth_user:
-                return
-        fetch_site = request.headers.get("sec-fetch-site", "")
-        if fetch_site == "same-origin":
+    if request and TRUST_PROXY_AUTH:
+        oauth_user = request.headers.get("x-forwarded-user", "")
+        if oauth_user:
             return
-        origin = request.headers.get("origin", "")
-        referer = request.headers.get("referer", "")
-        allowed = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
-        if origin and any(origin == a for a in allowed):
-            return
-        if referer:
-            referer_origin = _origin_from_url(referer)
-            if referer_origin and any(referer_origin == a for a in allowed):
-                return
     if not ADMIN_API_KEY:
         raise HTTPException(status_code=503, detail="Admin API key not configured")
     raise HTTPException(status_code=403, detail="Invalid or missing API key")

@@ -46,6 +46,9 @@ def get_db():
     db = factory()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
