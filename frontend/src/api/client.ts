@@ -222,6 +222,10 @@ export const api = {
   approveAction: (id: number) => request<{ id: number; status: string }>(`/admin/approval-queue/${id}/approve`, { method: 'POST' }),
   rejectAction: (id: number) => request<{ id: number; status: string }>(`/admin/approval-queue/${id}/reject`, { method: 'POST' }),
 
+  // Remediation execution
+  executeRemediation: (body: { namespace: string; failure_class: string; cluster: string; action_type?: string }) =>
+    request<any>('/admin/remediation/execute', { method: 'POST', body: JSON.stringify(body) }),
+
   // Admin
   getSchedulerStatus: () => request<SchedulerStatus>('/admin/scheduler/status'),
   getScanHistory: () => request<ScanHistory>('/admin/scan-history'),
