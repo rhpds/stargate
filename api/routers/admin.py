@@ -298,22 +298,26 @@ def admin_scan_history(limit: int = 50):
 # ---------------------------------------------------------------------------
 
 @router.get("/admin/llm/metrics")
-def admin_llm_metrics(db: Session = Depends(get_db)):
-    """Aggregated LLM usage metrics."""
+def admin_llm_metrics(db: Session = Depends(get_db), cluster: str = None):
+    """Aggregated LLM usage metrics. Optionally filtered by cluster."""
     from db.models import LLMMetric
     from sqlalchemy import func
 
-    total = db.query(func.count(LLMMetric.id)).scalar() or 0
+    query = db.query(LLMMetric)
+    if cluster:
+        query = query.filter(LLMMetric.cluster_name == cluster)
+
+    total = query.count()
     if total == 0:
         return {
             "total_calls": 0, "total_tokens": 0, "total_cost_estimate": 0,
             "calls_by_endpoint": {}, "avg_latency_ms": {}, "p95_latency_ms": {},
             "error_rate": 0, "errors_by_type": {}, "tokens_by_endpoint": {},
             "calls_last_hour": 0, "calls_last_24h": 0, "avg_confidence": None,
-            "period": "all time",
+            "period": cluster or "all time",
         }
 
-    all_metrics = db.query(LLMMetric).order_by(LLMMetric.called_at.desc()).all()
+    all_metrics = query.order_by(LLMMetric.called_at.desc()).all()
     now = datetime.now(timezone.utc)
     one_hour = now.replace(hour=now.hour - 1) if now.hour > 0 else now
     one_day = now.replace(day=now.day - 1) if now.day > 1 else now

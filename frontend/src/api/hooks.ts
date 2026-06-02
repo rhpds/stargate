@@ -207,7 +207,8 @@ export function useEvaluationMatrix() {
 }
 
 export function useLLMMetrics() {
-  return useQuery({ queryKey: ['llm-metrics'], queryFn: api.getLLMMetrics, refetchInterval: 30_000 });
+  const { cluster } = useTimeRange();
+  return useQuery({ queryKey: ['llm-metrics', cluster], queryFn: () => api.getLLMMetrics(cluster || undefined), refetchInterval: 30_000 });
 }
 
 export function useLLMTimeline(hours?: number) {
