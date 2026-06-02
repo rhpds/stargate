@@ -1874,10 +1874,14 @@ def get_remediation_commands(failure_class: str):
 # ---------------------------------------------------------------------------
 
 @router.get("/dashboard/evaluation-matrix")
-def dashboard_evaluation_matrix(db: Session = Depends(get_db)):
+def dashboard_evaluation_matrix(db: Session = Depends(get_db), cluster: str = None):
     """Lab x stage evaluation matrix — latest outcome per (lab_code, stage_id) pair."""
     from db.models import EvaluationRecord
     from sqlalchemy import func
+
+    base_filter = [EvaluationRecord.lab_code.isnot(None)]
+    if cluster:
+        base_filter.append(EvaluationRecord.cluster_name == cluster)
 
     subq = (
         db.query(
@@ -1885,7 +1889,7 @@ def dashboard_evaluation_matrix(db: Session = Depends(get_db)):
             EvaluationRecord.stage_id,
             func.max(EvaluationRecord.evaluated_at).label("latest"),
         )
-        .filter(EvaluationRecord.lab_code.isnot(None))
+        .filter(*base_filter)
         .group_by(EvaluationRecord.lab_code, EvaluationRecord.stage_id)
         .subquery()
     )

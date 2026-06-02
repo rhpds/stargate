@@ -179,15 +179,16 @@ export const api = {
 
   // Recommendations
   getRecommendations: () => request<RecommendationsData>('/dashboard/provisioning-recommendations'),
-  getEvaluationMatrix: () => request<EvaluationMatrix>('/dashboard/evaluation-matrix'),
+  getEvaluationMatrix: (cluster?: string) => request<EvaluationMatrix>(`/dashboard/evaluation-matrix${cluster ? `?cluster=${cluster}` : ''}`),
 
   // LLM Admin
   getLLMMetrics: () => request<LLMMetrics>('/admin/llm/metrics'),
   getLLMTimeline: (hours?: number) => request<LLMTimeline>(`/admin/llm/metrics/timeline${hours ? `?hours=${hours}` : ''}`),
-  getLLMRecent: (limit?: number, endpoint?: string) => {
+  getLLMRecent: (limit?: number, endpoint?: string, cluster?: string) => {
     const params = new URLSearchParams();
     if (limit) params.set('limit', String(limit));
     if (endpoint) params.set('endpoint', endpoint);
+    if (cluster) params.set('cluster', cluster);
     const qs = params.toString();
     return request<LLMCallRecord[]>(`/admin/llm/recent${qs ? `?${qs}` : ''}`);
   },

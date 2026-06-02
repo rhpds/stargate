@@ -8,9 +8,18 @@ export function useHealth() {
 }
 
 export function useOverview() {
-  const { range, cluster } = useTimeRange();
+  const { range, cluster, setClusters } = useTimeRange();
   const sinceMinutes = Math.round(range.ms / 60000);
-  return useQuery({ queryKey: ['overview', sinceMinutes, cluster], queryFn: () => api.getOverview(sinceMinutes, cluster || undefined), refetchInterval: 30_000 });
+  const query = useQuery({ queryKey: ['overview', sinceMinutes, cluster], queryFn: () => api.getOverview(sinceMinutes, cluster || undefined), refetchInterval: 30_000 });
+
+  // Auto-populate cluster list from scan data
+  const scans = (query.data as any)?.clusters?.scans;
+  if (scans && Array.isArray(scans) && scans.length > 0) {
+    const names = scans.map((s: any) => s.cluster).filter(Boolean).sort();
+    setClusters(names);
+  }
+
+  return query;
 }
 
 export function useDeploymentsDashboard() {
@@ -182,9 +191,10 @@ export function useRecommendations() {
 }
 
 export function useEvaluationMatrix() {
+  const { cluster } = useTimeRange();
   return useQuery({
-    queryKey: ['evaluation-matrix'],
-    queryFn: api.getEvaluationMatrix,
+    queryKey: ['evaluation-matrix', cluster],
+    queryFn: () => api.getEvaluationMatrix(cluster || undefined),
     refetchInterval: 30_000,
   });
 }
