@@ -3417,13 +3417,13 @@ def dashboard_data_mapping(db: Session = Depends(get_db)):
             pool_connected = True
             pool_key = f"provisioned={lab.get('provisioned',0)}"
         elif pool_prefix:
-            pool_connected = any(p.get("name", "").startswith(pool_prefix) for p in babylon.get("pools", {}).get("all_pools", babylon.get("pools", {}).get("all_pools", current.get("pools", {}).get("summit_pools", []))))
+            pool_connected = any(p.get("name", "").startswith(pool_prefix) for p in babylon.get("pools", {}).get("all_pools", []))
             pool_key = f"{cloud}→{pool_prefix}.*"
         elif cloud == "Tenant Namespace":
             pool_connected = True
             pool_key = "Tenant Namespace (no pool needed)"
         elif ci_base and ci_base != "summit-2026":
-            pool_connected = any(p.get("name", "").startswith(ci_base) for p in babylon.get("pools", {}).get("all_pools", babylon.get("pools", {}).get("all_pools", current.get("pools", {}).get("summit_pools", []))))
+            pool_connected = any(p.get("name", "").startswith(ci_base) for p in babylon.get("pools", {}).get("all_pools", []))
             pool_key = f"ci_base={ci_base}"
         src_pools = {"connected": pool_connected, "key": pool_key}
         if not pool_connected:
@@ -3698,11 +3698,11 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
     if context_type == "lab":
         babylon = _load_latest_babylon()
         lab_info = babylon.get("labagator", {}).get("labs_by_code", {}).get(lab_code, {})
-        summit_pools = babylon.get("pools", {}).get("all_pools", babylon.get("pools", {}).get("all_pools", current.get("pools", {}).get("summit_pools", [])))
-        lab_pools = [p for p in summit_pools if lab_code.lower() in p.get("name", "").lower()]
+        all_pools = babylon.get("pools", {}).get("all_pools", [])
+        lab_pools = [p for p in all_pools if lab_code.lower() in p.get("name", "").lower()]
         prov = babylon.get("provisioning", {})
-        mapping = babylon.get("summit_mapping", {}).get(lab_code, [])
-        demolition = babylon.get("demolition_summit", {})
+        mapping = babylon.get("lab_mapping", babylon.get("summit_mapping", {})).get(lab_code, [])
+        demolition = babylon.get("demolition", babylon.get("demolition_summit", {}))
 
         # Instance state from mapping
         inst_started = sum(1 for i in mapping if i.get("state") == "started")
@@ -3774,7 +3774,7 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
 
     elif context_type == "pool":
         babylon = _load_latest_babylon()
-        all_pools = babylon.get("pools", {}).get("all_pools", babylon.get("pools", {}).get("all_pools", current.get("pools", {}).get("summit_pools", [])))
+        all_pools = babylon.get("pools", {}).get("all_pools", [])
         pool = next((p for p in all_pools if p.get("name") == pool_name), {})
         prov = babylon.get("provisioning", {})
         exhausted = babylon.get("pools", {}).get("exhausted_pools", [])
