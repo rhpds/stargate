@@ -3968,7 +3968,7 @@ def dashboard_audit_ledger():
 
 
 @router.post("/dashboard/audit-ledger/verify")
-def verify_audit_chain(chain: list):
+def verify_audit_chain(chain: list, _auth=Depends(require_admin)):
     """Verify an exported audit chain for tamper detection."""
     from engine.audit_ledger import AuditLedger
     valid = AuditLedger.verify_exported_chain(chain)
@@ -3988,7 +3988,7 @@ def verify_audit_chain(chain: list):
 # ---------------------------------------------------------------------------
 
 @router.post("/remediation/playbook")
-def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
+def run_remediation_playbook(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Run a single remediation playbook: investigate → diagnose → fix → verify.
 
     Called by the platform-dashboard to visualize real remediation in the UI.
@@ -3998,7 +3998,10 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
            "lab_code": "...", "cluster_name": "..."}
     """
     import os
+    import re
     import time as _t
+
+    _K8S_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,252}$")
 
     namespace = req.get("namespace", "stargate-test")
     failure_class = req.get("failure_class", "pods_crashlooping")
@@ -4006,6 +4009,11 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db)):
     lab_code = req.get("lab_code")
     cluster_name = req.get("cluster_name")
     mock_context = req.get("mock_context", {})
+
+    if namespace and not _K8S_NAME.match(namespace):
+        raise HTTPException(status_code=422, detail="Invalid namespace name")
+    if pod and not _K8S_NAME.match(pod):
+        raise HTTPException(status_code=422, detail="Invalid pod name")
 
     kubeconfig = os.environ.get("KUBECONFIG", "")
     start_time = _t.time()
