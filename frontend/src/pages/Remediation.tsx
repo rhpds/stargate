@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   useApprovalQueue,
@@ -5,9 +6,11 @@ import {
   useRejectAction,
   useRemediationConfigs,
   useRemediationActivity,
+  useRemediation,
 } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
 import { api } from '../api/client';
+import FormattedAnalysis from '../components/FormattedAnalysis';
 import type {
   ApprovalQueueData,
   PendingActionItem,
@@ -223,11 +226,19 @@ export default function Remediation() {
   const rejectAction = useRejectAction();
   const remediationConfigs = useRemediationConfigs();
   const remediationActivity = useRemediationActivity();
+  const remediation = useRemediation();
   const recommendations = useQuery({
     queryKey: ['remediation-recommendations', cluster],
     queryFn: () => api.getRemediationRecommendations(20, cluster || undefined),
     refetchInterval: 30_000,
   });
+
+  const [expandedRec, setExpandedRec] = useState<number | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [remediateConfirm, setRemediateConfirm] = useState(false);
+  const [remediateResult, setRemediateResult] = useState<any>(null);
+  const [remediateLoading, setRemediateLoading] = useState(false);
 
   const isLoading =
     approvalQueue.isLoading || remediationConfigs.isLoading || remediationActivity.isLoading;
@@ -300,22 +311,174 @@ export default function Remediation() {
                 <span>Suggested Action</span>
               </div>
               {recommendations.data.recommendations.map((r: any, i: number) => (
-                <div key={i} className={`grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 items-center py-1.5 rounded ${r.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : 'opacity-50'}`}>
-                  <span className="text-sm text-white font-medium truncate">
-                    {r.namespace}
-                    {r.is_ecosystem && <span className="ml-1 text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
-                  </span>
-                  <span className="text-xs text-[#8A8D90]">{r.cluster}</span>
-                  <span className="text-xs text-white truncate" title={r.failure_class}>{r.failure_class}</span>
-                  <span className="text-sm text-white text-right font-bold">{r.count}</span>
-                  <span className={`text-xs font-bold ${
-                    r.severity === 'critical' ? 'text-[#C9190B]' :
-                    r.severity === 'high' ? 'text-[#F0AB00]' :
-                    r.severity === 'medium' ? 'text-[#6A6E73]' : 'text-[#555]'
-                  }`}>{r.severity}</span>
-                  <span className="text-xs text-[#8A8D90] truncate" title={r.catalog_action || 'no action mapped'}>
-                    {r.catalog_action || '--'}
-                  </span>
+                <div key={i}>
+                  <div
+                    className={`grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 items-center py-1.5 rounded cursor-pointer transition ${
+                      expandedRec === i ? 'bg-[#2e2e2e]' : 'hover:bg-[#2a2a2a]'
+                    } ${r.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : 'opacity-50'}`}
+                    onClick={() => {
+                      if (expandedRec === i) {
+                        setExpandedRec(null);
+                      } else {
+                        setExpandedRec(i);
+                        setAiAnalysis(null);
+                        setRemediateConfirm(false);
+                        setRemediateResult(null);
+                      }
+                    }}
+                  >
+                    <span className="text-sm text-white font-medium truncate">
+                      {r.namespace}
+                      {r.is_ecosystem && <span className="ml-1 text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
+                    </span>
+                    <span className="text-xs text-[#8A8D90]">{r.cluster}</span>
+                    <span className="text-xs text-white truncate" title={r.failure_class}>{r.failure_class}</span>
+                    <span className="text-sm text-white text-right font-bold">{r.count}</span>
+                    <span className={`text-xs font-bold ${
+                      r.severity === 'critical' ? 'text-[#C9190B]' :
+                      r.severity === 'high' ? 'text-[#F0AB00]' :
+                      r.severity === 'medium' ? 'text-[#6A6E73]' : 'text-[#555]'
+                    }`}>{r.severity}</span>
+                    <span className="text-xs text-[#8A8D90] truncate" title={r.catalog_action || 'no action mapped'}>
+                      {r.catalog_action || '--'}
+                    </span>
+                  </div>
+
+                  {expandedRec === i && (
+                    <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 mb-2 mx-1 space-y-3">
+                      <div className="grid grid-cols-[140px_1fr] gap-2 text-sm">
+                        <span className="text-[#6A6E73]">Namespace</span>
+                        <span className="text-white font-medium">{r.namespace}</span>
+                        <span className="text-[#6A6E73]">Cluster</span>
+                        <span className="text-white">{r.cluster}</span>
+                        <span className="text-[#6A6E73]">Failure Class</span>
+                        <span className="text-white font-medium">{r.failure_class}</span>
+                        <span className="text-[#6A6E73]">Occurrences</span>
+                        <span className="text-white font-bold">{r.count}</span>
+                        <span className="text-[#6A6E73]">Severity</span>
+                        <span className={`font-bold ${
+                          r.severity === 'critical' ? 'text-[#C9190B]' :
+                          r.severity === 'high' ? 'text-[#F0AB00]' :
+                          r.severity === 'medium' ? 'text-[#6A6E73]' : 'text-[#555]'
+                        }`}>{r.severity}</span>
+                        <span className="text-[#6A6E73]">Last Seen</span>
+                        <span className="text-white">{relativeTime(r.last_seen)}</span>
+                        <span className="text-[#6A6E73]">Catalog Action</span>
+                        <span className="text-white">{r.catalog_action || 'No action mapped'}</span>
+                        {r.catalog_action && (
+                          <>
+                            <span className="text-[#6A6E73]">Risk Level</span>
+                            <span className={`font-semibold ${
+                              r.catalog_risk === 'low' ? 'text-[#3E8635]' :
+                              r.catalog_risk === 'medium' ? 'text-[#F0AB00]' : 'text-[#C9190B]'
+                            }`}>{r.catalog_risk}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {r.sample_message && (
+                        <div>
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Sample Error</div>
+                          <div className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-2 font-mono">{r.sample_message}</div>
+                        </div>
+                      )}
+
+                      {r.catalog_commands && r.catalog_commands.length > 0 && (
+                        <div>
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Catalog Commands</div>
+                          {r.catalog_commands.map((cmd: string, ci: number) => (
+                            <div key={ci} className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+                          disabled={aiLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAiLoading(true);
+                            setAiAnalysis(null);
+                            remediation.mutate(
+                              { failure_class: r.failure_class, lab_code: r.namespace, cluster: r.cluster, context_type: 'lab' },
+                              {
+                                onSuccess: (data: any) => {
+                                  setAiAnalysis(data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
+                                  setAiLoading(false);
+                                },
+                                onError: (err: any) => {
+                                  setAiAnalysis(`Analysis failed: ${err.message}`);
+                                  setAiLoading(false);
+                                },
+                              },
+                            );
+                          }}
+                        >
+                          {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
+                        </button>
+
+                        {r.is_ecosystem && !remediateConfirm && !remediateResult && (
+                          <button
+                            className="bg-[#F0AB00] hover:bg-[#C58C00] text-black text-sm px-4 py-2 rounded font-medium"
+                            onClick={(e) => { e.stopPropagation(); setRemediateConfirm(true); }}
+                          >
+                            Remediate
+                          </button>
+                        )}
+                      </div>
+
+                      {aiAnalysis && (
+                        <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
+                          <FormattedAnalysis text={aiAnalysis} />
+                        </div>
+                      )}
+
+                      {remediateConfirm && !remediateResult && (
+                        <div className="flex items-center gap-3 border-t border-[#333] pt-3">
+                          <span className="text-sm text-[#F0AB00] font-medium">Execute remediation on {r.namespace}?</span>
+                          <button
+                            className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded font-medium disabled:opacity-50"
+                            disabled={remediateLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRemediateLoading(true);
+                              api.executeRemediation({
+                                namespace: r.namespace,
+                                failure_class: r.failure_class,
+                                cluster: r.cluster,
+                              }).then((result) => {
+                                setRemediateResult(result);
+                                setRemediateLoading(false);
+                                setRemediateConfirm(false);
+                              }).catch((err) => {
+                                setRemediateResult({ error: err.message });
+                                setRemediateLoading(false);
+                                setRemediateConfirm(false);
+                              });
+                            }}
+                          >
+                            {remediateLoading ? 'Executing...' : 'Confirm'}
+                          </button>
+                          <button
+                            className="text-[#6A6E73] text-sm hover:text-white"
+                            onClick={(e) => { e.stopPropagation(); setRemediateConfirm(false); }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+
+                      {remediateResult && (
+                        <div className={`text-sm rounded p-3 ${remediateResult.executed ? 'bg-[#1a2e1a] border border-[#3E8635] text-[#3E8635]' : 'bg-[#2e1a1a] border border-[#C9190B] text-[#C9190B]'}`}>
+                          {remediateResult.executed
+                            ? `Remediation executed on ${r.namespace}`
+                            : `Remediation blocked: ${remediateResult.reason || remediateResult.error || 'unknown'}`
+                          }
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
