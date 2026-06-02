@@ -1,4 +1,4 @@
-"""E2E Integration tests — StarGate ↔ Launchpad ↔ DeepField.
+"""E2E Integration tests — StarGate ↔ Launchpad.
 
 Validates integration contracts: event ingestion, rubric evaluation, push notifications.
 """

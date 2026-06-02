@@ -10,8 +10,6 @@ deploy_database: true
 postgres_user: stargate
 postgres_storage_size: "5Gi"
 
-# Integration — set these to connect StarGate to Launchpad and DeepField
+# Integration — set these to connect StarGate to Launchpad
 launchpad_api_url: "https://launchpad.apps.infra01.example.com"
 launchpad_api_key: ""
-deepfield_api_url: "https://deepfield.apps.infra01.example.com"
-deepfield_api_key: ""

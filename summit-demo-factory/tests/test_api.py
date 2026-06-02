@@ -356,7 +356,7 @@ class TestIntegrationEndpoints:
 
     def test_receive_unknown_source(self, client):
         resp = client.post("/integration/events", json={
-            "source": "deepfield",
+            "source": 
             "event_type": "test",
             "event_id": "evt-002",
             "timestamp": "2026-05-25T12:00:00Z",

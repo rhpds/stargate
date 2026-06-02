@@ -139,8 +139,8 @@ async def evaluate_stage(run_id: str, stage_id: str, req: EvaluateStageRequest):
     )
     await repository.update_stage(run_id, stage_id, status=stage_status, result=stage_result)
 
-    from api.app.integrations.event_publisher import notify_deepfield
-    await notify_deepfield("evaluation_result", {
+    from api.app.integrations.event_publisher import publish_evaluation
+    await publish_evaluation("evaluation_result", {
         "run_id": run_id,
         "stage_id": stage_id,
         "outcome": result.outcome.value,

@@ -29,18 +29,6 @@ spec:
                 secretKeyRef:
                   name: summit-demo-factory-db
                   key: database-url
-            - name: DEEPFIELD_API_URL
-              valueFrom:
-                secretKeyRef:
-                  name: summit-demo-factory-integration
-                  key: deepfield-api-url
-                  optional: true
-            - name: DEEPFIELD_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: summit-demo-factory-integration
-                  key: deepfield-api-key
-                  optional: true
             - name: LAUNCHPAD_API_URL
               valueFrom:
                 secretKeyRef:

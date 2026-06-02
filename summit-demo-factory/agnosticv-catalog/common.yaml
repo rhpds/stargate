@@ -9,7 +9,7 @@ __meta__:
       Evidence-driven rubric evaluation for demo environment correctness.
       Deterministic rubrics catch 80%+ of failures as patterns. LLM is called
       only for novel/unclassified failures with full context. Integrates with
-      Launchpad (provisioning) and DeepField (fleet monitoring).
+      Launchpad (provisioning).
     category: Labs
     keywords:
       - stargate
@@ -49,5 +49,3 @@ postgres_storage_size: "5Gi"
 # Integration (optional — graceful degradation when not set)
 launchpad_api_url: ""
 launchpad_api_key: ""
-deepfield_api_url: ""
-deepfield_api_key: ""

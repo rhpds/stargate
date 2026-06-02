@@ -1,6 +1,6 @@
 # StarGate — Demo Validation Control Plane
 
-Control plane for provisioning, validating, observing, and improving demo environments. Part of the **Launchpad + StarGate + DeepField** platform — three separate products that integrate via webhook events.
+Control plane for provisioning, validating, observing, and improving demo environments. Part of the **Launchpad + StarGate** platform — two products that integrate via webhook events.
 
 Built on Red Hat native tooling: UBI container images, Podman, OpenShift-ready.
 
@@ -8,8 +8,6 @@ Built on Red Hat native tooling: UBI container images, Podman, OpenShift-ready.
 
 ```
                     +-------------------+
-                    |     DeepField     |   OBSERVABILITY
-                    | Fleet signal intel|
                     +--------+----------+
                              |
                   monitors clusters that
@@ -25,7 +23,6 @@ Built on Red Hat native tooling: UBI container images, Podman, OpenShift-ready.
 
 - **Launchpad** provisions demo environments and pushes lifecycle events to StarGate
 - **StarGate** evaluates those events against YAML rubrics and classifies failures
-- **DeepField** receives StarGate evaluation results and correlates with fleet-wide signals
 - Each product deploys independently; integration is optional via env vars
 
 ## Quick Start
@@ -89,13 +86,12 @@ All API routes are under `/api/v1/`.
 
 ## Integration
 
-StarGate integrates with Launchpad and DeepField via webhook push. All integrations fail silently when targets are not configured.
+StarGate integrates with Launchpad via webhook push. All integrations fail silently when targets are not configured.
 
 | Direction | What | Endpoint |
 |-----------|------|----------|
 | Launchpad → StarGate | Lifecycle events (session provisioned, failed, reclaimed) | `POST /integration/events` |
 | Launchpad → StarGate | Pre-flight check before provisioning | `GET /integration/evaluate` |
-| StarGate → DeepField | Evaluation results after rubric evaluation | `POST {DEEPFIELD_API_URL}/integration/events` |
 | StarGate → Launchpad | Cleanup results after remediation | `POST {LAUNCHPAD_API_URL}/callbacks/cleanup-result` |
 
 ### Environment Variables
@@ -103,8 +99,6 @@ StarGate integrates with Launchpad and DeepField via webhook push. All integrati
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | No | PostgreSQL connection string. Falls back to in-memory storage if not set. |
-| `DEEPFIELD_API_URL` | No | DeepField base URL for pushing evaluation results. |
-| `DEEPFIELD_API_KEY` | No | API key for DeepField authentication. |
 | `LAUNCHPAD_API_URL` | No | Launchpad base URL for pushing cleanup results. |
 | `LAUNCHPAD_API_KEY` | No | API key for Launchpad authentication. |
 
@@ -123,7 +117,7 @@ summit-demo-factory/
   api/
     app/
       api/                # FastAPI routers (runs, stages, rubrics, reports, proposals, integration)
-      integrations/       # Outbound event publisher (DeepField, Launchpad)
+      integrations/       # Outbound event publisher (Launchpad)
       models.py           # Pydantic domain models
       database.py         # asyncpg pool + in-memory fallback
       repository.py       # Data access layer
@@ -150,4 +144,4 @@ summit-demo-factory/
 - No feature graduates because it was coded — only when tests pass.
 - AI is not part of the first execution path. Deterministic rubrics catch 80%+.
 - Containers use Red Hat UBI base images.
-- All integrations fail open — StarGate works standalone without Launchpad or DeepField.
+- All integrations fail open — StarGate works standalone without Launchpad.
