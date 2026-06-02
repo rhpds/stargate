@@ -7,13 +7,20 @@ NC='\033[0m'
 
 # Patterns that should NEVER appear in committed code
 PATTERNS=(
-    'sk-[A-Za-z0-9]{16,}'           # LiteLLM/OpenAI API keys
-    'sha256~[A-Za-z0-9]{20,}'       # OpenShift tokens
-    'eyJ[A-Za-z0-9_-]{50,}'         # JWT tokens (base64-encoded)
-    'password\s*[:=]\s*"[^${\"]+'   # Hardcoded passwords (not env vars)
-    'PRIVATE KEY'                    # Private keys
-    'BEGIN RSA'                      # RSA keys
-    'BEGIN EC'                       # EC keys
+    'sk-[A-Za-z0-9]{16,}'                  # LiteLLM/OpenAI API keys
+    'sha256~[A-Za-z0-9]{20,}'              # OpenShift tokens
+    'eyJ[A-Za-z0-9_-]{50,}'               # JWT tokens (base64-encoded)
+    'PRIVATE KEY'                           # Private keys
+    'BEGIN RSA'                             # RSA keys
+    'BEGIN EC'                              # EC keys
+    'AKIA[0-9A-Z]{16}'                     # AWS access key IDs
+    'ghp_[A-Za-z0-9]{36}'                  # GitHub personal access tokens
+    'gho_[A-Za-z0-9]{36}'                  # GitHub OAuth tokens
+    'xox[bprs]-[A-Za-z0-9-]{10,}'         # Slack tokens
+    '[Pp]assword\s*[:=]\s*"[^${"]{4,}'     # password="hardcoded" (double-quoted)
+    "[Pp]assword\s*[:=]\s*'[^\${']{4,}"    # password='hardcoded' (single-quoted)
+    "[Pp]assword\s+'[^']{4,}'"             # password 'hardcoded' (space-separated)
+    '[Pp]assword:\s+[A-Za-z0-9_]{6,}'     # Password: hardcoded (unquoted, 6+ chars)
 )
 
 FOUND=0

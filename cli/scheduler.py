@@ -62,10 +62,10 @@ class WorkerThread:
         if self.offset > 0:
             time.sleep(self.offset)
 
-        # First tick: run all tiers immediately
+        # First tick: run Tier 1+2 immediately, defer Tier 3 to second tick
         self.worker.state.last_node_scan = 0
         self.worker.state.last_pod_scan = 0
-        self.worker.state.last_ns_scan = 0
+        self.worker.state.last_ns_scan = time.time()
 
         while self.running:
             try:
