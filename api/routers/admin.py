@@ -1128,6 +1128,82 @@ def get_remediation_activity(limit: int = 50, db: Session = Depends(get_db)):
     return {"activity": repository.get_remediation_activity(db, limit=limit)}
 
 
+@router.get("/admin/remediation/recommendations")
+def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Session = Depends(get_db)):
+    """Auto-generated remediation recommendations based on current failures."""
+    from db.models import EvaluationRecord
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    query = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class,
+        func.count(EvaluationRecord.id).label("count"),
+        func.max(EvaluationRecord.evaluated_at).label("last_seen"),
+        func.max(EvaluationRecord.message).label("sample_message"),
+    ).filter(
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.lab_code.isnot(None),
+        EvaluationRecord.evaluated_at >= cutoff,
+    )
+    if cluster:
+        query = query.filter(EvaluationRecord.cluster_name == cluster)
+
+    rows = query.group_by(
+        EvaluationRecord.lab_code, EvaluationRecord.cluster_name, EvaluationRecord.failure_class,
+    ).order_by(func.count(EvaluationRecord.id).desc()).limit(limit * 3).all()
+
+    import yaml
+    from pathlib import Path as _P
+    catalog_path = _P(__file__).parent.parent.parent / "remediations" / "catalog.yaml"
+    catalog_actions = {}
+    if catalog_path.exists():
+        with open(catalog_path) as f:
+            cat = yaml.safe_load(f) or []
+        for entry in cat:
+            for cond in entry.get("allowed_when", []):
+                if "failure_class ==" in cond:
+                    fc = cond.split("==")[1].strip()
+                    if fc not in catalog_actions:
+                        catalog_actions[fc] = {
+                            "id": entry["id"],
+                            "mode": entry.get("mode", "recommend_only"),
+                            "risk": entry.get("risk", "unknown"),
+                            "commands": entry.get("commands", []),
+                        }
+
+    from api.routers.dashboard import _is_ecosystem_ns
+    recommendations = []
+    for lab_code, cluster_name, failure_class, count, last_seen, sample_message in rows:
+        is_eco = _is_ecosystem_ns(lab_code)
+        catalog = catalog_actions.get(failure_class, {})
+        severity = "critical" if count >= 10 else "high" if count >= 5 else "medium" if count >= 2 else "low"
+        recommendations.append({
+            "namespace": lab_code,
+            "cluster": cluster_name,
+            "failure_class": failure_class,
+            "count": count,
+            "severity": severity,
+            "last_seen": last_seen.isoformat() if last_seen else None,
+            "sample_message": (sample_message or "")[:200],
+            "is_ecosystem": is_eco,
+            "catalog_action": catalog.get("id"),
+            "catalog_mode": catalog.get("mode", "unknown"),
+            "catalog_risk": catalog.get("risk", "unknown"),
+            "catalog_commands": catalog.get("commands", [])[:2],
+        })
+
+    recommendations.sort(key=lambda r: (not r["is_ecosystem"], -r["count"]))
+    return {
+        "recommendations": recommendations[:limit],
+        "total": len(recommendations),
+        "ecosystem_count": sum(1 for r in recommendations if r["is_ecosystem"]),
+    }
+
+
 @router.post("/admin/remediation/execute")
 @limiter.limit("10/minute")
 def execute_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
