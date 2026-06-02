@@ -140,7 +140,8 @@ def execute_action(
 
     # Execute
     result = _do_execute(action_type, target, parameters)
-    _update_audit(db, audit_id, "executed" if result.get("success") else "failed")
+    status = "executed" if result.get("success") else "failed"
+    _update_audit(db, audit_id, status, result=result)
     return {"executed": True, "result": result, "audit_id": audit_id}
 
 
@@ -188,16 +189,19 @@ def _queue_for_approval(db, action_type, target, parameters, confidence, now):
         return None
 
 
-def _update_audit(db, audit_id, status):
+def _update_audit(db, audit_id, status, result=None):
     if not db or not audit_id:
         return
     try:
+        import json
         from db.models import AuditLog
         entry = db.query(AuditLog).filter(AuditLog.id == audit_id).first()
         if entry:
             entry.status = status
             if status == "executed":
                 entry.executed_at = datetime.now(timezone.utc)
+            if result is not None:
+                entry.result = json.dumps(result, default=str)[:2000]
             db.commit()
     except Exception:
         pass
