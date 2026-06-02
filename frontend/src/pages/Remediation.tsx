@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   useApprovalQueue,
   useApproveAction,
@@ -5,6 +6,8 @@ import {
   useRemediationConfigs,
   useRemediationActivity,
 } from '../api/hooks';
+import { useTimeRange } from '../components/TimeRangeContext';
+import { api } from '../api/client';
 import type {
   ApprovalQueueData,
   PendingActionItem,
@@ -214,11 +217,17 @@ function ConfigTable({ configs }: { configs: LabRemediationConfig[] }) {
 /* ---- main page ---- */
 
 export default function Remediation() {
+  const { cluster } = useTimeRange();
   const approvalQueue = useApprovalQueue();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
   const remediationConfigs = useRemediationConfigs();
   const remediationActivity = useRemediationActivity();
+  const recommendations = useQuery({
+    queryKey: ['remediation-recommendations', cluster],
+    queryFn: () => api.getRemediationRecommendations(20, cluster || undefined),
+    refetchInterval: 30_000,
+  });
 
   const isLoading =
     approvalQueue.isLoading || remediationConfigs.isLoading || remediationActivity.isLoading;
@@ -247,7 +256,7 @@ export default function Remediation() {
   const activity = (remediationActivity.data as { activity: RemediationActivity[] })?.activity ?? [];
 
   const totalPending = pending.length;
-  const totalConfigs = configs.length;
+  // const totalConfigs = configs.length;
   const autoConfigs = configs.filter(
     (c) => c.execution_mode === 'low_risk_auto' || c.execution_mode === 'full_auto'
   ).length;
@@ -272,11 +281,51 @@ export default function Remediation() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard label="Pending Actions" value={totalPending} />
-        <MetricCard label="Lab Configs" value={totalConfigs} />
-        <MetricCard label="Auto-Enabled Labs" value={autoConfigs} />
+        <MetricCard label="Recommendations" value={recommendations.data?.total ?? 0} />
+        <MetricCard label="Ecosystem Issues" value={recommendations.data?.ecosystem_count ?? 0} />
+        <MetricCard label="Pending Approval" value={totalPending} />
         <MetricCard label="Executed Actions" value={recentExecuted} />
       </div>
+
+      {/* Auto-generated Recommendations */}
+      <section>
+        <SectionHeader>Recommendations (Last Hour)</SectionHeader>
+        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+          {!recommendations.data?.recommendations?.length ? (
+            <p className="text-[#6A6E73] text-sm">{recommendations.isLoading ? 'Loading...' : 'No failures detected in the last hour.'}</p>
+          ) : (
+            <div className="space-y-0.5">
+              <div className="grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
+                <span>Namespace</span>
+                <span>Cluster</span>
+                <span>Failure Class</span>
+                <span className="text-right">Count</span>
+                <span>Severity</span>
+                <span>Suggested Action</span>
+              </div>
+              {recommendations.data.recommendations.map((r: any, i: number) => (
+                <div key={i} className={`grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 items-center py-1.5 rounded ${r.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : 'opacity-50'}`}>
+                  <span className="text-sm text-white font-medium truncate">
+                    {r.namespace}
+                    {r.is_ecosystem && <span className="ml-1 text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
+                  </span>
+                  <span className="text-xs text-[#8A8D90]">{r.cluster}</span>
+                  <span className="text-xs text-white truncate" title={r.failure_class}>{r.failure_class}</span>
+                  <span className="text-sm text-white text-right font-bold">{r.count}</span>
+                  <span className={`text-xs font-bold ${
+                    r.severity === 'critical' ? 'text-[#C9190B]' :
+                    r.severity === 'high' ? 'text-[#F0AB00]' :
+                    r.severity === 'medium' ? 'text-[#6A6E73]' : 'text-[#555]'
+                  }`}>{r.severity}</span>
+                  <span className="text-xs text-[#8A8D90] truncate" title={r.catalog_action || 'no action mapped'}>
+                    {r.catalog_action || '--'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Approval Queue */}
       <section>
