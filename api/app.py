@@ -55,6 +55,10 @@ async def request_id_middleware(request: Request, call_next):
     duration = _time.time() - start
     duration_ms = int(duration * 1000)
     response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "0"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     path = request.url.path
     if path not in ("/health", "/docs", "/redoc", "/openapi.json", "/metrics"):
         logging.getLogger("stargate.http").info(
