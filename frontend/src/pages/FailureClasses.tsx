@@ -203,7 +203,7 @@ export default function FailureClasses() {
                               );
                             }}
                           >
-                            {aiLoading ? 'Analyzing...' : `Analyze ${ns.namespace}`}
+                            {aiLoading ? 'Analyzing...' : `Get AI Remediation for ${ns.namespace}`}
                           </button>
                           {aiAnalysis && (
                             <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
