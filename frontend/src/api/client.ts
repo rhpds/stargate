@@ -223,6 +223,8 @@ export const api = {
   rejectAction: (id: number) => request<{ id: number; status: string }>(`/admin/approval-queue/${id}/reject`, { method: 'POST' }),
 
   // Remediation execution
+  previewRemediation: (body: { namespace: string; failure_class: string; cluster: string; action_type?: string }) =>
+    request<any>('/admin/remediation/preview', { method: 'POST', body: JSON.stringify(body) }),
   executeRemediation: (body: { namespace: string; failure_class: string; cluster: string; action_type?: string }) =>
     request<any>('/admin/remediation/execute', { method: 'POST', body: JSON.stringify(body) }),
   getRemediationRecommendations: (limit?: number, cluster?: string) => {
