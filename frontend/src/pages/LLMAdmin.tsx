@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useLLMMetrics, useLLMConfig } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
+import FormattedAnalysis from '../components/FormattedAnalysis';
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -175,8 +176,8 @@ export default function LLMAdmin() {
                       {c.response_preview && (
                         <div>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">LLM Response</div>
-                          <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3 text-sm text-[#C9C9C9] whitespace-pre-wrap font-mono max-h-[400px] overflow-y-auto">
-                            {c.response_preview}
+                          <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3 max-h-[400px] overflow-y-auto">
+                            <FormattedAnalysis text={c.response_preview} />
                           </div>
                         </div>
                       )}

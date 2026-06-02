@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOverview, useRemediation } from '../api/hooks';
+import FormattedAnalysis from '../components/FormattedAnalysis';
 import type { OverviewData } from '../api/types';
 
 /* ---- sub-components ---- */
@@ -148,8 +149,8 @@ export default function FailureClasses() {
             </div>
 
             {aiAnalysis && (
-              <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 text-sm text-[#C9C9C9] whitespace-pre-wrap font-mono">
-                {aiAnalysis}
+              <div className="bg-[#1a1a1a] border border-[#333] rounded p-4">
+                <FormattedAnalysis text={aiAnalysis} />
               </div>
             )}
           </div>
