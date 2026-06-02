@@ -21,7 +21,7 @@ RISK_ORDER = {
 
 
 ACTION_TO_FAILURE_CLASSES = {
-    "cleanup_stuck": ["pods_crashlooping", "pods_not_ready"],
+    "cleanup_stuck": ["pods_crashlooping", "pods_not_ready", "readiness_probe_failed"],
     "smoke_test_failing": ["smoke_test_failed", "health_check_failed"],
     "provision_blocked_lab": ["provision_not_started", "anarchysubject_missing", "provision_failed"],
     "pool_exhaustion": ["pool_exhausted", "pool_capacity_low"],
