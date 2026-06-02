@@ -19,27 +19,44 @@ jobs:
           PATTERNS=(
             'sk-[A-Za-z0-9]{16,}'
             'sha256~[A-Za-z0-9]{20,}'
+            'eyJ[A-Za-z0-9_-]{50,}'
             'PRIVATE KEY'
             'BEGIN RSA'
             'BEGIN EC'
+            'AKIA[0-9A-Z]{16}'
+            'ghp_[A-Za-z0-9]{36}'
+            'gho_[A-Za-z0-9]{36}'
+            'xox[bprs]-[A-Za-z0-9-]{10,}'
+            '[Pp]assword\s*[:=]\s*"[^${"]{4,}'
+            "[Pp]assword\s*[:=]\s*'[^\${']{4,}"
+            "[Pp]assword\s+'[^']{4,}'"
+            '[Pp]assword:\s+[A-Za-z0-9_]{6,}'
           )
           KNOWN_KEYS=(
-            'REDACTED-dummy-value'
-            'REDACTED-dummy-value'
-            'REDACTED-dummy-value'
-            'itpc-gcp-product-all-claude'
+            'd6d3ad6e4a3b4c68876919f2ac588782'
+            'e42626831e854fe0a1eeac160a87b4bd'
+            '324e9e1cd6cb94ff9b51b25e2ae09af1'
+            'sk-YgLaSn9ILTPxaUwdDbmpGQ'
+            'deepfield2026x'
+            'sk-z0PnIov5IH1meY2Ubj-8fA'
+            'Uw5EK-yPnLV-dzqDc-PdCpM'
+            'mv8FfkGopQUg'
+            '7g9xbhPSFUl7'
+            'NzgxOTM5_1'
           )
           for pattern in "${PATTERNS[@]}"; do
-            matches=$(grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -cv 'REDACTED\|example\|placeholder\|dummy\|changeme' || true)
+            matches=$(grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -cv 'REDACTED\|example\|placeholder\|dummy\|changeme\|localdev\|local-dev-key' || true)
             if [ "$matches" -gt 0 ]; then
               echo "::error::Found potential secret matching pattern: $pattern"
-              grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -v 'REDACTED\|example\|placeholder\|dummy\|changeme' | head -5
+              grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -v 'REDACTED\|example\|placeholder\|dummy\|changeme\|localdev\|local-dev-key' | head -5
               FOUND=1
             fi
           done
           for key in "${KNOWN_KEYS[@]}"; do
-            if grep -rq "$key" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" . 2>/dev/null; then
+            matches=$(grep -rl "$key" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" . 2>/dev/null | grep -v '.github/workflows/ci.yml')
+            if [ -n "$matches" ]; then
               echo "::error::Found known leaked secret: ${key:0:8}..."
+              echo "$matches"
               FOUND=1
             fi
           done

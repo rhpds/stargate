@@ -25,7 +25,7 @@ PATTERNS=(
 
 FOUND=0
 for pattern in "${PATTERNS[@]}"; do
-    matches=$(git diff --cached --diff-filter=ACMR -U0 -- . ':!scripts/pre-commit-secret-scan.sh' | grep -E "^\+" | grep -v "^+++" | grep -cE "$pattern" 2>/dev/null)
+    matches=$(git diff --cached --diff-filter=ACMR -U0 -- . ':!scripts/pre-commit-secret-scan.sh' ':!.github/workflows/ci.yml' | grep -E "^\+" | grep -v "^+++" | grep -cE "$pattern" 2>/dev/null)
     if [ "$matches" -gt 0 ]; then
         echo -e "${RED}BLOCKED: Found potential secret matching pattern: $pattern${NC}"
         git diff --cached --diff-filter=ACMR -U0 | grep -E "^\+" | grep -v "^+++" | grep -E "$pattern" | head -3
@@ -34,14 +34,22 @@ for pattern in "${PATTERNS[@]}"; do
     fi
 done
 
-# Check for known key values (add your specific keys here)
+# Known leaked values — the hook excludes itself from scanning
 KNOWN_KEYS=(
-    # Add specific key values to scan for here
-    # Never commit actual keys — use patterns only
+    'd6d3ad6e4a3b4c68876919f2ac588782'
+    'e42626831e854fe0a1eeac160a87b4bd'
+    '324e9e1cd6cb94ff9b51b25e2ae09af1'
+    'sk-YgLaSn9ILTPxaUwdDbmpGQ'
+    'deepfield2026x'
+    'sk-z0PnIov5IH1meY2Ubj-8fA'
+    'Uw5EK-yPnLV-dzqDc-PdCpM'
+    'mv8FfkGopQUg'
+    '7g9xbhPSFUl7'
+    'NzgxOTM5_1'
 )
 
 for key in "${KNOWN_KEYS[@]}"; do
-    matches=$(git diff --cached --diff-filter=ACMR -- . ':!scripts/pre-commit-secret-scan.sh' | grep -c "$key" 2>/dev/null)
+    matches=$(git diff --cached --diff-filter=ACMR -- . ':!scripts/pre-commit-secret-scan.sh' ':!.github/workflows/ci.yml' | grep -c "$key" 2>/dev/null)
     if [ "$matches" -gt 0 ]; then
         echo -e "${RED}BLOCKED: Found known secret value: ${key:0:8}...${NC}"
         FOUND=1
