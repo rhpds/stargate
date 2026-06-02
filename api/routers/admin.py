@@ -1398,12 +1398,21 @@ def execute_remediation(request: Request, body: dict, db: Session = Depends(get_
     Requires explicit operator action. Logs everything to audit trail.
     """
     from api.action_executor import execute_action
+    from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
 
-    action_type = body.get("action_type", "cleanup_stuck")
     namespace = body.get("namespace", "")
     failure_class = body.get("failure_class", "")
     cluster = body.get("cluster", "")
     lab_code = body.get("lab_code", namespace)
+
+    action_type = body.get("action_type", "")
+    if not action_type:
+        for at, fcs in ACTION_TO_FAILURE_CLASSES.items():
+            if failure_class in fcs:
+                action_type = at
+                break
+        if not action_type:
+            action_type = "cleanup_stuck"
 
     if not namespace:
         from fastapi import HTTPException
