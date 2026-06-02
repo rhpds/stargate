@@ -35,6 +35,9 @@ export default function FailureClasses() {
   const [selectedNs, setSelectedNs] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [remediateConfirm, setRemediateConfirm] = useState(false);
+  const [remediateResult, setRemediateResult] = useState<any>(null);
+  const [remediateLoading, setRemediateLoading] = useState(false);
   const remediation = useRemediation();
 
   const failureDetail = useQuery({
@@ -154,9 +157,13 @@ export default function FailureClasses() {
                           if (selectedNs === ns.namespace) {
                             setSelectedNs(null);
                             setAiAnalysis(null);
+                            setRemediateConfirm(false);
+                            setRemediateResult(null);
                           } else {
                             setSelectedNs(ns.namespace);
                             setAiAnalysis(null);
+                            setRemediateConfirm(false);
+                            setRemediateResult(null);
                           }
                         }}
                       >
@@ -208,6 +215,61 @@ export default function FailureClasses() {
                           {aiAnalysis && (
                             <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
                               <FormattedAnalysis text={aiAnalysis} />
+                            </div>
+                          )}
+
+                          {/* Remediate button — after analysis */}
+                          {aiAnalysis && ns.is_ecosystem && (
+                            <div className="border-t border-[#333] pt-3">
+                              {!remediateConfirm && !remediateResult && (
+                                <button
+                                  className="bg-[#F0AB00] hover:bg-[#C58C00] text-black text-sm px-4 py-2 rounded font-medium"
+                                  onClick={() => setRemediateConfirm(true)}
+                                >
+                                  Remediate Now
+                                </button>
+                              )}
+                              {remediateConfirm && !remediateResult && (
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm text-[#F0AB00] font-medium">Execute remediation on {ns.namespace}?</span>
+                                  <button
+                                    className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded font-medium disabled:opacity-50"
+                                    disabled={remediateLoading}
+                                    onClick={() => {
+                                      setRemediateLoading(true);
+                                      api.executeRemediation({
+                                        namespace: ns.namespace,
+                                        failure_class: selectedClass!,
+                                        cluster: ns.cluster,
+                                      }).then((result) => {
+                                        setRemediateResult(result);
+                                        setRemediateLoading(false);
+                                        setRemediateConfirm(false);
+                                      }).catch((err) => {
+                                        setRemediateResult({ error: err.message });
+                                        setRemediateLoading(false);
+                                        setRemediateConfirm(false);
+                                      });
+                                    }}
+                                  >
+                                    {remediateLoading ? 'Executing...' : 'Confirm'}
+                                  </button>
+                                  <button
+                                    className="text-[#6A6E73] text-sm hover:text-white"
+                                    onClick={() => setRemediateConfirm(false)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                              {remediateResult && (
+                                <div className={`text-sm rounded p-3 ${remediateResult.executed ? 'bg-[#1a2e1a] border border-[#3E8635] text-[#3E8635]' : 'bg-[#2e1a1a] border border-[#C9190B] text-[#C9190B]'}`}>
+                                  {remediateResult.executed
+                                    ? `Remediation executed on ${ns.namespace}`
+                                    : `Remediation blocked: ${remediateResult.reason || remediateResult.error || 'unknown'}`
+                                  }
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

@@ -1126,3 +1126,44 @@ def delete_remediation_config(lab_code: str, request: Request, db: Session = Dep
 def get_remediation_activity(limit: int = 50, db: Session = Depends(get_db)):
     """Get recent remediation-related audit log entries."""
     return {"activity": repository.get_remediation_activity(db, limit=limit)}
+
+
+@router.post("/admin/remediation/execute")
+@limiter.limit("10/minute")
+def execute_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
+    """Manually trigger remediation for a specific namespace + failure class.
+
+    This is the human-in-the-loop "Remediate Now" button — not auto-execution.
+    Requires explicit operator action. Logs everything to audit trail.
+    """
+    from api.action_executor import execute_action
+
+    action_type = body.get("action_type", "cleanup_stuck")
+    namespace = body.get("namespace", "")
+    failure_class = body.get("failure_class", "")
+    cluster = body.get("cluster", "")
+    lab_code = body.get("lab_code", namespace)
+
+    if not namespace:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="namespace is required")
+
+    result = execute_action(
+        action_type=action_type,
+        target=namespace,
+        parameters={
+            "failure_class": failure_class,
+            "cluster": cluster,
+            "triggered_by": "manual_ui",
+        },
+        confidence=1.0,
+        db=db,
+        lab_code=lab_code,
+    )
+
+    return {
+        "namespace": namespace,
+        "failure_class": failure_class,
+        "cluster": cluster,
+        **result,
+    }
