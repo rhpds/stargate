@@ -32,6 +32,7 @@ export default function FailureClasses() {
   const { range, cluster } = useTimeRange();
   const sinceMinutes = Math.round(range.ms / 60000);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedNs, setSelectedNs] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const remediation = useRemediation();
@@ -130,61 +131,90 @@ export default function FailureClasses() {
         <section>
           <SectionHeader>{selectedClass}</SectionHeader>
           <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-white font-bold text-lg">{failureClasses[selectedClass]}</span>
-                <span className="text-[#6A6E73] ml-2">occurrences</span>
-              </div>
-              <button
-                className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded disabled:opacity-50"
-                disabled={aiLoading}
-                onClick={() => {
-                  setAiLoading(true);
-                  setAiAnalysis(null);
-                  remediation.mutate(
-                    { failure_class: selectedClass, context_type: 'failure_class' },
-                    {
-                      onSuccess: (data: any) => {
-                        setAiAnalysis(data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
-                        setAiLoading(false);
-                      },
-                      onError: (err: any) => {
-                        setAiAnalysis(`Analysis failed: ${err.message}`);
-                        setAiLoading(false);
-                      },
-                    },
-                  );
-                }}
-              >
-                {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
-              </button>
+            <div>
+              <span className="text-white font-bold text-lg">{failureClasses[selectedClass]}</span>
+              <span className="text-[#6A6E73] ml-2">occurrences</span>
+              {failureDetail.data?.namespaces && (
+                <span className="text-[#6A6E73] ml-2">across {failureDetail.data.namespaces.length} namespaces</span>
+              )}
             </div>
 
-            {/* Namespace breakdown */}
+            {/* Namespace breakdown — click to analyze */}
             {failureDetail.data?.namespaces && failureDetail.data.namespaces.length > 0 && (
               <div>
-                <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Affected Namespaces</div>
+                <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Affected Namespaces — click to analyze</div>
                 <div className="space-y-1">
                   {failureDetail.data.namespaces.map((ns: any) => (
-                    <div key={ns.namespace} className={`flex items-center justify-between py-1.5 px-2 rounded ${ns.is_ecosystem ? 'bg-[#1a1a1a] border-l-2 border-l-[#EE0000]' : 'bg-[#1a1a1a] opacity-60'}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-white font-medium">{ns.namespace}</span>
-                        {ns.is_ecosystem && <span className="text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
-                        <span className="text-xs text-[#6A6E73]">on {ns.cluster}</span>
+                    <div key={ns.namespace}>
+                      <div
+                        className={`flex items-center justify-between py-1.5 px-2 rounded cursor-pointer transition ${
+                          selectedNs === ns.namespace ? 'bg-[#2a2a2a] ring-1 ring-[#EE0000]' : 'hover:bg-[#252525]'
+                        } ${ns.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : 'opacity-60'}`}
+                        onClick={() => {
+                          if (selectedNs === ns.namespace) {
+                            setSelectedNs(null);
+                            setAiAnalysis(null);
+                          } else {
+                            setSelectedNs(ns.namespace);
+                            setAiAnalysis(null);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white font-medium">{ns.namespace}</span>
+                          {ns.is_ecosystem && <span className="text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
+                          <span className="text-xs text-[#6A6E73]">on {ns.cluster}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-white font-bold">{ns.count}</span>
+                          <span className="text-xs text-[#6A6E73]">{ns.last_seen ? new Date(ns.last_seen).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '--'}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-white font-bold">{ns.count}</span>
-                        <span className="text-xs text-[#6A6E73]">{ns.last_seen ? new Date(ns.last_seen).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '--'}</span>
-                      </div>
+
+                      {/* Per-namespace detail + analysis */}
+                      {selectedNs === ns.namespace && (
+                        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 ml-3 mt-1 mb-2 space-y-3">
+                          {ns.messages && ns.messages.length > 0 && (
+                            <div>
+                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Error Messages</div>
+                              {ns.messages.map((msg: string, i: number) => (
+                                <div key={i} className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-2 py-1 mb-1 font-mono">{msg}</div>
+                              ))}
+                            </div>
+                          )}
+                          <button
+                            className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+                            disabled={aiLoading}
+                            onClick={() => {
+                              setAiLoading(true);
+                              setAiAnalysis(null);
+                              remediation.mutate(
+                                { failure_class: selectedClass!, lab_code: ns.namespace, cluster: ns.cluster, context_type: 'lab' },
+                                {
+                                  onSuccess: (data: any) => {
+                                    setAiAnalysis(data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
+                                    setAiLoading(false);
+                                  },
+                                  onError: (err: any) => {
+                                    setAiAnalysis(`Analysis failed: ${err.message}`);
+                                    setAiLoading(false);
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            {aiLoading ? 'Analyzing...' : `Analyze ${ns.namespace}`}
+                          </button>
+                          {aiAnalysis && (
+                            <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
+                              <FormattedAnalysis text={aiAnalysis} />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {aiAnalysis && (
-              <div className="bg-[#1a1a1a] border border-[#333] rounded p-4">
-                <FormattedAnalysis text={aiAnalysis} />
               </div>
             )}
           </div>
