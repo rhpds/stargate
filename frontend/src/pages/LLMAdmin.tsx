@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useLLMMetrics, useLLMConfig } from '../api/hooks';
+import { useTimeRange } from '../components/TimeRangeContext';
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -24,12 +25,13 @@ function formatTime(iso: string): string {
 export default function LLMAdmin() {
   const metrics = useLLMMetrics();
   const config = useLLMConfig();
+  const { cluster } = useTimeRange();
   const [endpointFilter, setEndpointFilter] = useState<string>('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const recent = useQuery({
-    queryKey: ['llm-recent', endpointFilter],
-    queryFn: () => api.getLLMRecent(50, endpointFilter || undefined),
+    queryKey: ['llm-recent', endpointFilter, cluster],
+    queryFn: () => api.getLLMRecent(50, endpointFilter || undefined, cluster || undefined),
     refetchInterval: 15_000,
   });
 
