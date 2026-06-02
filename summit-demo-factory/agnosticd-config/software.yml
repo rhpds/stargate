@@ -51,8 +51,6 @@
           stringData:
             launchpad-api-url: "{{ launchpad_api_url }}"
             launchpad-api-key: "{{ launchpad_api_key }}"
-            deepfield-api-url: "{{ deepfield_api_url }}"
-            deepfield-api-key: "{{ deepfield_api_key }}"
 
     # --- PostgreSQL ---
     - name: Create PostgreSQL PVC

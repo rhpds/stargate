@@ -1,6 +1,6 @@
 # Deployment Standard
 
-Shared deployment governance for the Launchpad + StarGate + DeepField platform. All three products follow these rules.
+Shared deployment governance for the Launchpad + StarGate platform. Both products follow these rules.
 
 ## Branch Protection
 
@@ -91,7 +91,7 @@ Every CI run produces a JSON receipt:
   "summary": {"total": 45, "passed": 45, "failed": 0},
   "trigger": "push|pull_request",
   "branch": "main",
-  "product": "stargate|launchpad|deepfield"
+  "product": "stargate|launchpad"
 }
 ```
 

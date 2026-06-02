@@ -1,6 +1,6 @@
 """Provisioning intelligence API — cluster capacity, placement scoring, and forecasting.
 
-Called by Launchpad/DeepField to decide WHERE and WHEN to provision workloads.
+Called by Launchpad to decide WHERE and WHEN to provision workloads.
 All data sourced from existing scanner cache, Babylon pool data, and evaluation history.
 """
 
