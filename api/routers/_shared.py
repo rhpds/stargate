@@ -51,16 +51,35 @@ if not ADMIN_API_KEY:
     )
 
 CORS_ORIGINS = os.environ.get("STARGATE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8090")
+TRUST_PROXY_AUTH = os.environ.get("STARGATE_TRUST_PROXY_AUTH", "false").lower() == "true"
+
+
+def _origin_from_url(url: str) -> str:
+    """Extract origin (scheme://host[:port]) from a full URL."""
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.hostname:
+            return ""
+        origin = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port and not (
+            (parsed.scheme == "http" and parsed.port == 80) or
+            (parsed.scheme == "https" and parsed.port == 443)
+        ):
+            origin += f":{parsed.port}"
+        return origin
+    except ValueError:
+        return ""
 
 
 def require_admin(request: Request = None, api_key: str = Security(_api_key_header)):
     if api_key and ADMIN_API_KEY and api_key == ADMIN_API_KEY:
         return
     if request:
-        oauth_user = request.headers.get("x-forwarded-user", "")
-        if oauth_user:
-            return
-        # Allow same-origin browser requests (frontend served from same container)
+        if TRUST_PROXY_AUTH:
+            oauth_user = request.headers.get("x-forwarded-user", "")
+            if oauth_user:
+                return
         fetch_site = request.headers.get("sec-fetch-site", "")
         if fetch_site == "same-origin":
             return
@@ -69,8 +88,10 @@ def require_admin(request: Request = None, api_key: str = Security(_api_key_head
         allowed = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
         if origin and any(origin == a for a in allowed):
             return
-        if referer and any(referer.startswith(a) for a in allowed):
-            return
+        if referer:
+            referer_origin = _origin_from_url(referer)
+            if referer_origin and any(referer_origin == a for a in allowed):
+                return
     if not ADMIN_API_KEY:
         raise HTTPException(status_code=503, detail="Admin API key not configured")
     raise HTTPException(status_code=403, detail="Invalid or missing API key")
