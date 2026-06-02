@@ -7,6 +7,7 @@ import type {
   ClusterSummary,
   ClusterFailures,
   ClusterNodes,
+  ClusterNamespacesData,
   LabDetail,
   EvaluationHistory,
   EventRecord,
@@ -126,6 +127,7 @@ export const api = {
   getLabFailures: (labCode: string) => request<Record<string, number>>(`/labs/${labCode}/failures`),
   getClusterSummary: (name: string) => request<ClusterSummary>(`/clusters/${name}/summary`),
   getClusterFailures: (name: string) => request<ClusterFailures>(`/clusters/${name}/failures`),
+  getClusterNamespaces: (name: string) => request<ClusterNamespacesData>(`/clusters/${name}/namespaces`),
   getEvents: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     return request<EventRecord[]>(`/events${qs}`);

@@ -73,6 +73,15 @@ export function useClusterFailures(name: string) {
   });
 }
 
+export function useClusterNamespaces(name: string) {
+  return useQuery({
+    queryKey: ['cluster-namespaces', name],
+    queryFn: () => api.getClusterNamespaces(name),
+    enabled: !!name,
+    refetchInterval: 30_000,
+  });
+}
+
 export function useEvents(params?: Record<string, string>) {
   return useQuery({
     queryKey: ['events', params],
