@@ -480,36 +480,43 @@ export default function Remediation() {
                             </span>
                           </div>
 
-                          {/* Commands that would run */}
-                          {preview.commands_to_run?.length > 0 && (
-                            <div>
-                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Commands to Execute</div>
-                              {preview.commands_to_run.map((cmd: string, ci: number) => (
-                                <div key={ci} className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Catalog entries detail */}
+                          {/* Catalog entries — what exists for this failure class */}
                           {preview.catalog_entries?.length > 0 && (
                             <div>
-                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Matched Catalog Entries</div>
+                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Catalog Playbook</div>
                               {preview.catalog_entries.map((entry: any, ei: number) => (
-                                <div key={ei} className="bg-[#151515] border border-[#2e2e2e] rounded p-2 mb-1">
+                                <div key={ei} className={`bg-[#151515] border rounded p-2 mb-1 ${entry.would_execute ? 'border-[#3E8635]' : 'border-[#2e2e2e]'}`}>
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="text-sm text-white font-medium">{entry.id}</span>
                                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                                       entry.risk === 'low' ? 'bg-[#3E8635]' :
                                       entry.risk === 'medium' ? 'bg-[#F0AB00] text-black' : 'bg-[#C9190B]'
                                     } text-white`}>{entry.risk} risk</span>
-                                    <span className="text-[10px] text-[#6A6E73] px-1.5 py-0.5 rounded bg-[#2e2e2e]">{entry.mode}</span>
+                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                      entry.mode === 'recommend_only' ? 'bg-[#6A6E73]' :
+                                      entry.mode === 'auto_execute' ? 'bg-[#3E8635]' : 'bg-[#F0AB00] text-black'
+                                    } text-white`}>{entry.mode === 'recommend_only' ? 'inspect only' : entry.mode === 'auto_execute' ? 'auto execute' : entry.mode}</span>
                                     <span className="text-[10px] text-[#6A6E73] px-1.5 py-0.5 rounded bg-[#2e2e2e]">{entry.execution_method}</span>
                                   </div>
                                   {entry.commands?.map((cmd: string, ci: number) => (
-                                    <div key={ci} className="text-xs text-[#8A8D90] font-mono ml-2">{cmd}</div>
+                                    <div key={ci} className="text-xs text-[#C9C9C9] font-mono ml-2 bg-[#0d0d0d] rounded px-2 py-1 mb-0.5">{cmd}</div>
                                   ))}
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {/* Commands that would actually execute */}
+                          {preview.commands_to_run?.length > 0 ? (
+                            <div>
+                              <div className="text-xs text-[#3E8635] uppercase tracking-wider font-bold mb-1">Commands That Would Execute</div>
+                              {preview.commands_to_run.map((cmd: string, ci: number) => (
+                                <div key={ci} className="text-xs text-white bg-[#151515] border border-[#3E8635] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-[#6A6E73] italic">
+                              No commands would execute — all matching catalog entries are in inspect/recommend mode
                             </div>
                           )}
 
