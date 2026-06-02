@@ -1418,14 +1418,33 @@ def execute_remediation(request: Request, body: dict, db: Session = Depends(get_
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="namespace is required")
 
+    # Discover target pods/deployments for command substitution
+    params: dict = {
+        "failure_class": failure_class,
+        "cluster": cluster,
+        "triggered_by": "manual_ui",
+    }
+    try:
+        from engine.rollback import _run_oc
+        from api.routers._shared import EXECUTOR_KUBECONFIG
+        if failure_class in ("pods_crashlooping", "pods_not_ready"):
+            pod_output = _run_oc(["get", "pods", "-n", namespace, "--no-headers", "-o", "custom-columns=NAME:.metadata.name,STATUS:.status.phase"], EXECUTOR_KUBECONFIG, timeout=10)
+            pods = [line.split()[0] for line in pod_output.strip().splitlines() if line.strip()]
+            if pods:
+                params["pod"] = pods[0]
+                params["pods"] = pods[:3]
+        if failure_class in ("readiness_probe_failed", "health_check_failed", "smoke_test_failed"):
+            dep_output = _run_oc(["get", "deployments", "-n", namespace, "--no-headers", "-o", "custom-columns=NAME:.metadata.name"], EXECUTOR_KUBECONFIG, timeout=10)
+            deps = [line.strip() for line in dep_output.strip().splitlines() if line.strip()]
+            if deps:
+                params["deployment"] = deps[0]
+    except Exception:
+        pass
+
     result = execute_action(
         action_type=action_type,
         target=namespace,
-        parameters={
-            "failure_class": failure_class,
-            "cluster": cluster,
-            "triggered_by": "manual_ui",
-        },
+        parameters=params,
         confidence=1.0,
         db=db,
         lab_code=lab_code,
