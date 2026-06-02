@@ -182,7 +182,7 @@ export const api = {
   getEvaluationMatrix: (cluster?: string) => request<EvaluationMatrix>(`/dashboard/evaluation-matrix${cluster ? `?cluster=${cluster}` : ''}`),
 
   // LLM Admin
-  getLLMMetrics: () => request<LLMMetrics>('/admin/llm/metrics'),
+  getLLMMetrics: (cluster?: string) => request<LLMMetrics>(`/admin/llm/metrics${cluster ? `?cluster=${cluster}` : ''}`),
   getLLMTimeline: (hours?: number) => request<LLMTimeline>(`/admin/llm/metrics/timeline${hours ? `?hours=${hours}` : ''}`),
   getLLMRecent: (limit?: number, endpoint?: string, cluster?: string) => {
     const params = new URLSearchParams();
