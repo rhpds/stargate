@@ -415,6 +415,58 @@ def get_cluster_failure_summary(
     }
 
 
+def get_namespaces_for_cluster(db: Session, cluster_name: str, limit: int = 200) -> List[dict]:
+    """Aggregate per-namespace stats for a cluster."""
+    from sqlalchemy import func, case
+
+    rows = (
+        db.query(
+            EvaluationRecord.lab_code,
+            func.count(EvaluationRecord.id).label("total"),
+            func.sum(case((EvaluationRecord.outcome == "pass", 1), else_=0)).label("passed"),
+            func.sum(case((EvaluationRecord.outcome == "fail", 1), else_=0)).label("failed"),
+            func.max(EvaluationRecord.evaluated_at).label("last_evaluated"),
+        )
+        .filter(
+            EvaluationRecord.cluster_name == cluster_name,
+            EvaluationRecord.lab_code.isnot(None),
+        )
+        .group_by(EvaluationRecord.lab_code)
+        .order_by(func.sum(case((EvaluationRecord.outcome == "fail", 1), else_=0)).desc())
+        .limit(limit)
+        .all()
+    )
+
+    results = []
+    for lab_code, total, passed, failed, last_evaluated in rows:
+        health = round((total - failed) / total * 100, 1) if total > 0 else 0
+        fc_rows = (
+            db.query(EvaluationRecord.failure_class, func.count(EvaluationRecord.id))
+            .filter(
+                EvaluationRecord.cluster_name == cluster_name,
+                EvaluationRecord.lab_code == lab_code,
+                EvaluationRecord.outcome == "fail",
+                EvaluationRecord.failure_class.isnot(None),
+            )
+            .group_by(EvaluationRecord.failure_class)
+            .all()
+        )
+        failure_classes = {fc: ct for fc, ct in fc_rows}
+        top_failure = max(failure_classes, key=failure_classes.get) if failure_classes else None
+        results.append({
+            "namespace": lab_code,
+            "total": total,
+            "passed": passed,
+            "failed": failed,
+            "health_rate": health,
+            "failure_classes": failure_classes,
+            "top_failure": top_failure,
+            "last_evaluated": last_evaluated.isoformat() if last_evaluated else None,
+        })
+
+    return results
+
+
 # --- Materialized view refresh functions ---
 
 def refresh_cluster_summary(db: Session) -> None:

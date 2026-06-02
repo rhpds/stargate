@@ -402,6 +402,16 @@ def get_cluster_failures(cluster_name: str, db: Session = Depends(get_db)):
     return repository.get_failure_class_frequency(db, cluster_name=cluster_name)
 
 
+@router.get("/clusters/{cluster_name}/namespaces")
+def get_cluster_namespaces(cluster_name: str, db: Session = Depends(get_db)):
+    """Get per-namespace stats for a cluster."""
+    from api.routers.dashboard import _is_ecosystem_ns
+    namespaces = repository.get_namespaces_for_cluster(db, cluster_name=cluster_name)
+    for ns in namespaces:
+        ns["is_ecosystem"] = _is_ecosystem_ns(ns["namespace"])
+    return {"cluster": cluster_name, "namespaces": namespaces}
+
+
 # ---------------------------------------------------------------------------
 # Events
 # ---------------------------------------------------------------------------
