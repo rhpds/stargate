@@ -1204,6 +1204,197 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
     }
 
 
+@router.post("/admin/remediation/preview")
+@limiter.limit("30/minute")
+def preview_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
+    """Preview what remediation would do — shows every gate check and exact commands without executing."""
+    import os
+    from api.routers._shared import _dry_run_enabled, CONFIDENCE_THRESHOLD, TEST_NAMESPACE, EXECUTION_TARGET
+    from api.action_executor import _get_lab_execution_mode, _check_rate_limit
+    from api.routers.dashboard import _is_ecosystem_ns
+
+    namespace = body.get("namespace", "")
+    failure_class = body.get("failure_class", "")
+    cluster = body.get("cluster", "")
+    action_type = body.get("action_type", "cleanup_stuck")
+    lab_code = body.get("lab_code", namespace)
+
+    if not namespace:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="namespace is required")
+
+    # --- Gate -1: Namespace allowlist ---
+    REMEDIATION_ALLOWED_PREFIXES = os.environ.get(
+        "STARGATE_REMEDIATION_NS",
+        "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
+    ).split(",")
+    ns_allowed = namespace == TEST_NAMESPACE or any(
+        namespace.startswith(p.strip()) for p in REMEDIATION_ALLOWED_PREFIXES if p.strip()
+    )
+
+    # --- Gate 0: Lab execution mode ---
+    mode = _get_lab_execution_mode(db, lab_code)
+    is_test = namespace == TEST_NAMESPACE
+
+    # --- Gate 0b: Risk check ---
+    risk_ok = True
+    allowed_risk = "any"
+    catalog_commands = []
+    try:
+        from engine.catalog_loader import get_commands_for_action, load_catalog, ACTION_TO_FAILURE_CLASSES
+        from engine.models import RemediationRisk
+
+        failure_classes = ACTION_TO_FAILURE_CLASSES.get(action_type, [])
+        if failure_class and failure_class not in failure_classes:
+            failure_classes = list(set(failure_classes + [failure_class]))
+
+        if mode == "low_risk_auto":
+            allowed_risk = "low"
+            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster}, max_risk=RemediationRisk.LOW)
+        elif mode == "full_auto":
+            allowed_risk = "medium"
+            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster}, max_risk=RemediationRisk.MEDIUM)
+        else:
+            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster})
+
+        if mode != "recommend_only" and not catalog_commands:
+            risk_ok = False
+    except Exception:
+        pass
+
+    # --- Also get ALL catalog commands (ignoring risk filter) for display ---
+    all_catalog_commands = []
+    catalog_entries = []
+    try:
+        from engine.catalog_loader import load_catalog, ACTION_TO_FAILURE_CLASSES
+        catalog = load_catalog()
+        fc_set = set(ACTION_TO_FAILURE_CLASSES.get(action_type, []))
+        if failure_class:
+            fc_set.add(failure_class)
+        for entry in catalog:
+            entry_classes = set()
+            for cond in entry.allowed_when:
+                parts = cond.split("==")
+                if len(parts) == 2 and parts[0].strip() == "failure_class":
+                    entry_classes.add(parts[1].strip())
+            if entry_classes & fc_set:
+                catalog_entries.append({
+                    "id": entry.id,
+                    "mode": entry.mode.value,
+                    "risk": entry.risk.value,
+                    "execution_method": entry.execution_method,
+                    "commands": [cmd.replace("{namespace}", namespace) for cmd in entry.commands],
+                    "forbidden_when": entry.forbidden_when,
+                })
+                for cmd in entry.commands:
+                    all_catalog_commands.append(cmd.replace("{namespace}", namespace))
+    except Exception:
+        pass
+
+    # --- Also get builtin fallback commands ---
+    builtin_commands = []
+    try:
+        from engine.oc_executor import _builtin_commands
+        builtin_commands = _builtin_commands(action_type, namespace, {"failure_class": failure_class, "cluster": cluster})
+    except Exception:
+        pass
+
+    # --- Gate 0c: Rate limit ---
+    rate_limited = False
+    max_per_hour = 5
+    actions_this_hour = 0
+    try:
+        from db import repository as repo
+        config = repo.get_lab_remediation_config(db, lab_code)
+        max_per_hour = config.max_actions_per_hour if config else 5
+        actions_this_hour = repo.count_recent_actions(db, lab_code, hours=1)
+        rate_limited = actions_this_hour >= max_per_hour
+    except Exception:
+        pass
+
+    # --- Gate 1: Dry-run ---
+    dry_run = _dry_run_enabled
+
+    # --- Gate 2: Confidence ---
+    confidence = 1.0
+
+    # --- Build gate summary ---
+    gates = [
+        {
+            "gate": "Namespace Allowlist",
+            "description": f"Is '{namespace}' in the remediation namespace allowlist?",
+            "allowed_prefixes": [p.strip() for p in REMEDIATION_ALLOWED_PREFIXES if p.strip()],
+            "passed": ns_allowed,
+            "result": "PASS — namespace is in ecosystem" if ns_allowed else f"BLOCKED — '{namespace}' is not in the allowlist",
+        },
+        {
+            "gate": "Ecosystem Check",
+            "description": f"Is '{namespace}' an ecosystem namespace?",
+            "passed": _is_ecosystem_ns(namespace),
+            "result": "PASS — ecosystem namespace" if _is_ecosystem_ns(namespace) else "INFO — not an ecosystem namespace (monitoring only)",
+        },
+        {
+            "gate": "Lab Execution Mode",
+            "description": f"What is the execution mode for lab '{lab_code}'?",
+            "mode": mode,
+            "passed": mode != "recommend_only" or is_test,
+            "result": f"{'PASS' if mode != 'recommend_only' or is_test else 'BLOCKED'} — mode is '{mode}'",
+        },
+        {
+            "gate": "Risk Assessment",
+            "description": f"Are catalog commands available at risk level <= {allowed_risk}?",
+            "allowed_risk": allowed_risk,
+            "commands_found": len(catalog_commands),
+            "passed": risk_ok,
+            "result": f"{'PASS' if risk_ok else 'BLOCKED'} — {len(catalog_commands)} commands at risk <= {allowed_risk}",
+        },
+        {
+            "gate": "Rate Limit",
+            "description": f"Has '{lab_code}' exceeded {max_per_hour} actions/hour?",
+            "actions_this_hour": actions_this_hour,
+            "max_per_hour": max_per_hour,
+            "passed": not rate_limited,
+            "result": f"{'PASS' if not rate_limited else 'BLOCKED'} — {actions_this_hour}/{max_per_hour} actions this hour",
+        },
+        {
+            "gate": "Dry-Run Mode",
+            "description": "Is the global dry-run flag enabled?",
+            "passed": not dry_run,
+            "result": f"{'PASS' if not dry_run else 'BLOCKED'} — dry-run is {'OFF' if not dry_run else 'ON'}",
+        },
+        {
+            "gate": "Confidence Threshold",
+            "description": f"Is confidence ({confidence}) >= threshold ({CONFIDENCE_THRESHOLD})?",
+            "confidence": confidence,
+            "threshold": CONFIDENCE_THRESHOLD,
+            "passed": confidence >= CONFIDENCE_THRESHOLD,
+            "result": f"{'PASS' if confidence >= CONFIDENCE_THRESHOLD else 'QUEUED'} — confidence {confidence} vs threshold {CONFIDENCE_THRESHOLD}",
+        },
+    ]
+
+    all_passed = all(g["passed"] for g in gates)
+    first_block = next((g for g in gates if not g["passed"]), None)
+
+    # --- Execution target ---
+    exec_target = EXECUTION_TARGET
+
+    return {
+        "namespace": namespace,
+        "failure_class": failure_class,
+        "cluster": cluster,
+        "action_type": action_type,
+        "lab_code": lab_code,
+        "execution_target": exec_target,
+        "would_execute": all_passed,
+        "blocked_by": first_block["gate"] if first_block else None,
+        "gates": gates,
+        "catalog_entries": catalog_entries,
+        "commands_to_run": catalog_commands if catalog_commands else builtin_commands,
+        "all_catalog_commands": all_catalog_commands,
+        "builtin_fallback_commands": builtin_commands,
+    }
+
+
 @router.post("/admin/remediation/execute")
 @limiter.limit("10/minute")
 def execute_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
