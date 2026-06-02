@@ -225,6 +225,13 @@ export const api = {
   // Remediation execution
   executeRemediation: (body: { namespace: string; failure_class: string; cluster: string; action_type?: string }) =>
     request<any>('/admin/remediation/execute', { method: 'POST', body: JSON.stringify(body) }),
+  getRemediationRecommendations: (limit?: number, cluster?: string) => {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (cluster) params.set('cluster', cluster);
+    const qs = params.toString();
+    return request<any>(`/admin/remediation/recommendations${qs ? `?${qs}` : ''}`);
+  },
 
   // Admin
   getSchedulerStatus: () => request<SchedulerStatus>('/admin/scheduler/status'),
