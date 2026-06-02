@@ -1,4 +1,4 @@
-"""Outbound event publisher — pushes evaluation results to DeepField and Launchpad."""
+"""Outbound event publisher — pushes evaluation results to Launchpad and audit trail."""
 
 from __future__ import annotations
 
@@ -12,8 +12,6 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-DEEPFIELD_API_URL = os.environ.get("DEEPFIELD_API_URL")
-DEEPFIELD_API_KEY = os.environ.get("DEEPFIELD_API_KEY")
 LAUNCHPAD_API_URL = os.environ.get("LAUNCHPAD_API_URL")
 LAUNCHPAD_API_KEY = os.environ.get("LAUNCHPAD_API_KEY")
 DASHBOARD_AUDIT_URL = os.environ.get("DASHBOARD_AUDIT_URL")
@@ -31,8 +29,8 @@ async def _push(base_url: Optional[str], api_key: Optional[str], payload: dict):
         logger.debug("Event push to %s failed (non-critical): %s", base_url, e)
 
 
-async def notify_deepfield(event_type: str, payload: dict):
-    """Push evaluation results to DeepField. Fails silently if not configured."""
+async def publish_evaluation(event_type: str, payload: dict):
+    """Push evaluation results to audit trail. Fails silently if not configured."""
     event = {
         "source": "stargate",
         "event_type": event_type,
@@ -40,7 +38,6 @@ async def notify_deepfield(event_type: str, payload: dict):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "payload": payload,
     }
-    await _push(DEEPFIELD_API_URL, DEEPFIELD_API_KEY, event)
     await _push_audit(event)
 
 

@@ -41,7 +41,7 @@ def _check_duplicate(event_id: str) -> bool:
 
 
 class IntegrationEvent(BaseModel):
-    source: Literal["launchpad", "stargate", "deepfield"]
+    source: Literal["launchpad", "stargate"]
     event_type: str
     event_id: str
     timestamp: str

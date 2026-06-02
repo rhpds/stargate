@@ -22,5 +22,3 @@ postgres_storage_size: "5Gi"
 # Integration URLs (optional — graceful degradation)
 launchpad_api_url: ""
 launchpad_api_key: ""
-deepfield_api_url: ""
-deepfield_api_key: ""

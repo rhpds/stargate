@@ -141,7 +141,7 @@ def scan_cluster(name: str, kubeconfig: str) -> Optional[Dict]:
 
         _include_prefixes = os.environ.get(
             "STARGATE_INCLUDE_NS",
-            "sandbox-,launchpad-,stargate,deepfield,platform-dashboard,intel-rh-,demolition-,labagator-,cost-monitor,fleetview-",
+            "sandbox-,launchpad-,stargate,platform-dashboard,intel-rh-,demolition-,labagator-,cost-monitor,fleetview-",
         ).split(",")
         _exclude_prefixes = os.environ.get(
             "STARGATE_EXCLUDE_NS", "openshift-,kube-"
