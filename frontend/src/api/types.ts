@@ -306,6 +306,23 @@ export interface ClusterFailures {
   [failureClass: string]: number;
 }
 
+export interface ClusterNamespace {
+  namespace: string;
+  total: number;
+  passed: number;
+  failed: number;
+  health_rate: number;
+  failure_classes: Record<string, number>;
+  top_failure: string | null;
+  is_ecosystem: boolean;
+  last_evaluated: string | null;
+}
+
+export interface ClusterNamespacesData {
+  cluster: string;
+  namespaces: ClusterNamespace[];
+}
+
 // --- Trends ---
 
 export interface TrendBucket {
