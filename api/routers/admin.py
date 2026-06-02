@@ -1193,7 +1193,7 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
             "catalog_action": catalog.get("id"),
             "catalog_mode": catalog.get("mode", "unknown"),
             "catalog_risk": catalog.get("risk", "unknown"),
-            "catalog_commands": catalog.get("commands", [])[:2],
+            "catalog_commands": [cmd.replace("{namespace}", lab_code) for cmd in catalog.get("commands", [])[:2]],
         })
 
     recommendations.sort(key=lambda r: (not r["is_ecosystem"], -r["count"]))
@@ -1209,19 +1209,35 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
 def preview_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
     """Preview what remediation would do — shows every gate check and exact commands without executing."""
     import os
+    import re
     from api.routers._shared import _dry_run_enabled, CONFIDENCE_THRESHOLD, TEST_NAMESPACE, EXECUTION_TARGET
     from api.action_executor import _get_lab_execution_mode, _check_rate_limit
     from api.routers.dashboard import _is_ecosystem_ns
+    from engine.catalog_loader import load_catalog, ACTION_TO_FAILURE_CLASSES
 
     namespace = body.get("namespace", "")
     failure_class = body.get("failure_class", "")
     cluster = body.get("cluster", "")
-    action_type = body.get("action_type", "cleanup_stuck")
     lab_code = body.get("lab_code", namespace)
+
+    # Derive action_type from failure_class
+    action_type = body.get("action_type", "")
+    if not action_type:
+        for at, fcs in ACTION_TO_FAILURE_CLASSES.items():
+            if failure_class in fcs:
+                action_type = at
+                break
+        if not action_type:
+            action_type = "cleanup_stuck"
 
     if not namespace:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="namespace is required")
+
+    # Template substitution helper
+    _safe_name = re.compile(r"^[a-zA-Z0-9._\-]*$")
+    def _sub(cmd: str) -> str:
+        return cmd.replace("{namespace}", namespace).replace("{pod}", "{pod}").replace("{deployment}", "{deployment}")
 
     # --- Gate -1: Namespace allowlist ---
     REMEDIATION_ALLOWED_PREFIXES = os.environ.get(
@@ -1236,68 +1252,50 @@ def preview_remediation(request: Request, body: dict, db: Session = Depends(get_
     mode = _get_lab_execution_mode(db, lab_code)
     is_test = namespace == TEST_NAMESPACE
 
-    # --- Gate 0b: Risk check ---
-    risk_ok = True
-    allowed_risk = "any"
-    catalog_commands = []
-    try:
-        from engine.catalog_loader import get_commands_for_action, load_catalog, ACTION_TO_FAILURE_CLASSES
-        from engine.models import RemediationRisk
-
-        failure_classes = ACTION_TO_FAILURE_CLASSES.get(action_type, [])
-        if failure_class and failure_class not in failure_classes:
-            failure_classes = list(set(failure_classes + [failure_class]))
-
-        if mode == "low_risk_auto":
-            allowed_risk = "low"
-            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster}, max_risk=RemediationRisk.LOW)
-        elif mode == "full_auto":
-            allowed_risk = "medium"
-            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster}, max_risk=RemediationRisk.MEDIUM)
-        else:
-            catalog_commands = get_commands_for_action(action_type, namespace, {"failure_class": failure_class, "cluster": cluster})
-
-        if mode != "recommend_only" and not catalog_commands:
-            risk_ok = False
-    except Exception:
-        pass
-
-    # --- Also get ALL catalog commands (ignoring risk filter) for display ---
-    all_catalog_commands = []
+    # --- Load ALL matching catalog entries for this failure class ---
     catalog_entries = []
+    executable_entries = []
     try:
-        from engine.catalog_loader import load_catalog, ACTION_TO_FAILURE_CLASSES
         catalog = load_catalog()
-        fc_set = set(ACTION_TO_FAILURE_CLASSES.get(action_type, []))
-        if failure_class:
-            fc_set.add(failure_class)
         for entry in catalog:
             entry_classes = set()
             for cond in entry.allowed_when:
                 parts = cond.split("==")
                 if len(parts) == 2 and parts[0].strip() == "failure_class":
                     entry_classes.add(parts[1].strip())
-            if entry_classes & fc_set:
-                catalog_entries.append({
+            if failure_class in entry_classes:
+                entry_info = {
                     "id": entry.id,
                     "mode": entry.mode.value,
                     "risk": entry.risk.value,
                     "execution_method": entry.execution_method,
-                    "commands": [cmd.replace("{namespace}", namespace) for cmd in entry.commands],
+                    "commands": [_sub(cmd) for cmd in entry.commands],
                     "forbidden_when": entry.forbidden_when,
-                })
-                for cmd in entry.commands:
-                    all_catalog_commands.append(cmd.replace("{namespace}", namespace))
+                    "would_execute": entry.mode.value != "recommend_only",
+                }
+                catalog_entries.append(entry_info)
+                if entry.mode.value != "recommend_only":
+                    executable_entries.append(entry_info)
     except Exception:
         pass
 
-    # --- Also get builtin fallback commands ---
-    builtin_commands = []
-    try:
-        from engine.oc_executor import _builtin_commands
-        builtin_commands = _builtin_commands(action_type, namespace, {"failure_class": failure_class, "cluster": cluster})
-    except Exception:
-        pass
+    # Commands that would actually run (from executable catalog entries)
+    commands_to_run = []
+    for entry in executable_entries:
+        commands_to_run.extend(entry["commands"])
+
+    # --- Gate 0b: Risk check ---
+    allowed_risk = "any"
+    if mode == "low_risk_auto":
+        allowed_risk = "low"
+    elif mode == "full_auto":
+        allowed_risk = "medium"
+
+    from engine.models import RemediationRisk
+    RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+    max_risk_val = RISK_ORDER.get(allowed_risk, 999)
+    risk_filtered = [e for e in executable_entries if RISK_ORDER.get(e["risk"], 0) <= max_risk_val]
+    risk_ok = mode == "recommend_only" or len(risk_filtered) > 0
 
     # --- Gate 0c: Rate limit ---
     rate_limited = False
@@ -1344,9 +1342,10 @@ def preview_remediation(request: Request, body: dict, db: Session = Depends(get_
             "gate": "Risk Assessment",
             "description": f"Are catalog commands available at risk level <= {allowed_risk}?",
             "allowed_risk": allowed_risk,
-            "commands_found": len(catalog_commands),
+            "catalog_entries_total": len(catalog_entries),
+            "executable_entries": len(executable_entries),
             "passed": risk_ok,
-            "result": f"{'PASS' if risk_ok else 'BLOCKED'} — {len(catalog_commands)} commands at risk <= {allowed_risk}",
+            "result": f"{'PASS' if risk_ok else 'BLOCKED'} — {len(executable_entries)} executable entries, {len(risk_filtered)} at risk <= {allowed_risk}",
         },
         {
             "gate": "Rate Limit",
@@ -1375,23 +1374,18 @@ def preview_remediation(request: Request, body: dict, db: Session = Depends(get_
     all_passed = all(g["passed"] for g in gates)
     first_block = next((g for g in gates if not g["passed"]), None)
 
-    # --- Execution target ---
-    exec_target = EXECUTION_TARGET
-
     return {
         "namespace": namespace,
         "failure_class": failure_class,
         "cluster": cluster,
         "action_type": action_type,
         "lab_code": lab_code,
-        "execution_target": exec_target,
+        "execution_target": EXECUTION_TARGET,
         "would_execute": all_passed,
         "blocked_by": first_block["gate"] if first_block else None,
         "gates": gates,
         "catalog_entries": catalog_entries,
-        "commands_to_run": catalog_commands if catalog_commands else builtin_commands,
-        "all_catalog_commands": all_catalog_commands,
-        "builtin_fallback_commands": builtin_commands,
+        "commands_to_run": commands_to_run,
     }
 
 
