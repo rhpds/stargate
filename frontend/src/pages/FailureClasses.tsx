@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useOverview, useRemediation } from '../api/hooks';
+import { useTimeRange } from '../components/TimeRangeContext';
+import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import type { OverviewData } from '../api/types';
 
@@ -26,10 +29,19 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export default function FailureClasses() {
   const overview = useOverview();
+  const { range, cluster } = useTimeRange();
+  const sinceMinutes = Math.round(range.ms / 60000);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const remediation = useRemediation();
+
+  const failureDetail = useQuery({
+    queryKey: ['failure-detail', selectedClass, sinceMinutes, cluster],
+    queryFn: () => selectedClass ? api.getFailureDetail(selectedClass, sinceMinutes, cluster || undefined) : null,
+    enabled: !!selectedClass,
+    refetchInterval: 30_000,
+  });
 
   if (overview.isLoading) {
     return (
@@ -147,6 +159,28 @@ export default function FailureClasses() {
                 {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
               </button>
             </div>
+
+            {/* Namespace breakdown */}
+            {failureDetail.data?.namespaces && failureDetail.data.namespaces.length > 0 && (
+              <div>
+                <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Affected Namespaces</div>
+                <div className="space-y-1">
+                  {failureDetail.data.namespaces.map((ns: any) => (
+                    <div key={ns.namespace} className={`flex items-center justify-between py-1.5 px-2 rounded ${ns.is_ecosystem ? 'bg-[#1a1a1a] border-l-2 border-l-[#EE0000]' : 'bg-[#1a1a1a] opacity-60'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white font-medium">{ns.namespace}</span>
+                        {ns.is_ecosystem && <span className="text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
+                        <span className="text-xs text-[#6A6E73]">on {ns.cluster}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-white font-bold">{ns.count}</span>
+                        <span className="text-xs text-[#6A6E73]">{ns.last_seen ? new Date(ns.last_seen).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '--'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {aiAnalysis && (
               <div className="bg-[#1a1a1a] border border-[#333] rounded p-4">

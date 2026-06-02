@@ -1837,6 +1837,51 @@ def dashboard_recommendation_reasoning(request: Request, db: Session = Depends(g
 # Remediation commands
 # ---------------------------------------------------------------------------
 
+@router.get("/dashboard/failure-detail/{failure_class}")
+def get_failure_detail(failure_class: str, cluster: str = None, since_minutes: int = 60, db: Session = Depends(get_db)):
+    """Namespace-level breakdown for a failure class."""
+    from db.models import EvaluationRecord
+
+    query = db.query(EvaluationRecord).filter(
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class == failure_class,
+    )
+    if cluster:
+        query = query.filter(EvaluationRecord.cluster_name == cluster)
+    if since_minutes > 0:
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
+        query = query.filter(EvaluationRecord.evaluated_at >= cutoff)
+
+    rows = query.order_by(EvaluationRecord.evaluated_at.desc()).limit(500).all()
+
+    by_namespace: Dict[str, Dict] = {}
+    for r in rows:
+        ns = r.lab_code or "unknown"
+        if ns not in by_namespace:
+            by_namespace[ns] = {
+                "namespace": ns,
+                "cluster": r.cluster_name or "unknown",
+                "count": 0,
+                "last_seen": None,
+                "messages": [],
+                "is_ecosystem": _is_ecosystem_ns(ns),
+            }
+        by_namespace[ns]["count"] += 1
+        if r.evaluated_at and (not by_namespace[ns]["last_seen"] or r.evaluated_at.isoformat() > by_namespace[ns]["last_seen"]):
+            by_namespace[ns]["last_seen"] = r.evaluated_at.isoformat()
+        if r.message and r.message not in by_namespace[ns]["messages"] and len(by_namespace[ns]["messages"]) < 3:
+            by_namespace[ns]["messages"].append(r.message[:200])
+
+    namespaces = sorted(by_namespace.values(), key=lambda x: (-x["count"]))
+
+    return {
+        "failure_class": failure_class,
+        "total_occurrences": len(rows),
+        "namespaces": namespaces,
+        "cluster_filter": cluster,
+    }
+
+
 @router.get("/dashboard/remediation-commands/{failure_class}")
 def get_remediation_commands(failure_class: str):
     """Get recommended remediation commands for a failure class from the catalog."""

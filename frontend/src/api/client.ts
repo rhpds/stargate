@@ -110,6 +110,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  getFailureDetail: (failureClass: string, sinceMinutes?: number, cluster?: string) => {
+    const params = new URLSearchParams();
+    if (sinceMinutes) params.set('since_minutes', String(sinceMinutes));
+    if (cluster) params.set('cluster', cluster);
+    const qs = params.toString();
+    return request<any>(`/dashboard/failure-detail/${encodeURIComponent(failureClass)}${qs ? `?${qs}` : ''}`);
+  },
 
   // Core
   getLabHistory: (labCode: string, params?: Record<string, string>) => {
