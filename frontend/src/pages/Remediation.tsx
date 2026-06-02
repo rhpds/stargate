@@ -236,6 +236,8 @@ export default function Remediation() {
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [preview, setPreview] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [remediateConfirm, setRemediateConfirm] = useState(false);
   const [remediateResult, setRemediateResult] = useState<any>(null);
   const [remediateLoading, setRemediateLoading] = useState(false);
@@ -322,6 +324,7 @@ export default function Remediation() {
                       } else {
                         setExpandedRec(i);
                         setAiAnalysis(null);
+                        setPreview(null);
                         setRemediateConfirm(false);
                         setRemediateResult(null);
                       }
@@ -418,12 +421,28 @@ export default function Remediation() {
                           {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
                         </button>
 
-                        {r.is_ecosystem && !remediateConfirm && !remediateResult && (
+                        {r.is_ecosystem && !preview && !remediateResult && (
                           <button
-                            className="bg-[#F0AB00] hover:bg-[#C58C00] text-black text-sm px-4 py-2 rounded font-medium"
-                            onClick={(e) => { e.stopPropagation(); setRemediateConfirm(true); }}
+                            className="bg-[#F0AB00] hover:bg-[#C58C00] text-black text-sm px-4 py-2 rounded font-medium disabled:opacity-50"
+                            disabled={previewLoading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewLoading(true);
+                              setPreview(null);
+                              api.previewRemediation({
+                                namespace: r.namespace,
+                                failure_class: r.failure_class,
+                                cluster: r.cluster,
+                              }).then((data) => {
+                                setPreview(data);
+                                setPreviewLoading(false);
+                              }).catch((err) => {
+                                setPreview({ error: err.message });
+                                setPreviewLoading(false);
+                              });
+                            }}
                           >
-                            Remediate
+                            {previewLoading ? 'Loading...' : 'Remediate'}
                           </button>
                         )}
                       </div>
@@ -434,38 +453,130 @@ export default function Remediation() {
                         </div>
                       )}
 
-                      {remediateConfirm && !remediateResult && (
-                        <div className="flex items-center gap-3 border-t border-[#333] pt-3">
-                          <span className="text-sm text-[#F0AB00] font-medium">Execute remediation on {r.namespace}?</span>
-                          <button
-                            className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded font-medium disabled:opacity-50"
-                            disabled={remediateLoading}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRemediateLoading(true);
-                              api.executeRemediation({
-                                namespace: r.namespace,
-                                failure_class: r.failure_class,
-                                cluster: r.cluster,
-                              }).then((result) => {
-                                setRemediateResult(result);
-                                setRemediateLoading(false);
-                                setRemediateConfirm(false);
-                              }).catch((err) => {
-                                setRemediateResult({ error: err.message });
-                                setRemediateLoading(false);
-                                setRemediateConfirm(false);
-                              });
-                            }}
-                          >
-                            {remediateLoading ? 'Executing...' : 'Confirm'}
-                          </button>
-                          <button
-                            className="text-[#6A6E73] text-sm hover:text-white"
-                            onClick={(e) => { e.stopPropagation(); setRemediateConfirm(false); }}
-                          >
-                            Cancel
-                          </button>
+                      {/* Execution Preview Panel */}
+                      {preview && !preview.error && (
+                        <div className="border-t border-[#333] pt-3 space-y-3">
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold">Execution Plan</div>
+
+                          {/* Gate checks */}
+                          <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3 space-y-1.5">
+                            <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Gate Checks</div>
+                            {preview.gates?.map((g: any, gi: number) => (
+                              <div key={gi} className="flex items-center gap-2">
+                                <span className={`text-xs font-bold w-16 shrink-0 ${g.passed ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
+                                  {g.result?.startsWith('QUEUED') ? 'QUEUED' : g.passed ? 'PASS' : 'BLOCKED'}
+                                </span>
+                                <span className="text-sm text-white">{g.gate}</span>
+                                <span className="text-xs text-[#6A6E73] ml-auto">{g.description}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Execution target */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-[#6A6E73]">Execution Target:</span>
+                            <span className={`font-bold ${preview.execution_target === 'production' ? 'text-[#C9190B]' : preview.execution_target === 'test' ? 'text-[#F0AB00]' : 'text-[#6A6E73]'}`}>
+                              {preview.execution_target || 'mock'}
+                            </span>
+                          </div>
+
+                          {/* Commands that would run */}
+                          {preview.commands_to_run?.length > 0 && (
+                            <div>
+                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Commands to Execute</div>
+                              {preview.commands_to_run.map((cmd: string, ci: number) => (
+                                <div key={ci} className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Catalog entries detail */}
+                          {preview.catalog_entries?.length > 0 && (
+                            <div>
+                              <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Matched Catalog Entries</div>
+                              {preview.catalog_entries.map((entry: any, ei: number) => (
+                                <div key={ei} className="bg-[#151515] border border-[#2e2e2e] rounded p-2 mb-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm text-white font-medium">{entry.id}</span>
+                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                      entry.risk === 'low' ? 'bg-[#3E8635]' :
+                                      entry.risk === 'medium' ? 'bg-[#F0AB00] text-black' : 'bg-[#C9190B]'
+                                    } text-white`}>{entry.risk} risk</span>
+                                    <span className="text-[10px] text-[#6A6E73] px-1.5 py-0.5 rounded bg-[#2e2e2e]">{entry.mode}</span>
+                                    <span className="text-[10px] text-[#6A6E73] px-1.5 py-0.5 rounded bg-[#2e2e2e]">{entry.execution_method}</span>
+                                  </div>
+                                  {entry.commands?.map((cmd: string, ci: number) => (
+                                    <div key={ci} className="text-xs text-[#8A8D90] font-mono ml-2">{cmd}</div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Verdict + action */}
+                          <div className={`rounded p-3 ${preview.would_execute ? 'bg-[#1a2e1a] border border-[#3E8635]' : 'bg-[#2e2a1a] border border-[#F0AB00]'}`}>
+                            {preview.would_execute ? (
+                              <div>
+                                <div className="text-sm text-[#3E8635] font-bold mb-2">All gates passed — ready to execute</div>
+                                {!remediateConfirm && !remediateResult && (
+                                  <button
+                                    className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded font-medium"
+                                    onClick={(e) => { e.stopPropagation(); setRemediateConfirm(true); }}
+                                  >
+                                    Execute Now
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-[#F0AB00] font-medium">
+                                Blocked at: {preview.blocked_by}
+                                {preview.blocked_by === 'Lab Execution Mode' && (
+                                  <span className="text-xs text-[#6A6E73] ml-2">— Change lab mode from recommend_only to enable execution</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {remediateConfirm && !remediateResult && (
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-[#F0AB00] font-medium">Confirm execution on {r.namespace}?</span>
+                              <button
+                                className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded font-medium disabled:opacity-50"
+                                disabled={remediateLoading}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRemediateLoading(true);
+                                  api.executeRemediation({
+                                    namespace: r.namespace,
+                                    failure_class: r.failure_class,
+                                    cluster: r.cluster,
+                                  }).then((result) => {
+                                    setRemediateResult(result);
+                                    setRemediateLoading(false);
+                                    setRemediateConfirm(false);
+                                  }).catch((err) => {
+                                    setRemediateResult({ error: err.message });
+                                    setRemediateLoading(false);
+                                    setRemediateConfirm(false);
+                                  });
+                                }}
+                              >
+                                {remediateLoading ? 'Executing...' : 'Confirm'}
+                              </button>
+                              <button
+                                className="text-[#6A6E73] text-sm hover:text-white"
+                                onClick={(e) => { e.stopPropagation(); setRemediateConfirm(false); }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {preview?.error && (
+                        <div className="text-sm text-[#C9190B] bg-[#2e1a1a] border border-[#C9190B] rounded p-3">
+                          Preview failed: {preview.error}
                         </div>
                       )}
 
