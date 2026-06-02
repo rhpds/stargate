@@ -136,8 +136,10 @@ export default function LLMAdmin() {
                     <span className={`text-xs font-bold ${c.success ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
                       {c.success ? 'OK' : 'ERR'}
                     </span>
-                    <span className="text-xs text-[#8A8D90] truncate" title={c.failure_class || c.lab_code || ''}>
-                      {c.failure_class || c.lab_code || '--'}
+                    <span className="text-xs text-[#8A8D90] truncate" title={[c.failure_class, c.lab_code, c.cluster_name].filter(Boolean).join(' / ')}>
+                      {c.failure_class || '--'}
+                      {c.lab_code && <span className="text-[#6A6E73]"> / {c.lab_code}</span>}
+                      {c.cluster_name && <span className="text-[#555]"> ({c.cluster_name})</span>}
                     </span>
                     <span className="text-xs text-[#6A6E73]">{c.called_at ? formatTime(c.called_at) : '--'}</span>
                   </div>
