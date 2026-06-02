@@ -23,7 +23,8 @@ class TestRequireAdmin:
     def test_accepts_oauth_user_header(self):
         from api.routers._shared import require_admin
         from unittest.mock import MagicMock
-        with patch("api.routers._shared.ADMIN_API_KEY", "test-key"):
+        with patch("api.routers._shared.ADMIN_API_KEY", "test-key"), \
+             patch("api.routers._shared.TRUST_PROXY_AUTH", True):
             mock_request = MagicMock()
             mock_request.headers = {"x-forwarded-user": "jkershaw@redhat.com"}
             require_admin(request=mock_request, api_key="")

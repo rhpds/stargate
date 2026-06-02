@@ -60,8 +60,8 @@ class EventBus:
                 "failure_class": event.failure_class,
                 "message": event.message,
             })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Kafka publish failed for event {event.event_id}: {e}")
 
         # Deliver to consumers
         for consumer in self.consumers:
@@ -75,6 +75,7 @@ class EventBus:
         """Persist event to SQLite for durability across restarts."""
         if not self._db_persist:
             return
+        db = None
         try:
             from db.database import get_session_factory
             from db.models import EventLog
@@ -99,9 +100,13 @@ class EventBus:
             )
             db.add(log)
             db.commit()
-            db.close()
         except Exception as e:
-            logger.debug(f"Event persist failed: {e}")
+            if db is not None:
+                db.rollback()
+            logger.warning(f"Event persist failed: {e}")
+        finally:
+            if db is not None:
+                db.close()
 
     def get_recent(self, event_type: Optional[str] = None, limit: int = 50) -> List[Dict]:
         events = self.history
