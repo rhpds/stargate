@@ -240,21 +240,23 @@ def _do_execute(action_type, target, parameters):
         logger.info(f"RHDP EXECUTE: {action_type} on {target}")
         return execute_rhdp_action(action_type, target, parameters, kubeconfig=EXECUTOR_KUBECONFIG)
 
-    if EXECUTION_TARGET == "test" and EXECUTOR_KUBECONFIG:
+    if EXECUTION_TARGET == "test":
         from engine.oc_executor import execute_oc_action
         from engine.rollback import capture_state, restore_state
-        namespace = TEST_NAMESPACE
+        namespace = target or TEST_NAMESPACE
+        kubeconfig = EXECUTOR_KUBECONFIG
 
-        snapshot = capture_state(namespace, EXECUTOR_KUBECONFIG)
+        snapshot = capture_state(namespace, kubeconfig)
         try:
-            result = execute_oc_action(action_type, namespace, EXECUTOR_KUBECONFIG, parameters)
+            result = execute_oc_action(action_type, namespace, kubeconfig, parameters)
+            result["mode"] = "live-test"
             if not result.get("success"):
-                restore_state(snapshot, namespace, EXECUTOR_KUBECONFIG)
+                restore_state(snapshot, namespace, kubeconfig)
                 result["rolled_back"] = True
             return result
         except Exception as e:
-            restore_state(snapshot, namespace, EXECUTOR_KUBECONFIG)
-            return {"success": False, "error": str(e), "rolled_back": True}
+            restore_state(snapshot, namespace, kubeconfig)
+            return {"success": False, "error": str(e), "rolled_back": True, "mode": "live-test"}
 
     elif EXECUTION_TARGET == "production":
         logger.warning("Production execution not yet enabled — requires Phase D approval")

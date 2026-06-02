@@ -14,10 +14,12 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger("stargate.rollback")
 
 
-def _run_oc(args: List[str], kubeconfig: str, timeout: int = 30) -> str:
-    """Run an oc command with the given kubeconfig."""
+def _run_oc(args: List[str], kubeconfig: str = "", timeout: int = 30) -> str:
+    """Run an oc command with the given kubeconfig. Empty kubeconfig uses in-cluster auth."""
     cmd = ["oc"] + args
-    env = {**os.environ, "KUBECONFIG": kubeconfig}
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     if result.returncode != 0 and "not found" not in result.stderr.lower() and "no resources" not in result.stderr.lower():
         if "cannot" in result.stderr.lower() or "forbidden" in result.stderr.lower():
