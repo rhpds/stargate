@@ -1236,7 +1236,7 @@
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_readiness_probe_failed
-  risk: medium
+  risk: low
   mode: recommend_only
   execution_method: kubernetes
   scope: namespace
@@ -1245,6 +1245,19 @@
   - failure_class == readiness_probe_failed
   commands:
   - oc get events -n {namespace} --sort-by=.lastTimestamp
+  - oc get pods -n {namespace} -o wide
+  forbidden_when:
+  - namespace == openshift-*
+- id: restart_readiness_failed_deployment
+  risk: low
+  mode: auto_execute
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == readiness_probe_failed
+  commands:
+  - oc rollout restart deployment/{deployment} -n {namespace}
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_resolution_failed
