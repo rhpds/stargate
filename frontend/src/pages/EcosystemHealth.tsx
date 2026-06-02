@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useOverview,
@@ -6,7 +5,6 @@ import {
   useClustersDashboard,
   usePoolsDashboard,
 } from '../api/hooks';
-import { useTimeRange } from '../components/TimeRangeContext';
 import type { OverviewData, DeploymentsDashboard, ClustersDashboard, PoolsDashboard, Deployment, ClusterScan, ClusterSummary, PoolEntry } from '../api/types';
 
 /* ---- helpers ---- */
@@ -262,18 +260,12 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export default function EcosystemHealth() {
   const navigate = useNavigate();
-  const { setClusters } = useTimeRange();
   const overview = useOverview();
   const deployments = useDeploymentsDashboard();
   const clusters = useClustersDashboard();
   const pools = usePoolsDashboard();
 
   const ov = overview.data as OverviewData | undefined;
-  useEffect(() => {
-    if (ov?.clusters?.scans) {
-      setClusters(ov!.clusters.scans.map(s => s.cluster).sort());
-    }
-  }, [ov?.clusters?.scans?.length]);
 
   const isLoading = overview.isLoading || deployments.isLoading || clusters.isLoading || pools.isLoading;
   const hasError = overview.isError || deployments.isError || clusters.isError || pools.isError;
