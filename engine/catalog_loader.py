@@ -64,12 +64,17 @@ def get_commands_for_action(
 ) -> List[str]:
     """Find catalog entries matching an action type and return formatted commands.
 
-    Bridges action types (e.g., 'cleanup_stuck') to catalog entries via failure class mapping.
+    If params contains a specific 'failure_class', only matches that class.
+    Otherwise bridges action types to catalog entries via failure class mapping.
     Filters entries where forbidden_when matches the namespace.
     Substitutes {namespace}, {pod}, {deployment}, etc. in command templates.
     When max_risk is set, only entries at or below that risk level are included.
     """
-    failure_classes = ACTION_TO_FAILURE_CLASSES.get(action_type, [])
+    specific_fc = params.get("failure_class", "")
+    if specific_fc:
+        failure_classes = [specific_fc]
+    else:
+        failure_classes = ACTION_TO_FAILURE_CLASSES.get(action_type, [])
     if not failure_classes:
         return []
 
