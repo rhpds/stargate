@@ -256,10 +256,6 @@ export default function Remediation() {
   const activity = (remediationActivity.data as { activity: RemediationActivity[] })?.activity ?? [];
 
   const totalPending = pending.length;
-  // const totalConfigs = configs.length;
-  const autoConfigs = configs.filter(
-    (c) => c.execution_mode === 'low_risk_auto' || c.execution_mode === 'full_auto'
-  ).length;
   const recentExecuted = activity.filter((a) => a.status === 'executed' || a.status === 'completed').length;
 
   const handleApprove = (id: number) => {
