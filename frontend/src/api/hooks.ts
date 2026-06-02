@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { FeedbackRequest, ExecutionMode } from './types';
@@ -12,12 +13,18 @@ export function useOverview() {
   const sinceMinutes = Math.round(range.ms / 60000);
   const query = useQuery({ queryKey: ['overview', sinceMinutes, cluster], queryFn: () => api.getOverview(sinceMinutes, cluster || undefined), refetchInterval: 30_000 });
 
-  // Auto-populate cluster list from scan data
+  const lastClusterKey = useRef('');
   const scans = (query.data as any)?.clusters?.scans;
-  if (scans && Array.isArray(scans) && scans.length > 0) {
-    const names = scans.map((s: any) => s.cluster).filter(Boolean).sort();
-    setClusters(names);
-  }
+  useEffect(() => {
+    if (scans && Array.isArray(scans) && scans.length > 0) {
+      const names = scans.map((s: any) => s.cluster).filter(Boolean).sort();
+      const key = names.join(',');
+      if (key !== lastClusterKey.current) {
+        lastClusterKey.current = key;
+        setClusters(names);
+      }
+    }
+  }, [scans]);
 
   return query;
 }
