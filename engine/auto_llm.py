@@ -60,7 +60,7 @@ def run_auto_analysis(db: Session) -> Dict:
         db.query(EvaluationRecord)
         .filter(
             EvaluationRecord.outcome == "fail",
-            EvaluationRecord.failure_class.isnot(None),
+            (EvaluationRecord.failure_class.is_(None)) | (EvaluationRecord.failure_class == "unclassified"),
         )
         .order_by(EvaluationRecord.evaluated_at.desc())
         .limit(MAX_CALLS_PER_CYCLE * 3)
