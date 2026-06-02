@@ -60,32 +60,36 @@ export default function App() {
         <TimeRangeProvider>
         <BrowserRouter>
           <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--brand-dark)' }}>
-            <header style={{ backgroundColor: 'var(--brand-dark)' }} className="text-white border-b border-[#333]">
+            <header style={{ backgroundColor: 'var(--brand-dark)' }} className="text-white">
               <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center h-14 gap-6">
+                  <div className="flex items-center gap-3 shrink-0">
                     <img src="/logos/redhat.svg" alt="Red Hat" style={{ height: '28px' }} />
-                    <span className="text-[#6A6E73] mx-3">|</span>
+                    <span className="text-[#6A6E73]">|</span>
                     <span className="text-lg font-semibold tracking-tight" style={{ fontFamily: 'Red Hat Display, sans-serif' }}>StarGate</span>
                   </div>
                   <nav className="flex gap-1">
                     {navItems.map(({ to, label, end }) => (
                       <NavLink key={to} to={to} end={end}
                         className={({ isActive }) =>
-                          `px-3 py-2 rounded text-sm font-medium transition ${isActive ? 'bg-white/15 text-white' : 'text-[#6A6E73] hover:text-white hover:bg-white/10'}`
+                          `px-3 py-1.5 rounded text-sm font-medium transition ${isActive ? 'bg-white/15 text-white' : 'text-[#6A6E73] hover:text-white hover:bg-white/10'}`
                         }>
                         {label}
                       </NavLink>
                     ))}
                   </nav>
-                  <ClusterPicker />
-                  <TimeRangePicker />
                 </div>
               </div>
             </header>
             <div className="h-0.5 flex">
               <div className="flex-1" style={{ backgroundColor: 'var(--brand-primary)' }} />
               <div className="flex-1" style={{ backgroundColor: 'var(--brand-secondary)' }} />
+            </div>
+            <div className="border-b border-[#2e2e2e]" style={{ backgroundColor: '#1a1a1a' }}>
+              <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between h-9">
+                <ClusterPicker />
+                <TimeRangePicker />
+              </div>
             </div>
             <main className="flex-1">
               <Routes>
