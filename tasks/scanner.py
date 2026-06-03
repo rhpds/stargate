@@ -44,4 +44,4 @@ def write_scan_history(self):
         return {"written": len(scans) if scans else 0}
     except Exception as e:
         logger.warning("Scan history write failed: %s", e)
-        return {"error": str(e)}
+        raise self.retry(exc=e)

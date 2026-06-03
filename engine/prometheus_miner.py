@@ -113,8 +113,9 @@ def query_prometheus(cluster_name: str, promql: str) -> List[Dict]:
 
     try:
         ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        if os.environ.get("STARGATE_SSL_VERIFY", "true").lower() == "false":
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
 
         encoded = urllib.request.quote(promql, safe="")
         req = urllib.request.Request(

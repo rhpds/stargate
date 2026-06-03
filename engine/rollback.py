@@ -68,6 +68,18 @@ def capture_state(namespace: str, kubeconfig: str) -> Dict[str, Any]:
     return snapshot
 
 
+def _run_oc_stdin(args: List[str], input_data: str, kubeconfig: str = "", timeout: int = 30) -> str:
+    """Run an oc command with stdin input."""
+    cmd = ["oc"] + args
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
+    result = subprocess.run(cmd, input=input_data, capture_output=True, text=True, timeout=timeout, env=env)
+    if result.returncode != 0:
+        logger.warning(f"oc {' '.join(args)}: {result.stderr.strip()}")
+    return result.stdout.strip() or result.stderr.strip()
+
+
 def restore_state(snapshot: Dict[str, Any], namespace: str, kubeconfig: str) -> Dict[str, Any]:
     """Restore namespace to a previous state snapshot."""
     restored = 0
@@ -75,21 +87,29 @@ def restore_state(snapshot: Dict[str, Any], namespace: str, kubeconfig: str) -> 
     errors = []
 
     for kind in ["deployments", "services"]:
+        snapshot_names = {r.get("metadata", {}).get("name") for r in snapshot.get(kind, [])}
         for resource in snapshot.get(kind, []):
             try:
                 resource_json = json.dumps(resource)
-                result = subprocess.run(
-                    ["oc", "apply", "-f", "-", "-n", namespace],
-                    input=resource_json,
-                    capture_output=True, text=True, timeout=30,
-                    env={**os.environ, "KUBECONFIG": kubeconfig},
-                )
-                if result.returncode == 0:
+                result = _run_oc_stdin(["apply", "-f", "-", "-n", namespace], resource_json, kubeconfig)
+                if "configured" in result.lower() or "created" in result.lower() or "unchanged" in result.lower():
                     restored += 1
                 else:
-                    errors.append(f"Failed to restore {kind}/{resource.get('metadata', {}).get('name')}: {result.stderr}")
+                    errors.append(f"Failed to restore {kind}/{resource.get('metadata', {}).get('name')}: {result}")
             except Exception as e:
                 errors.append(str(e))
+
+        try:
+            current_json = _run_oc(["get", kind, "-n", namespace, "-o", "json"], kubeconfig)
+            if current_json and current_json.startswith("{"):
+                current_items = json.loads(current_json).get("items", [])
+                for item in current_items:
+                    name = item.get("metadata", {}).get("name", "")
+                    if name and name not in snapshot_names:
+                        _run_oc(["delete", kind.rstrip("s"), name, "-n", namespace], kubeconfig)
+                        deleted += 1
+        except Exception as e:
+            errors.append(f"Failed to clean up extra {kind}: {e}")
 
     return {"restored": restored, "deleted": deleted, "errors": errors}
 
@@ -102,7 +122,16 @@ def verify_restore(snapshot: Dict[str, Any], namespace: str, kubeconfig: str) ->
         snapshot_names = {r.get("metadata", {}).get("name") for r in snapshot.get(kind, [])}
         current_names = {r.get("metadata", {}).get("name") for r in current.get(kind, [])}
         if snapshot_names != current_names:
-            logger.warning(f"{kind} mismatch: expected {snapshot_names}, got {current_names}")
+            logger.warning(f"{kind} name mismatch: expected {snapshot_names}, got {current_names}")
             return False
+        if len(snapshot.get(kind, [])) != len(current.get(kind, [])):
+            logger.warning(f"{kind} count mismatch: expected {len(snapshot.get(kind, []))}, got {len(current.get(kind, []))}")
+            return False
+        if kind == "deployments":
+            snap_replicas = {r["metadata"]["name"]: r.get("spec", {}).get("replicas") for r in snapshot.get(kind, [])}
+            curr_replicas = {r["metadata"]["name"]: r.get("spec", {}).get("replicas") for r in current.get(kind, [])}
+            if snap_replicas != curr_replicas:
+                logger.warning(f"Deployment replica mismatch: expected {snap_replicas}, got {curr_replicas}")
+                return False
 
     return True

@@ -12,3 +12,9 @@ fixtures/
 docs/
 tests/
 scheduler.log
+.env
+.env.*
+*.key
+*.pem
+*.token
+*.crt

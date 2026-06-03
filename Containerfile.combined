@@ -43,7 +43,7 @@ COPY stargate-synthetic-client-emulator/emulator/ emulator/
 
 COPY --from=frontend-build /build/dist frontend/dist/
 
-RUN mkdir -p scan-history && chmod 777 scan-history
+RUN mkdir -p scan-history && chmod 775 scan-history
 
 EXPOSE 8090
 
