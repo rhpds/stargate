@@ -20,18 +20,18 @@ def mv_refresh(self):
         try:
             from engine.learner import apply_feedback
             apply_feedback(db)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("apply_feedback failed: %s", e)
         try:
             from engine.auto_llm import run_auto_analysis
             run_auto_analysis(db)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("run_auto_analysis failed: %s", e)
         try:
             from engine.lab_mapper import refresh_lab_mappings
             refresh_lab_mappings(db)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("refresh_lab_mappings failed: %s", e)
         db.close()
         logger.info("MV refresh complete")
         return {"status": "ok"}
@@ -51,7 +51,7 @@ def warm_caches():
         logger.info("Cache warm complete")
         return {"status": "ok"}
     except Exception as e:
-        logger.debug("Cache warm failed: %s", e)
+        logger.warning("Cache warm failed: %s", e)
         return {"error": str(e)}
 
 

@@ -248,12 +248,10 @@ def call_llm(
         except Exception as e:
             logger.warning(f"Failed to persist LLM metric: {e}")
 
-    logger.info(
-        f"LLM {endpoint}: {latency_ms}ms, "
-        f"tokens={total_tokens or '?'}, "
-        f"cost=${cost_estimate:.4f}" if cost_estimate else f"LLM {endpoint}: {latency_ms}ms, "
-        f"success={success}"
-    )
+    log_msg = f"LLM {endpoint}: {latency_ms}ms, tokens={total_tokens or '?'}, success={success}"
+    if cost_estimate:
+        log_msg += f", cost=${cost_estimate:.4f}"
+    logger.info(log_msg)
 
     return {
         "content": content,

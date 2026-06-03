@@ -88,9 +88,22 @@ def _clone_agnosticv():
     import subprocess
     from pathlib import Path
     target_path = Path(target)
-    env = {**os.environ, "GIT_ASKPASS": "/bin/echo", "GIT_TOKEN": token}
-    clone_env = {**env, "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "url.https://{token}@github.com/.insteadOf".format(token=token), "GIT_CONFIG_VALUE_0": "https://github.com/"}
+    import tempfile
+    cred_file = None
     try:
+        cred_fd, cred_path = tempfile.mkstemp(prefix="stargate-git-cred-")
+        os.write(cred_fd, f"https://{token}:x-oauth-basic@github.com\n".encode())
+        os.close(cred_fd)
+        os.chmod(cred_path, 0o600)
+        cred_file = cred_path
+
+        env = {**os.environ, "GIT_ASKPASS": "/bin/echo"}
+        clone_env = {
+            **env,
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "credential.helper",
+            "GIT_CONFIG_VALUE_0": f"store --file={cred_path}",
+        }
         if target_path.exists() and (target_path / ".git").exists():
             subprocess.run(["git", "-C", str(target_path), "pull", "--ff-only"], capture_output=True, timeout=60, env=clone_env)
             logger.info(f"AgnosticV repo updated at {target}")
@@ -100,6 +113,9 @@ def _clone_agnosticv():
             logger.info(f"AgnosticV repo cloned to {target}")
     except Exception as e:
         logger.warning(f"AgnosticV clone failed: {e}")
+    finally:
+        if cred_file and os.path.exists(cred_file):
+            os.unlink(cred_file)
 
 
 def _register_event_consumers():
