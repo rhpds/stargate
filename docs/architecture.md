@@ -10,7 +10,7 @@ through a React dashboard and REST API. An LLM (Granite 3.2 8B on Intel Gaudi,
 routed through LiteLLM) provides failure classification and executive summaries
 when deterministic rules are insufficient.
 
-The system monitors 8 scanner clusters from a deployment on ocpv-infra01 and
+The system monitors 6 scanner clusters from a deployment on ocpv-infra01 and
 integrates with the Babylon control plane (Poolboy, Anarchy, AgnosticV),
 Labagator, and Demolition to produce a unified view of lab readiness.
 
@@ -42,9 +42,9 @@ Labagator, and Demolition to produce a unified view of lab readiness.
        |  |  |  |  |  |                                      |
        v  v  v  v  v  v                                      v
    +------+ +------+ +------+                   +------------+----------+
-   |ocpv05| |ocpv06| |ocpv07|  ...              | ocp-us-east-1         |
-   |ocpv08| |ocpv09| |ocpv10|                   | (Babylon ctrl plane)  |
-   |infra01| infra02| us-e-1|                   | Poolboy / Anarchy     |
+   |ocpv05| |ocpv07| |ocpv08|  ...              | ocp-us-east-1         |
+   |ocpv09| |infra | |infra |                   | (Babylon ctrl plane)  |
+   |      | |  01  | |  02  |                   | Poolboy / Anarchy     |
    +------+ +------+ +------+                   +-----------------------+
        |                                                     |
        v                                                     v
@@ -161,15 +161,22 @@ Events are persisted to the `event_log` database table.
 
 ### 5. Action Execution (Gated)
 
-`api/action_executor.py` enforces three gates before any action:
+`api/action_executor.py` enforces five independent gates before any action:
 
-1. **Dry-run gate** -- If `STARGATE_DRY_RUN=true`, log and skip.
-2. **Confidence gate** -- If confidence < threshold (default 0.8), queue to
+1. **Namespace allowlist** -- Target namespace must match configured prefixes
+   (`STARGATE_REMEDIATION_NS`). Prevents action on system namespaces.
+2. **Lab execution mode** -- Per-lab config (`recommend_only`, `low_risk_auto`,
+   `full_auto`) controls whether actions execute or only recommend.
+3. **Risk assessment** -- Catalog entry risk level must be within the lab's
+   allowed risk threshold.
+4. **Rate limiting** -- Per-lab action count must be below configured
+   `max_actions_per_hour`.
+5. **Confidence gate** -- If confidence < threshold (default 0.8), queue to
    `pending_actions` for human approval.
-3. **Audit trail** -- Write entry to `audit_log` before and after execution.
 
-Currently the executor is read-only; the `_do_execute()` function is a
-placeholder for future write operations.
+All actions are logged to `audit_log` before and after execution. Dry-run mode
+(`STARGATE_DRY_RUN=true`) logs without executing. The remediation playbook
+endpoint routes through these same gates via `execute_action()`.
 
 ### 6. LLM Integration
 
@@ -310,7 +317,6 @@ an audit log and tracks state diffs.
 | ocpv07        | kubeconfig-ocpv07    | Lab workloads            |
 | ocpv08        | kubeconfig-ocpv08    | Lab workloads            |
 | ocpv09        | kubeconfig-ocpv09    | Lab workloads            |
-| ocpv10        | kubeconfig-ocpv10    | Lab workloads            |
 | ocpv-infra01  | kubeconfig-infra01   | Infrastructure + StarGate|
 | ocpv-infra02  | kubeconfig-infra02   | Infrastructure           |
 | ocp-us-east-1 | kubeconfig           | Babylon control plane    |

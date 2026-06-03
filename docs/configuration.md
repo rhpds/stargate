@@ -63,12 +63,19 @@ Stored in the `stargate-secrets` OpenShift secret as `litellm-api-key`.
 
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
-| Default     | `""` (empty string -- authentication disabled)              |
-| Description | API key required for admin endpoints (scheduler, evidence source, dry-run, feedback) |
-| When to change | Must be set in production. When empty, all admin endpoints are open. The key is sent via the `X-API-Key` HTTP header. Requests from allowed CORS origins bypass the key check for browser-based dashboard access. |
+| Default     | `""` (empty string -- all admin requests rejected with 503) |
+| Description | API key required for mutating admin endpoints (execute, approve, config changes, scheduler start/stop). Read-only GET endpoints also accept same-origin browser requests. |
+| When to change | Must be set in production. When empty, no admin operations are possible. The key is sent via the `X-API-Key` HTTP header. |
 
-Generated during deployment by `deploy-infra01.sh` using `openssl rand -hex 24`
-and stored in the `stargate-secrets` OpenShift secret as `admin-api-key`.
+Stored in the `stargate-secrets` OpenShift secret as `admin-api-key`.
+
+### STARGATE_TRUST_PROXY_AUTH
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `false`                                                     |
+| Description | When `true`, the `x-forwarded-user` header from a trusted proxy (e.g., OpenShift OAuth proxy) grants admin access. |
+| When to change | Enable in deployments behind an OAuth proxy that sets `x-forwarded-user`. The application must only be reachable through the proxy — if directly accessible, any client can spoof this header. |
 
 ---
 
@@ -78,13 +85,13 @@ and stored in the `stargate-secrets` OpenShift secret as `admin-api-key`.
 
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
-| Default     | `false`                                                     |
-| Description | Whether to verify SSL certificates for outbound HTTPS calls (LLM, Labagator, Demolition) |
-| When to change | Set to `true` in environments with proper CA certificates. Leave as `false` when connecting to internal OpenShift routes with self-signed or wildcard certificates, which is the common case for the RHDP infrastructure. |
+| Default     | `true`                                                      |
+| Description | Whether to verify SSL certificates for outbound HTTPS calls (LLM, Labagator, Demolition, Prometheus, AlertManager, AAP, ZeroTouch) |
+| When to change | Set to `false` when connecting to internal OpenShift routes with self-signed or wildcard certificates. In production with proper CA certificates, leave as `true`. |
 
 When `false`, both hostname checking and certificate verification are disabled
-for all outbound connections from the API (LLM calls, Labagator fetches,
-Demolition fetches) and from scanner workers (showroom health checks).
+for all outbound connections from the API and collectors. All components
+check this env var before disabling TLS.
 
 ---
 
@@ -99,9 +106,7 @@ Demolition fetches) and from scanner workers (showroom health checks).
 | When to change | Must be updated for production to include the dashboard URL (e.g., `https://stargate.apps.cluster.example.com`). Add any additional origins that need to access the API from a browser. |
 
 CORS middleware allows credentials, GET/POST methods, and the headers
-`Content-Type`, `X-API-Key`, and `X-Request-ID`. The allowed origins list
-also controls which browser origins can bypass API key authentication for
-admin endpoints.
+`Content-Type`, `X-API-Key`, and `X-Request-ID`.
 
 ---
 
@@ -226,13 +231,15 @@ These variables are used internally for cost estimation in LLM metrics.
 
 | Variable                         | Default                                    | Required |
 |----------------------------------|--------------------------------------------|----------|
-| `STARGATE_DATABASE_URL`          | `postgresql://stargate:stargate@localhost:5432/stargate` | Yes (prod) |
+| `STARGATE_DATABASE_URL`          | `""`                                       | Yes (prod) |
 | `STARGATE_LITELLM_API_KEY`       | `""`                                       | Yes (LLM) |
 | `STARGATE_LITELLM_URL`           | LiteLLM prod URL                           | No       |
 | `STARGATE_LLM_MODEL`             | `granite-3-2-8b-instruct`                  | No       |
 | `STARGATE_ADMIN_API_KEY`         | `""`                                       | Yes (prod) |
-| `STARGATE_SSL_VERIFY`            | `false`                                    | No       |
+| `STARGATE_TRUST_PROXY_AUTH`      | `false`                                    | Yes (prod behind OAuth) |
+| `STARGATE_SSL_VERIFY`            | `true`                                     | No       |
 | `STARGATE_CORS_ORIGINS`          | `http://localhost:3000,http://localhost:8090` | Yes (prod) |
+| `CELERY_BROKER_URL`              | `""`                                       | Yes (Celery) |
 | `STARGATE_EVENT_DATE`            | `""`                                       | No       |
 | `STARGATE_EVENT_NAME`            | `Platform Operations`                      | No       |
 | `STARGATE_EVENT_PREFIX`          | `""`                                       | No       |
