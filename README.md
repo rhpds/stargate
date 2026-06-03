@@ -136,20 +136,23 @@ tests/                  Test suite
 
 ## Security
 
-- Red Hat SSO (OpenShift OAuth proxy) protects all endpoints
-- Admin API key authentication for programmatic access
-- Per-endpoint rate limiting on all write/LLM operations
-- SSL/TLS verification enabled by default
-- Input validation on all command execution parameters
-- Audit logging for all remediation actions
-- NetworkPolicies for pod-to-pod isolation
+- **Authentication**: Red Hat SSO (OpenShift OAuth proxy) for browser access; API key (`X-API-Key` header) for programmatic access. Read-only admin endpoints accept same-origin browser requests; mutating endpoints (execute, approve, config changes) require API key or proxy auth.
+- **Proxy auth**: When `STARGATE_TRUST_PROXY_AUTH=true`, the `x-forwarded-user` header from the OAuth proxy grants admin access.
+- **Rate limiting**: Per-endpoint limits on all write and LLM operations via slowapi.
+- **TLS verification**: Controlled by `STARGATE_SSL_VERIFY` env var across all outbound connections (collectors, LLM, Prometheus, AlertManager).
+- **Input validation**: All `oc` command parameters validated via `_validate_k8s_name()` regex allowlist. Unrecognized command patterns are rejected. LLM prompt inputs are sanitized (control chars stripped, truncated, XML-bounded).
+- **SSRF protection**: Webhook consumer URLs are resolved and checked against private/reserved IP ranges. AAP pagination validates hostname matches origin.
+- **Execution gates**: Five independent gates before any remediation: namespace allowlist, lab execution mode, risk assessment, rate limiting, confidence threshold. All actions audit-logged.
+- **Credential hygiene**: GitHub PAT uses temporary credential files (not env vars). No hardcoded passwords in source. Secrets directory gitignored. `.dockerignore` excludes `.env`, `*.key`, `*.pem`, `*.token`.
+- **Container security**: Non-root container user, directory permissions 775 (not 777).
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `scripts/build-and-tag.sh` | Build images with git-SHA tags for reproducible deploys |
-| `scripts/deploy-infra01.sh` | Ad-hoc build and deploy (development only) |
+| `scripts/deploy.sh` | Build, push, and deploy to infra01 (`--build-only`, `--deploy-only`, `--sync-env`) |
+| `scripts/deploy-infra01.sh` | Full Helm-based deploy with secrets and OAuth setup |
 | `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning |
 | `scripts/test-auto-remediation.sh` | E2E auto-remediation test suite |
 

@@ -13,10 +13,11 @@ It works **with** the RHDP ecosystem — not around it:
 | Component | Status |
 |---|---|
 | Dashboard (React + PatternFly 6) | Deployed on infra01 with Red Hat SSO |
-| Cluster scanning (8 clusters) | Working, tokens need refresh |
+| Cluster scanning (6 clusters) | Working, tokens need refresh |
 | Rubric evaluation pipeline | Working (11 stages) |
-| LLM classification (Granite via MAAS) | Working, 625 proposals pending review |
-| Auto-remediation engine | Built, per-lab gradual rollout ready |
+| LLM classification (Granite via MAAS) | Working, proposals pending review |
+| Auto-remediation engine | Built, per-lab gradual rollout ready, 5-gate execution model |
+| Security hardening | Complete — auth, SSRF, TLS, prompt injection, credential hygiene |
 | RHDP-aware execution (Anarchy/Poolboy/Sandbox API) | Built, untested against real labs |
 | AgnosticV Catalog Item | Created, needs CI review |
 | AgnosticD Ansible role | Created, needs integration testing |
