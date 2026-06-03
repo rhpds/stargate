@@ -277,6 +277,8 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
 
     auth = base64.b64encode(f"{controller['user']}:{controller['password']}".encode()).decode()
     url = f"{controller['url']}/api/v2/jobs/?{query}"
+    from urllib.parse import urlparse
+    orig_host = urlparse(controller['url']).hostname
 
     all_results = []
     while url and len(all_results) < 500:
@@ -287,6 +289,10 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
         url = data.get("next")
         if url and not url.startswith("http"):
             url = f"{controller['url']}{url}"
+        elif url:
+            if urlparse(url).hostname != orig_host:
+                logger.warning("AAP pagination URL host mismatch: %s vs %s, stopping", urlparse(url).hostname, orig_host)
+                break
 
     return all_results
 

@@ -40,6 +40,9 @@ class FilterAgent(Nanoagent):
         if event.event_type == "evaluation.failed" and event.failure_class:
             dedup_key = f"{event.lab_code}:{event.failure_class}:{event.cluster_name}"
             now = datetime.now(timezone.utc).timestamp()
+            stale = [k for k, ts in self._seen.items() if now - ts > self.dedup_window_seconds]
+            for k in stale:
+                del self._seen[k]
             last_seen = self._seen.get(dedup_key, 0)
             if now - last_seen < self.dedup_window_seconds:
                 event.filtered = True

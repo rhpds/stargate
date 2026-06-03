@@ -4,14 +4,17 @@ Replaces daemon threads with persistent, retryable, observable tasks.
 Broker: Redis in ecosystem-redis namespace.
 """
 
+import logging
 import os
 
 from celery import Celery
 
-REDIS_URL = os.environ.get(
-    "CELERY_BROKER_URL",
-    "redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0",
-)
+REDIS_URL = os.environ.get("CELERY_BROKER_URL", "")
+if not REDIS_URL:
+    logging.getLogger("stargate").warning(
+        "CELERY_BROKER_URL is not set — Celery broker connection will fail"
+    )
+    REDIS_URL = "redis://localhost:6379/0"
 
 app = Celery("stargate", broker=REDIS_URL, backend=REDIS_URL)
 

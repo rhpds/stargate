@@ -15,10 +15,20 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+import re as _re
+
 logger = logging.getLogger("stargate.auto_llm")
 
 MAX_CALLS_PER_CYCLE = 20
 THROTTLE_SECONDS = 0.5
+
+
+def _sanitize_for_prompt(value: str, max_length: int = 500) -> str:
+    """Strip control characters and truncate user data for safe LLM prompt inclusion."""
+    if not value:
+        return ""
+    cleaned = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', str(value))
+    return cleaned[:max_length]
 
 _enabled = os.environ.get("STARGATE_AUTO_LLM", "true").lower() != "false"
 
@@ -113,14 +123,17 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
     from api.llm import call_llm, load_prompt, LLM_MODEL
 
     evidence_parts = [f"""## Failure Details
-- Stage: {ev.stage_id}
-- Message: {ev.message or 'unknown'}
-- Cluster: {ev.cluster_name or 'unknown'}
-- Lab/Namespace: {ev.lab_code or 'unknown'}
-- Current classification: {ev.failure_class or 'unclassified'}"""]
+<user-data>
+- Stage: {_sanitize_for_prompt(str(ev.stage_id), 100)}
+- Message: {_sanitize_for_prompt(ev.message or 'unknown')}
+- Cluster: {_sanitize_for_prompt(ev.cluster_name or 'unknown', 100)}
+- Lab/Namespace: {_sanitize_for_prompt(ev.lab_code or 'unknown', 100)}
+- Current classification: {_sanitize_for_prompt(ev.failure_class or 'unclassified', 100)}
+</user-data>"""]
 
     if ev.criteria_results:
-        evidence_parts.append(f"## Criteria Results\n{json.dumps(ev.criteria_results, indent=2)}")
+        criteria_json = json.dumps(ev.criteria_results, indent=2)[:2000]
+        evidence_parts.append(f"## Criteria Results\n<user-data>\n{criteria_json}\n</user-data>")
 
     similar = repository.get_similar_classifications(
         db, ev.message or "", limit=5

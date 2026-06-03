@@ -95,10 +95,10 @@ export const api = {
   getDeploymentsDashboard: () => request<DeploymentsDashboard>('/dashboard/deployments'),
   getClustersDashboard: () => request<ClustersDashboard>('/dashboard/clusters'),
   getPoolsDashboard: () => request<PoolsDashboard>('/dashboard/pools'),
-  getClusterNodes: (name: string) => request<ClusterNodes>(`/dashboard/nodes/${name}`),
-  getLabDetail: (labCode: string) => request<LabDetail>(`/dashboard/lab/${labCode}`),
+  getClusterNodes: (name: string) => request<ClusterNodes>(`/dashboard/nodes/${encodeURIComponent(name)}`),
+  getLabDetail: (labCode: string) => request<LabDetail>(`/dashboard/lab/${encodeURIComponent(labCode)}`),
 
-  getPipelineStage: (stageId: string) => request<PipelineStageDetail>(`/dashboard/pipeline/${stageId}`),
+  getPipelineStage: (stageId: string) => request<PipelineStageDetail>(`/dashboard/pipeline/${encodeURIComponent(stageId)}`),
   getStuckInstances: () => request<StuckInstances>('/dashboard/stuck-instances'),
   getNodesPods: () => request<NodesPodsData>('/dashboard/nodes-pods'),
   getLabDeltas: () => request<LabDeltas>('/dashboard/lab-deltas'),
@@ -122,20 +122,20 @@ export const api = {
   // Core
   getLabHistory: (labCode: string, params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return request<EvaluationHistory[]>(`/labs/${labCode}/history${qs}`);
+    return request<EvaluationHistory[]>(`/labs/${encodeURIComponent(labCode)}/history${qs}`);
   },
-  getLabFailures: (labCode: string) => request<Record<string, number>>(`/labs/${labCode}/failures`),
-  getClusterSummary: (name: string) => request<ClusterSummary>(`/clusters/${name}/summary`),
-  getClusterFailures: (name: string) => request<ClusterFailures>(`/clusters/${name}/failures`),
-  getClusterNamespaces: (name: string) => request<ClusterNamespacesData>(`/clusters/${name}/namespaces`),
+  getLabFailures: (labCode: string) => request<Record<string, number>>(`/labs/${encodeURIComponent(labCode)}/failures`),
+  getClusterSummary: (name: string) => request<ClusterSummary>(`/clusters/${encodeURIComponent(name)}/summary`),
+  getClusterFailures: (name: string) => request<ClusterFailures>(`/clusters/${encodeURIComponent(name)}/failures`),
+  getClusterNamespaces: (name: string) => request<ClusterNamespacesData>(`/clusters/${encodeURIComponent(name)}/namespaces`),
   getEvents: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     return request<EventRecord[]>(`/events${qs}`);
   },
   getEventSummary: () => request<EventSummary>('/events/summary'),
   getConstraints: () => request<Record<string, Record<string, unknown>>>('/constraints'),
-  getLabConstraints: (labId: string) => request<Record<string, unknown>>(`/constraints/${labId}`),
-  getLabStatus: (labCode: string) => request<Record<string, unknown>>(`/integration/lab-status/${labCode}`),
+  getLabConstraints: (labId: string) => request<Record<string, unknown>>(`/constraints/${encodeURIComponent(labId)}`),
+  getLabStatus: (labCode: string) => request<Record<string, unknown>>(`/integration/lab-status/${encodeURIComponent(labCode)}`),
 
   // Trends, pipeline, readiness
   getTrends: (params?: Record<string, string>) => {

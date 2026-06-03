@@ -513,9 +513,20 @@ def register_consumer(body: Dict, _auth=Depends(require_admin)):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=422, detail="url must use http or https")
-    blocked = ("metadata.google", "169.254.169.254", "kubernetes.default", ".svc", "localhost", "127.0.0.1", "::1")
-    if any(b in (parsed.hostname or "") for b in blocked):
+    import socket
+    import ipaddress
+    hostname = parsed.hostname or ""
+    blocked_names = (".svc", "kubernetes.default", "metadata.google", "localhost")
+    if any(b in hostname for b in blocked_names):
         raise HTTPException(status_code=422, detail="url targets a blocked internal address")
+    try:
+        addrs = socket.getaddrinfo(hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
+        for _fam, _type, _proto, _canon, sockaddr in addrs:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+                raise HTTPException(status_code=422, detail="url resolves to a blocked private/reserved address")
+    except socket.gaierror:
+        raise HTTPException(status_code=422, detail="url hostname cannot be resolved")
     from events.consumers import WebhookConsumer
     consumer = WebhookConsumer(url=url, event_types=event_types)
     _event_bus.register_consumer(consumer)

@@ -681,12 +681,9 @@ def dashboard_clusters(db: Session = Depends(get_db)):
 @router.get("/dashboard/lab/{lab_code}")
 def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
     """Single lab deep dive — evaluation history, constraints, sessions."""
-    import ssl
     import urllib.request as urllib_req
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    from api.routers._shared import _make_ssl_context
+    ctx = _make_ssl_context()
 
     # StarGate evaluations — try direct lab_code match first, then namespace mapping
     from db.models import EvaluationRecord as _ER
@@ -4138,15 +4135,24 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db), _auth=Dep
     diagnose["llm_classification"] = llm_classification
     phases["diagnose"] = diagnose
 
-    # --- Phase 3: FIX — execute remediation action ---
+    # --- Phase 3: FIX — execute remediation action (routed through execution gates) ---
     fix: Dict = {"action": "restart_crashlooping_pod", "success": False, "commands_executed": [], "source": "mock"}
     if kubeconfig and pod:
         try:
-            from engine.rollback import _run_oc
-            output = _run_oc(["delete", "pod", pod, "-n", namespace, "--force", "--grace-period=0"], kubeconfig, timeout=15)
-            fix["commands_executed"].append({"command": f"oc delete pod {pod} -n {namespace}", "success": True, "output": output[:200]})
-            fix["success"] = True
-            fix["source"] = "live"
+            from api.action_executor import execute_action
+            result = execute_action(
+                action_type="cleanup_stuck",
+                target=namespace,
+                parameters={"pods": [pod], "failure_class": failure_class, "cluster": cluster_name, "triggered_by": "playbook"},
+                confidence=1.0,
+                db=db,
+                lab_code=lab_code,
+            )
+            fix["success"] = result.get("executed", False)
+            fix["source"] = "live" if result.get("executed") else "blocked"
+            fix["commands_executed"] = result.get("commands_executed", [])
+            if not fix["success"]:
+                fix["blocked_reason"] = result.get("reason", "execution gate blocked")
         except Exception as e:
             fix["commands_executed"].append({"command": f"oc delete pod {pod} -n {namespace}", "success": False, "error": str(e)[:200]})
     else:

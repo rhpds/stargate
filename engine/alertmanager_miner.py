@@ -214,8 +214,9 @@ def collect_alerts(cluster_name: str = "infra01", alertmanager_url: str = "") ->
 
     try:
         ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        if os.environ.get("STARGATE_SSL_VERIFY", "true").lower() == "false":
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
 
         req = urllib.request.Request(
             f"{alertmanager_url}/api/v2/alerts",
