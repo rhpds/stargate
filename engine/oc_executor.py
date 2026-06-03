@@ -79,6 +79,31 @@ def execute_oc_action(
     params: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Execute an action as real oc commands against a namespace."""
+    # Check if this action maps to an investigation chain
+    try:
+        from engine.catalog_loader import load_catalog, ACTION_TO_FAILURE_CLASSES
+        failure_classes = ACTION_TO_FAILURE_CLASSES.get(action_type, [])
+        if failure_classes:
+            catalog = load_catalog()
+            for entry in catalog:
+                if getattr(entry, "type", "remediation") == "investigation":
+                    entry_classes = set()
+                    for condition in entry.allowed_when:
+                        parts = condition.split("==")
+                        if len(parts) == 2 and parts[0].strip() == "failure_class":
+                            entry_classes.add(parts[1].strip())
+                    if entry_classes & set(failure_classes):
+                        from engine.investigation_runner import InvestigationRunner
+                        runner = InvestigationRunner()
+                        return runner.run(
+                            entry=entry.model_dump(),
+                            namespace=namespace,
+                            kubeconfig=kubeconfig,
+                            params=params,
+                        )
+    except Exception:
+        logger.debug("Investigation routing check failed, falling back to commands", exc_info=True)
+
     commands_planned = map_action_to_commands(action_type, namespace, params)
     commands_executed = []
     errors = []
