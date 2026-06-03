@@ -78,8 +78,9 @@ function MetricCard({ label, value }: { label: string; value: string | number })
 }
 
 function StatsBar({ overview }: { overview: OverviewData }) {
-  const labTotal = overview.labs.total;
+  const clusterCount = overview.clusters.scans?.length ?? 0;
   const labHealthy = overview.labs.status_counts?.pass ?? overview.labs.status_counts?.healthy ?? 0;
+  const labTotal = overview.labs.total;
   const passRate = pct(labHealthy, labTotal);
   const activeFailures = overview.errors.total_failures;
   const poolTotal = overview.pools.total;
@@ -88,9 +89,9 @@ function StatsBar({ overview }: { overview: OverviewData }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <MetricCard label="Total Labs" value={labTotal} />
-      <MetricCard label="Pass Rate" value={passRate} />
+      <MetricCard label="Clusters" value={clusterCount} />
       <MetricCard label="Active Failures" value={activeFailures} />
+      <MetricCard label="Pass Rate" value={passRate} />
       <MetricCard label="Pool Health" value={poolHealth} />
     </div>
   );
@@ -308,13 +309,7 @@ export default function EcosystemHealth() {
       {/* 1. Stats bar */}
       {ov && <StatsBar overview={ov} />}
 
-      {/* 2. Lab Grid */}
-      <section>
-        <SectionHeader>Labs</SectionHeader>
-        <LabGrid labs={deps.labs ?? []} navigate={navigate} />
-      </section>
-
-      {/* 3. Cluster Health Strip */}
+      {/* 2. Cluster Health Strip */}
       <section>
         <SectionHeader>Cluster Health</SectionHeader>
         <ClusterStrip
@@ -324,19 +319,25 @@ export default function EcosystemHealth() {
         />
       </section>
 
-      {/* 4. Pool Availability */}
-      <section>
-        <SectionHeader>Pool Availability</SectionHeader>
-        <PoolBadges pools={pls.pools ?? []} />
-      </section>
-
-      {/* 5. Top Failure Classes */}
+      {/* 3. Top Failure Classes */}
       <section>
         <SectionHeader>Top Failure Classes</SectionHeader>
         {ov!.labs.total === 0 && Object.keys(ov!.errors.failure_classes ?? {}).length > 0 && (
           <p className="text-xs text-[#F0AB00] mb-3">Failures detected across cluster — lab mappings will connect these to specific demos</p>
         )}
         <FailureClassChart failures={ov!.errors.failure_classes ?? {}} />
+      </section>
+
+      {/* 4. Pool Availability */}
+      <section>
+        <SectionHeader>Pool Availability</SectionHeader>
+        <PoolBadges pools={pls.pools ?? []} />
+      </section>
+
+      {/* 5. Labs */}
+      <section>
+        <SectionHeader>Labs ({(deps.labs ?? []).length})</SectionHeader>
+        <LabGrid labs={deps.labs ?? []} navigate={navigate} />
       </section>
     </div>
   );
