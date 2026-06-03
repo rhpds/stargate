@@ -19,6 +19,7 @@ from api.routers._shared import (
     _load_latest_babylon,
     _shutdown_event,
     require_admin,
+    require_admin_read,
 )
 
 router = APIRouter()
@@ -79,7 +80,7 @@ def admin_scheduler_stop():
         return {"status": "stopped"}
 
 
-@router.get("/admin/scheduler/status", dependencies=[Depends(require_admin)])
+@router.get("/admin/scheduler/status", dependencies=[Depends(require_admin_read)])
 def admin_scheduler_status():
     """Get scheduler worker status."""
     import api.routers._shared as _shared
@@ -257,7 +258,7 @@ def admin_scheduler_status():
 # Scan history
 # ---------------------------------------------------------------------------
 
-@router.get("/admin/scan-history", dependencies=[Depends(require_admin)])
+@router.get("/admin/scan-history", dependencies=[Depends(require_admin_read)])
 def admin_scan_history(limit: int = 50):
     """Return scan history timeline from scan-history files."""
     scan_dir = Path(__file__).parent.parent.parent / "scan-history"
@@ -297,7 +298,7 @@ def admin_scan_history(limit: int = 50):
 # LLM Admin — metrics, timeline, recent calls, evaluation, feedback, drift
 # ---------------------------------------------------------------------------
 
-@router.get("/admin/llm/metrics", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/metrics", dependencies=[Depends(require_admin_read)])
 def admin_llm_metrics(db: Session = Depends(get_db), cluster: str = None):
     """Aggregated LLM usage metrics. Optionally filtered by cluster."""
     from db.models import LLMMetric
@@ -371,7 +372,7 @@ def admin_llm_metrics(db: Session = Depends(get_db), cluster: str = None):
     }
 
 
-@router.get("/admin/llm/metrics/timeline", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/metrics/timeline", dependencies=[Depends(require_admin_read)])
 def admin_llm_timeline(hours: int = 24, db: Session = Depends(get_db)):
     """Hourly breakdown of LLM metrics for charts."""
     from db.models import LLMMetric
@@ -406,7 +407,7 @@ def admin_llm_timeline(hours: int = 24, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/admin/llm/recent", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/recent", dependencies=[Depends(require_admin_read)])
 def admin_llm_recent(limit: int = 50, endpoint: str = None, cluster: str = None, db: Session = Depends(get_db)):
     """Recent LLM calls with details. Filter by endpoint and/or cluster."""
     from db.models import LLMMetric
@@ -440,7 +441,7 @@ def admin_llm_recent(limit: int = 50, endpoint: str = None, cluster: str = None,
     ]
 
 
-@router.get("/admin/llm/evaluation", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/evaluation", dependencies=[Depends(require_admin_read)])
 def admin_llm_evaluation(db: Session = Depends(get_db)):
     """Feedback loop metrics — approval rates, confidence calibration."""
     from db.models import ProposedClassification
@@ -501,7 +502,7 @@ def admin_llm_feedback(req: dict, db: Session = Depends(get_db)):
     return {"id": fb.id, "status": "submitted"}
 
 
-@router.get("/admin/llm/drift", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/drift", dependencies=[Depends(require_admin_read)])
 def admin_llm_drift(db: Session = Depends(get_db)):
     """Drift detection — compare recent 7 days vs prior 7 days."""
     from db.models import LLMMetric, ProposedClassification
@@ -580,7 +581,7 @@ def admin_llm_drift(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/admin/llm/ab-test", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/ab-test", dependencies=[Depends(require_admin_read)])
 def admin_llm_ab_test(db: Session = Depends(get_db)):
     """Compare LLM metrics by prompt version for A/B testing."""
     from db.models import LLMMetric
@@ -619,7 +620,7 @@ def admin_llm_ab_test(db: Session = Depends(get_db)):
     return {"versions": result}
 
 
-@router.get("/admin/llm/config", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/config", dependencies=[Depends(require_admin_read)])
 def admin_llm_config():
     """Return current LLM runtime configuration."""
     from api.llm import LLM_MODEL, LLM_URL, load_prompt
@@ -638,7 +639,7 @@ def admin_llm_config():
     }
 
 
-@router.get("/admin/llm/ground-truth", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/ground-truth", dependencies=[Depends(require_admin_read)])
 def admin_llm_ground_truth(db: Session = Depends(get_db)):
     """Return labeled ground truth dataset from approved proposals and confirmed evaluations."""
     from engine.ground_truth import build_ground_truth
@@ -646,7 +647,7 @@ def admin_llm_ground_truth(db: Session = Depends(get_db)):
     return {"total": len(entries), "entries": entries}
 
 
-@router.get("/admin/llm/accuracy", dependencies=[Depends(require_admin)])
+@router.get("/admin/llm/accuracy", dependencies=[Depends(require_admin_read)])
 def admin_llm_accuracy(db: Session = Depends(get_db)):
     """Measure LLM classification accuracy against reviewed proposals."""
     from engine.ground_truth import measure_accuracy
@@ -672,7 +673,7 @@ def admin_llm_auto_toggle(req: dict):
     return {"enabled": is_enabled()}
 
 
-@router.get("/admin/audit-trail", dependencies=[Depends(require_admin)])
+@router.get("/admin/audit-trail", dependencies=[Depends(require_admin_read)])
 def admin_audit_trail(limit: int = 50, db: Session = Depends(get_db)):
     """Recent audit trail entries — all actions proposed, approved, executed, or failed."""
     from db.models import AuditLog
@@ -712,7 +713,7 @@ def set_evidence_source(req: dict):
     return {"source": _shared._evidence_source, "scenario": _shared._synthetic_scenario}
 
 
-@router.get("/admin/evidence-source", dependencies=[Depends(require_admin)])
+@router.get("/admin/evidence-source", dependencies=[Depends(require_admin_read)])
 def get_evidence_source():
     """Get current evidence source state."""
     import api.routers._shared as _shared
@@ -727,7 +728,7 @@ def set_dry_run(req: dict):
     return {"dry_run": _shared._dry_run_enabled}
 
 
-@router.get("/admin/approval-queue", dependencies=[Depends(require_admin)])
+@router.get("/admin/approval-queue", dependencies=[Depends(require_admin_read)])
 def get_approval_queue(db: Session = Depends(get_db)):
     """Get pending actions awaiting approval."""
     from db.models import PendingAction
@@ -791,7 +792,7 @@ def reject_action(action_id: int, db: Session = Depends(get_db)):
     return {"id": action.id, "status": "rejected"}
 
 
-@router.get("/admin/audit", dependencies=[Depends(require_admin)])
+@router.get("/admin/audit", dependencies=[Depends(require_admin_read)])
 def get_audit_trail(limit: int = 50, db: Session = Depends(get_db)):
     """Get audit trail entries."""
     from db.models import AuditLog
@@ -991,13 +992,13 @@ def run_chaos_test(db: Session = Depends(get_db)):
     return {"results": results, "receipt": receipt}
 
 
-@router.get("/admin/receipts", dependencies=[Depends(require_admin)])
+@router.get("/admin/receipts", dependencies=[Depends(require_admin_read)])
 def get_receipts(receipt_type: str = None, phase: str = None, limit: int = 50, db: Session = Depends(get_db)):
     """Get persisted receipts from database."""
     return {"receipts": repository.get_receipts(db, receipt_type=receipt_type, phase=phase, limit=limit)}
 
 
-@router.get("/admin/receipts/{receipt_type}", dependencies=[Depends(require_admin)])
+@router.get("/admin/receipts/{receipt_type}", dependencies=[Depends(require_admin_read)])
 def get_latest_receipt(receipt_type: str, db: Session = Depends(get_db)):
     """Get the latest receipt of a given type."""
     receipt = repository.get_latest_receipt(db, receipt_type)
@@ -1014,7 +1015,7 @@ def get_latest_receipt(receipt_type: str, db: Session = Depends(get_db)):
 VALID_EXECUTION_MODES = {"recommend_only", "low_risk_auto", "full_auto"}
 
 
-@router.get("/admin/remediation/config", dependencies=[Depends(require_admin)])
+@router.get("/admin/remediation/config", dependencies=[Depends(require_admin_read)])
 def list_remediation_configs(db: Session = Depends(get_db)):
     """List all per-lab remediation configs, joined with lab display names."""
     from db.models import LabMapping
@@ -1036,7 +1037,7 @@ def list_remediation_configs(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin)])
+@router.get("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin_read)])
 def get_remediation_config(lab_code: str, db: Session = Depends(get_db)):
     """Get remediation config for a specific lab."""
     config = repository.get_lab_remediation_config(db, lab_code)
@@ -1122,13 +1123,13 @@ def delete_remediation_config(lab_code: str, request: Request, db: Session = Dep
     return {"lab_code": lab_code, "execution_mode": "recommend_only", "deleted": True}
 
 
-@router.get("/admin/remediation/activity", dependencies=[Depends(require_admin)])
+@router.get("/admin/remediation/activity", dependencies=[Depends(require_admin_read)])
 def get_remediation_activity(limit: int = 50, db: Session = Depends(get_db)):
     """Get recent remediation-related audit log entries."""
     return {"activity": repository.get_remediation_activity(db, limit=limit)}
 
 
-@router.get("/admin/remediation/recommendations", dependencies=[Depends(require_admin)])
+@router.get("/admin/remediation/recommendations", dependencies=[Depends(require_admin_read)])
 def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Session = Depends(get_db)):
     """Auto-generated remediation recommendations based on current failures."""
     from db.models import EvaluationRecord
