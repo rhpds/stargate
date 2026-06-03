@@ -1,0 +1,59 @@
+{{- if .Values.executor.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.executor.serviceAccount }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: stargate
+    app.kubernetes.io/component: executor
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.executor.serviceAccount }}-token
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/service-account.name: {{ .Values.executor.serviceAccount }}
+  labels:
+    app.kubernetes.io/part-of: stargate
+type: kubernetes.io/service-account-token
+---
+# Namespace-scoped write access for remediation execution
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stargate-executor-role
+  namespace: {{ .Values.executor.namespace }}
+  labels:
+    app.kubernetes.io/part-of: stargate
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "events"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stargate-executor-binding
+  namespace: {{ .Values.executor.namespace }}
+  labels:
+    app.kubernetes.io/part-of: stargate
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.executor.serviceAccount }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: stargate-executor-role
+{{- end }}

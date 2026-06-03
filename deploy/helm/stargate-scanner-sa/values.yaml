@@ -1,0 +1,11 @@
+namespace: stargate-scanner
+
+serviceAccount:
+  name: stargate-scanner
+
+clusterRole: cluster-reader
+
+executor:
+  enabled: false
+  namespace: stargate-test
+  serviceAccount: stargate-executor
