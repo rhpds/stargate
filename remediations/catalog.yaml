@@ -1441,3 +1441,97 @@
   - oc get events -n {namespace} --sort-by=.lastTimestamp
   forbidden_when:
   - namespace == openshift-*
+# === Investigation Chains ===
+- id: investigate_pods_not_ready
+  risk: low
+  mode: recommend_only
+  type: investigation
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pods_not_ready
+  steps:
+  - command: "oc get pods -n {namespace} -o json"
+    extract: "items[?(@.status.phase!='Running')].metadata.name"
+    store_as: "failed_pods"
+  - command: "oc describe pod {failed_pods[0]} -n {namespace}"
+    condition: "failed_pods"
+    store_as: "pod_description"
+  - command: "oc logs {failed_pods[0]} -n {namespace} --previous --tail=50"
+    condition: "pod_description contains CrashLoopBackOff"
+    store_as: "crash_logs"
+  - command: "oc get events -n {namespace} --sort-by=.lastTimestamp"
+    store_as: "pod_events"
+  output_template: |
+    ## Investigation: pods_not_ready in {namespace}
+    ### Failed Pods
+    {failed_pods}
+    ### Pod Description
+    {pod_description}
+    ### Crash Logs
+    {crash_logs}
+    ### Recent Events
+    {pod_events}
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_crashlooping
+  risk: low
+  mode: recommend_only
+  type: investigation
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pods_crashlooping
+  steps:
+  - command: "oc get pods -n {namespace} -o json"
+    extract: "items[*].metadata.name"
+    store_as: "all_pods"
+  - command: "oc logs {all_pods[0]} -n {namespace} --previous --tail=100"
+    condition: "all_pods"
+    store_as: "previous_logs"
+  - command: "oc describe pod {all_pods[0]} -n {namespace}"
+    condition: "all_pods"
+    store_as: "pod_detail"
+  - command: "oc get events -n {namespace} --sort-by=.lastTimestamp --field-selector reason=BackOff"
+    store_as: "backoff_events"
+  output_template: |
+    ## Investigation: pods_crashlooping in {namespace}
+    ### Pod Logs (previous)
+    {previous_logs}
+    ### Pod Detail
+    {pod_detail}
+    ### BackOff Events
+    {backoff_events}
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_service_no_endpoints
+  risk: low
+  mode: recommend_only
+  type: investigation
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == service_has_no_endpoints
+  steps:
+  - command: "oc get svc -n {namespace} -o json"
+    extract: "items[*].metadata.name"
+    store_as: "services"
+  - command: "oc get endpoints -n {namespace}"
+    store_as: "endpoints"
+  - command: "oc get pods -n {namespace} --show-labels"
+    store_as: "pod_labels"
+  - command: "oc describe svc {service} -n {namespace}"
+    condition: "services"
+    store_as: "service_detail"
+  output_template: |
+    ## Investigation: service_has_no_endpoints in {namespace}
+    ### Services
+    {services}
+    ### Endpoints
+    {endpoints}
+    ### Pod Labels
+    {pod_labels}
+    ### Service Detail
+    {service_detail}
+  forbidden_when:
+  - namespace == openshift-*

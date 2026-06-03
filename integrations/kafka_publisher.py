@@ -26,6 +26,8 @@ TOPIC_MAP = {
     "cluster.scanned": "cluster-health",
     "cluster.healthy": "cluster-health",
     "cluster.degraded": "cluster-health",
+    "tarsy.request": "tarsy-investigation-requested",
+    "tarsy.result": "tarsy-investigation-completed",
 }
 
 AUDIT_TOPIC = "audit-trail"
@@ -99,3 +101,12 @@ def publish_event(event_type: str, payload: dict) -> None:
     ledger = _get_ledger()
     audit_entry = ledger.append({"event_type": event_type, **payload})
     publish_to_kafka(AUDIT_TOPIC, audit_entry, key=payload.get("run_id"))
+
+
+def publish_tarsy_request(request_dict: dict) -> None:
+    """Publish a TARSy investigation request to Kafka."""
+    try:
+        request_dict["_published_at"] = datetime.now(timezone.utc).isoformat()
+        publish_to_kafka("tarsy-investigation-requested", request_dict, key=request_dict.get("originator_id"))
+    except Exception as e:
+        logger.debug("TARSy request publish failed: %s", e)
