@@ -131,17 +131,30 @@ class Rubric(BaseModel):
     forbidden_remediations: List[str] = Field(default_factory=list)
 
 
+# --- Investigation ---
+
+class InvestigationStep(BaseModel):
+    """A single step in a multi-step investigation chain."""
+    command: str
+    condition: Optional[str] = None   # e.g. "failed_pods" (truthy) or "pod_description contains CrashLoopBackOff"
+    extract: Optional[str] = None     # JSONPath-like extraction from JSON output
+    store_as: Optional[str] = None    # variable name to store result
+
+
 # --- Remediation ---
 
 class Remediation(BaseModel):
     id: str = Field(..., min_length=1)
     risk: RemediationRisk
     mode: RemediationMode = RemediationMode.RECOMMEND_ONLY
+    type: str = "remediation"
     execution_method: ExecutionMethod = ExecutionMethod.KUBERNETES
     scope: str = Field(..., min_length=1)
     requires_approval: bool = True
     allowed_when: List[str] = Field(default_factory=list)
     commands: List[str] = Field(default_factory=list)
+    steps: List[InvestigationStep] = Field(default_factory=list)
+    output_template: str = ""
     forbidden_when: List[str] = Field(default_factory=list)
 
 

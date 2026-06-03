@@ -63,6 +63,16 @@ class EventBus:
         except Exception as e:
             logger.warning(f"Kafka publish failed for event {event.event_id}: {e}")
 
+        # TARSy escalation check
+        try:
+            from integrations.tarsy_escalation import _escalation_tracker
+            if event.event_type in ("evaluation.failed", "failure.unclassified", "remediation.failed"):
+                _escalation_tracker.record_failure(event)
+                if _escalation_tracker.should_escalate(event):
+                    _escalation_tracker.escalate(event)
+        except Exception:
+            pass
+
         # Deliver to consumers
         for consumer in self.consumers:
             if consumer.should_receive(event):
