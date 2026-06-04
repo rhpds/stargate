@@ -50,6 +50,9 @@ import type {
   LabRemediationConfig,
   ExecutionMode,
   RemediationActivity,
+  PoolDetailData,
+  ProvisioningOverview,
+  CatalogItemDetail,
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -256,4 +259,9 @@ export const api = {
       method: 'DELETE',
     }),
   getRemediationActivity: (limit = 50) => request<{ activity: RemediationActivity[] }>(`/admin/remediation/activity?limit=${limit}`),
+
+  // Provisioning drill-down
+  getPoolDetail: (poolName: string) => request<PoolDetailData>(`/dashboard/pool/${encodeURIComponent(poolName)}`),
+  getProvisioningOverview: () => request<ProvisioningOverview>('/dashboard/provisioning'),
+  getCatalogItemDetail: (itemName: string) => request<CatalogItemDetail>(`/dashboard/catalog/${encodeURIComponent(itemName)}`),
 };

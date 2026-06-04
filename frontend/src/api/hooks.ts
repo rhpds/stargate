@@ -333,3 +333,17 @@ export function useRemediationConfigDelete() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['remediation-configs'] }),
   });
 }
+
+// --- Provisioning Drill-Down ---
+
+export function usePoolDetail(poolName: string) {
+  return useQuery({ queryKey: ['pool-detail', poolName], queryFn: () => api.getPoolDetail(poolName), enabled: !!poolName, refetchInterval: 30_000 });
+}
+
+export function useProvisioningOverview() {
+  return useQuery({ queryKey: ['provisioning-overview'], queryFn: api.getProvisioningOverview, refetchInterval: 30_000 });
+}
+
+export function useCatalogItemDetail(itemName: string) {
+  return useQuery({ queryKey: ['catalog-item-detail', itemName], queryFn: () => api.getCatalogItemDetail(itemName), enabled: !!itemName, refetchInterval: 30_000 });
+}
