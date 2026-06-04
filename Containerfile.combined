@@ -37,6 +37,7 @@ COPY prompts/ prompts/
 COPY policies/ policies/
 COPY alembic/ alembic/
 COPY alembic.ini .
+COPY receipts/ receipts/
 
 # Bundle synthetic client emulator (makes emulator.* importable via PYTHONPATH)
 COPY stargate-synthetic-client-emulator/emulator/ emulator/
