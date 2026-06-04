@@ -20,7 +20,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir pydantic pyyaml jsonschema fastapi uvicorn psycopg2-binary sqlalchemy alembic prometheus-client slowapi
+RUN pip install --no-cache-dir pydantic pyyaml jsonschema fastapi uvicorn psycopg2-binary sqlalchemy alembic prometheus-client slowapi python-multipart litellm
 
 COPY api/ api/
 COPY cli/ cli/
