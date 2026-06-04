@@ -800,6 +800,35 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
         "constraints": constraints,
         "constraint_violations": _get_lab_constraint_violations(lab_code, constraints),
         "recent_events": lab_events,
+        "provisioning": _get_lab_provisioning(lab_code),
+    }
+
+
+def _get_lab_provisioning(lab_code: str) -> Dict:
+    """Get provisioning data for a specific lab from Babylon cache."""
+    babylon = _load_latest_babylon()
+    instance_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+    instances = instance_mapping.get(lab_code, [])
+    by_state: Dict[str, int] = {}
+    for inst in instances:
+        st = inst.get("state", "unknown")
+        by_state[st] = by_state.get(st, 0) + 1
+
+    pools_data = babylon.get("pools", {})
+    all_pools = pools_data.get("all_pools", pools_data.get("summit_pools", []))
+    lab_slug = lab_code.lower()
+    linked_pools = [
+        {"name": p["name"], "available": p.get("available", 0), "ready": p.get("ready", 0), "min": p.get("min", 0)}
+        for p in all_pools if isinstance(p, dict) and lab_slug in p.get("name", "").lower()
+    ]
+
+    launchpad_sessions = [s for s in _fetch_launchpad_sessions() if s.get("lab_code", "").lower() == lab_slug]
+
+    return {
+        "instances": instances[:100],
+        "instance_summary": {"total": len(instances), "by_state": by_state},
+        "pools": linked_pools,
+        "launchpad_sessions": launchpad_sessions,
     }
 
 
@@ -1038,6 +1067,144 @@ def dashboard_pools():
             "failure_rate": prov.get("failure_rate", 0),
             "by_state": prov.get("by_state", {}),
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Pool / Provisioning / Catalog Detail
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/pool/{pool_name}")
+def dashboard_pool_detail(pool_name: str):
+    """Single pool deep-dive — capacity, consuming labs, instance breakdown."""
+    babylon = _load_latest_babylon()
+    pools_data = babylon.get("pools", {})
+    all_pools = pools_data.get("all_pools", pools_data.get("summit_pools", []))
+
+    pool = None
+    for p in all_pools:
+        if isinstance(p, dict) and p.get("name") == pool_name:
+            pool = p
+            break
+    if not pool:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Pool '{pool_name}' not found")
+
+    avail = pool.get("available", 0)
+    mn = pool.get("min", 0)
+    exhausted_names = {ep.get("name") for ep in pools_data.get("exhausted", []) if isinstance(ep, dict)}
+    low_names = {ep.get("name") for ep in pools_data.get("low", []) if isinstance(ep, dict)}
+    if pool_name in exhausted_names or (avail == 0 and mn > 0):
+        status = "exhausted"
+    elif pool_name in low_names or (avail <= 1 and mn > 0):
+        status = "low"
+    else:
+        status = "healthy"
+
+    instance_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+    instances = []
+    consuming_labs: set = set()
+    by_state: Dict[str, int] = {}
+    pool_slug = pool_name.split(".")[1] if "." in pool_name else pool_name
+    for lc, insts in instance_mapping.items():
+        for inst in insts:
+            matches = inst.get("pool_name", "") == pool_name or pool_slug in inst.get("anarchy_name", "")
+            if matches:
+                instances.append({**inst, "lab_code": lc})
+                consuming_labs.add(lc)
+                st = inst.get("state", "unknown")
+                by_state[st] = by_state.get(st, 0) + 1
+
+    return {
+        "name": pool_name,
+        "available": avail,
+        "ready": pool.get("ready", 0),
+        "min": mn,
+        "status": status,
+        "is_summit": pool.get("is_summit", "summit-2026" in pool_name),
+        "consuming_labs": sorted(consuming_labs),
+        "instances": instances[:200],
+        "instance_summary": {"total": len(instances), "by_state": by_state},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/dashboard/provisioning")
+def dashboard_provisioning():
+    """Provisioning overview — all AnarchySubjects grouped by state."""
+    babylon = _load_latest_babylon()
+    prov = babylon.get("provisioning", {})
+    instance_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+
+    subjects_by_state: Dict[str, list] = {}
+    labs_affected: Dict[str, Dict] = {}
+    for lc, insts in instance_mapping.items():
+        lab_total = 0
+        lab_started = 0
+        lab_failed = 0
+        for inst in insts:
+            st = inst.get("state", "unknown")
+            lab_total += 1
+            if st == "started":
+                lab_started += 1
+            if "failed" in st or "error" in st:
+                lab_failed += 1
+            if st not in subjects_by_state:
+                subjects_by_state[st] = []
+            if st != "started" or len(subjects_by_state[st]) < 50:
+                subjects_by_state[st].append({**inst, "lab_code": lc})
+        if lab_total > 0:
+            labs_affected[lc] = {"total": lab_total, "started": lab_started, "failed": lab_failed}
+
+    return {
+        "total": prov.get("total", 0),
+        "started": prov.get("started", 0),
+        "failed": prov.get("failed", 0),
+        "failure_rate": prov.get("failure_rate", 0),
+        "by_state": prov.get("by_state", {}),
+        "subjects_by_state": subjects_by_state,
+        "labs_affected": labs_affected,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/dashboard/catalog/{item_name}")
+def dashboard_catalog_detail(item_name: str):
+    """Single catalog item detail — linked pools, instances, sessions."""
+    babylon = _load_latest_babylon()
+    catalog_items = babylon.get("catalog_items", [])
+
+    item = None
+    for ci in catalog_items:
+        if isinstance(ci, dict) and ci.get("name") == item_name:
+            item = ci
+            break
+    if not item:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Catalog item '{item_name}' not found")
+
+    slug = item_name.split(".", 1)[1] if "." in item_name else item_name
+    pools_data = babylon.get("pools", {})
+    all_pools = pools_data.get("all_pools", pools_data.get("summit_pools", []))
+    linked_pools = [
+        {"name": p["name"], "available": p.get("available", 0), "ready": p.get("ready", 0), "min": p.get("min", 0)}
+        for p in all_pools if isinstance(p, dict) and slug in p.get("name", "")
+    ]
+
+    lab_code = item.get("lab_code", "")
+    instance_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+    instances = instance_mapping.get(lab_code, []) if lab_code else []
+    by_state: Dict[str, int] = {}
+    for inst in instances:
+        st = inst.get("state", "unknown")
+        by_state[st] = by_state.get(st, 0) + 1
+
+    return {
+        **item,
+        "linked_pools": linked_pools,
+        "instances": instances[:100],
+        "instance_summary": {"total": len(instances), "by_state": by_state},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

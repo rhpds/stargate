@@ -9,6 +9,9 @@ import FailureClasses from './pages/FailureClasses';
 import LLMAdmin from './pages/LLMAdmin';
 import Remediation from './pages/Remediation';
 import ClusterDetail from './pages/ClusterDetail';
+import PoolDetail from './pages/PoolDetail';
+import ProvisioningDetail from './pages/ProvisioningDetail';
+import CatalogItemDetail from './pages/CatalogItemDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +103,9 @@ export default function App() {
                 <Route path="/llm" element={<LLMAdmin />} />
                 <Route path="/remediation" element={<Remediation />} />
                 <Route path="/cluster/:name" element={<ClusterDetail />} />
+                <Route path="/pool/:name" element={<PoolDetail />} />
+                <Route path="/provisioning" element={<ProvisioningDetail />} />
+                <Route path="/catalog/:name" element={<CatalogItemDetail />} />
               </Routes>
             </main>
             <footer style={{ backgroundColor: 'var(--brand-dark)' }} className="border-t border-[#333] text-[#6A6E73] text-sm py-5">

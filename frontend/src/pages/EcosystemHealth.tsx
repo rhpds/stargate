@@ -195,7 +195,7 @@ function ClusterStrip({
   );
 }
 
-function PoolBadges({ pools }: { pools: PoolEntry[] }) {
+function PoolBadges({ pools, navigate }: { pools: PoolEntry[]; navigate: (path: string) => void }) {
   if (pools.length === 0) {
     return <p className="text-[#6A6E73] text-sm">No pools configured</p>;
   }
@@ -205,7 +205,8 @@ function PoolBadges({ pools }: { pools: PoolEntry[] }) {
       {pools.map((pool) => (
         <div
           key={pool.name}
-          className="bg-[#212121] border border-[#2e2e2e] rounded-lg px-4 py-3 flex items-center gap-3"
+          onClick={() => navigate(`/pool/${encodeURIComponent(pool.name)}`)}
+          className="bg-[#212121] border border-[#2e2e2e] rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-[#555] transition"
         >
           <span className="text-white text-sm font-medium">{pool.name}</span>
           <span
@@ -331,10 +332,28 @@ export default function EcosystemHealth() {
       {/* 4. Pool Availability */}
       <section>
         <SectionHeader>Pool Availability</SectionHeader>
-        <PoolBadges pools={pls.pools ?? []} />
+        <PoolBadges pools={pls.pools ?? []} navigate={navigate} />
       </section>
 
-      {/* 5. Labs */}
+      {/* 5. Provisioning */}
+      {pls.provisioning && pls.provisioning.total > 0 && (
+        <section>
+          <SectionHeader>Provisioning</SectionHeader>
+          <div
+            onClick={() => navigate('/provisioning')}
+            className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 cursor-pointer hover:border-[#555] transition"
+          >
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MetricCard label="Total Subjects" value={pls.provisioning.total} />
+              <MetricCard label="Started" value={pls.provisioning.started} />
+              <MetricCard label="Failed" value={pls.provisioning.failed} />
+              <MetricCard label="Failure Rate" value={`${pls.provisioning.failure_rate}%`} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 6. Labs */}
       <section>
         <SectionHeader>Labs ({(deps.labs ?? []).length})</SectionHeader>
         <LabGrid labs={deps.labs ?? []} navigate={navigate} />

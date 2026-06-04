@@ -937,3 +937,69 @@ export interface RemediationActivity {
   created_at?: string;
   result?: string;
 }
+
+// --- Provisioning Drill-Down ---
+
+export interface ProvisioningInstance {
+  anarchy_name: string;
+  lab_code?: string;
+  namespace: string;
+  state: string;
+  prefix?: string;
+  pool_name?: string;
+  console_url: string;
+  api_url: string;
+}
+
+export interface InstanceSummary {
+  total: number;
+  by_state: Record<string, number>;
+}
+
+export interface PoolDetailData {
+  name: string;
+  available: number;
+  ready: number;
+  min: number;
+  status: string;
+  is_summit: boolean;
+  consuming_labs: string[];
+  instances: ProvisioningInstance[];
+  instance_summary: InstanceSummary;
+  timestamp: string;
+}
+
+export interface LabProvisioningSummary {
+  total: number;
+  started: number;
+  failed: number;
+}
+
+export interface ProvisioningOverview {
+  total: number;
+  started: number;
+  failed: number;
+  failure_rate: number;
+  by_state: Record<string, number>;
+  subjects_by_state: Record<string, ProvisioningInstance[]>;
+  labs_affected: Record<string, LabProvisioningSummary>;
+  timestamp: string;
+}
+
+export interface CatalogItemDetail {
+  name: string;
+  display_name: string;
+  source: string;
+  category: string;
+  description: string;
+  disabled: boolean;
+  provider: string;
+  created: string;
+  lab_code: string;
+  sessions: number;
+  labagator_status: string;
+  linked_pools: PoolEntry[];
+  instances: ProvisioningInstance[];
+  instance_summary: InstanceSummary;
+  timestamp: string;
+}
