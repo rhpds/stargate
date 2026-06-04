@@ -291,18 +291,19 @@ export default function SummitReport() {
         <div className="space-y-4">
           <SearchBar placeholder="Search labs..." value={labSearch} onChange={setLabSearch} className="w-72" />
           <div className="space-y-0.5">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
-              <span>Lab</span><span className="text-right">Evals</span><span className="text-right">Passed</span><span className="text-right">Failed</span><span className="text-right">Pass Rate</span>
+            <div className="grid grid-cols-[1fr_100px_80px_80px_80px_80px] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
+              <span>Lab</span><span className="text-right">Namespaces</span><span className="text-right">Evals</span><span className="text-right">Passed</span><span className="text-right">Failed</span><span className="text-right">Pass Rate</span>
             </div>
             {filteredLabs.map((lab: any) => (
-              <Link key={lab.lab_code} to={`/lab/${encodeURIComponent(lab.lab_code)}`}
-                className="grid grid-cols-[1fr_80px_80px_80px_80px] gap-3 items-center py-1.5 hover:bg-[#1e1e1e] rounded transition">
-                <span className="text-sm text-[#73BCF7] truncate">{lab.lab_code}</span>
+              <div key={lab.lab_code}
+                className="grid grid-cols-[1fr_100px_80px_80px_80px_80px] gap-3 items-center py-1.5 hover:bg-[#1e1e1e] rounded transition">
+                <span className="text-sm text-white truncate">{lab.lab_name || lab.lab_code}</span>
+                <span className="text-sm text-[#6A6E73] text-right">{lab.namespace_count || 1}</span>
                 <span className="text-sm text-white text-right">{lab.total_evals}</span>
                 <span className="text-sm text-[#3E8635] text-right">{lab.passed}</span>
                 <span className={`text-sm text-right ${lab.failed > 0 ? 'text-[#C9190B] font-bold' : 'text-[#6A6E73]'}`}>{lab.failed}</span>
                 <span className="text-sm text-right" style={{ color: lab.pass_rate >= 80 ? '#3E8635' : lab.pass_rate >= 50 ? '#F0AB00' : '#C9190B' }}>{lab.pass_rate}%</span>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
