@@ -11,6 +11,7 @@ import {
 import { useTimeRange } from '../components/TimeRangeContext';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
+import SearchBar from '../components/SearchBar';
 import type {
   ApprovalQueueData,
   PendingActionItem,
@@ -264,6 +265,7 @@ export default function Remediation() {
     refetchInterval: 30_000,
   });
 
+  const [search, setSearch] = useState('');
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -312,11 +314,14 @@ export default function Remediation() {
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>
-          Remediation
-        </h1>
-        <p className="text-[#6A6E73]">Approval queue, execution history, playbook catalog</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>
+            Remediation
+          </h1>
+          <p className="text-[#6A6E73]">Approval queue, execution history, playbook catalog</p>
+        </div>
+        <SearchBar placeholder="Search namespace, failure class..." value={search} onChange={setSearch} className="w-72" />
       </div>
 
       {/* Stats row */}
@@ -331,9 +336,19 @@ export default function Remediation() {
       <section>
         <SectionHeader>Recommendations (Last Hour)</SectionHeader>
         <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-          {!recommendations.data?.recommendations?.length ? (
-            <p className="text-[#6A6E73] text-sm">{recommendations.isLoading ? 'Loading...' : 'No failures detected in the last hour.'}</p>
-          ) : (
+          {(() => {
+            const allRecs = recommendations.data?.recommendations ?? [];
+            const filteredRecs = search
+              ? allRecs.filter((r: any) =>
+                  (r.namespace || '').toLowerCase().includes(search.toLowerCase()) ||
+                  (r.failure_class || '').toLowerCase().includes(search.toLowerCase()) ||
+                  (r.cluster || '').toLowerCase().includes(search.toLowerCase())
+                )
+              : allRecs;
+            if (filteredRecs.length === 0) return (
+              <p className="text-[#6A6E73] text-sm">{recommendations.isLoading ? 'Loading...' : search ? 'No matches.' : 'No failures detected in the last hour.'}</p>
+            );
+            return (
             <div className="space-y-0.5">
               <div className="grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
                 <span>Namespace</span>
@@ -343,7 +358,7 @@ export default function Remediation() {
                 <span>Severity</span>
                 <span>Suggested Action</span>
               </div>
-              {recommendations.data.recommendations.map((r: any, i: number) => (
+              {filteredRecs.map((r: any, i: number) => (
                 <div key={i}>
                   <div
                     className={`grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 items-center py-1.5 rounded cursor-pointer transition ${
@@ -717,7 +732,8 @@ export default function Remediation() {
                 </div>
               ))}
             </div>
-          )}
+          );
+          })()}
         </div>
       </section>
 
