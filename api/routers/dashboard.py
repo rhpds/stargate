@@ -1238,6 +1238,46 @@ def dashboard_mttr(hours: int = 168, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# Summit Report
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/summit-report")
+def dashboard_summit_report():
+    """Summit week retrospective — mined from backup + live Babylon data."""
+    import json as _json
+    report_file = Path(__file__).parent.parent.parent / "receipts" / "summit-report.json"
+    subjects_file = Path(__file__).parent.parent.parent / "receipts" / "summit-subjects.json"
+
+    report = {}
+    if report_file.exists():
+        report = _json.loads(report_file.read_text())
+
+    subjects = {}
+    if subjects_file.exists():
+        subjects = _json.loads(subjects_file.read_text())
+
+    # Also try DB
+    if not report:
+        babylon = _load_latest_babylon()
+        db_report = None
+        try:
+            from db.database import get_db as _gdb
+            _db = next(_gdb())
+            db_report = repository.get_latest_scan_snapshot(_db, "summit_report")
+            _db.close()
+        except Exception:
+            pass
+        if db_report:
+            report = db_report
+
+    return {
+        "report": report,
+        "live_subjects": subjects,
+        "has_data": bool(report.get("evaluations")),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Trends
 # ---------------------------------------------------------------------------
 
