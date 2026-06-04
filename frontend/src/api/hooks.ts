@@ -363,3 +363,7 @@ export function useSandboxTrends(hours = 24) {
 export function useMTTR(hours = 168) {
   return useQuery({ queryKey: ['mttr', hours], queryFn: () => api.getMTTR(hours), refetchInterval: 120_000 });
 }
+
+export function useSummitReport() {
+  return useQuery({ queryKey: ['summit-report'], queryFn: api.getSummitReport, staleTime: 300_000 });
+}

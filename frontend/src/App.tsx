@@ -14,6 +14,7 @@ import ProvisioningDetail from './pages/ProvisioningDetail';
 import CatalogItemDetail from './pages/CatalogItemDetail';
 import TrendsPage from './pages/TrendsPage';
 import CapacityPage from './pages/CapacityPage';
+import SummitReport from './pages/SummitReport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +59,7 @@ const navItems = [
   { to: '/llm', label: 'LLM' },
   { to: '/trends', label: 'Trends' },
   { to: '/capacity', label: 'Capacity' },
+  { to: '/summit', label: 'Summit' },
 ];
 
 export default function App() {
@@ -112,6 +114,7 @@ export default function App() {
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
+                <Route path="/summit" element={<SummitReport />} />
               </Routes>
             </main>
             <footer style={{ backgroundColor: 'var(--brand-dark)' }} className="border-t border-[#333] text-[#6A6E73] text-sm py-5">
