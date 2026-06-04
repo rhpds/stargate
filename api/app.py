@@ -154,6 +154,29 @@ def on_startup():
     ts.start()
     tc = threading.Thread(target=_corpus_mining_loop, daemon=True)
     tc.start()
+    tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
+    tb.start()
+
+
+def _babylon_collection_loop():
+    """Collect Babylon control plane data every 3 minutes."""
+    import time as _tb
+    _tb.sleep(30)
+    logger = logging.getLogger("stargate")
+    while not _shutdown_event.is_set():
+        try:
+            from cli.babylon_worker import run_collection
+            results = run_collection()
+            prov = results.get("provisioning", {})
+            pools = results.get("pools", {})
+            logger.info(
+                "Babylon collect: %d subjects, %d pools, %d lab mappings",
+                prov.get("total", 0), pools.get("total_pools", 0),
+                len(results.get("summit_mapping", results.get("lab_mapping", {})))
+            )
+        except Exception as e:
+            logger.warning("Babylon collection failed: %s", e)
+        _shutdown_event.wait(180)
 
 
 def _corpus_mining_loop():
