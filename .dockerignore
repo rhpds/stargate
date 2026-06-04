@@ -2,7 +2,8 @@ scan-history/
 backups/
 test-receipts/
 stargate.db
-stargate-synthetic-client-emulator/
+stargate-synthetic-client-emulator/.pytest_cache/
+stargate-synthetic-client-emulator/tests/
 .git/
 __pycache__/
 *.pyc
