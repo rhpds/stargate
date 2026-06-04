@@ -180,6 +180,8 @@ class PendingAction(Base):
     target = Column(String(255), nullable=False)
     parameters = Column(JSON, nullable=True)
     confidence = Column(Float, nullable=False)
+    proposed_by = Column(String(100), nullable=True, default="stargate")
+    source_event_id = Column(String(255), nullable=True)
     status = Column(String(50), nullable=False, default="pending")
     proposed_at = Column(DateTime(timezone=True), nullable=False)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
