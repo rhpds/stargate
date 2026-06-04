@@ -55,569 +55,109 @@
     "systemic": 0
   },
   "labs": {
-    "total": 111,
+    "total": 5,
     "labs": [
       {
-        "lab_code": "\\N",
+        "lab_name": "Unattributed (no namespace)",
+        "lab_code": "Unattributed (no namespace)",
         "total_evals": 3039,
         "passed": 1273,
         "failed": 1124,
         "warned": 642,
-        "pass_rate": 41.9
+        "pass_rate": 41.9,
+        "namespace_count": 1
       },
       {
-        "lab_code": "sandbox-assignment-api",
+        "lab_name": "RHEL Hands-On Lab (ZeroTouch)",
+        "lab_code": "RHEL Hands-On Lab (ZeroTouch)",
+        "total_evals": 210,
+        "passed": 70,
+        "failed": 98,
+        "warned": 42,
+        "pass_rate": 33.3,
+        "namespace_count": 29
+      },
+      {
+        "lab_name": "Ansible Automation Platform (ZeroTouch)",
+        "lab_code": "Ansible Automation Platform (ZeroTouch)",
+        "total_evals": 125,
+        "passed": 48,
+        "failed": 52,
+        "warned": 25,
+        "pass_rate": 38.4,
+        "namespace_count": 15
+      },
+      {
+        "lab_name": "OpenShift 4 Cluster Sandbox",
+        "lab_code": "OpenShift 4 Cluster Sandbox",
+        "total_evals": 32,
+        "passed": 16,
+        "failed": 8,
+        "warned": 8,
+        "pass_rate": 50.0,
+        "namespace_count": 4
+      },
+      {
+        "lab_name": "Sandbox Assignment Service",
+        "lab_code": "Sandbox Assignment Service",
         "total_evals": 15,
         "passed": 6,
         "failed": 9,
         "warned": 0,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4j87j-1-zt-ansiblebu",
-        "total_evals": 15,
-        "passed": 3,
-        "failed": 9,
-        "warned": 3,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-2t8ph-zt-rhelbu",
-        "total_evals": 15,
-        "passed": 3,
-        "failed": 9,
-        "warned": 3,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-ctwv6-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-kdq98-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-2ffrk-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 6,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-2g9qn-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-2dtn8-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-2hrfp-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 6,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-22t2j-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-22vzl-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-256fr-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-5krc2-1-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-22zhv-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4gg8h-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-7c7jp-1-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4mf69-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-22h2w-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-24tcq-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-224n6-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-225jl-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-tl5lq-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-2cvq6-ocp4-cluster",
-        "total_evals": 8,
-        "passed": 4,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 50.0
-      },
-      {
-        "lab_code": "sandbox-22zcq-ocp4-cluster",
-        "total_evals": 8,
-        "passed": 4,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 50.0
-      },
-      {
-        "lab_code": "sandbox-27sjg-ocp4-cluster",
-        "total_evals": 8,
-        "passed": 4,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 50.0
-      },
-      {
-        "lab_code": "sandbox-2972d-ocp4-cluster",
-        "total_evals": 8,
-        "passed": 4,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 50.0
-      },
-      {
-        "lab_code": "sandbox-nmd45-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-s6t55-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-cbsl4-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-7hcnh-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-wlv5m-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-sv95k-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-bddrz-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-nkn7k-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-dnpk7-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-h9l2f-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-p5p9f-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 3,
-        "failed": 1,
-        "warned": 1,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-6q7xt-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 3,
-        "failed": 1,
-        "warned": 1,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-pbcgn-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-nff54-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-g52pm-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-zlc78-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 3,
-        "failed": 1,
-        "warned": 1,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-h66m6-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-k6zvl-zt-ansiblebu",
-        "total_evals": 5,
-        "passed": 3,
-        "failed": 1,
-        "warned": 1,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-6zjrq-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 1,
-        "failed": 3,
-        "warned": 1,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-kr6c9-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-kbnj6-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4nbbr-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-8c94c-zt-rhelbu",
-        "total_evals": 5,
-        "passed": 2,
-        "failed": 2,
-        "warned": 1,
-        "pass_rate": 40.0
+        "pass_rate": 40.0,
+        "namespace_count": 1
       }
     ],
     "top_failing": [
       {
-        "lab_code": "\\N",
+        "lab_name": "Unattributed (no namespace)",
+        "lab_code": "Unattributed (no namespace)",
         "total_evals": 3039,
         "passed": 1273,
         "failed": 1124,
         "warned": 642,
-        "pass_rate": 41.9
+        "pass_rate": 41.9,
+        "namespace_count": 1
       },
       {
-        "lab_code": "sandbox-assignment-api",
+        "lab_name": "RHEL Hands-On Lab (ZeroTouch)",
+        "lab_code": "RHEL Hands-On Lab (ZeroTouch)",
+        "total_evals": 210,
+        "passed": 70,
+        "failed": 98,
+        "warned": 42,
+        "pass_rate": 33.3,
+        "namespace_count": 29
+      },
+      {
+        "lab_name": "Ansible Automation Platform (ZeroTouch)",
+        "lab_code": "Ansible Automation Platform (ZeroTouch)",
+        "total_evals": 125,
+        "passed": 48,
+        "failed": 52,
+        "warned": 25,
+        "pass_rate": 38.4,
+        "namespace_count": 15
+      },
+      {
+        "lab_name": "OpenShift 4 Cluster Sandbox",
+        "lab_code": "OpenShift 4 Cluster Sandbox",
+        "total_evals": 32,
+        "passed": 16,
+        "failed": 8,
+        "warned": 8,
+        "pass_rate": 50.0,
+        "namespace_count": 4
+      },
+      {
+        "lab_name": "Sandbox Assignment Service",
+        "lab_code": "Sandbox Assignment Service",
         "total_evals": 15,
         "passed": 6,
         "failed": 9,
         "warned": 0,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4j87j-1-zt-ansiblebu",
-        "total_evals": 15,
-        "passed": 3,
-        "failed": 9,
-        "warned": 3,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-2t8ph-zt-rhelbu",
-        "total_evals": 15,
-        "passed": 3,
-        "failed": 9,
-        "warned": 3,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-ctwv6-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-kdq98-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-2ffrk-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 6,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-2g9qn-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-2dtn8-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-2hrfp-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 6,
-        "failed": 2,
-        "warned": 2,
-        "pass_rate": 60.0
-      },
-      {
-        "lab_code": "sandbox-22t2j-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-22vzl-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-256fr-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-5krc2-1-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-22zhv-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4gg8h-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-7c7jp-1-zt-ansiblebu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
-      },
-      {
-        "lab_code": "sandbox-4mf69-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-22h2w-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 2,
-        "failed": 6,
-        "warned": 2,
-        "pass_rate": 20.0
-      },
-      {
-        "lab_code": "sandbox-24tcq-zt-rhelbu",
-        "total_evals": 10,
-        "passed": 4,
-        "failed": 4,
-        "warned": 2,
-        "pass_rate": 40.0
+        "pass_rate": 40.0,
+        "namespace_count": 1
       }
     ]
   },
