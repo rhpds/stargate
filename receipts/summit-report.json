@@ -722,7 +722,10 @@
       "total": 3695,
       "passed": 1523,
       "failed": 1397,
-      "pass_rate": 41.2
+      "pass_rate": 41.2,
+      "aap_jobs": 5552,
+      "aap_failed": 1248,
+      "aap_success_rate": 72.7
     }
   ],
   "hourly_timeline": [
@@ -1969,7 +1972,348 @@
       "note": "Live state only \u2014 370 summit-2026 subjects, none created during May 5-8"
     },
     "aap_jobs": {
-      "note": "Not queried \u2014 credentials needed, 30-day retention borderline"
+      "controllers": [
+        "event0"
+      ],
+      "days": [
+        "2026-05-05",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08"
+      ],
+      "total_jobs": 22638,
+      "note": "Full job history from event0 (dal12). Event1 (wdc07) not queried \u2014 on infra02."
+    }
+  },
+  "aap": {
+    "event0": {
+      "controller": "event0",
+      "by_day": {
+        "2026-05-05": {
+          "total": 5595,
+          "successful": 3021,
+          "failed": 2362,
+          "error": 1,
+          "canceled": 211,
+          "success_rate": 54.0
+        },
+        "2026-05-06": {
+          "total": 6236,
+          "successful": 4571,
+          "failed": 1588,
+          "error": 0,
+          "canceled": 77,
+          "success_rate": 73.3
+        },
+        "2026-05-07": {
+          "total": 5552,
+          "successful": 4034,
+          "failed": 1248,
+          "error": 187,
+          "canceled": 83,
+          "success_rate": 72.7
+        },
+        "2026-05-08": {
+          "total": 5255,
+          "successful": 4158,
+          "failed": 1043,
+          "error": 0,
+          "canceled": 54,
+          "success_rate": 79.1
+        }
+      },
+      "total_summit_jobs": 22638,
+      "total_failed": 6241,
+      "overall_success_rate": 69.7,
+      "top_errors": {
+        "": 50
+      },
+      "top_failing_labs": {
+        "RHPDS summit-2026.ai-lightning": {
+          "total": 0,
+          "failed": 24
+        },
+        "RHPDS ai-quickstarts.ai-qs-rag": {
+          "total": 0,
+          "failed": 9
+        },
+        "RHPDS ai-quickstarts.ai-qs-pro": {
+          "total": 0,
+          "failed": 4
+        },
+        "LB1216": {
+          "total": 0,
+          "failed": 4
+        },
+        "RHPDS agd-v2.ocp4-getting-star": {
+          "total": 0,
+          "failed": 3
+        },
+        "RHPDS zt-ansiblebu.zt-ans-bu-l": {
+          "total": 0,
+          "failed": 2
+        },
+        "RHPDS agd-v2.ocp-virt-labs-poo": {
+          "total": 0,
+          "failed": 1
+        },
+        "LB2865": {
+          "total": 0,
+          "failed": 1
+        },
+        "LB1404": {
+          "total": 0,
+          "failed": 1
+        },
+        "LB2596": {
+          "total": 0,
+          "failed": 1
+        }
+      },
+      "recent_failures": [
+        {
+          "id": 71373,
+          "name": "RHPDS agd-v2.ocp-virt-labs-pool.event-hw5n7-provision-sjlwm 89b13ce5-030a-5c78-a",
+          "lab": "RHPDS agd-v2.ocp-virt-labs-poo",
+          "status": "failed",
+          "finished": "2026-05-08T23:25:32.985137Z",
+          "elapsed": 1528.802
+        },
+        {
+          "id": 71372,
+          "name": "RHPDS summit-2026.lb2865-hummingbird-cnv-tenant.event-kjbfk-destlgv6j e516c1e4-7",
+          "lab": "LB2865",
+          "status": "failed",
+          "finished": "2026-05-08T22:08:40.597191Z",
+          "elapsed": 102.456
+        },
+        {
+          "id": 71268,
+          "name": "RHPDS zt-ansiblebu.zt-ans-bu-lab-developer-cnv.event-9pzch-provich469 b0cc6474-0",
+          "lab": "RHPDS zt-ansiblebu.zt-ans-bu-l",
+          "status": "failed",
+          "finished": "2026-05-08T22:08:30.853948Z",
+          "elapsed": 3640.354
+        },
+        {
+          "id": 71261,
+          "name": "RHPDS zt-ansiblebu.zt-ans-bu-lab-developer-cnv.event-k7dwd-provi9w47b 1b2d5213-0",
+          "lab": "RHPDS zt-ansiblebu.zt-ans-bu-l",
+          "status": "failed",
+          "finished": "2026-05-08T22:04:19.377199Z",
+          "elapsed": 3617.91
+        },
+        {
+          "id": 71370,
+          "name": "RHPDS ai-quickstarts.ai-qs-product-rec-tenant.event-jgc49-destro49hk2 65441c2f-7",
+          "lab": "RHPDS ai-quickstarts.ai-qs-pro",
+          "status": "failed",
+          "finished": "2026-05-08T22:03:48.175766Z",
+          "elapsed": 29.447
+        },
+        {
+          "id": 71369,
+          "name": "RHPDS ai-quickstarts.ai-qs-product-rec-tenant.event-52j7p-destrorpx6d 06fdd8c2-c",
+          "lab": "RHPDS ai-quickstarts.ai-qs-pro",
+          "status": "failed",
+          "finished": "2026-05-08T22:03:26.329285Z",
+          "elapsed": 30.557
+        },
+        {
+          "id": 71361,
+          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-ls7nj-destroy-fnzbl 6485ff66-e2e9-51",
+          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
+          "status": "failed",
+          "finished": "2026-05-08T21:47:04.510266Z",
+          "elapsed": 97.833
+        },
+        {
+          "id": 71272,
+          "name": "RHPDS summit-2026.lb1404-vmware-migration-cnv.event-stbkg-provistjmqt a1cade47-7",
+          "lab": "LB1404",
+          "status": "failed",
+          "finished": "2026-05-08T21:43:52.688436Z",
+          "elapsed": 2115.029
+        },
+        {
+          "id": 71358,
+          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-ls7nj-destroy-fnzbl 6485ff66-e2e9-51",
+          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
+          "status": "failed",
+          "finished": "2026-05-08T21:40:13.603555Z",
+          "elapsed": 96.862
+        },
+        {
+          "id": 71318,
+          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-nwrtx-d62qjj 5fea95e8-f",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:26:55.984154Z",
+          "elapsed": 91.855
+        },
+        {
+          "id": 71310,
+          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-cdkkh-dcnwk4 4de107d9-0",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:15:42.534482Z",
+          "elapsed": 93.123
+        },
+        {
+          "id": 71309,
+          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-26jmx-d9jhpk 7a2457fd-2",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:15:31.361152Z",
+          "elapsed": 92.891
+        },
+        {
+          "id": 71305,
+          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-whlv2-d8xrf6 8356b244-f",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:13:43.043998Z",
+          "elapsed": 91.401
+        },
+        {
+          "id": 71271,
+          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-8trnp-df7mnl 2e0727ef-9",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:09:42.008522Z",
+          "elapsed": 91.186
+        },
+        {
+          "id": 71270,
+          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-66lwg-d5zqfd 45988246-7",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:09:40.809277Z",
+          "elapsed": 97.409
+        },
+        {
+          "id": 71269,
+          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-t7f47-d2wx57 f21dd0ca-e",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:09:39.303158Z",
+          "elapsed": 96.917
+        },
+        {
+          "id": 71263,
+          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-vbgcm-dlkwqk afbc5c53-1",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:05:51.507372Z",
+          "elapsed": 99.598
+        },
+        {
+          "id": 71264,
+          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-r9sbw-dks9l7 e55744c5-0",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:05:45.915820Z",
+          "elapsed": 92.892
+        },
+        {
+          "id": 71222,
+          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-whlv2-d8xrf6 8356b244-f",
+          "lab": "RHPDS summit-2026.ai-lightning",
+          "status": "failed",
+          "finished": "2026-05-08T21:02:54.507595Z",
+          "elapsed": 95.866
+        },
+        {
+          "id": 71166,
+          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-d85jm-destroy-cz4gd f0dd16e9-7232-56",
+          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
+          "status": "failed",
+          "finished": "2026-05-08T20:58:57.494950Z",
+          "elapsed": 104.383
+        }
+      ]
+    },
+    "total_jobs": 22638,
+    "total_failed": 6241,
+    "overall_success_rate": 69.7,
+    "by_day": {
+      "2026-05-05": {
+        "total": 5595,
+        "successful": 3021,
+        "failed": 2362,
+        "error": 1,
+        "canceled": 211,
+        "success_rate": 54.0
+      },
+      "2026-05-06": {
+        "total": 6236,
+        "successful": 4571,
+        "failed": 1588,
+        "error": 0,
+        "canceled": 77,
+        "success_rate": 73.3
+      },
+      "2026-05-07": {
+        "total": 5552,
+        "successful": 4034,
+        "failed": 1248,
+        "error": 187,
+        "canceled": 83,
+        "success_rate": 72.7
+      },
+      "2026-05-08": {
+        "total": 5255,
+        "successful": 4158,
+        "failed": 1043,
+        "error": 0,
+        "canceled": 54,
+        "success_rate": 79.1
+      }
+    },
+    "top_errors": {
+      "": 50
+    },
+    "top_failing_labs": {
+      "RHPDS summit-2026.ai-lightning": {
+        "total": 0,
+        "failed": 24
+      },
+      "RHPDS ai-quickstarts.ai-qs-rag": {
+        "total": 0,
+        "failed": 9
+      },
+      "RHPDS ai-quickstarts.ai-qs-pro": {
+        "total": 0,
+        "failed": 4
+      },
+      "LB1216": {
+        "total": 0,
+        "failed": 4
+      },
+      "RHPDS agd-v2.ocp4-getting-star": {
+        "total": 0,
+        "failed": 3
+      },
+      "RHPDS zt-ansiblebu.zt-ans-bu-l": {
+        "total": 0,
+        "failed": 2
+      },
+      "RHPDS agd-v2.ocp-virt-labs-poo": {
+        "total": 0,
+        "failed": 1
+      },
+      "LB2865": {
+        "total": 0,
+        "failed": 1
+      },
+      "LB1404": {
+        "total": 0,
+        "failed": 1
+      },
+      "LB2596": {
+        "total": 0,
+        "failed": 1
+      }
     }
   }
 }

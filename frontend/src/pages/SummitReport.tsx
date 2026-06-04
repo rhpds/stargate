@@ -59,6 +59,7 @@ export default function SummitReport() {
   const report = data.report;
   const subjects = data.live_subjects;
   const evals = report.evaluations || {};
+  const aap = report.aap || {};
   const labs = report.labs?.labs || [];
   const stages = report.stages || [];
   const daily = report.daily || [];
@@ -95,9 +96,11 @@ export default function SummitReport() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <MetricCard label="AAP Jobs" value={(aap.total_jobs || 0).toLocaleString()} sub={`${aap.overall_success_rate || 0}% success`} />
+        <MetricCard label="AAP Failed" value={(aap.total_failed || 0).toLocaleString()} />
         <MetricCard label="Evaluations" value={evals.total || 0} />
-        <MetricCard label="Pass Rate" value={`${evals.pass_rate || 0}%`} />
+        <MetricCard label="Eval Pass Rate" value={`${evals.pass_rate || 0}%`} />
         <MetricCard label="Labs" value={labs.length} />
         <MetricCard label="Clusters" value={clusters.length} />
         <MetricCard label="Failure Classes" value={evals.total_failure_classes || 0} />
@@ -156,6 +159,40 @@ export default function SummitReport() {
                   <span>{timeline[timeline.length - 1]?.hour}</span>
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* AAP Provisioning */}
+          {aap.by_day && (
+            <section>
+              <SectionHeader>AAP Provisioning ({aap.total_jobs?.toLocaleString()} jobs)</SectionHeader>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {Object.entries(aap.by_day as Record<string, any>).map(([day, stats]: [string, any]) => (
+                  <div key={day} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                    <div className="text-white font-bold mb-2">{new Date(day + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                    <div className="text-2xl font-bold mb-1" style={{ color: stats.success_rate >= 80 ? '#3E8635' : stats.success_rate >= 60 ? '#F0AB00' : '#C9190B', fontFamily: 'Red Hat Display' }}>
+                      {stats.success_rate}%
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <span className="text-[#6A6E73]">Jobs: <span className="text-white">{stats.total?.toLocaleString()}</span></span>
+                      <span className="text-[#6A6E73]">Failed: <span className="text-[#C9190B]">{stats.failed?.toLocaleString()}</span></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {aap.top_errors && Object.keys(aap.top_errors).length > 0 && (
+                <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                  <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Top Errors</div>
+                  <div className="space-y-1">
+                    {Object.entries(aap.top_errors as Record<string, number>).slice(0, 5).map(([err, count]) => (
+                      <div key={err} className="flex items-center gap-3 text-xs">
+                        <span className="text-[#C9190B] w-8 text-right shrink-0">{count}</span>
+                        <span className="text-[#d2d2d2] truncate" title={err}>{err || '(empty)'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
