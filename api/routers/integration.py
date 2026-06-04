@@ -94,6 +94,84 @@ def submit_feedback(run_id: str, req: FeedbackRequest, db: Session = Depends(get
     }
 
 
+@router.post("/integration/geolux-proposal", status_code=201)
+def receive_geolux_proposal(body: dict, db: Session = Depends(get_db)):
+    """Receive a remediation proposal from GeoLux.
+
+    GeoLux sends classification results and remediation recommendations
+    back to StarGate. These are queued as PendingActions for human review
+    through the standard approval queue.
+
+    Expected body:
+    {
+        "source": "geolux",
+        "event_id": "original stargate event id",
+        "proposal": {
+            "action_type": "cleanup_stuck",
+            "target": "namespace-name",
+            "failure_class": "pods_crashlooping",
+            "confidence": 0.85,
+            "reasoning": "GeoLux hypothesis: ...",
+            "suggested_commands": ["oc delete pod ..."],
+            "cluster": "ocpv05"
+        }
+    }
+    """
+    from db.models import PendingAction, AuditLog
+
+    proposal = body.get("proposal", {})
+    action_type = proposal.get("action_type", "geolux_recommendation")
+    target = proposal.get("target", "")
+    confidence = float(proposal.get("confidence", 0.5))
+    event_id = body.get("event_id", "")
+
+    if not target:
+        raise HTTPException(status_code=422, detail="proposal.target is required")
+
+    pending = PendingAction(
+        action_type=action_type,
+        target=target,
+        parameters={
+            "failure_class": proposal.get("failure_class"),
+            "reasoning": proposal.get("reasoning"),
+            "suggested_commands": proposal.get("suggested_commands", []),
+            "cluster": proposal.get("cluster"),
+            "source": "geolux",
+        },
+        confidence=confidence,
+        proposed_by="geolux",
+        source_event_id=event_id,
+        status="pending",
+        proposed_at=datetime.now(timezone.utc),
+    )
+    db.add(pending)
+
+    audit = AuditLog(
+        action_type=action_type,
+        target=target,
+        parameters={"source": "geolux", "confidence": confidence, "failure_class": proposal.get("failure_class")},
+        proposed_by="geolux",
+        status="proposed",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+    db.commit()
+
+    import logging
+    logging.getLogger("stargate").info(
+        "GeoLux proposal received: %s on %s (confidence %.2f)",
+        action_type, target, confidence,
+    )
+
+    return {
+        "pending_id": pending.id,
+        "action_type": action_type,
+        "target": target,
+        "confidence": confidence,
+        "status": "queued_for_approval",
+    }
+
+
 @router.get("/integration/lab-status/{lab_code}")
 def get_lab_validation_status(lab_code: str, db: Session = Depends(get_db)):
     """Get the current validation status for a lab."""
