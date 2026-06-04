@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { useOverview, useRemediation } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
+import SearchBar from '../components/SearchBar';
 import type { OverviewData } from '../api/types';
 
 /* ---- sub-components ---- */
@@ -28,11 +30,18 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 /* ---- main page ---- */
 
 export default function FailureClasses() {
+  const [searchParams] = useSearchParams();
   const overview = useOverview();
   const { range, cluster } = useTimeRange();
   const sinceMinutes = Math.round(range.ms / 60000);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string | null>(searchParams.get('selected'));
   const [selectedNs, setSelectedNs] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sel = searchParams.get('selected');
+    if (sel) setSelectedClass(sel);
+  }, [searchParams]);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [remediateConfirm, setRemediateConfirm] = useState(false);
@@ -65,19 +74,25 @@ export default function FailureClasses() {
 
   const ov = overview.data as OverviewData;
   const failureClasses = ov.errors.failure_classes ?? {};
-  const entries = Object.entries(failureClasses).sort(([, a], [, b]) => b - a);
-  const totalClasses = entries.length;
-  const totalFailures = entries.reduce((sum, [, count]) => sum + count, 0);
+  const allEntries = Object.entries(failureClasses).sort(([, a], [, b]) => b - a);
+  const entries = search
+    ? allEntries.filter(([cls]) => cls.toLowerCase().includes(search.toLowerCase()))
+    : allEntries;
+  const totalClasses = allEntries.length;
+  const totalFailures = allEntries.reduce((sum, [, count]) => sum + count, 0);
   const maxCount = entries.length > 0 ? entries[0]![1] : 1;
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>
-          Failure Classes
-        </h1>
-        <p className="text-[#6A6E73]">Classification patterns across the ecosystem</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>
+            Failure Classes
+          </h1>
+          <p className="text-[#6A6E73]">Classification patterns across the ecosystem</p>
+        </div>
+        <SearchBar placeholder="Search failure classes..." value={search} onChange={setSearch} className="w-72" />
       </div>
 
       {/* Stats row */}
