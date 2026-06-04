@@ -1,7 +1,7 @@
 """Database repository — CRUD operations for StarGate persistence."""
 
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -1007,3 +1007,172 @@ def count_recent_actions(db: Session, lab_code: str, hours: int = 1) -> int:
         )
         .count()
     )
+
+
+# ---------------------------------------------------------------------------
+# Historical Data — AAP, Provisioning, Sandbox metrics
+# ---------------------------------------------------------------------------
+
+def save_aap_metrics(db: Session, data: Dict) -> None:
+    from db.models import AAPJobMetric
+    summary = data.get("summary", {})
+    top_errors = data.get("top_errors", [])
+    metric = AAPJobMetric(
+        captured_at=datetime.now(timezone.utc),
+        total_jobs=summary.get("total_jobs", 0),
+        successful=summary.get("successful", 0),
+        failed=summary.get("failed", 0),
+        running=summary.get("running", 0),
+        success_rate=summary.get("success_rate"),
+        provision_sli=summary.get("provision_sli"),
+        sli_met=summary.get("sli_met"),
+        top_error=top_errors[0]["error"][:500] if top_errors else None,
+        by_cluster=data.get("by_cluster"),
+        by_lab=data.get("by_lab"),
+    )
+    db.add(metric)
+    db.commit()
+
+
+def get_aap_timeline(db: Session, hours: int = 24) -> List[Dict]:
+    from db.models import AAPJobMetric
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = db.query(AAPJobMetric).filter(AAPJobMetric.captured_at >= cutoff).order_by(AAPJobMetric.captured_at).all()
+    return [
+        {
+            "captured_at": r.captured_at.isoformat(),
+            "total_jobs": r.total_jobs,
+            "successful": r.successful,
+            "failed": r.failed,
+            "success_rate": r.success_rate,
+            "provision_sli": r.provision_sli,
+            "sli_met": r.sli_met,
+            "top_error": r.top_error,
+        }
+        for r in rows
+    ]
+
+
+def save_provisioning_snapshot(db: Session, data: Dict) -> None:
+    from db.models import ProvisioningSnapshot
+    summit = data.get("summit_2026", {})
+    snap = ProvisioningSnapshot(
+        captured_at=datetime.now(timezone.utc),
+        total=data.get("total", 0),
+        started=data.get("started", 0),
+        failed=data.get("failed", 0),
+        failure_rate=data.get("failure_rate"),
+        by_state=data.get("by_state"),
+        summit_total=summit.get("total"),
+        summit_started=summit.get("started"),
+        summit_failed=summit.get("failed"),
+    )
+    db.add(snap)
+    db.commit()
+
+
+def get_provisioning_timeline(db: Session, hours: int = 24) -> List[Dict]:
+    from db.models import ProvisioningSnapshot
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = db.query(ProvisioningSnapshot).filter(ProvisioningSnapshot.captured_at >= cutoff).order_by(ProvisioningSnapshot.captured_at).all()
+    return [
+        {
+            "captured_at": r.captured_at.isoformat(),
+            "total": r.total,
+            "started": r.started,
+            "failed": r.failed,
+            "failure_rate": r.failure_rate,
+            "by_state": r.by_state,
+        }
+        for r in rows
+    ]
+
+
+def save_sandbox_metrics(db: Session, data: Dict) -> None:
+    from db.models import SandboxAPIMetric
+    metric = SandboxAPIMetric(
+        captured_at=datetime.now(timezone.utc),
+        api_healthy=data.get("api_healthy"),
+        replicas_desired=data.get("replicas_desired"),
+        replicas_ready=data.get("replicas_ready"),
+        queue_depth=data.get("queue_depth"),
+        total_sandboxes=data.get("total_sandboxes"),
+        active=data.get("active"),
+        failing=data.get("failing"),
+        crashloop=data.get("crashloop"),
+        by_cluster=data.get("by_cluster"),
+    )
+    db.add(metric)
+    db.commit()
+
+
+def get_sandbox_timeline(db: Session, hours: int = 24) -> List[Dict]:
+    from db.models import SandboxAPIMetric
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = db.query(SandboxAPIMetric).filter(SandboxAPIMetric.captured_at >= cutoff).order_by(SandboxAPIMetric.captured_at).all()
+    return [
+        {
+            "captured_at": r.captured_at.isoformat(),
+            "api_healthy": r.api_healthy,
+            "queue_depth": r.queue_depth,
+            "total_sandboxes": r.total_sandboxes,
+            "active": r.active,
+            "failing": r.failing,
+            "crashloop": r.crashloop,
+        }
+        for r in rows
+    ]
+
+
+def compute_mttr(db: Session, hours: int = 168) -> Dict:
+    """Compute mean time to recovery from evaluation pass/fail transitions."""
+    from db.models import EvaluationRecord
+    from datetime import timedelta
+    from sqlalchemy import func
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    evals = (
+        db.query(EvaluationRecord)
+        .filter(EvaluationRecord.evaluated_at >= cutoff, EvaluationRecord.failure_class.isnot(None))
+        .order_by(EvaluationRecord.lab_code, EvaluationRecord.failure_class, EvaluationRecord.evaluated_at)
+        .all()
+    )
+
+    durations_by_class: Dict[str, List[float]] = {}
+    prev: Dict[str, Any] = {}
+
+    for ev in evals:
+        key = f"{ev.lab_code}:{ev.failure_class}"
+        if ev.outcome == "fail":
+            if key not in prev:
+                prev[key] = ev.evaluated_at
+        elif ev.outcome == "pass" and key in prev:
+            start = prev.pop(key)
+            if ev.evaluated_at and start:
+                duration = (ev.evaluated_at - start).total_seconds() / 60.0
+                if duration > 0:
+                    fc = ev.failure_class or "unknown"
+                    durations_by_class.setdefault(fc, []).append(duration)
+
+    all_durations = [d for ds in durations_by_class.values() for d in ds]
+    overall_mttr = sum(all_durations) / len(all_durations) if all_durations else None
+
+    by_class = []
+    for fc, ds in sorted(durations_by_class.items(), key=lambda x: -len(x[1])):
+        ds_sorted = sorted(ds)
+        by_class.append({
+            "failure_class": fc,
+            "count": len(ds),
+            "avg_minutes": round(sum(ds) / len(ds), 1),
+            "p50": round(ds_sorted[len(ds_sorted) // 2], 1),
+            "p95": round(ds_sorted[int(len(ds_sorted) * 0.95)], 1) if len(ds_sorted) > 1 else round(ds_sorted[0], 1),
+        })
+
+    return {
+        "overall_mttr_minutes": round(overall_mttr, 1) if overall_mttr else None,
+        "total_recoveries": len(all_durations),
+        "by_class": by_class[:20],
+    }

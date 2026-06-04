@@ -98,6 +98,7 @@ export default function EcosystemHealth() {
 
   const actionStrip = useQuery({ queryKey: ['action-strip'], queryFn: api.getActionStrip, refetchInterval: 30_000 });
   const aiSummary = useQuery({ queryKey: ['ai-summary'], queryFn: api.getAISummary, refetchInterval: 60_000 });
+  const mttrQuery = useQuery({ queryKey: ['mttr-overview'], queryFn: () => api.getMTTR(168), refetchInterval: 120_000 });
 
   const ov = overview.data as OverviewData | undefined;
   const isLoading = overview.isLoading || deployments.isLoading || clusters.isLoading || pools.isLoading;
@@ -126,7 +127,7 @@ export default function EcosystemHealth() {
   const deps = deployments.data as DeploymentsDashboard;
   const cls = clusters.data as ClustersDashboard;
   const pls = pools.data as PoolsDashboard;
-  const stuckCount = (stuck.data as any)?.total_stuck ?? 0;
+  void stuck;
   const actions = (actionStrip.data as any)?.actions ?? [];
   const aiData = aiSummary.data as any;
 
@@ -139,6 +140,10 @@ export default function EcosystemHealth() {
   const poolLow = ov!.pools.low ?? 0;
   const provTotal = pls.provisioning?.total ?? 0;
   const provFailed = pls.provisioning?.failed ?? 0;
+  const mttrData = mttrQuery.data as any;
+  const mttrValue = mttrData?.overall_mttr_minutes != null
+    ? (mttrData.overall_mttr_minutes < 60 ? `${Math.round(mttrData.overall_mttr_minutes)}m` : `${(mttrData.overall_mttr_minutes / 60).toFixed(1)}h`)
+    : '--';
 
   // Merge cluster scans with summaries
   const mergedClusters = (ov!.clusters.scans ?? []).map((scan: ClusterScan) => {
@@ -185,7 +190,7 @@ export default function EcosystemHealth() {
         <MetricCard label="Pass Rate" value={pct(labHealthy, labTotal)} onClick={() => navigate('/pipeline')} />
         <MetricCard label="Pools" value={`${poolTotal - poolExhausted - poolLow}/${poolTotal}`} onClick={() => navigate('/capacity')} />
         <MetricCard label="Provisioning" value={provTotal > 0 ? `${provFailed} failed` : '--'} onClick={() => navigate('/provisioning')} />
-        {stuckCount > 0 && <MetricCard label="Stuck" value={stuckCount} onClick={() => navigate('/provisioning')} />}
+        <MetricCard label="Avg Recovery" value={mttrValue} onClick={() => navigate('/trends')} />
       </div>
 
       {/* AI Summary */}

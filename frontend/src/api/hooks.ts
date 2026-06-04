@@ -347,3 +347,19 @@ export function useProvisioningOverview() {
 export function useCatalogItemDetail(itemName: string) {
   return useQuery({ queryKey: ['catalog-item-detail', itemName], queryFn: () => api.getCatalogItemDetail(itemName), enabled: !!itemName, refetchInterval: 30_000 });
 }
+
+export function useAAPTrends(hours = 24) {
+  return useQuery({ queryKey: ['aap-trends', hours], queryFn: () => api.getAAPTrends(hours), refetchInterval: 60_000 });
+}
+
+export function useProvisioningTrends(hours = 24) {
+  return useQuery({ queryKey: ['provisioning-trends', hours], queryFn: () => api.getProvisioningTrends(hours), refetchInterval: 60_000 });
+}
+
+export function useSandboxTrends(hours = 24) {
+  return useQuery({ queryKey: ['sandbox-trends', hours], queryFn: () => api.getSandboxTrends(hours), refetchInterval: 60_000 });
+}
+
+export function useMTTR(hours = 168) {
+  return useQuery({ queryKey: ['mttr', hours], queryFn: () => api.getMTTR(hours), refetchInterval: 120_000 });
+}

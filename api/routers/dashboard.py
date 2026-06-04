@@ -1210,6 +1210,34 @@ def dashboard_catalog_detail(item_name: str):
 
 
 # ---------------------------------------------------------------------------
+# Historical Trend Endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/aap-trends")
+def dashboard_aap_trends(hours: int = 24, db: Session = Depends(get_db)):
+    """AAP provisioning SLI timeline."""
+    return {"timeline": repository.get_aap_timeline(db, hours=hours)}
+
+
+@router.get("/dashboard/provisioning-trends")
+def dashboard_provisioning_trends(hours: int = 24, db: Session = Depends(get_db)):
+    """Provisioning state timeline (AnarchySubject totals over time)."""
+    return {"timeline": repository.get_provisioning_timeline(db, hours=hours)}
+
+
+@router.get("/dashboard/sandbox-trends")
+def dashboard_sandbox_trends(hours: int = 24, db: Session = Depends(get_db)):
+    """Sandbox API health and queue depth timeline."""
+    return {"timeline": repository.get_sandbox_timeline(db, hours=hours)}
+
+
+@router.get("/dashboard/mttr")
+def dashboard_mttr(hours: int = 168, db: Session = Depends(get_db)):
+    """Mean time to recovery computed from evaluation pass/fail transitions."""
+    return repository.compute_mttr(db, hours=hours)
+
+
+# ---------------------------------------------------------------------------
 # Trends
 # ---------------------------------------------------------------------------
 

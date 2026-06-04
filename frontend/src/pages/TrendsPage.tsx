@@ -1,5 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { useTrends, usePoolsDashboard, useProvisioningOverview } from '../api/hooks';
+import { useTrends, usePoolsDashboard, useProvisioningOverview, useAAPTrends, useProvisioningTrends, useMTTR } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -51,6 +51,9 @@ export default function TrendsPage() {
   const trends = useTrends(cluster ? { cluster } : undefined);
   const pools = usePoolsDashboard();
   const provisioning = useProvisioningOverview();
+  const aapTrends = useAAPTrends(24);
+  const provTrends = useProvisioningTrends(24);
+  const mttr = useMTTR(168);
 
   const t = trends.data as any;
   const pls = pools.data as any;
@@ -77,6 +80,66 @@ export default function TrendsPage() {
         </div>
       ) : (
         <p className="text-[#6A6E73]">No trend data available.</p>
+      )}
+
+      {/* AAP SLI Trend */}
+      {(aapTrends.data as any)?.timeline?.length > 0 && (
+        <section>
+          <SectionHeader>AAP Provisioning SLI (24h)</SectionHeader>
+          <TrendChart
+            label="AAP Success Rate %"
+            data={((aapTrends.data as any).timeline as any[]).map((p: any) => p.success_rate ?? 0)}
+            color="#4394E5"
+          />
+        </section>
+      )}
+
+      {/* Provisioning Trend */}
+      {(provTrends.data as any)?.timeline?.length > 0 && (
+        <section>
+          <SectionHeader onClick={() => navigate('/provisioning')}>Provisioning History (24h)</SectionHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TrendChart
+              label="Total Subjects"
+              data={((provTrends.data as any).timeline as any[]).map((p: any) => p.total ?? 0)}
+              color="#4394E5"
+            />
+            <TrendChart
+              label="Failed Subjects"
+              data={((provTrends.data as any).timeline as any[]).map((p: any) => p.failed ?? 0)}
+              color="#C9190B"
+            />
+          </div>
+        </section>
+      )}
+
+      {/* MTTR */}
+      {mttr.data?.by_class?.length > 0 && (
+        <section>
+          <SectionHeader>Mean Time to Recovery (7 days)</SectionHeader>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+            {mttr.data.overall_mttr_minutes != null && (
+              <div className="text-center mb-4">
+                <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>
+                  {mttr.data.overall_mttr_minutes < 60
+                    ? `${Math.round(mttr.data.overall_mttr_minutes)}m`
+                    : `${(mttr.data.overall_mttr_minutes / 60).toFixed(1)}h`}
+                </div>
+                <div className="text-xs text-[#6A6E73] uppercase">Overall MTTR ({mttr.data.total_recoveries} recoveries)</div>
+              </div>
+            )}
+            <div className="space-y-2">
+              {(mttr.data.by_class as any[]).slice(0, 10).map((c: any) => (
+                <div key={c.failure_class} onClick={() => navigate(`/failures?selected=${encodeURIComponent(c.failure_class)}`)}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-[#1e1e1e] rounded px-1 -mx-1 transition">
+                  <span className="text-xs text-[#6A6E73] w-40 truncate shrink-0">{c.failure_class}</span>
+                  <span className="text-xs text-white w-16 text-right">{c.avg_minutes < 60 ? `${Math.round(c.avg_minutes)}m` : `${(c.avg_minutes / 60).toFixed(1)}h`}</span>
+                  <span className="text-xs text-[#6A6E73] w-12 text-right">{c.count}x</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Provisioning State */}
