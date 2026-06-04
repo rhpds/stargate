@@ -822,6 +822,7 @@ def _get_lab_provisioning(lab_code: str) -> Dict:
         for p in all_pools if isinstance(p, dict) and lab_slug in p.get("name", "").lower()
     ]
 
+    from api.routers._shared import _fetch_launchpad_sessions
     launchpad_sessions = [s for s in _fetch_launchpad_sessions() if s.get("lab_code", "").lower() == lab_slug]
 
     return {
