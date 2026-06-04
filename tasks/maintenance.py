@@ -42,17 +42,28 @@ def mv_refresh(self):
 
 @shared_task
 def warm_caches():
-    """Pre-fetch external API caches."""
+    """Pre-fetch external API caches and persist sandbox metrics."""
     try:
         from api.routers._shared import _fetch_labagator_labs, _fetch_labagator_sessions, _fetch_demolition_sessions
         _fetch_labagator_labs()
         _fetch_labagator_sessions()
         _fetch_demolition_sessions()
         logger.info("Cache warm complete")
-        return {"status": "ok"}
     except Exception as e:
         logger.warning("Cache warm failed: %s", e)
         return {"error": str(e)}
+    try:
+        from collectors.sandbox_api.collect_sandbox_api import collect_sandbox_api_health as collect_sandbox_health
+        from db.database import get_db
+        from db import repository
+        data = collect_sandbox_health()
+        if data and not data.get("error"):
+            db = next(get_db())
+            repository.save_sandbox_metrics(db, data)
+            db.close()
+    except Exception as e:
+        logger.warning("Sandbox metrics persist failed: %s", e)
+    return {"status": "ok"}
 
 
 @shared_task(bind=True, max_retries=1, soft_time_limit=120)

@@ -264,4 +264,10 @@ export const api = {
   getPoolDetail: (poolName: string) => request<PoolDetailData>(`/dashboard/pool/${encodeURIComponent(poolName)}`),
   getProvisioningOverview: () => request<ProvisioningOverview>('/dashboard/provisioning'),
   getCatalogItemDetail: (itemName: string) => request<CatalogItemDetail>(`/dashboard/catalog/${encodeURIComponent(itemName)}`),
+
+  // Historical trends
+  getAAPTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/aap-trends?hours=${hours}`),
+  getProvisioningTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/provisioning-trends?hours=${hours}`),
+  getSandboxTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/sandbox-trends?hours=${hours}`),
+  getMTTR: (hours = 168) => request<any>(`/dashboard/mttr?hours=${hours}`),
 };
