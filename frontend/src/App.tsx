@@ -12,6 +12,8 @@ import ClusterDetail from './pages/ClusterDetail';
 import PoolDetail from './pages/PoolDetail';
 import ProvisioningDetail from './pages/ProvisioningDetail';
 import CatalogItemDetail from './pages/CatalogItemDetail';
+import TrendsPage from './pages/TrendsPage';
+import CapacityPage from './pages/CapacityPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,8 +54,10 @@ const navItems = [
   { to: '/', label: 'Health', end: true },
   { to: '/pipeline', label: 'Pipeline' },
   { to: '/failures', label: 'Failures' },
-  { to: '/llm', label: 'LLM' },
   { to: '/remediation', label: 'Remediation' },
+  { to: '/llm', label: 'LLM' },
+  { to: '/trends', label: 'Trends' },
+  { to: '/capacity', label: 'Capacity' },
 ];
 
 export default function App() {
@@ -106,6 +110,8 @@ export default function App() {
                 <Route path="/pool/:name" element={<PoolDetail />} />
                 <Route path="/provisioning" element={<ProvisioningDetail />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
+                <Route path="/trends" element={<TrendsPage />} />
+                <Route path="/capacity" element={<CapacityPage />} />
               </Routes>
             </main>
             <footer style={{ backgroundColor: 'var(--brand-dark)' }} className="border-t border-[#333] text-[#6A6E73] text-sm py-5">
