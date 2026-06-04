@@ -161,12 +161,15 @@ def on_startup():
 def _babylon_collection_loop():
     """Collect Babylon control plane data every 3 minutes."""
     import time as _tb
+    import concurrent.futures
     _tb.sleep(30)
     logger = logging.getLogger("stargate")
     while not _shutdown_event.is_set():
         try:
             from cli.babylon_worker import run_collection
-            results = run_collection()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(run_collection)
+                results = future.result(timeout=150)
             prov = results.get("provisioning", {})
             pools = results.get("pools", {})
             logger.info(
@@ -174,6 +177,8 @@ def _babylon_collection_loop():
                 prov.get("total", 0), pools.get("total_pools", 0),
                 len(results.get("summit_mapping", results.get("lab_mapping", {})))
             )
+        except concurrent.futures.TimeoutError:
+            logger.warning("Babylon collection timed out after 150s")
         except Exception as e:
             logger.warning("Babylon collection failed: %s", e)
         _shutdown_event.wait(180)
