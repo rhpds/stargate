@@ -117,10 +117,20 @@ function ApprovalQueue({
               >
                 {Math.round(item.confidence * 100)}% confidence
               </span>
+              {(item as any).proposed_by && (item as any).proposed_by !== 'stargate' && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#4394E5] text-white">
+                  {(item as any).proposed_by}
+                </span>
+              )}
             </div>
             <div className="text-xs text-[#6A6E73] mb-1">
               Target: <span className="text-white">{item.target}</span>
             </div>
+            {(item as any).parameters?.reasoning && (
+              <div className="text-xs text-[#8888aa] mb-1 truncate" title={(item as any).parameters.reasoning}>
+                {(item as any).parameters.reasoning}
+              </div>
+            )}
             <div className="text-xs text-[#6A6E73]">
               Proposed: {relativeTime(item.proposed_at)}
             </div>

@@ -740,6 +740,7 @@ def get_approval_queue(db: Session = Depends(get_db)):
                 "action_type": p.action_type,
                 "target": p.target,
                 "confidence": p.confidence,
+                "proposed_by": getattr(p, 'proposed_by', None) or "stargate",
                 "proposed_at": p.proposed_at.isoformat() if p.proposed_at else None,
                 "parameters": p.parameters,
             }
