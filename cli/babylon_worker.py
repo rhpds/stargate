@@ -323,7 +323,10 @@ def run_collection() -> Dict:
     results["workshops"] = collect_workshop_summary()
     print(f"    Workshops: {results['workshops']['workshops']}, MultiWorkshops: {results['workshops']['multiworkshops']}")
 
-    # Instance mappings
+    # Save core OCP data immediately so dashboard has provisioning info
+    _save_results(results)
+
+    # Instance mappings (slower — full subject list)
     print("  Collecting all lab-to-instance mapping...")
     results["instance_mapping"] = collect_all_instance_mapping()
     im = results["instance_mapping"]
@@ -333,9 +336,6 @@ def run_collection() -> Dict:
     results["summit_mapping"] = collect_summit_namespace_mapping()
     sm = results["summit_mapping"]
     print(f"    {len(sm)} summit labs, {sum(len(v) for v in sm.values())} summit instances")
-
-    # Save OCP data immediately (before external HTTP calls that may hang)
-    _save_results(results)
 
     # Labagator (external HTTP — may be slow/unreachable)
     print("  Collecting Labagator data...")
