@@ -111,9 +111,10 @@ export default function CapacityPage() {
             {fc.cluster_projections.map((cp: any) => (
               <Link key={cp.cluster} to={`/cluster/${encodeURIComponent(cp.cluster)}`} className="flex items-center gap-3 hover:bg-[#1e1e1e] rounded px-2 py-1 -mx-2 transition">
                 <span className="text-sm text-[#73BCF7] w-40 shrink-0">{cp.cluster}</span>
-                <span className="text-xs text-[#6A6E73]">Current: {cp.current_load ?? '--'}%</span>
-                <span className="text-xs text-[#6A6E73]">Projected: {cp.projected_load ?? '--'}%</span>
-                {cp.warning && <span className="text-xs text-[#F0AB00]">{cp.warning}</span>}
+                <span className="text-xs text-[#6A6E73]">CPU: {cp.current_cpu != null ? `${Math.round(cp.current_cpu)}%` : '--'}</span>
+                <span className="text-xs text-[#6A6E73]">VMs: {cp.current_vms ?? '--'}</span>
+                <span className="text-xs text-[#6A6E73]">Sandboxes: {cp.current_sandboxes ?? '--'}</span>
+                {cp.capacity_warning && <span className="text-xs text-[#F0AB00]">capacity warning</span>}
               </Link>
             ))}
           </div>
