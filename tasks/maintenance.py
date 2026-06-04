@@ -55,6 +55,25 @@ def warm_caches():
         return {"error": str(e)}
 
 
+@shared_task(bind=True, max_retries=1, soft_time_limit=120)
+def babylon_collect(self):
+    """Collect Babylon control plane data — pools, provisioning, lab mappings."""
+    try:
+        from cli.babylon_worker import run_collection
+        results = run_collection()
+        prov = results.get("provisioning", {})
+        pools = results.get("pools", {})
+        logger.info(
+            "Babylon collect: %d subjects, %d pools, %d lab mappings",
+            prov.get("total", 0), pools.get("total_pools", 0),
+            len(results.get("summit_mapping", results.get("lab_mapping", {})))
+        )
+        return {"status": "ok", "subjects": prov.get("total", 0), "pools": pools.get("total_pools", 0)}
+    except Exception as e:
+        logger.warning("Babylon collect failed: %s", e)
+        raise self.retry(exc=e)
+
+
 @shared_task(bind=True, max_retries=1, soft_time_limit=300)
 def corpus_mine(self):
     """Run all corpus miners and load results into DB."""
