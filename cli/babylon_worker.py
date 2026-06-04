@@ -334,42 +334,41 @@ def run_collection() -> Dict:
     sm = results["summit_mapping"]
     print(f"    {len(sm)} summit labs, {sum(len(v) for v in sm.values())} summit instances")
 
-    # Labagator
+    # Save OCP data immediately (before external HTTP calls that may hang)
+    _save_results(results)
+
+    # Labagator (external HTTP — may be slow/unreachable)
     print("  Collecting Labagator data...")
     try:
         from collectors.labagator.collect_labagator import summarize_labs
         results["labagator"] = summarize_labs()
         lg = results["labagator"]
         print(f"    {lg.get('total_labs', 0)} labs, {lg.get('total_sessions', 0)} sessions")
-        print(f"    Status: {lg.get('status_counts', {})}")
-        upcoming = lg.get("upcoming_sessions", [])
-        if upcoming:
-            print(f"    Upcoming (24h): {len(upcoming)} sessions")
-            for s in upcoming[:3]:
-                print(f"      {s['lab_code']}: {s['session_date']} {s['start_time']} ({s['attendees']} attendees)")
     except Exception as e:
         results["labagator"] = {"error": str(e)}
-        print(f"    Error: {e}")
+        print(f"    Labagator error: {e}")
 
-    # Demolition
+    # Demolition (external HTTP — may be slow/unreachable)
     print("  Collecting Demolition data...")
     try:
         from collectors.demolition.collect_demolition import summarize_sessions, find_tracked_sessions
         results["demolition"] = summarize_sessions()
-        demo = results["demolition"]
-        print(f"    {demo.get('total_sessions', 0)} sessions, {demo.get('overall_pass_rate', 0)}% pass rate")
-        print(f"    Runs: {demo.get('total_passed', 0)} passed, {demo.get('total_failed', 0)} failed")
-
         event_prefix = os.environ.get("STARGATE_EVENT_PREFIX", "")
         results["demolition_tracked"] = find_tracked_sessions(prefix=event_prefix)
         results["demolition_summit"] = results["demolition_tracked"]
-        tracked = results["demolition_tracked"]
-        failing = [s for s in tracked if s.get("failed", 0) > 0]
-        print(f"    Tracked sessions: {len(tracked)} total, {len(failing)} with failures")
+        demo = results["demolition"]
+        print(f"    {demo.get('total_sessions', 0)} sessions, {demo.get('overall_pass_rate', 0)}% pass rate")
     except Exception as e:
         results["demolition"] = {"error": str(e)}
-        print(f"    Error: {e}")
+        print(f"    Demolition error: {e}")
 
+    # Save again with Labagator/Demolition data if they succeeded
+    _save_results(results)
+    return results
+
+
+def _save_results(results: Dict):
+    """Save collection results to scan-history files and database."""
     # Save to history
     history_dir = Path(__file__).parent.parent / "scan-history"
     history_dir.mkdir(exist_ok=True)
@@ -386,10 +385,7 @@ def run_collection() -> Dict:
     except Exception:
         pass
 
-    print(f"  Done. Saved to scan-history/babylon-{ts_file}.json")
-    print()
-
-    return results
+    print(f"  Saved to scan-history/babylon-{ts_file}.json")
 
 
 def main():
