@@ -270,4 +270,5 @@ export const api = {
   getProvisioningTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/provisioning-trends?hours=${hours}`),
   getSandboxTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/sandbox-trends?hours=${hours}`),
   getMTTR: (hours = 168) => request<any>(`/dashboard/mttr?hours=${hours}`),
+  getSummitReport: () => request<any>('/dashboard/summit-report'),
 };
