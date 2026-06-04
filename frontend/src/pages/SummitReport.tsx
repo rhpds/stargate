@@ -65,6 +65,8 @@ export default function SummitReport() {
   const clusters = report.clusters || [];
   const failureClasses = evals.failure_classes || {};
   const timeline = report.hourly_timeline || [];
+  const clusterMetrics = report.cluster_metrics || {};
+  const coverage = report.data_coverage || {};
 
   const filteredLabs = labSearch
     ? labs.filter((l: any) => l.lab_code.toLowerCase().includes(labSearch.toLowerCase()))
@@ -173,6 +175,77 @@ export default function SummitReport() {
               ))}
             </div>
           </section>
+
+          {/* infra01 metrics */}
+          {clusterMetrics['ocpv-infra01']?.memory_utilization?.length > 0 && (
+            <section>
+              <SectionHeader>Infrastructure Metrics (ocpv-infra01)</SectionHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {clusterMetrics['ocpv-infra01'].memory_utilization && (
+                  <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                    <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Memory Utilization</div>
+                    <div className="flex items-end gap-[1px] h-16">
+                      {(clusterMetrics['ocpv-infra01'].memory_utilization as any[]).map((p: any, i: number) => {
+                        const val = p.value ?? 0;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col justify-end" title={`${p.timestamp}: ${(val * 100).toFixed(1)}%`}>
+                            <div className="rounded-t" style={{ height: `${val * 100}%`, backgroundColor: val > 0.8 ? '#C9190B' : val > 0.6 ? '#F0AB00' : '#3E8635', minHeight: '1px' }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[#6A6E73] mt-1"><span>May 5</span><span>May 8</span></div>
+                  </div>
+                )}
+                {clusterMetrics['ocpv-infra01'].pod_restarts && (
+                  <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                    <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Pod Restarts / Hour</div>
+                    <div className="flex items-end gap-[1px] h-16">
+                      {(clusterMetrics['ocpv-infra01'].pod_restarts as any[]).map((p: any, i: number) => {
+                        const val = p.value ?? 0;
+                        const max = Math.max(...(clusterMetrics['ocpv-infra01'].pod_restarts as any[]).map((x: any) => x.value ?? 0), 1);
+                        return (
+                          <div key={i} className="flex-1 flex flex-col justify-end" title={`${p.timestamp}: ${val.toFixed(1)} restarts`}>
+                            <div className="rounded-t" style={{ height: `${(val / max) * 100}%`, backgroundColor: val > 10 ? '#C9190B' : val > 3 ? '#F0AB00' : '#3E8635', minHeight: '1px' }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[#6A6E73] mt-1"><span>May 5</span><span>May 8</span></div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Data coverage */}
+          {coverage && (
+            <section>
+              <SectionHeader>Data Coverage</SectionHeader>
+              <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 text-xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#3E8635]" />
+                  <span className="text-[#d2d2d2]">Evaluations: {coverage.evaluations?.days?.join(', ') || 'none'} — {coverage.evaluations?.note || ''}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#3E8635]" />
+                  <span className="text-[#d2d2d2]">Cluster metrics (infra01): May 5-8 — memory, pod restarts, node count (hourly)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#F0AB00]" />
+                  <span className="text-[#d2d2d2]">Lab cluster metrics (ocpv05-09): Limited — only keycloak/gitops metrics retained</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#F0AB00]" />
+                  <span className="text-[#d2d2d2]">Babylon subjects: {subjects?.total || 0} live summit subjects — created post-summit (May 25+), not from event week</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#6A6E73]" />
+                  <span className="text-[#d2d2d2]">AAP job history: Not yet queried — 30-day retention may still have data</span>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       )}
 
