@@ -51,6 +51,10 @@ app.conf.beat_schedule = {
         "task": "tasks.scanner.write_scan_history",
         "schedule": 300.0,
     },
+    "babylon-collect": {
+        "task": "tasks.maintenance.babylon_collect",
+        "schedule": 180.0,
+    },
 }
 
 app.autodiscover_tasks(["tasks"])
