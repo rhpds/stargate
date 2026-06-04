@@ -24,10 +24,10 @@ SECRETS_DIR = Path(__file__).parent.parent / "secrets"
 KUBECONFIG = str(SECRETS_DIR / "kubeconfig")  # ocp-us-east-1
 
 
-def _oc(args: List[str]) -> Optional[str]:
+def _oc(args: List[str], timeout: int = 30) -> Optional[str]:
     env = {**os.environ, "KUBECONFIG": KUBECONFIG}
     try:
-        r = subprocess.run(["oc"] + args, capture_output=True, text=True, timeout=30, env=env)
+        r = subprocess.run(["oc"] + args, capture_output=True, text=True, timeout=timeout, env=env)
         if r.returncode == 0:
             return r.stdout
     except Exception:
@@ -185,34 +185,46 @@ def collect_workshop_summary() -> Dict:
     return {"workshops": workshops, "multiworkshops": multiworkshops}
 
 
-def collect_summit_namespace_mapping() -> Dict[str, List[Dict]]:
-    """Map summit labs to their provisioned instances via AnarchySubjects.
+_SUBJECT_COLUMNS = (
+    "NAME:.metadata.name,"
+    "NS:.metadata.namespace,"
+    "STATE:.spec.vars.current_state,"
+    "CONSOLE:.spec.vars.provision_data.openshift_cluster_console_url,"
+    "API:.spec.vars.provision_data.openshift_api_server_url"
+)
 
-    Summit labs provision dedicated clusters (not sandbox namespaces).
-    Returns: { "LB1208": [{"state": "started", "cluster_url": "...", "console_url": "..."}, ...] }
-    """
-    raw = _oc(["get", "anarchysubjects", "-n", "babylon-anarchy-events", "-o", "json"])
+
+def _parse_subject_line(line: str) -> Optional[Dict]:
+    """Parse a custom-columns line into a subject dict."""
+    parts = line.split(None, 4)
+    if len(parts) < 3:
+        return None
+    name = parts[0]
+    ns = parts[1] if len(parts) > 1 else ""
+    state = parts[2] if len(parts) > 2 else "unknown"
+    console = parts[3] if len(parts) > 3 and parts[3] != "<none>" else ""
+    api_url = parts[4] if len(parts) > 4 and parts[4] != "<none>" else ""
+    if state == "<none>":
+        state = "unknown"
+    return {"name": name, "namespace": ns, "state": state, "console_url": console, "api_url": api_url}
+
+
+def collect_summit_namespace_mapping() -> Dict[str, List[Dict]]:
+    """Map summit labs to their provisioned instances via AnarchySubjects."""
+    raw = _oc([
+        "get", "anarchysubjects", "-n", "babylon-anarchy-events",
+        "--no-headers", "-o", f"custom-columns={_SUBJECT_COLUMNS}",
+    ], timeout=60)
     if not raw:
         return {}
 
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-
     by_lab: Dict[str, List[Dict]] = {}
-    for item in data.get("items", []):
-        name = item.get("metadata", {}).get("name", "")
-        if "summit-2026" not in name:
+    for line in raw.strip().split("\n"):
+        subj = _parse_subject_line(line)
+        if not subj or "summit-2026" not in subj["name"]:
             continue
 
-        spec_vars = item.get("spec", {}).get("vars", {})
-        state = spec_vars.get("current_state", "unknown")
-        pd = spec_vars.get("provision_data", {})
-        console = pd.get("openshift_cluster_console_url", "")
-        api_url = pd.get("openshift_api_server_url", "")
-
-        name_parts = name.split(".")
+        name_parts = subj["name"].split(".")
         if len(name_parts) < 2:
             continue
         slug = name_parts[1]
@@ -227,10 +239,10 @@ def collect_summit_namespace_mapping() -> Dict[str, List[Dict]]:
         if lb_code not in by_lab:
             by_lab[lb_code] = []
         by_lab[lb_code].append({
-            "anarchy_name": name,
-            "state": state,
-            "console_url": console,
-            "api_url": api_url,
+            "anarchy_name": subj["name"],
+            "state": subj["state"],
+            "console_url": subj["console_url"],
+            "api_url": subj["api_url"],
         })
 
     return by_lab
@@ -238,24 +250,20 @@ def collect_summit_namespace_mapping() -> Dict[str, List[Dict]]:
 
 def collect_all_instance_mapping() -> Dict[str, List[Dict]]:
     """Map ALL labs to their provisioned instances via AnarchySubjects across all namespaces."""
-    raw = _oc(["get", "anarchysubjects", "-A", "-o", "json"])
+    raw = _oc([
+        "get", "anarchysubjects", "-A",
+        "--no-headers", "-o", f"custom-columns={_SUBJECT_COLUMNS}",
+    ], timeout=90)
     if not raw:
         return {}
 
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-
     by_lab: Dict[str, List[Dict]] = {}
-    for item in data.get("items", []):
-        ns = item.get("metadata", {}).get("namespace", "")
-        name = item.get("metadata", {}).get("name", "")
-        spec_vars = item.get("spec", {}).get("vars", {})
-        state = spec_vars.get("current_state", "unknown")
-        pd = spec_vars.get("provision_data", {})
+    for line in raw.strip().split("\n"):
+        subj = _parse_subject_line(line)
+        if not subj:
+            continue
 
-        name_parts = name.split(".")
+        name_parts = subj["name"].split(".")
         if len(name_parts) < 2:
             continue
         prefix = name_parts[0]
@@ -272,12 +280,12 @@ def collect_all_instance_mapping() -> Dict[str, List[Dict]]:
         if lb_code not in by_lab:
             by_lab[lb_code] = []
         by_lab[lb_code].append({
-            "anarchy_name": name,
-            "namespace": ns,
-            "state": state,
+            "anarchy_name": subj["name"],
+            "namespace": subj["namespace"],
+            "state": subj["state"],
             "prefix": prefix,
-            "console_url": pd.get("openshift_cluster_console_url", ""),
-            "api_url": pd.get("openshift_api_server_url", ""),
+            "console_url": subj["console_url"],
+            "api_url": subj["api_url"],
         })
 
     return by_lab
