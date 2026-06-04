@@ -342,6 +342,57 @@ class PoolSnapshot(Base):
     captured_at = Column(DateTime(timezone=True), nullable=False, index=True)
 
 
+class AAPJobMetric(Base):
+    """Time-series AAP provisioning SLI tracking."""
+    __tablename__ = "aap_job_metrics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    captured_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    total_jobs = Column(Integer, nullable=False, default=0)
+    successful = Column(Integer, nullable=False, default=0)
+    failed = Column(Integer, nullable=False, default=0)
+    running = Column(Integer, nullable=False, default=0)
+    success_rate = Column(Float, nullable=True)
+    provision_sli = Column(Float, nullable=True)
+    sli_met = Column(Boolean, nullable=True)
+    top_error = Column(String(500), nullable=True)
+    by_cluster = Column(JSON, nullable=True)
+    by_lab = Column(JSON, nullable=True)
+
+
+class ProvisioningSnapshot(Base):
+    """Time-series provisioning state (AnarchySubject totals)."""
+    __tablename__ = "provisioning_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    captured_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    total = Column(Integer, nullable=False, default=0)
+    started = Column(Integer, nullable=False, default=0)
+    failed = Column(Integer, nullable=False, default=0)
+    failure_rate = Column(Float, nullable=True)
+    by_state = Column(JSON, nullable=True)
+    summit_total = Column(Integer, nullable=True)
+    summit_started = Column(Integer, nullable=True)
+    summit_failed = Column(Integer, nullable=True)
+
+
+class SandboxAPIMetric(Base):
+    """Time-series sandbox API health and queue metrics."""
+    __tablename__ = "sandbox_api_metrics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    captured_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    api_healthy = Column(Boolean, nullable=True)
+    replicas_desired = Column(Integer, nullable=True)
+    replicas_ready = Column(Integer, nullable=True)
+    queue_depth = Column(Integer, nullable=True)
+    total_sandboxes = Column(Integer, nullable=True)
+    active = Column(Integer, nullable=True)
+    failing = Column(Integer, nullable=True)
+    crashloop = Column(Integer, nullable=True)
+    by_cluster = Column(JSON, nullable=True)
+
+
 class LabRemediationConfig(Base):
     """Per-lab auto-remediation settings for gradual rollout."""
     __tablename__ = "lab_remediation_config"
