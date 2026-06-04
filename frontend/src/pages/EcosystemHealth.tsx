@@ -9,7 +9,8 @@ import {
 } from '../api/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
-import type { OverviewData, DeploymentsDashboard, ClustersDashboard, PoolsDashboard, Deployment, ClusterScan, ClusterSummary, PoolEntry } from '../api/types';
+import SearchBar from '../components/SearchBar';
+import type { OverviewData, DeploymentsDashboard, ClustersDashboard, PoolsDashboard, Deployment, ClusterScan, ClusterSummary } from '../api/types';
 
 /* ---- helpers ---- */
 
@@ -37,10 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   fail: '#C9190B', critical: '#C9190B', red: '#C9190B', exhausted: '#C9190B',
   warn: '#F0AB00', warning: '#F0AB00', yellow: '#F0AB00', low: '#F0AB00', degraded: '#F0AB00',
 };
-
-function statusColor(status: string): string {
-  return STATUS_COLORS[status?.toLowerCase()] ?? '#6A6E73';
-}
+function statusColor(s: string): string { return STATUS_COLORS[s?.toLowerCase()] ?? '#6A6E73'; }
 
 function labStatus(lab: Deployment): 'pass' | 'fail' | 'warn' {
   const s = lab.labagator_status?.toLowerCase() ?? '';
@@ -65,157 +63,23 @@ const URGENCY_COLORS: Record<string, string> = {
 
 function MetricCard({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
   return (
-    <div
-      className={`bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 ${onClick ? 'cursor-pointer hover:border-[#555] transition' : ''}`}
-      onClick={onClick}
-    >
+    <div className={`bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 ${onClick ? 'cursor-pointer hover:border-[#555] transition' : ''}`} onClick={onClick}>
       <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
       <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
     </div>
   );
 }
 
-function SectionHeader({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+function SectionHeader({ children, onClick, right }: { children: React.ReactNode; onClick?: () => void; right?: React.ReactNode }) {
   return (
-    <h2
-      className={`text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3 ${onClick ? 'cursor-pointer hover:text-white transition' : ''}`}
-      onClick={onClick}
-    >
-      {children} {onClick && <span className="text-[#73BCF7]">&rarr;</span>}
-    </h2>
-  );
-}
-
-function ActionStrip({ actions }: { actions: Array<{ message: string; urgency: string; count?: number; link_tab?: string }> }) {
-  const navigate = useNavigate();
-  if (!actions || actions.length === 0) return null;
-  return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
-      {actions.map((a, i) => (
-        <div
-          key={i}
-          onClick={() => a.link_tab && navigate(`/${a.link_tab}`)}
-          className={`shrink-0 border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${a.link_tab ? 'cursor-pointer hover:border-[#555]' : ''}`}
-          style={{ borderColor: URGENCY_COLORS[a.urgency] ?? '#2e2e2e' }}
-        >
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: URGENCY_COLORS[a.urgency] ?? '#6A6E73' }} />
-          <span className="text-[#d2d2d2]">{a.message}</span>
-          {a.count && a.count > 1 && <span className="text-[#6A6E73]">({a.count})</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function StatsBar({ overview, stuckCount, navigate }: { overview: OverviewData; stuckCount: number; navigate: (path: string) => void }) {
-  const clusterCount = overview.clusters.scans?.length ?? 0;
-  const labHealthy = overview.labs.status_counts?.pass ?? overview.labs.status_counts?.healthy ?? 0;
-  const labTotal = overview.labs.total;
-  const passRate = pct(labHealthy, labTotal);
-  const activeFailures = overview.errors.total_failures;
-  const poolTotal = overview.pools.total;
-  const poolHealthy = poolTotal - (overview.pools.exhausted ?? 0) - (overview.pools.low ?? 0);
-  const poolHealth = pct(poolHealthy, poolTotal);
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <MetricCard label="Clusters" value={clusterCount} />
-      <MetricCard label="Active Failures" value={activeFailures} onClick={() => navigate('/failures')} />
-      <MetricCard label="Pass Rate" value={passRate} onClick={() => navigate('/pipeline')} />
-      <MetricCard label="Pool Health" value={poolHealth} />
-      {stuckCount > 0 && (
-        <MetricCard label="Stuck Instances" value={stuckCount} onClick={() => navigate('/provisioning')} />
-      )}
-    </div>
-  );
-}
-
-function LabGrid({ labs, navigate }: { labs: Deployment[]; navigate: (path: string) => void }) {
-  if (labs.length === 0) {
-    return <p className="text-[#6A6E73] text-sm">No labs evaluated yet</p>;
-  }
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {labs.map((lab) => {
-        const status = labStatus(lab);
-        const displayName = lab.title || lab.lab_code;
-        const failureInfo = lab.instances_failed > 0 ? `${lab.instances_failed} instance failures` : null;
-        return (
-          <div key={lab.lab_code} onClick={() => navigate(`/lab/${lab.lab_code}`)} className="border border-[#333] rounded-xl p-5 cursor-pointer hover:border-[#555] transition">
-            <div className="flex items-start justify-between mb-2">
-              <div className="text-white font-medium text-sm truncate mr-2">{displayName}</div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: statusColor(status), color: '#fff' }}>{status}</span>
-            </div>
-            {status === 'fail' && failureInfo && <div className="text-xs text-[#C9190B] mb-1">{failureInfo}</div>}
-            <div className="text-xs text-[#6A6E73]">{relativeTime(lab.last_scanned)}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function ClusterStrip({ scans, summaries, navigate }: { scans: ClusterScan[]; summaries: ClusterSummary[]; navigate: (path: string) => void }) {
-  const merged = scans.map((scan) => {
-    const summary = summaries.find((s) => s.cluster === scan.cluster);
-    return { ...scan, evalHealthRate: summary?.health_rate ?? scan.health_rate };
-  });
-  if (merged.length === 0) return <p className="text-[#6A6E73] text-sm">No clusters found.</p>;
-  return (
-    <div className="flex gap-3 overflow-x-auto pb-2">
-      {merged.map((c) => (
-        <div key={c.cluster} onClick={() => navigate(`/cluster/${c.cluster}`)} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 min-w-[180px] cursor-pointer hover:border-[#555] transition shrink-0">
-          <div className="text-white text-sm font-medium truncate mb-2">{c.cluster}</div>
-          <div className="mb-2">
-            <div className="flex items-center justify-between text-xs text-[#6A6E73] mb-1"><span>CPU</span><span>{Math.round(c.avg_cpu_pct)}%</span></div>
-            <div className="w-full bg-[#333] h-1.5 rounded-full overflow-hidden">
-              <div className="h-1.5 rounded-full" style={{ width: `${Math.min(c.avg_cpu_pct, 100)}%`, backgroundColor: cpuColor(c.avg_cpu_pct) }} />
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[#6A6E73]">{c.total_vms} VMs</span>
-            <span className="font-semibold px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: c.evalHealthRate >= 80 ? '#3E8635' : c.evalHealthRate >= 50 ? '#F0AB00' : '#C9190B', color: '#fff' }}>{Math.round(c.evalHealthRate)}%</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PoolBadges({ pools, navigate }: { pools: PoolEntry[]; navigate: (path: string) => void }) {
-  if (pools.length === 0) return <p className="text-[#6A6E73] text-sm">No pools configured</p>;
-  return (
-    <div className="flex flex-wrap gap-3">
-      {pools.map((pool) => (
-        <div key={pool.name} onClick={() => navigate(`/pool/${encodeURIComponent(pool.name)}`)} className="bg-[#212121] border border-[#2e2e2e] rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-[#555] transition">
-          <span className="text-white text-sm font-medium">{pool.name}</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: statusColor(pool.status), color: '#fff' }}>{pool.status}</span>
-          <span className="text-xs text-[#6A6E73]">{pool.available} avail</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function FailureClassChart({ failures, navigate }: { failures: Record<string, number>; navigate: (path: string) => void }) {
-  const entries = Object.entries(failures).sort(([, a], [, b]) => b - a);
-  if (entries.length === 0) return <p className="text-[#6A6E73] text-sm">No failure classes recorded.</p>;
-  const maxCount = entries[0]![1];
-  return (
-    <div className="space-y-2">
-      {entries.map(([cls, count]) => (
-        <div
-          key={cls}
-          onClick={() => navigate(`/failures?selected=${encodeURIComponent(cls)}`)}
-          className="flex items-center gap-3 cursor-pointer hover:bg-[#1e1e1e] rounded px-1 -mx-1 transition"
-        >
-          <span className="text-xs text-[#6A6E73] w-40 truncate shrink-0" title={cls}>{cls}</span>
-          <div className="flex-1 bg-[#333] h-4 rounded overflow-hidden">
-            <div className="h-4 rounded" style={{ width: `${(count / maxCount) * 100}%`, backgroundColor: '#C9190B' }} />
-          </div>
-          <span className="text-xs text-white font-medium w-8 text-right">{count}</span>
-        </div>
-      ))}
+    <div className="flex items-center justify-between mb-3">
+      <h2
+        className={`text-xs text-[#6A6E73] uppercase tracking-wider font-bold ${onClick ? 'cursor-pointer hover:text-white transition' : ''}`}
+        onClick={onClick}
+      >
+        {children} {onClick && <span className="text-[#73BCF7]">&rarr;</span>}
+      </h2>
+      {right}
     </div>
   );
 }
@@ -225,6 +89,7 @@ function FailureClassChart({ failures, navigate }: { failures: Record<string, nu
 export default function EcosystemHealth() {
   const navigate = useNavigate();
   const [aiExpanded, setAiExpanded] = useState(false);
+  const [labSearch, setLabSearch] = useState('');
   const overview = useOverview();
   const deployments = useDeploymentsDashboard();
   const clusters = useClustersDashboard();
@@ -246,7 +111,6 @@ export default function EcosystemHealth() {
           {[1,2,3,4,5].map(i => <div key={i} className="bg-[#212121] rounded-lg h-20" />)}
         </div>
         <div className="bg-[#212121] rounded-xl h-48" />
-        <div className="bg-[#212121] rounded-xl h-32" />
       </div>
     );
   }
@@ -266,92 +130,157 @@ export default function EcosystemHealth() {
   const actions = (actionStrip.data as any)?.actions ?? [];
   const aiData = aiSummary.data as any;
 
+  const clusterCount = ov!.clusters.scans?.length ?? 0;
+  const labHealthy = ov!.labs.status_counts?.pass ?? ov!.labs.status_counts?.healthy ?? 0;
+  const labTotal = ov!.labs.total;
+  const activeFailures = ov!.errors.total_failures;
+  const poolTotal = ov!.pools.total;
+  const poolExhausted = ov!.pools.exhausted ?? 0;
+  const poolLow = ov!.pools.low ?? 0;
+  const provTotal = pls.provisioning?.total ?? 0;
+  const provFailed = pls.provisioning?.failed ?? 0;
+
+  // Merge cluster scans with summaries
+  const mergedClusters = (ov!.clusters.scans ?? []).map((scan: ClusterScan) => {
+    const summary = (cls.clusters ?? []).find((s: ClusterSummary) => s.cluster === scan.cluster);
+    return { ...scan, evalHealthRate: summary?.health_rate ?? scan.health_rate };
+  });
+
+  // Filter labs
+  const allLabs = deps.labs ?? [];
+  const filteredLabs = labSearch
+    ? allLabs.filter(l => (l.title || l.lab_code).toLowerCase().includes(labSearch.toLowerCase()) || l.lab_code.toLowerCase().includes(labSearch.toLowerCase()))
+    : allLabs;
+
+  // Top 5 failure classes
+  const failureEntries = Object.entries(ov!.errors.failure_classes ?? {}).sort(([,a], [,b]) => b - a).slice(0, 8);
+  const maxFailure = failureEntries.length > 0 ? failureEntries[0]![1] : 1;
+
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>Ecosystem Health</h1>
-        <p className="text-[#6A6E73]">Validation control plane — labs, clusters, pools, provisioning</p>
+        <h1 className="text-3xl font-bold text-white mb-1" style={{ fontFamily: 'Red Hat Display' }}>Ecosystem Health</h1>
+        <p className="text-[#6A6E73] text-sm">Platform overview — {clusterCount} clusters, {labTotal} labs, {poolTotal} pools</p>
       </div>
 
-      {/* Action Strip — urgent items */}
-      {actions.length > 0 && <ActionStrip actions={actions} />}
+      {/* Action Strip */}
+      {actions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {actions.map((a: any, i: number) => (
+            <div key={i} onClick={() => a.link_tab && navigate(`/${a.link_tab}`)}
+              className={`shrink-0 border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${a.link_tab ? 'cursor-pointer hover:border-[#555]' : ''}`}
+              style={{ borderColor: URGENCY_COLORS[a.urgency] ?? '#2e2e2e' }}>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: URGENCY_COLORS[a.urgency] ?? '#6A6E73' }} />
+              <span className="text-[#d2d2d2]">{a.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Stats bar */}
-      {ov && <StatsBar overview={ov} stuckCount={stuckCount} navigate={navigate} />}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+        <MetricCard label="Clusters" value={clusterCount} />
+        <MetricCard label="Failures" value={activeFailures} onClick={() => navigate('/failures')} />
+        <MetricCard label="Pass Rate" value={pct(labHealthy, labTotal)} onClick={() => navigate('/pipeline')} />
+        <MetricCard label="Pools" value={`${poolTotal - poolExhausted - poolLow}/${poolTotal}`} onClick={() => navigate('/capacity')} />
+        <MetricCard label="Provisioning" value={provTotal > 0 ? `${provFailed} failed` : '--'} onClick={() => navigate('/provisioning')} />
+        {stuckCount > 0 && <MetricCard label="Stuck" value={stuckCount} onClick={() => navigate('/provisioning')} />}
+      </div>
 
-      {/* AI Platform Intelligence */}
+      {/* AI Summary */}
       {aiData && (aiData.top_issues?.length > 0 || aiData.recommendation) && (
-        <section>
-          <div
-            onClick={() => setAiExpanded(!aiExpanded)}
-            className="bg-[#1a1a2e] border border-[#2e2e4e] rounded-lg p-4 cursor-pointer hover:border-[#4e4e6e] transition"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#4394E5] text-white">AI</span>
-                <span className="text-sm text-white font-medium">Platform Intelligence</span>
-              </div>
-              <span className="text-[#6A6E73] text-xs">{aiExpanded ? 'collapse' : 'expand'}</span>
+        <div onClick={() => setAiExpanded(!aiExpanded)} className="bg-[#1a1a2e] border border-[#2e2e4e] rounded-lg p-4 cursor-pointer hover:border-[#4e4e6e] transition">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#4394E5] text-white">AI</span>
+              <span className="text-sm text-white font-medium">Platform Intelligence</span>
             </div>
-            {!aiExpanded && aiData.recommendation && (
-              <p className="text-xs text-[#8888aa] mt-2 truncate">{aiData.recommendation}</p>
-            )}
-            {aiExpanded && (
-              <div className="mt-3 space-y-2">
-                {aiData.top_issues?.map((issue: any, i: number) => (
-                  <div key={i} className="text-xs text-[#d2d2d2] flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: URGENCY_COLORS[issue.urgency] ?? '#6A6E73' }} />
-                    <span>{issue.message}</span>
-                  </div>
-                ))}
-                {aiData.recommendation && <p className="text-xs text-[#8888aa] mt-2 border-t border-[#2e2e4e] pt-2">{aiData.recommendation}</p>}
-              </div>
-            )}
+            <span className="text-[#6A6E73] text-xs">{aiExpanded ? 'collapse' : 'expand'}</span>
           </div>
-        </section>
+          {!aiExpanded && aiData.recommendation && <p className="text-xs text-[#8888aa] mt-2 truncate">{aiData.recommendation}</p>}
+          {aiExpanded && (
+            <div className="mt-3 space-y-2">
+              {aiData.top_issues?.map((issue: any, i: number) => (
+                <div key={i} className="text-xs text-[#d2d2d2] flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: URGENCY_COLORS[issue.urgency] ?? '#6A6E73' }} />
+                  <span>{issue.message}</span>
+                </div>
+              ))}
+              {aiData.recommendation && <p className="text-xs text-[#8888aa] border-t border-[#2e2e4e] pt-2 mt-2">{aiData.recommendation}</p>}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Cluster Health Strip */}
+      {/* Cluster Health */}
       <section>
         <SectionHeader>Cluster Health</SectionHeader>
-        <ClusterStrip scans={ov!.clusters.scans ?? []} summaries={cls.clusters ?? []} navigate={navigate} />
-      </section>
-
-      {/* Top Failure Classes */}
-      <section>
-        <SectionHeader onClick={() => navigate('/failures')}>Top Failure Classes</SectionHeader>
-        {ov!.labs.total === 0 && Object.keys(ov!.errors.failure_classes ?? {}).length > 0 && (
-          <p className="text-xs text-[#F0AB00] mb-3">Failures detected across cluster — lab mappings will connect these to specific demos</p>
-        )}
-        <FailureClassChart failures={ov!.errors.failure_classes ?? {}} navigate={navigate} />
-      </section>
-
-      {/* Pool Availability */}
-      <section>
-        <SectionHeader>Pool Availability</SectionHeader>
-        <PoolBadges pools={pls.pools ?? []} navigate={navigate} />
-      </section>
-
-      {/* Provisioning */}
-      {pls.provisioning && pls.provisioning.total > 0 && (
-        <section>
-          <SectionHeader onClick={() => navigate('/provisioning')}>Provisioning</SectionHeader>
-          <div onClick={() => navigate('/provisioning')} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 cursor-pointer hover:border-[#555] transition">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <MetricCard label="Total Subjects" value={pls.provisioning.total} />
-              <MetricCard label="Started" value={pls.provisioning.started} />
-              <MetricCard label="Failed" value={pls.provisioning.failed} />
-              <MetricCard label="Failure Rate" value={`${pls.provisioning.failure_rate}%`} />
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {mergedClusters.map((c) => (
+            <div key={c.cluster} onClick={() => navigate(`/cluster/${c.cluster}`)} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 min-w-[180px] cursor-pointer hover:border-[#555] transition shrink-0">
+              <div className="text-white text-sm font-medium truncate mb-2">{c.cluster}</div>
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-xs text-[#6A6E73] mb-1"><span>CPU</span><span>{Math.round(c.avg_cpu_pct)}%</span></div>
+                <div className="w-full bg-[#333] h-1.5 rounded-full overflow-hidden">
+                  <div className="h-1.5 rounded-full" style={{ width: `${Math.min(c.avg_cpu_pct, 100)}%`, backgroundColor: cpuColor(c.avg_cpu_pct) }} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[#6A6E73]">{c.total_vms} VMs</span>
+                <span className="font-semibold px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: c.evalHealthRate >= 80 ? '#3E8635' : c.evalHealthRate >= 50 ? '#F0AB00' : '#C9190B', color: '#fff' }}>{Math.round(c.evalHealthRate)}%</span>
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          ))}
+        </div>
+      </section>
+
+      {/* Top Failures (compact) */}
+      <section>
+        <SectionHeader onClick={() => navigate('/failures')}>Top Failures</SectionHeader>
+        <div className="space-y-1.5">
+          {failureEntries.map(([cls, count]) => (
+            <div key={cls} onClick={() => navigate(`/failures?selected=${encodeURIComponent(cls)}`)} className="flex items-center gap-3 cursor-pointer hover:bg-[#1e1e1e] rounded px-1 -mx-1 transition">
+              <span className="text-xs text-[#6A6E73] w-40 truncate shrink-0" title={cls}>{cls}</span>
+              <div className="flex-1 bg-[#333] h-3 rounded overflow-hidden">
+                <div className="h-3 rounded" style={{ width: `${(count / maxFailure) * 100}%`, backgroundColor: '#C9190B' }} />
+              </div>
+              <span className="text-xs text-white font-medium w-8 text-right">{count}</span>
+            </div>
+          ))}
+          {Object.keys(ov!.errors.failure_classes ?? {}).length > 8 && (
+            <div onClick={() => navigate('/failures')} className="text-xs text-[#73BCF7] cursor-pointer hover:underline mt-1">
+              View all {Object.keys(ov!.errors.failure_classes ?? {}).length} failure classes &rarr;
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Labs */}
       <section>
-        <SectionHeader>Labs ({(deps.labs ?? []).length})</SectionHeader>
-        <LabGrid labs={deps.labs ?? []} navigate={navigate} />
+        <SectionHeader right={<SearchBar placeholder="Search labs..." value={labSearch} onChange={setLabSearch} className="w-64" />}>
+          Labs ({filteredLabs.length})
+        </SectionHeader>
+        {filteredLabs.length === 0 ? (
+          <p className="text-[#6A6E73] text-sm">{labSearch ? 'No labs match your search.' : 'No labs evaluated yet.'}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredLabs.map((lab) => {
+              const status = labStatus(lab);
+              const displayName = lab.title || lab.lab_code;
+              return (
+                <div key={lab.lab_code} onClick={() => navigate(`/lab/${lab.lab_code}`)} className="border border-[#333] rounded-lg p-4 cursor-pointer hover:border-[#555] transition">
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="text-white font-medium text-sm truncate mr-2">{displayName}</div>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: statusColor(status), color: '#fff' }}>{status}</span>
+                  </div>
+                  {lab.instances_failed > 0 && <div className="text-xs text-[#C9190B] mb-0.5">{lab.instances_failed} instance failures</div>}
+                  <div className="text-xs text-[#6A6E73]">{relativeTime(lab.last_scanned)}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
