@@ -1,0 +1,91 @@
+{
+  "type": "workflow-matrix",
+  "generated_at": "2026-06-05T01:30:30.710840+00:00",
+  "total_workflows": 9,
+  "passing": 9,
+  "failing": 0,
+  "total_tests": 0,
+  "workflows": [
+    {
+      "workflow": "scanner",
+      "test_file": "tests/workflows/test_wf_scanner.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 3 passed in 0.31s ==============================="
+    },
+    {
+      "workflow": "event_pipeline",
+      "test_file": "tests/workflows/test_wf_event_pipeline.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 8 passed in 0.31s ==============================="
+    },
+    {
+      "workflow": "remediation",
+      "test_file": "tests/workflows/test_wf_remediation.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 9 passed in 0.43s ==============================="
+    },
+    {
+      "workflow": "geolux",
+      "test_file": "tests/workflows/test_wf_geolux.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 6 passed in 0.37s ==============================="
+    },
+    {
+      "workflow": "deepfield",
+      "test_file": "tests/workflows/test_wf_deepfield.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 3 passed in 0.30s ==============================="
+    },
+    {
+      "workflow": "demolition",
+      "test_file": "tests/workflows/test_wf_demolition.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 2 passed in 0.30s ==============================="
+    },
+    {
+      "workflow": "labagator",
+      "test_file": "tests/workflows/test_wf_labagator.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 2 passed in 0.36s ==============================="
+    },
+    {
+      "workflow": "corpus_mining",
+      "test_file": "tests/workflows/test_wf_corpus.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 4 passed in 0.35s ==============================="
+    },
+    {
+      "workflow": "notifications",
+      "test_file": "tests/workflows/test_wf_notifications.py",
+      "status": "PASS",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "summary": "============================== 4 passed in 0.30s ==============================="
+    }
+  ]
+}
