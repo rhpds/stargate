@@ -17,6 +17,9 @@ def mv_refresh(self):
         repository.refresh_cluster_summary(db)
         repository.refresh_pipeline_stages(db)
         repository.refresh_lab_eval_summary(db)
+        repository.refresh_evaluation_trends(db)
+        repository.refresh_mttr_by_class(db)
+        repository.refresh_overview_snapshot(db)
         try:
             from engine.learner import apply_feedback
             apply_feedback(db)

@@ -1176,3 +1176,113 @@ def compute_mttr(db: Session, hours: int = 168) -> Dict:
         "total_recoveries": len(all_durations),
         "by_class": by_class[:20],
     }
+
+
+def refresh_evaluation_trends(db: Session) -> None:
+    """Refresh hourly evaluation trend buckets."""
+    from db.models import EvaluationRecord, MVEvaluationTrends
+    from sqlalchemy import func
+    from datetime import datetime, timezone, timedelta
+
+    db.query(MVEvaluationTrends).delete()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    now = datetime.now(timezone.utc)
+
+    rows = (
+        db.query(
+            func.date_trunc('hour', EvaluationRecord.created_at).label("bucket"),
+            EvaluationRecord.cluster_name,
+            EvaluationRecord.outcome,
+            EvaluationRecord.failure_class,
+            func.count().label("count"),
+        )
+        .filter(EvaluationRecord.created_at >= cutoff)
+        .group_by("bucket", EvaluationRecord.cluster_name,
+                  EvaluationRecord.outcome, EvaluationRecord.failure_class)
+        .all()
+    )
+
+    for row in rows:
+        db.add(MVEvaluationTrends(
+            bucket=row.bucket, cluster_name=row.cluster_name,
+            outcome=row.outcome, failure_class=row.failure_class,
+            count=row.count, updated_at=now,
+        ))
+    db.commit()
+
+
+def refresh_mttr_by_class(db: Session) -> None:
+    """Refresh MTTR stats by failure class."""
+    from db.models import EvaluationRecord, MVMttrByClass
+    from datetime import datetime, timezone, timedelta
+
+    db.query(MVMttrByClass).delete()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    now = datetime.now(timezone.utc)
+
+    evals = (
+        db.query(EvaluationRecord)
+        .filter(EvaluationRecord.created_at >= cutoff,
+                EvaluationRecord.outcome == "fail",
+                EvaluationRecord.failure_class.isnot(None))
+        .order_by(EvaluationRecord.lab_code, EvaluationRecord.created_at)
+        .limit(10000)
+        .all()
+    )
+
+    durations_by_class = {}
+    prev_by_lab = {}
+    for ev in evals:
+        key = ev.lab_code
+        if key in prev_by_lab and prev_by_lab[key].outcome == "fail":
+            pass
+        elif key in prev_by_lab and prev_by_lab[key].outcome == "pass":
+            fc = ev.failure_class
+            if fc:
+                dur = (ev.created_at - prev_by_lab[key].created_at).total_seconds() / 60
+                if 0 < dur < 1440:
+                    durations_by_class.setdefault(fc, []).append(dur)
+        prev_by_lab[key] = ev
+
+    for fc, durations in durations_by_class.items():
+        durations.sort()
+        n = len(durations)
+        db.add(MVMttrByClass(
+            failure_class=fc, incident_count=n,
+            avg_mttr_seconds=round(sum(durations) / n * 60, 1) if n else None,
+            p50_seconds=round(durations[n // 2] * 60, 1) if n else None,
+            p95_seconds=round(durations[int(n * 0.95)] * 60, 1) if n > 1 else (round(durations[0] * 60, 1) if n else None),
+            updated_at=now,
+        ))
+    db.commit()
+
+
+def refresh_overview_snapshot(db: Session) -> None:
+    """Refresh overview failure summary snapshot."""
+    from db.models import EvaluationRecord, MVOverviewSnapshot
+    from sqlalchemy import func
+    from datetime import datetime, timezone, timedelta
+
+    db.query(MVOverviewSnapshot).delete()
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    now = datetime.now(timezone.utc)
+
+    rows = (
+        db.query(EvaluationRecord.failure_class, func.count().label("count"))
+        .filter(EvaluationRecord.created_at >= cutoff,
+                EvaluationRecord.outcome == "fail",
+                EvaluationRecord.failure_class.isnot(None))
+        .group_by(EvaluationRecord.failure_class)
+        .all()
+    )
+
+    failure_classes = {r.failure_class: r.count for r in rows}
+    total = sum(failure_classes.values())
+    top = max(failure_classes, key=failure_classes.get) if failure_classes else None
+
+    db.add(MVOverviewSnapshot(
+        total_failures=total, top_failure_class=top,
+        failure_classes=failure_classes, systemic_count=0,
+        updated_at=now,
+    ))
+    db.commit()
