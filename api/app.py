@@ -150,8 +150,9 @@ def on_startup():
     t.start()
     tw = threading.Thread(target=_warm_caches, daemon=True)
     tw.start()
-    ts = threading.Thread(target=_auto_start_scanner, daemon=True)
-    ts.start()
+    if os.environ.get("STARGATE_INLINE_SCANNER", "false").lower() == "true":
+        ts = threading.Thread(target=_auto_start_scanner, daemon=True)
+        ts.start()
     tc = threading.Thread(target=_corpus_mining_loop, daemon=True)
     tc.start()
     tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
