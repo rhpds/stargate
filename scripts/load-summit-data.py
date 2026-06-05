@@ -248,7 +248,8 @@ def analyze_summit(tables):
 def persist_report(report):
     """Save the summit report to the database."""
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    os.environ.setdefault("STARGATE_DATABASE_URL", "postgresql://stargate:stargate@localhost:5432/stargate")
+    if "STARGATE_DATABASE_URL" not in os.environ:
+        raise RuntimeError("STARGATE_DATABASE_URL environment variable is required")
 
     from db.database import get_db
     from db import repository
