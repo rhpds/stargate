@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,39 +18,55 @@ spec:
         app: stargate-worker
     spec:
       containers:
-        - name: worker
-          image: stargate-api:latest
-          command: ["celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2"]
-          env:
-            - name: CELERY_BROKER_URL
-              value: "redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0"
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: stargate-secrets
-                  key: postgres-password
-            - name: STARGATE_DATABASE_URL
-              value: "postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate"
-          resources:
-            requests:
-              memory: 256Mi
-              cpu: 100m
-            limits:
-              memory: 512Mi
-              cpu: 500m
-          volumeMounts:
-            - name: scan-history
-              mountPath: /opt/app-root/src/scan-history
-            - name: kubeconfigs
-              mountPath: /opt/app-root/src/secrets
-              readOnly: true
-      volumes:
+      - name: worker
+        image: stargate-api:latest
+        command:
+        - celery
+        - -A
+        - celery_app
+        - worker
+        - --loglevel=info
+        - --concurrency=2
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stargate-secrets
+              key: postgres-password
+        - name: STARGATE_DATABASE_URL
+          value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
         - name: scan-history
-          persistentVolumeClaim:
-            claimName: stargate-scan-history-pvc
+          mountPath: /opt/app-root/src/scan-history
         - name: kubeconfigs
-          secret:
-            secretName: stargate-kubeconfigs
+          mountPath: /opt/app-root/src/secrets
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: scan-history
+        persistentVolumeClaim:
+          claimName: stargate-scan-history-pvc
+      - name: kubeconfigs
+        secret:
+          secretName: stargate-kubeconfigs
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -70,16 +87,30 @@ spec:
         app: stargate-beat
     spec:
       containers:
-        - name: beat
-          image: stargate-api:latest
-          command: ["celery", "-A", "celery_app", "beat", "--loglevel=info"]
-          env:
-            - name: CELERY_BROKER_URL
-              value: "redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0"
-          resources:
-            requests:
-              memory: 128Mi
-              cpu: 50m
-            limits:
-              memory: 256Mi
-              cpu: 200m
+      - name: beat
+        image: stargate-api:latest
+        command:
+        - celery
+        - -A
+        - celery_app
+        - beat
+        - --loglevel=info
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 50m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
