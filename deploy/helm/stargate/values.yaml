@@ -4,11 +4,11 @@ api:
   port: 8090
   resources:
     requests:
-      cpu: 250m
-      memory: 512Mi
+      cpu: 500m
+      memory: 1Gi
     limits:
       cpu: "1"
-      memory: 1Gi
+      memory: 2Gi
   env:
     STARGATE_DATABASE_URL: ""  # Set via Helm --set or template referencing secrets
     STARGATE_SSL_VERIFY: "false"
@@ -22,11 +22,11 @@ scanner:
   batch: 5
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
 
 babylonWorker:
   image: stargate-scanner:latest
