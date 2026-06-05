@@ -296,6 +296,44 @@ class MVLabEvalSummary(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False)
 
 
+class MVEvaluationTrends(Base):
+    """Hourly evaluation trend buckets for /dashboard/trends."""
+    __tablename__ = "mv_evaluation_trends"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    bucket = Column(DateTime(timezone=True), nullable=False, index=True)
+    cluster_name = Column(String(255), nullable=True, index=True)
+    outcome = Column(String(50), nullable=False)
+    failure_class = Column(String(255), nullable=True)
+    count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class MVMttrByClass(Base):
+    """Mean time to recovery by failure class for /dashboard/mttr."""
+    __tablename__ = "mv_mttr_by_class"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    failure_class = Column(String(255), nullable=False, unique=True, index=True)
+    incident_count = Column(Integer, nullable=False, default=0)
+    avg_mttr_seconds = Column(Float, nullable=True)
+    p50_seconds = Column(Float, nullable=True)
+    p95_seconds = Column(Float, nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class MVOverviewSnapshot(Base):
+    """Pre-computed overview failure summary for /dashboard/overview."""
+    __tablename__ = "mv_overview_snapshot"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    total_failures = Column(Integer, nullable=False, default=0)
+    top_failure_class = Column(String(255), nullable=True)
+    failure_classes = Column(JSON, nullable=True)
+    systemic_count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class RemediationRecord(Base):
     """Tracks remediation applications and outcomes for effectiveness measurement."""
     __tablename__ = "remediations"
