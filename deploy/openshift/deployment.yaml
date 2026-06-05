@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,36 +19,46 @@ spec:
         app: summit-demo-factory
     spec:
       containers:
-        - name: api
-          image: summit-demo-factory:latest
-          ports:
-            - containerPort: 8080
-              protocol: TCP
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: summit-demo-factory-db
-                  key: database-url
-          readinessProbe:
-            httpGet:
-              path: /docs
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /docs
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
+      - name: api
+        image: summit-demo-factory:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: summit-demo-factory-db
+              key: database-url
+        readinessProbe:
+          httpGet:
+            path: /docs
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /docs
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 500m
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
 ---
 apiVersion: v1
 kind: Service
@@ -59,9 +70,10 @@ spec:
   selector:
     app: summit-demo-factory
   ports:
-    - port: 8080
-      targetPort: 8080
-      protocol: TCP
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
