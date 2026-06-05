@@ -46,3 +46,4 @@ scan-history/
 backups/
 stargate-synthetic-client-emulator/
 code.txt
+podman-compose.local.yml
