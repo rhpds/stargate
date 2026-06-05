@@ -116,6 +116,13 @@ class ClusterWorker:
         self.api_url = api_url
         self._kc_path = str(SECRETS_DIR / kubeconfig)
         self._env = {**os.environ, "KUBECONFIG": self._kc_path}
+        self._api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
+
+    def _api_headers(self, content_type: str = "application/json") -> dict:
+        headers = {"Content-Type": content_type}
+        if self._api_key:
+            headers["X-API-Key"] = self._api_key
+        return headers
 
     def is_available(self) -> bool:
         if not os.path.exists(self._kc_path):
@@ -511,13 +518,14 @@ class ClusterWorker:
             req = urllib_req.Request(
                 f"{self.api_url}/runs",
                 data=body,
-                headers={"Content-Type": "application/json"},
+                headers=self._api_headers(),
             )
             urllib_req.urlopen(req, timeout=10)
 
             req = urllib_req.Request(
                 f"{self.api_url}/runs/{run_id}/stages/cluster-health/start",
                 method="POST",
+                headers=self._api_headers(),
             )
             urllib_req.urlopen(req, timeout=10)
 
@@ -531,7 +539,7 @@ class ClusterWorker:
                 req = urllib_req.Request(
                     f"{self.api_url}/runs/{run_id}/stages/cluster-health/evidence",
                     data=ev_body,
-                    headers={"Content-Type": "application/json"},
+                    headers=self._api_headers(),
                 )
                 urllib_req.urlopen(req, timeout=10)
 
@@ -539,7 +547,7 @@ class ClusterWorker:
             req = urllib_req.Request(
                 f"{self.api_url}/runs/{run_id}/stages/cluster-health/evaluate",
                 data=body,
-                headers={"Content-Type": "application/json"},
+                headers=self._api_headers(),
             )
             urllib_req.urlopen(req, timeout=10)
         except Exception:
