@@ -590,7 +590,8 @@
         "provision_failures": 0,
         "destroy_failures": 228,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1401-guardrails-cnv-slfsrv",
+          "summit-2026.lb1401-guardrails-cnv-tenant"
         ]
       },
       "ocp4-getting-started-module-1-tenant": {
@@ -598,7 +599,7 @@
         "provision_failures": 0,
         "destroy_failures": 97,
         "catalog_items": [
-          "unknown"
+          "agd-v2.ocp4-getting-started-module-1-tenant"
         ]
       },
       "LB1305": {
@@ -606,7 +607,7 @@
         "provision_failures": 0,
         "destroy_failures": 60,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1305-ai-powered-rhel-mgmt-cnv"
         ]
       },
       "ai-lightning-voice-agents-tenant": {
@@ -614,15 +615,15 @@
         "provision_failures": 0,
         "destroy_failures": 82,
         "catalog_items": [
-          "unknown"
+          "summit-2026.ai-lightning-voice-agents-tenant"
         ]
       },
       "zt-ans-bu-lab-developer-cnv": {
         "failed": 64,
-        "provision_failures": 0,
+        "provision_failures": 44,
         "destroy_failures": 0,
         "catalog_items": [
-          "unknown"
+          "zt-ansiblebu.zt-ans-bu-lab-developer-cnv"
         ]
       },
       "ai-lightning-wordswarm-tenant": {
@@ -630,7 +631,7 @@
         "provision_failures": 0,
         "destroy_failures": 54,
         "catalog_items": [
-          "unknown"
+          "summit-2026.ai-lightning-wordswarm-tenant"
         ]
       },
       "ocp4-getting-started-module-2-tenant": {
@@ -638,7 +639,7 @@
         "provision_failures": 0,
         "destroy_failures": 38,
         "catalog_items": [
-          "unknown"
+          "agd-v2.ocp4-getting-started-module-2-tenant"
         ]
       },
       "LB1839": {
@@ -646,15 +647,15 @@
         "provision_failures": 0,
         "destroy_failures": 36,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1839-balance-virt-fallback"
         ]
       },
       "LB1216": {
         "failed": 34,
-        "provision_failures": 0,
+        "provision_failures": 23,
         "destroy_failures": 11,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1216-demyst-aap-ocp-tenant"
         ]
       },
       "ocp4-getting-started-module-3-tenant": {
@@ -662,15 +663,15 @@
         "provision_failures": 0,
         "destroy_failures": 28,
         "catalog_items": [
-          "unknown"
+          "agd-v2.ocp4-getting-started-module-3-tenant"
         ]
       },
       "LB2862": {
         "failed": 22,
-        "provision_failures": 0,
+        "provision_failures": 11,
         "destroy_failures": 11,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb2862-ai-app-dev-cluster"
         ]
       },
       "ocp-cluster-cnv-pools": {
@@ -678,7 +679,7 @@
         "provision_failures": 21,
         "destroy_failures": 0,
         "catalog_items": [
-          "unknown"
+          "agd-v2.ocp-cluster-cnv-pools"
         ]
       },
       "ai-qs-ppe-comp-tenant": {
@@ -686,7 +687,7 @@
         "provision_failures": 0,
         "destroy_failures": 19,
         "catalog_items": [
-          "unknown"
+          "ai-quickstarts.ai-qs-ppe-comp-tenant"
         ]
       },
       "ai-qs-rag-tenant": {
@@ -694,7 +695,7 @@
         "provision_failures": 0,
         "destroy_failures": 18,
         "catalog_items": [
-          "unknown"
+          "ai-quickstarts.ai-qs-rag-tenant"
         ]
       },
       "ai-lightning-private-maas-tenant": {
@@ -702,7 +703,7 @@
         "provision_failures": 0,
         "destroy_failures": 17,
         "catalog_items": [
-          "unknown"
+          "summit-2026.ai-lightning-private-maas-tenant"
         ]
       },
       "LB1237": {
@@ -710,7 +711,8 @@
         "provision_failures": 16,
         "destroy_failures": 0,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1237-hol-rhel10-aws",
+          "summit-2026.lb1237-hol-rhel10-cnv"
         ]
       },
       "ai-qs-product-rec-tenant": {
@@ -718,7 +720,7 @@
         "provision_failures": 0,
         "destroy_failures": 12,
         "catalog_items": [
-          "unknown"
+          "ai-quickstarts.ai-qs-product-rec-tenant"
         ]
       },
       "ai-qs-data-gov-tenant": {
@@ -726,7 +728,7 @@
         "provision_failures": 0,
         "destroy_failures": 11,
         "catalog_items": [
-          "unknown"
+          "ai-quickstarts.ai-qs-data-gov-tenant"
         ]
       },
       "LB2236": {
@@ -734,7 +736,8 @@
         "provision_failures": 0,
         "destroy_failures": 8,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb2236-ansible-dev-tools-cluster",
+          "summit-2026.lb2236-ansible-dev-tools-tenant"
         ]
       },
       "LB1347": {
@@ -742,15 +745,85 @@
         "provision_failures": 0,
         "destroy_failures": 0,
         "catalog_items": [
-          "unknown"
+          "summit-2026.lb1347-advanced-features-of-aap-cnv"
         ]
       }
     },
     "top_catalogs": {
-      "unknown": {
-        "failed": 1000,
-        "provision": 58,
-        "destroy": 765
+      "summit-2026.lb1401-guardrails-cnv-tenant": {
+        "failed": 198,
+        "provision": 0,
+        "destroy": 198
+      },
+      "agd-v2.ocp4-getting-started-module-1-tenant": {
+        "failed": 97,
+        "provision": 0,
+        "destroy": 97
+      },
+      "summit-2026.lb1305-ai-powered-rhel-mgmt-cnv": {
+        "failed": 90,
+        "provision": 0,
+        "destroy": 60
+      },
+      "summit-2026.ai-lightning-voice-agents-tenant": {
+        "failed": 82,
+        "provision": 0,
+        "destroy": 82
+      },
+      "zt-ansiblebu.zt-ans-bu-lab-developer-cnv": {
+        "failed": 64,
+        "provision": 44,
+        "destroy": 0
+      },
+      "summit-2026.ai-lightning-wordswarm-tenant": {
+        "failed": 54,
+        "provision": 0,
+        "destroy": 54
+      },
+      "agd-v2.ocp4-getting-started-module-2-tenant": {
+        "failed": 38,
+        "provision": 0,
+        "destroy": 38
+      },
+      "summit-2026.lb1839-balance-virt-fallback": {
+        "failed": 37,
+        "provision": 0,
+        "destroy": 36
+      },
+      "summit-2026.lb1216-demyst-aap-ocp-tenant": {
+        "failed": 34,
+        "provision": 23,
+        "destroy": 11
+      },
+      "agd-v2.ocp4-getting-started-module-3-tenant": {
+        "failed": 30,
+        "provision": 0,
+        "destroy": 28
+      },
+      "summit-2026.lb1401-guardrails-cnv-slfsrv": {
+        "failed": 30,
+        "provision": 0,
+        "destroy": 30
+      },
+      "summit-2026.lb2862-ai-app-dev-cluster": {
+        "failed": 22,
+        "provision": 11,
+        "destroy": 11
+      },
+      "agd-v2.ocp-cluster-cnv-pools": {
+        "failed": 21,
+        "provision": 21,
+        "destroy": 0
+      },
+      "ai-quickstarts.ai-qs-ppe-comp-tenant": {
+        "failed": 19,
+        "provision": 0,
+        "destroy": 19
+      },
+      "ai-quickstarts.ai-qs-rag-tenant": {
+        "failed": 18,
+        "provision": 0,
+        "destroy": 18
       }
     },
     "top_playbooks": {
@@ -763,12 +836,117 @@
     },
     "failure_breakdown": {
       "by_type": {
-        "provision": 58,
+        "provision": 160,
         "destroy": 765,
-        "other": 177
+        "other": 75
       },
       "avg_duration_minutes": 8.7,
       "max_duration_minutes": 180.1
     }
-  }
+  },
+  "correlation": [
+    {
+      "lab_type": "summit-2026",
+      "aap_failed": 654,
+      "aap_provision_failed": 77,
+      "aap_destroy_failed": 525,
+      "eval_total": 0,
+      "eval_failed": 0,
+      "eval_namespaces": 0,
+      "top_failure_classes": {},
+      "both_systems_affected": false
+    },
+    {
+      "lab_type": "agd-v2",
+      "aap_failed": 198,
+      "aap_provision_failed": 31,
+      "aap_destroy_failed": 165,
+      "eval_total": 0,
+      "eval_failed": 0,
+      "eval_namespaces": 0,
+      "top_failure_classes": {},
+      "both_systems_affected": false
+    },
+    {
+      "lab_type": "zt-rhelbu",
+      "aap_failed": 8,
+      "aap_provision_failed": 7,
+      "aap_destroy_failed": 1,
+      "eval_total": 325,
+      "eval_failed": 154,
+      "eval_namespaces": 52,
+      "top_failure_classes": {
+        "guest_agent_not_connected": 64,
+        "health_check_failed": 51,
+        "deployment_missing": 13
+      },
+      "both_systems_affected": true
+    },
+    {
+      "lab_type": "zt-ansiblebu",
+      "aap_failed": 64,
+      "aap_provision_failed": 44,
+      "aap_destroy_failed": 0,
+      "eval_total": 170,
+      "eval_failed": 68,
+      "eval_namespaces": 24,
+      "top_failure_classes": {
+        "health_check_failed": 22,
+        "pods_not_ready": 16,
+        "guest_agent_not_connected": 14
+      },
+      "both_systems_affected": true
+    },
+    {
+      "lab_type": "ai-quickstarts",
+      "aap_failed": 75,
+      "aap_provision_failed": 0,
+      "aap_destroy_failed": 74,
+      "eval_total": 0,
+      "eval_failed": 0,
+      "eval_namespaces": 0,
+      "top_failure_classes": {},
+      "both_systems_affected": false
+    },
+    {
+      "lab_type": "ocp4",
+      "aap_failed": 0,
+      "aap_provision_failed": 0,
+      "aap_destroy_failed": 0,
+      "eval_total": 146,
+      "eval_failed": 42,
+      "eval_namespaces": 33,
+      "top_failure_classes": {
+        "route_missing": 29,
+        "service_has_no_endpoints": 4,
+        "health_check_failed": 3
+      },
+      "both_systems_affected": false
+    },
+    {
+      "lab_type": "sandbox-api",
+      "aap_failed": 0,
+      "aap_provision_failed": 0,
+      "aap_destroy_failed": 0,
+      "eval_total": 15,
+      "eval_failed": 9,
+      "eval_namespaces": 1,
+      "top_failure_classes": {
+        "health_check_failed": 3,
+        "datavolume_missing": 3
+      },
+      "both_systems_affected": false
+    },
+    {
+      "lab_type": "sandboxes-gpte",
+      "aap_failed": 1,
+      "aap_provision_failed": 1,
+      "aap_destroy_failed": 0,
+      "eval_total": 0,
+      "eval_failed": 0,
+      "eval_namespaces": 0,
+      "top_failure_classes": {},
+      "both_systems_affected": false
+    }
+  ]
 }

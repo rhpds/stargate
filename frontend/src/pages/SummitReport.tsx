@@ -60,6 +60,7 @@ export default function SummitReport() {
   const subjects = data.live_subjects;
   const evals = report.evaluations || {};
   const aap = report.aap || {};
+  const correlation = report.correlation || [];
   const labs = report.labs?.labs || [];
   const stages = report.stages || [];
   const daily = report.daily || [];
@@ -290,6 +291,35 @@ export default function SummitReport() {
                   </div>
                 )}
               </div>
+            </section>
+          )}
+
+          {/* Cross-Reference: AAP ↔ Evaluations */}
+          {correlation.length > 0 && (
+            <section>
+              <SectionHeader>AAP ↔ Evaluation Cross-Reference</SectionHeader>
+              <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
+                <div className="grid grid-cols-[1fr_100px_100px_100px_100px_100px] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
+                  <span>Lab Type</span><span className="text-right">AAP Failed</span><span className="text-right">AAP Provision</span><span className="text-right">AAP Destroy</span><span className="text-right">Eval Failed</span><span className="text-right">Eval Total</span>
+                </div>
+                {correlation.map((c: any) => (
+                  <div key={c.lab_type} className={`grid grid-cols-[1fr_100px_100px_100px_100px_100px] gap-3 items-center py-1.5 ${c.both_systems_affected ? 'border-l-2 border-l-[#F0AB00]' : ''}`}>
+                    <div>
+                      <span className="text-sm text-white">{c.lab_type}</span>
+                      {c.both_systems_affected && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#F0AB00] text-black">CORRELATED</span>}
+                      {c.note && <div className="text-[10px] text-[#6A6E73] mt-0.5">{c.note}</div>}
+                    </div>
+                    <span className={`text-sm text-right ${c.aap_failed > 0 ? 'text-[#C9190B]' : 'text-[#6A6E73]'}`}>{c.aap_failed}</span>
+                    <span className={`text-sm text-right ${c.aap_provision_failed > 0 ? 'text-[#F0AB00]' : 'text-[#6A6E73]'}`}>{c.aap_provision_failed}</span>
+                    <span className="text-sm text-[#6A6E73] text-right">{c.aap_destroy_failed}</span>
+                    <span className={`text-sm text-right ${c.eval_failed > 0 ? 'text-[#C9190B]' : 'text-[#6A6E73]'}`}>{c.eval_failed}</span>
+                    <span className="text-sm text-white text-right">{c.eval_total}</span>
+                  </div>
+                ))}
+              </div>
+              {correlation.filter((c: any) => c.both_systems_affected).length > 0 && (
+                <p className="text-xs text-[#F0AB00] mt-2">CORRELATED labs had failures in both AAP provisioning and StarGate evaluation — provisioning errors may have caused cluster-level failures.</p>
+              )}
             </section>
           )}
 
