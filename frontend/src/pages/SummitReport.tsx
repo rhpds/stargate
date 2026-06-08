@@ -180,14 +180,52 @@ export default function SummitReport() {
                   </div>
                 ))}
               </div>
-              {aap.top_errors && Object.keys(aap.top_errors).length > 0 && (
-                <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-                  <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Top Errors</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {aap.top_playbooks && Object.keys(aap.top_playbooks).length > 0 && (
+                  <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                    <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Failing Playbooks</div>
+                    <div className="space-y-1">
+                      {Object.entries(aap.top_playbooks as Record<string, number>).slice(0, 5).map(([pb, count]) => (
+                        <div key={pb} className="flex items-center gap-3 text-xs">
+                          <span className="text-[#C9190B] w-8 text-right shrink-0">{count as number}</span>
+                          <span className="text-[#d2d2d2] truncate" title={pb}>{pb}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {aap.failure_breakdown && (
+                  <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+                    <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Failure Breakdown</div>
+                    <div className="space-y-1 text-xs">
+                      {aap.failure_breakdown.by_type && Object.entries(aap.failure_breakdown.by_type as Record<string, number>).map(([t, c]) => (
+                        <div key={t} className="flex items-center justify-between">
+                          <span className="text-[#d2d2d2]">{t}</span>
+                          <span className="text-white font-bold">{(c as number).toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-[#333] pt-1 mt-1 flex items-center justify-between">
+                        <span className="text-[#6A6E73]">Avg duration</span>
+                        <span className="text-white">{aap.failure_breakdown.avg_duration_minutes}min</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#6A6E73]">Max duration</span>
+                        <span className="text-white">{aap.failure_breakdown.max_duration_minutes}min</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {aap.top_failing_labs && Object.keys(aap.top_failing_labs).length > 0 && (
+                <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 mt-4">
+                  <div className="text-xs text-[#6A6E73] uppercase font-bold mb-2">Top Failing Labs (AAP)</div>
                   <div className="space-y-1">
-                    {Object.entries(aap.top_errors as Record<string, number>).slice(0, 5).map(([err, count]) => (
-                      <div key={err} className="flex items-center gap-3 text-xs">
-                        <span className="text-[#C9190B] w-8 text-right shrink-0">{count}</span>
-                        <span className="text-[#d2d2d2] truncate" title={err}>{err || '(empty)'}</span>
+                    {Object.entries(aap.top_failing_labs as Record<string, any>).slice(0, 10).map(([lab, stats]: [string, any]) => (
+                      <div key={lab} className="flex items-center gap-3 text-xs">
+                        <span className="text-[#C9190B] w-8 text-right shrink-0">{stats.failed}</span>
+                        <span className="text-white w-32 truncate shrink-0">{lab}</span>
+                        {stats.provision_failures > 0 && <span className="text-[#F0AB00]">{stats.provision_failures} provision</span>}
+                        {stats.destroy_failures > 0 && <span className="text-[#6A6E73]">{stats.destroy_failures} destroy</span>}
                       </div>
                     ))}
                   </div>
@@ -278,7 +316,7 @@ export default function SummitReport() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#6A6E73]" />
-                  <span className="text-[#d2d2d2]">AAP job history: Not yet queried — 30-day retention may still have data</span>
+                  <span className="text-[#d2d2d2]">AAP job history: {coverage.aap_jobs?.note || 'Not yet queried'}</span>
                 </div>
               </div>
             </section>
