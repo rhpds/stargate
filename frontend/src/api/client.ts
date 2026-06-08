@@ -69,7 +69,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       throw new Error(`Rate limited — retry after ${retryAfter}s`);
     }
     if (response.status === 403) {
+      if (response.url.includes('/admin/')) {
+        throw new Error('Session expired — please refresh the page to re-authenticate');
+      }
       throw new Error('Unauthorized — check API key');
+    }
+    if (response.status === 401) {
+      window.location.reload();
+      throw new Error('Session expired — redirecting to login');
     }
     if (response.status === 503) {
       throw new Error('Service temporarily unavailable — try again shortly');

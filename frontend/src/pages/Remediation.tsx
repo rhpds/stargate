@@ -301,7 +301,7 @@ export default function Remediation() {
   if (hasError) {
     return (
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        <p className="text-[#C9190B]">Failed to load remediation data.</p>
+        <p className="text-[#C9190B]">Failed to load remediation data. If your session expired, <button onClick={() => window.location.reload()} className="underline">refresh the page</button> to re-authenticate.</p>
       </div>
     );
   }
