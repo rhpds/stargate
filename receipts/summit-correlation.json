@@ -1,0 +1,67 @@
+[
+  {
+    "lab_type": "ocp4-cluster",
+    "aap_failed": 0,
+    "aap_provision_failed": 0,
+    "aap_destroy_failed": 0,
+    "eval_total": 146,
+    "eval_failed": 42,
+    "eval_namespaces": 33,
+    "top_failure_classes": {
+      "route_missing": 29,
+      "service_has_no_endpoints": 4,
+      "health_check_failed": 3
+    }
+  },
+  {
+    "lab_type": "sandbox-api",
+    "aap_failed": 0,
+    "aap_provision_failed": 0,
+    "aap_destroy_failed": 0,
+    "eval_total": 15,
+    "eval_failed": 9,
+    "eval_namespaces": 1,
+    "top_failure_classes": {
+      "health_check_failed": 3,
+      "datavolume_missing": 3
+    }
+  },
+  {
+    "lab_type": "unknown",
+    "aap_failed": 1000,
+    "aap_provision_failed": 58,
+    "aap_destroy_failed": 765,
+    "eval_total": 0,
+    "eval_failed": 0,
+    "eval_namespaces": 0,
+    "top_failure_classes": {}
+  },
+  {
+    "lab_type": "zt-ansiblebu",
+    "aap_failed": 0,
+    "aap_provision_failed": 0,
+    "aap_destroy_failed": 0,
+    "eval_total": 170,
+    "eval_failed": 68,
+    "eval_namespaces": 24,
+    "top_failure_classes": {
+      "health_check_failed": 22,
+      "pods_not_ready": 16,
+      "guest_agent_not_connected": 14
+    }
+  },
+  {
+    "lab_type": "zt-rhelbu",
+    "aap_failed": 0,
+    "aap_provision_failed": 0,
+    "aap_destroy_failed": 0,
+    "eval_total": 325,
+    "eval_failed": 154,
+    "eval_namespaces": 52,
+    "top_failure_classes": {
+      "guest_agent_not_connected": 64,
+      "health_check_failed": 51,
+      "deployment_missing": 13
+    }
+  }
+]

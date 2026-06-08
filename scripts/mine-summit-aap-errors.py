@@ -49,38 +49,36 @@ def fetch_aap(url, user, password):
     return json.loads(resp.read())
 
 
-def extract_lab_code(job_name):
+def parse_job_name(job_name):
+    """Parse AAP job name: 'RHPDS prefix.catalog-slug.instance-action uuid'"""
     if not job_name:
-        return "unknown"
-    parts = job_name.split(".")
-    if len(parts) >= 2:
-        slug = parts[1]
-        lb_parts = slug.split("-")
-        if lb_parts and lb_parts[0].startswith("lb"):
-            return lb_parts[0].upper()
-        return slug[:40]
-    return job_name[:40]
+        return {"prefix": "unknown", "catalog": "unknown", "lab": "unknown"}
+    # Strip 'RHPDS ' prefix and trailing UUID
+    name = job_name
+    if name.startswith("RHPDS "):
+        name = name[6:]
+    parts = name.split()
+    ci_full = parts[0] if parts else name
+    dot_parts = ci_full.split(".")
+    prefix = dot_parts[0] if dot_parts else "unknown"
+    catalog_slug = dot_parts[1] if len(dot_parts) >= 2 else prefix
+    # Extract lab code from slug
+    lb_parts = catalog_slug.split("-")
+    if lb_parts and lb_parts[0].startswith("lb"):
+        lab = lb_parts[0].upper()
+    else:
+        lab = catalog_slug
+    return {"prefix": prefix, "catalog": f"{prefix}.{catalog_slug}", "catalog_slug": catalog_slug, "lab": lab}
 
 
 def extract_job_type(job):
     playbook = job.get("playbook", "")
     name = job.get("name", "").lower()
-    if "destroy" in playbook or "destroy" in name:
+    if "destroy" in playbook or "destroy" in name or "dest" in name:
         return "destroy"
-    if "provision" in playbook or "provision" in name or "deploy" in playbook:
+    if "provision" in playbook or "provision" in name or "provi" in name:
         return "provision"
     return "other"
-
-
-def extract_catalog_item(job_name):
-    if not job_name:
-        return "unknown"
-    parts = job_name.split()
-    if parts:
-        ci_parts = parts[0].split(".")
-        if len(ci_parts) >= 2:
-            return ".".join(ci_parts[:2])
-    return "unknown"
 
 
 def main():
@@ -113,17 +111,20 @@ def main():
     print(f"  Fetched {len(all_failed)} of {total_available} failed jobs")
 
     # Analyze
-    by_lab = defaultdict(lambda: {"total": 0, "provision": 0, "destroy": 0, "other": 0, "avg_elapsed": 0, "catalog_items": set()})
+    by_lab = defaultdict(lambda: {"total": 0, "provision": 0, "destroy": 0, "other": 0, "catalog_items": set()})
     by_type = defaultdict(int)
     by_playbook = defaultdict(int)
     by_catalog = defaultdict(lambda: {"total": 0, "provision": 0, "destroy": 0, "other": 0})
+    by_prefix = defaultdict(lambda: {"total": 0, "provision": 0, "destroy": 0, "other": 0})
     durations = []
     by_day = defaultdict(lambda: {"total": 0, "provision": 0, "destroy": 0, "other": 0})
 
     for job in all_failed:
-        lab = extract_lab_code(job.get("name", ""))
+        parsed = parse_job_name(job.get("name", ""))
+        lab = parsed["lab"]
+        catalog = parsed["catalog"]
+        prefix = parsed["prefix"]
         job_type = extract_job_type(job)
-        catalog = extract_catalog_item(job.get("name", ""))
         elapsed = job.get("elapsed", 0)
         finished = job.get("finished", "")
         playbook = job.get("playbook", "unknown")
@@ -139,6 +140,9 @@ def main():
 
         by_catalog[catalog]["total"] += 1
         by_catalog[catalog][job_type] += 1
+
+        by_prefix[prefix]["total"] += 1
+        by_prefix[prefix][job_type] += 1
 
         if finished:
             day = finished[:10]
@@ -171,6 +175,7 @@ def main():
         "total_failed_available": total_available,
         "by_type": dict(by_type),
         "by_day": {k: dict(v) for k, v in sorted(by_day.items())},
+        "by_prefix": {k: dict(v) for k, v in sorted(by_prefix.items(), key=lambda x: -x[1]["total"])},
         "top_failing_labs": top_failing_labs,
         "top_catalogs": top_catalogs,
         "top_playbooks": top_playbooks,
