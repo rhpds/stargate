@@ -1,0 +1,193 @@
+{
+  "controller": "event0",
+  "total_failed_fetched": 1000,
+  "total_failed_available": 6241,
+  "by_type": {
+    "provision": 58,
+    "destroy": 765,
+    "other": 177
+  },
+  "by_day": {
+    "2026-05-08": {
+      "total": 1000,
+      "provision": 58,
+      "destroy": 765,
+      "other": 177
+    }
+  },
+  "top_failing_labs": {
+    "LB1401": {
+      "failed": 228,
+      "provision_failures": 0,
+      "destroy_failures": 228,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ocp4-getting-started-module-1-tenant": {
+      "failed": 97,
+      "provision_failures": 0,
+      "destroy_failures": 97,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB1305": {
+      "failed": 90,
+      "provision_failures": 0,
+      "destroy_failures": 60,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-lightning-voice-agents-tenant": {
+      "failed": 82,
+      "provision_failures": 0,
+      "destroy_failures": 82,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "zt-ans-bu-lab-developer-cnv": {
+      "failed": 64,
+      "provision_failures": 0,
+      "destroy_failures": 0,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-lightning-wordswarm-tenant": {
+      "failed": 54,
+      "provision_failures": 0,
+      "destroy_failures": 54,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ocp4-getting-started-module-2-tenant": {
+      "failed": 38,
+      "provision_failures": 0,
+      "destroy_failures": 38,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB1839": {
+      "failed": 37,
+      "provision_failures": 0,
+      "destroy_failures": 36,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB1216": {
+      "failed": 34,
+      "provision_failures": 0,
+      "destroy_failures": 11,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ocp4-getting-started-module-3-tenant": {
+      "failed": 30,
+      "provision_failures": 0,
+      "destroy_failures": 28,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB2862": {
+      "failed": 22,
+      "provision_failures": 0,
+      "destroy_failures": 11,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ocp-cluster-cnv-pools": {
+      "failed": 21,
+      "provision_failures": 21,
+      "destroy_failures": 0,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-qs-ppe-comp-tenant": {
+      "failed": 19,
+      "provision_failures": 0,
+      "destroy_failures": 19,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-qs-rag-tenant": {
+      "failed": 18,
+      "provision_failures": 0,
+      "destroy_failures": 18,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-lightning-private-maas-tenant": {
+      "failed": 17,
+      "provision_failures": 0,
+      "destroy_failures": 17,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB1237": {
+      "failed": 16,
+      "provision_failures": 16,
+      "destroy_failures": 0,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-qs-product-rec-tenant": {
+      "failed": 12,
+      "provision_failures": 0,
+      "destroy_failures": 12,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "ai-qs-data-gov-tenant": {
+      "failed": 11,
+      "provision_failures": 0,
+      "destroy_failures": 11,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB2236": {
+      "failed": 11,
+      "provision_failures": 0,
+      "destroy_failures": 8,
+      "catalog_items": [
+        "unknown"
+      ]
+    },
+    "LB1347": {
+      "failed": 10,
+      "provision_failures": 0,
+      "destroy_failures": 0,
+      "catalog_items": [
+        "unknown"
+      ]
+    }
+  },
+  "top_catalogs": {
+    "unknown": {
+      "failed": 1000,
+      "provision": 58,
+      "destroy": 765
+    }
+  },
+  "top_playbooks": {
+    "ansible/destroy.yml": 765,
+    "ansible/main.yml": 235
+  },
+  "avg_duration_minutes": 8.7,
+  "max_duration_minutes": 180.1
+}

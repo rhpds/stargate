@@ -86,6 +86,8 @@ def analyze_summit(tables):
         by_lab[lab]["total"] += 1
 
         cluster = e.get("cluster_name", "unknown")
+        if cluster == "\\N" or not cluster:
+            cluster = "Unattributed"
         by_cluster[cluster][outcome] = by_cluster[cluster].get(outcome, 0) + 1
         by_cluster[cluster]["total"] += 1
 
