@@ -279,7 +279,9 @@ def _mv_refresh_loop():
     _time.sleep(5)
     while not _shutdown_event.is_set():
         try:
-            db = next(get_db())
+            from db.database import get_session_factory
+            factory = get_session_factory()
+            db = factory()
             repository.refresh_cluster_summary(db)
             repository.refresh_pipeline_stages(db)
             repository.refresh_lab_eval_summary(db)
@@ -314,6 +316,11 @@ def _mv_refresh_loop():
             logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")
+            try:
+                db.rollback()
+                db.close()
+            except Exception:
+                pass
 
         try:
             scans = _load_latest_scan()

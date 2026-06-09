@@ -58,6 +58,7 @@ const navItems = [
   { to: '/remediation', label: 'Remediation' },
   { to: '/llm', label: 'LLM' },
   { to: '/trends', label: 'Trends' },
+  { to: '/provisioning', label: 'Provisioning' },
   { to: '/capacity', label: 'Capacity' },
   { to: '/summit', label: 'Summit' },
 ];
