@@ -487,6 +487,9 @@ def refresh_cluster_summary(db: Session) -> None:
         .filter(
             EvaluationRecord.cluster_name.isnot(None),
             EvaluationRecord.evaluated_at >= cutoff,
+            ~EvaluationRecord.run_id.like("k8s-mine-%"),
+            ~EvaluationRecord.run_id.like("alert-mine-%"),
+            ~EvaluationRecord.run_id.like("prom-mine-%"),
         )
         .all()
     )
@@ -538,7 +541,12 @@ def refresh_pipeline_stages(db: Session) -> None:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     rows = (
         db.query(EvaluationRecord.stage_id, EvaluationRecord.outcome)
-        .filter(EvaluationRecord.evaluated_at >= cutoff)
+        .filter(
+            EvaluationRecord.evaluated_at >= cutoff,
+            ~EvaluationRecord.run_id.like("k8s-mine-%"),
+            ~EvaluationRecord.run_id.like("alert-mine-%"),
+            ~EvaluationRecord.run_id.like("prom-mine-%"),
+        )
         .all()
     )
 
@@ -589,6 +597,9 @@ def refresh_lab_eval_summary(db: Session) -> None:
         .filter(
             EvaluationRecord.lab_code.isnot(None),
             EvaluationRecord.evaluated_at >= cutoff,
+            ~EvaluationRecord.run_id.like("k8s-mine-%"),
+            ~EvaluationRecord.run_id.like("alert-mine-%"),
+            ~EvaluationRecord.run_id.like("prom-mine-%"),
         )
         .all()
     )

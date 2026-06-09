@@ -277,11 +277,8 @@ def on_shutdown():
 
 def _mv_refresh_loop():
     """Background thread to refresh materialized views and check scanner health every 60 seconds."""
-    import sys
-    print(">>> MV REFRESH THREAD STARTED <<<", flush=True)
     _stargate_logger.info("MV refresh thread starting")
     _time.sleep(5)
-    print(">>> MV REFRESH AFTER SLEEP <<<", flush=True)
     try:
         from api.routers._shared import _load_latest_scan
     except Exception as e:
@@ -291,15 +288,11 @@ def _mv_refresh_loop():
     logger = _stargate_logger
     while not _shutdown_event.is_set():
         try:
-            print(">>> MV: getting DB session", flush=True)
             from db.database import get_session_factory
             factory = get_session_factory()
             db = factory()
-            print(">>> MV: refreshing cluster summary", flush=True)
             repository.refresh_cluster_summary(db)
-            print(">>> MV: refreshing pipeline stages", flush=True)
             repository.refresh_pipeline_stages(db)
-            print(">>> MV: refreshing lab eval summary", flush=True)
             repository.refresh_lab_eval_summary(db)
             try:
                 from api.contracts import record_source_fetch
