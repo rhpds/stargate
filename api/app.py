@@ -277,14 +277,15 @@ def on_shutdown():
 
 def _mv_refresh_loop():
     """Background thread to refresh materialized views and check scanner health every 60 seconds."""
-    from api.routers._shared import _load_latest_scan
-    from datetime import datetime, timezone
-    logger = logging.getLogger("stargate")
-    try:
-        _stargate_logger.info("MV refresh thread alive")
-    except Exception:
-        pass
+    _stargate_logger.info("MV refresh thread starting")
     _time.sleep(5)
+    try:
+        from api.routers._shared import _load_latest_scan
+    except Exception as e:
+        _stargate_logger.warning(f"MV refresh: failed to import _load_latest_scan: {e}")
+        return
+    from datetime import datetime, timezone
+    logger = _stargate_logger
     while not _shutdown_event.is_set():
         try:
             from db.database import get_session_factory
