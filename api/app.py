@@ -143,14 +143,9 @@ def _register_event_consumers():
 
 @app.on_event("startup")
 def on_startup():
-    import sys
-    print("=== STARGATE STARTUP BEGIN ===", file=sys.stderr, flush=True)
     init_db()
-    print("=== init_db done ===", file=sys.stderr, flush=True)
     _clone_agnosticv()
-    print("=== agnosticv done ===", file=sys.stderr, flush=True)
     _register_event_consumers()
-    print("=== consumers done ===", file=sys.stderr, flush=True)
     import threading
     t = threading.Thread(target=_mv_refresh_loop, daemon=True)
     t.start()
@@ -280,11 +275,8 @@ def _mv_refresh_loop():
     from api.routers._shared import _load_latest_scan
     from datetime import datetime, timezone
     logger = logging.getLogger("stargate")
-    import sys
-    print("=== MV THREAD ALIVE ===", file=sys.stderr, flush=True)
-    logger.warning("MV refresh thread starting")
+    logger.info("MV refresh thread starting")
     _time.sleep(5)
-    print("=== MV THREAD AFTER SLEEP ===", file=sys.stderr, flush=True)
     while not _shutdown_event.is_set():
         try:
             db = next(get_db())
@@ -319,7 +311,7 @@ def _mv_refresh_loop():
             except Exception as e:
                 logger.debug(f"Notifications skipped: {e}")
             db.close()
-            logger.warning("MV refresh complete")
+            logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")
 
