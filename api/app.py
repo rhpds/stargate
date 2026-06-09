@@ -280,8 +280,11 @@ def _mv_refresh_loop():
     from api.routers._shared import _load_latest_scan
     from datetime import datetime, timezone
     logger = logging.getLogger("stargate")
+    import sys
+    print("=== MV THREAD ALIVE ===", file=sys.stderr, flush=True)
     logger.warning("MV refresh thread starting")
     _time.sleep(5)
+    print("=== MV THREAD AFTER SLEEP ===", file=sys.stderr, flush=True)
     while not _shutdown_event.is_set():
         try:
             db = next(get_db())
