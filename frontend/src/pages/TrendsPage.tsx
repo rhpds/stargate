@@ -74,9 +74,9 @@ export default function TrendsPage() {
         </div>
       ) : t ? (
         <div className="space-y-4">
-          {t.failures && <TrendChart label="Failures per Hour" data={t.failures} color="#C9190B" onClick={() => navigate('/failures')} />}
-          {t.evaluations && <TrendChart label="Evaluations per Hour" data={t.evaluations} color="#4394E5" onClick={() => navigate('/pipeline')} />}
-          {t.pass_rate && <TrendChart label="Pass Rate % per Hour" data={t.pass_rate} color="#3E8635" onClick={() => navigate('/pipeline')} />}
+          {t.evaluation_trend && <TrendChart label="Failures per Hour" data={t.evaluation_trend.map((b: any) => b.fail ?? 0)} color="#C9190B" onClick={() => navigate('/failures')} />}
+          {t.evaluation_trend && <TrendChart label="Evaluations per Hour" data={t.evaluation_trend.map((b: any) => (b.pass ?? 0) + (b.fail ?? 0) + (b.warn ?? 0))} color="#4394E5" onClick={() => navigate('/pipeline')} />}
+          {t.evaluation_trend && <TrendChart label="Pass Rate % per Hour" data={t.evaluation_trend.map((b: any) => b.health_rate ?? 0)} color="#3E8635" onClick={() => navigate('/pipeline')} />}
         </div>
       ) : (
         <p className="text-[#6A6E73]">No trend data available.</p>

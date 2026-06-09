@@ -143,7 +143,7 @@ export default function LLMAdmin() {
             <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-[#6A6E73]">Accuracy: </span><span className="text-white font-bold">{accData.accuracy != null ? `${(accData.accuracy * 100).toFixed(1)}%` : '--'}</span></div>
-                <div><span className="text-[#6A6E73]">Total Evaluated: </span><span className="text-white">{accData.total_evaluated ?? 0}</span></div>
+                <div><span className="text-[#6A6E73]">Total Evaluated: </span><span className="text-white">{accData.total ?? 0}</span></div>
                 <div><span className="text-[#6A6E73]">Correct: </span><span className="text-[#3E8635]">{accData.correct ?? 0}</span></div>
                 <div><span className="text-[#6A6E73]">Incorrect: </span><span className="text-[#C9190B]">{accData.incorrect ?? 0}</span></div>
               </div>
