@@ -143,9 +143,14 @@ def _register_event_consumers():
 
 @app.on_event("startup")
 def on_startup():
+    import sys
+    print("=== STARGATE STARTUP BEGIN ===", file=sys.stderr, flush=True)
     init_db()
+    print("=== init_db done ===", file=sys.stderr, flush=True)
     _clone_agnosticv()
+    print("=== agnosticv done ===", file=sys.stderr, flush=True)
     _register_event_consumers()
+    print("=== consumers done ===", file=sys.stderr, flush=True)
     import threading
     t = threading.Thread(target=_mv_refresh_loop, daemon=True)
     t.start()
