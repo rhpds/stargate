@@ -72,6 +72,7 @@ async def request_id_middleware(request: Request, call_next):
 # --- Lifecycle ---
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
+logging.getLogger("stargate").setLevel(logging.INFO)
 
 
 def _clone_agnosticv():
@@ -274,7 +275,7 @@ def _mv_refresh_loop():
     from api.routers._shared import _load_latest_scan
     from datetime import datetime, timezone
     logger = logging.getLogger("stargate")
-    logger.info("MV refresh thread starting")
+    logger.warning("MV refresh thread starting")
     _time.sleep(5)
     while not _shutdown_event.is_set():
         try:
@@ -310,7 +311,7 @@ def _mv_refresh_loop():
             except Exception as e:
                 logger.debug(f"Notifications skipped: {e}")
             db.close()
-            logger.info("MV refresh complete")
+            logger.warning("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")
 
