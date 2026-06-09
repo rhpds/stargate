@@ -72,7 +72,12 @@ async def request_id_middleware(request: Request, call_next):
 # --- Lifecycle ---
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
-logging.getLogger("stargate").setLevel(logging.INFO)
+_stargate_logger = logging.getLogger("stargate")
+_stargate_logger.setLevel(logging.INFO)
+if not _stargate_logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter('%(levelname).5s [%(name)s] %(message)s'))
+    _stargate_logger.addHandler(_handler)
 
 
 def _clone_agnosticv():
