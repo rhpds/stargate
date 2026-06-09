@@ -472,10 +472,11 @@ def get_namespaces_for_cluster(db: Session, cluster_name: str, limit: int = 200)
 def refresh_cluster_summary(db: Session) -> None:
     from db.models import EvaluationRecord, MVClusterSummary
     from sqlalchemy import func
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
 
     db.query(MVClusterSummary).delete()
 
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     rows = (
         db.query(
             EvaluationRecord.cluster_name,
@@ -483,7 +484,10 @@ def refresh_cluster_summary(db: Session) -> None:
             EvaluationRecord.failure_class,
             EvaluationRecord.lab_code,
         )
-        .filter(EvaluationRecord.cluster_name.isnot(None))
+        .filter(
+            EvaluationRecord.cluster_name.isnot(None),
+            EvaluationRecord.evaluated_at >= cutoff,
+        )
         .all()
     )
 
@@ -527,12 +531,14 @@ def refresh_cluster_summary(db: Session) -> None:
 
 def refresh_pipeline_stages(db: Session) -> None:
     from db.models import EvaluationRecord, MVPipelineStage
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
 
     db.query(MVPipelineStage).delete()
 
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     rows = (
         db.query(EvaluationRecord.stage_id, EvaluationRecord.outcome)
+        .filter(EvaluationRecord.evaluated_at >= cutoff)
         .all()
     )
 
@@ -567,10 +573,11 @@ def refresh_pipeline_stages(db: Session) -> None:
 def refresh_lab_eval_summary(db: Session) -> None:
     from db.models import EvaluationRecord, MVLabEvalSummary
     from sqlalchemy import func
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
 
     db.query(MVLabEvalSummary).delete()
 
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     rows = (
         db.query(
             EvaluationRecord.lab_code,
@@ -579,7 +586,10 @@ def refresh_lab_eval_summary(db: Session) -> None:
             EvaluationRecord.failure_class,
             EvaluationRecord.evaluated_at,
         )
-        .filter(EvaluationRecord.lab_code.isnot(None))
+        .filter(
+            EvaluationRecord.lab_code.isnot(None),
+            EvaluationRecord.evaluated_at >= cutoff,
+        )
         .all()
     )
 
