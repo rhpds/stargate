@@ -931,7 +931,12 @@ def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60, c
     summit_prov = prov
 
     # Error stats from DB — filtered by time window and cluster
-    eval_query = db.query(EvaluationRecord).filter(EvaluationRecord.outcome == "fail")
+    eval_query = db.query(EvaluationRecord).filter(
+        EvaluationRecord.outcome == "fail",
+        ~EvaluationRecord.run_id.like("k8s-mine-%"),
+        ~EvaluationRecord.run_id.like("alert-mine-%"),
+        ~EvaluationRecord.run_id.like("prom-mine-%"),
+    )
     if since_minutes > 0:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
         eval_query = eval_query.filter(EvaluationRecord.evaluated_at >= cutoff)
@@ -1245,8 +1250,10 @@ def dashboard_mttr(hours: int = 168, db: Session = Depends(get_db)):
 def dashboard_summit_report():
     """Summit week retrospective — mined from backup + live Babylon data."""
     import json as _json
-    report_file = Path(__file__).parent.parent.parent / "receipts" / "summit-report.json"
-    subjects_file = Path(__file__).parent.parent.parent / "receipts" / "summit-subjects.json"
+    receipts = Path(__file__).parent.parent.parent / "receipts"
+    report_file = receipts / "summit-report.json"
+    subjects_file = receipts / "summit-subjects.json"
+    reclamation_file = receipts / "summit-reclamation.json"
 
     report = {}
     if report_file.exists():
@@ -1255,6 +1262,10 @@ def dashboard_summit_report():
     subjects = {}
     if subjects_file.exists():
         subjects = _json.loads(subjects_file.read_text())
+
+    reclamation = {}
+    if reclamation_file.exists():
+        reclamation = _json.loads(reclamation_file.read_text())
 
     # Also try DB
     if not report:
@@ -1270,10 +1281,25 @@ def dashboard_summit_report():
         if db_report:
             report = db_report
 
+    labagator = {}
+    try:
+        from collectors.labagator import collect_labagator
+        labagator_url = "http://labagator-backend.labagator-prod.svc:8080/api/v1"
+        labagator = collect_labagator.summarize_labs(labagator_url, event_id=1)
+    except Exception:
+        pass
+
+    has_data = bool(
+        report.get("evaluations", {}).get("total")
+        or report.get("aap", {}).get("total_jobs")
+    )
+
     return {
         "report": report,
         "live_subjects": subjects,
-        "has_data": bool(report.get("evaluations")),
+        "reclamation": reclamation,
+        "labagator": labagator,
+        "has_data": has_data,
     }
 
 
@@ -1294,7 +1320,12 @@ def dashboard_trends(
 
     evals = (
         db.query(EvaluationRecord)
-        .filter(EvaluationRecord.evaluated_at >= cutoff)
+        .filter(
+            EvaluationRecord.evaluated_at >= cutoff,
+            ~EvaluationRecord.run_id.like("k8s-mine-%"),
+            ~EvaluationRecord.run_id.like("alert-mine-%"),
+            ~EvaluationRecord.run_id.like("prom-mine-%"),
+        )
         .order_by(EvaluationRecord.evaluated_at)
         .all()
     )
