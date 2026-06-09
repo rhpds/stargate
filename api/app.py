@@ -280,7 +280,10 @@ def _mv_refresh_loop():
     from api.routers._shared import _load_latest_scan
     from datetime import datetime, timezone
     logger = logging.getLogger("stargate")
-    logger.info("MV refresh thread starting")
+    try:
+        _stargate_logger.info("MV refresh thread alive")
+    except Exception:
+        pass
     _time.sleep(5)
     while not _shutdown_event.is_set():
         try:
