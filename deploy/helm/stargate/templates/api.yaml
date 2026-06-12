@@ -48,9 +48,22 @@ spec:
               value: {{ .Values.api.env.STARGATE_CORS_ORIGINS | default "http://localhost:3000" | quote }}
             - name: STARGATE_LITELLM_URL
               value: {{ .Values.api.env.STARGATE_LITELLM_URL | default "" | quote }}
+            - name: STARGATE_INLINE_SCANNER
+              value: {{ .Values.api.env.STARGATE_INLINE_SCANNER | default "true" | quote }}
+            - name: STARGATE_CLUSTERS
+              value: {{ .Values.scanner.clusters | quote }}
+            - name: STARGATE_EXECUTOR_KUBECONFIG
+              value: {{ .Values.secrets.mountPath }}/kubeconfig-executor
+            - name: STARGATE_API_URL
+              value: "http://localhost:{{ .Values.api.port }}"
+            - name: STARGATE_TRUST_PROXY_AUTH
+              value: {{ .Values.oauth.enabled | ternary "true" "false" | quote }}
           volumeMounts:
             - name: scan-history
               mountPath: /opt/app-root/src/scan-history
+            - name: secrets
+              mountPath: {{ .Values.secrets.mountPath }}
+              readOnly: true
           resources:
             {{- toYaml .Values.api.resources | nindent 12 }}
           livenessProbe:
@@ -94,6 +107,9 @@ spec:
         - name: scan-history
           persistentVolumeClaim:
             claimName: stargate-scan-history-pvc
+        - name: secrets
+          secret:
+            secretName: stargate-kubeconfigs
 ---
 apiVersion: v1
 kind: Service
