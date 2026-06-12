@@ -55,7 +55,8 @@ oc create secret generic stargate-kubeconfigs -n "$NAMESPACE" \
   --from-file=kubeconfig-ocpv10="${PROJECT_DIR}/secrets/kubeconfig-ocpv10" \
   --from-file=kubeconfig-infra01="${PROJECT_DIR}/secrets/kubeconfig-infra01" \
   --from-file=kubeconfig-infra02="${PROJECT_DIR}/secrets/kubeconfig-infra02" \
-  --from-file=kubeconfig="${PROJECT_DIR}/secrets/kubeconfig"
+  --from-file=kubeconfig="${PROJECT_DIR}/secrets/kubeconfig" \
+  --from-file=kubeconfig-executor="${PROJECT_DIR}/secrets/kubeconfig-executor"
 
 # Create app secrets
 echo "4. Creating app secrets..."
