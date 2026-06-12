@@ -229,7 +229,8 @@ def _auto_start_scanner():
             if not clusters:
                 logger.info("Scanner auto-start: no clusters configured")
                 return
-            _shared._scheduler = Scheduler(clusters=clusters, api_url="http://localhost:8090")
+            api_url = os.environ.get("STARGATE_API_URL", "http://localhost:8090")
+            _shared._scheduler = Scheduler(clusters=clusters, api_url=api_url)
             available, unavailable = _shared._scheduler.start()
             logger.info(f"Scanner auto-started: {len(available)} clusters available, {len(unavailable)} unavailable")
     except Exception as e:
