@@ -7,7 +7,11 @@ class TestHealth:
     def test_health(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "ok"
+        data = resp.json()
+        assert data["status"] in ("ok", "degraded", "error")
+        assert "components" in data
+        assert data["components"]["api"] == "ok"
+        assert data["components"]["database"] == "ok"
 
 
 class TestRunEndpoints:

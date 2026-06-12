@@ -129,6 +129,14 @@ def call_llm(
     prompt_version: Optional[str] = None,
 ) -> Dict:
     ctx = context or {}
+
+    if not LLM_URL:
+        return {
+            "content": "", "success": False, "metric_id": None, "latency_ms": 0,
+            "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None, "cost_estimate": None},
+            "finish_reason": None, "error": "STARGATE_LITELLM_URL not configured",
+        }
+
     prompt_text = json.dumps(messages)
     prompt_hash = hashlib.sha256(prompt_text.encode()).hexdigest()
 

@@ -99,7 +99,14 @@ def collect_sandbox_api_health() -> Dict[str, Any]:
                     }
 
     except Exception as e:
-        logger.debug(f"Sandbox-API metrics scrape failed: {e}")
+        if ".svc:" in SANDBOX_API_METRICS_URL or ".svc/" in SANDBOX_API_METRICS_URL:
+            logger.warning(
+                "Sandbox-API metrics unreachable — URL is an in-cluster .svc address (%s). "
+                "Set STARGATE_SANDBOX_API_METRICS_URL to a routable endpoint when running outside the cluster.",
+                SANDBOX_API_METRICS_URL,
+            )
+        else:
+            logger.warning(f"Sandbox-API metrics scrape failed: {e}")
 
     return result
 
