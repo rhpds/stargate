@@ -227,9 +227,34 @@ def _preflight_check(target: str, parameters: Dict[str, Any]) -> Optional[Dict[s
     return None
 
 
+def _check_kubeconfig(kubeconfig: str) -> Optional[str]:
+    """Verify kubeconfig exists and auth is valid. Returns error string or None."""
+    if not kubeconfig:
+        return "STARGATE_EXECUTOR_KUBECONFIG not configured"
+    if not os.path.exists(kubeconfig):
+        return f"Kubeconfig not found: {kubeconfig}"
+    import subprocess
+    try:
+        r = subprocess.run(
+            ["oc", "whoami"], capture_output=True, text=True, timeout=10,
+            env={**os.environ, "KUBECONFIG": kubeconfig},
+        )
+        if r.returncode != 0:
+            return f"Kubeconfig auth failed: {r.stderr.strip()}"
+    except Exception as e:
+        return f"Kubeconfig check failed: {e}"
+    return None
+
+
 def _do_execute(action_type, target, parameters):
     """Execute the action based on configured execution target and method."""
     from api.routers._shared import EXECUTION_TARGET, EXECUTOR_KUBECONFIG, TEST_NAMESPACE
+
+    if EXECUTION_TARGET in ("test", "production") and not _is_rhdp_action(action_type, parameters):
+        kc_err = _check_kubeconfig(EXECUTOR_KUBECONFIG)
+        if kc_err:
+            logger.warning(f"KUBECONFIG GATE: {action_type} on {target} — {kc_err}")
+            return {"success": False, "error": kc_err, "mode": EXECUTION_TARGET}
 
     preflight = _preflight_check(target, parameters)
     if preflight:
