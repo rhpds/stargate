@@ -25,13 +25,13 @@ spec:
           ports:
             - containerPort: {{ .Values.api.port }}
           env:
-            - name: STARGATE_DATABASE_URL
-              value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: stargate-secrets
                   key: postgres-password
+            - name: STARGATE_DATABASE_URL
+              value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
             - name: STARGATE_SSL_VERIFY
               value: {{ .Values.api.env.STARGATE_SSL_VERIFY | default "false" | quote }}
             - name: STARGATE_LITELLM_API_KEY
