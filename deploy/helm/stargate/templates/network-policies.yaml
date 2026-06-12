@@ -5,14 +5,14 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: stargate-postgres
+      app: stargate-api-postgres
   policyTypes:
     - Ingress
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              app: stargate
+              app: stargate-api
       ports:
         - port: 5432
           protocol: TCP
@@ -24,7 +24,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: stargate
+      app: stargate-api
   policyTypes:
     - Ingress
   ingress:
