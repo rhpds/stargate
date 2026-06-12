@@ -59,7 +59,7 @@ postgres:
   database: stargate
 
 secrets:
-  mountPath: /app/secrets
+  mountPath: /opt/app-root/src/secrets
   litellmApiKey: ""
   adminApiKey: ""
 
