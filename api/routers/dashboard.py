@@ -933,9 +933,6 @@ def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60, c
     # Error stats from DB — filtered by time window and cluster
     eval_query = db.query(EvaluationRecord).filter(
         EvaluationRecord.outcome == "fail",
-        ~EvaluationRecord.run_id.like("k8s-mine-%"),
-        ~EvaluationRecord.run_id.like("alert-mine-%"),
-        ~EvaluationRecord.run_id.like("prom-mine-%"),
     )
     if since_minutes > 0:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=since_minutes)
@@ -1322,9 +1319,6 @@ def dashboard_trends(
         db.query(EvaluationRecord)
         .filter(
             EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
         )
         .order_by(EvaluationRecord.evaluated_at)
         .all()
