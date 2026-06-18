@@ -32,6 +32,11 @@ kind: ServiceAccount
 metadata:
   name: stargate-scanner
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stargate-frontend
+---
 {{- if .Values.oauth.enabled }}
 ---
 apiVersion: v1
