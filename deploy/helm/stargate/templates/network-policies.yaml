@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: stargate-api-postgres
+      app: stargate-postgres
   policyTypes:
     - Ingress
   ingress:
