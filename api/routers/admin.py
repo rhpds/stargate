@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -320,8 +320,8 @@ def admin_llm_metrics(db: Session = Depends(get_db), cluster: str = None):
 
     all_metrics = query.order_by(LLMMetric.called_at.desc()).all()
     now = datetime.now(timezone.utc)
-    one_hour = now.replace(hour=now.hour - 1) if now.hour > 0 else now
-    one_day = now.replace(day=now.day - 1) if now.day > 1 else now
+    one_hour = now - timedelta(hours=1)
+    one_day = now - timedelta(days=1)
 
     calls_by_ep: Dict[str, int] = {}
     latencies_by_ep: Dict[str, List] = {}
@@ -686,8 +686,8 @@ def admin_audit_trail(limit: int = 50, db: Session = Depends(get_db)):
                 "action_type": e.action_type,
                 "target": e.target,
                 "status": e.status,
-                "confidence": e.confidence,
-                "evidence_source": e.evidence_source,
+                "confidence": (e.parameters or {}).get("confidence"),
+                "evidence_source": (e.parameters or {}).get("evidence_source"),
                 "executed_at": e.executed_at.isoformat() if e.executed_at else None,
                 "created_at": e.created_at.isoformat() if e.created_at else None,
             }

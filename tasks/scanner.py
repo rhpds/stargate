@@ -34,9 +34,12 @@ def scanner_tick(self):
             try:
                 from db.database import get_db
                 from db import repository
-                db = next(get_db())
-                repository.save_scan_snapshot(db, "cluster_scan", scan_results)
-                db.close()
+                gen = get_db()
+                db = next(gen)
+                try:
+                    repository.save_scan_snapshot(db, "cluster_scan", scan_results)
+                finally:
+                    gen.close()
             except Exception as e:
                 logger.warning("Scan DB persist failed: %s", e)
 

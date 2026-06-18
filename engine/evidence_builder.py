@@ -199,9 +199,9 @@ def _top_failures(db=None) -> str:
     from datetime import datetime, timedelta, timezone
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     results = (
-        db.query(EvaluationRecord.result_failure_class, func.count(EvaluationRecord.id))
-        .filter(EvaluationRecord.result_outcome == "fail", EvaluationRecord.evaluated_at >= cutoff)
-        .group_by(EvaluationRecord.result_failure_class)
+        db.query(EvaluationRecord.failure_class, func.count(EvaluationRecord.id))
+        .filter(EvaluationRecord.outcome == "fail", EvaluationRecord.evaluated_at >= cutoff)
+        .group_by(EvaluationRecord.failure_class)
         .order_by(func.count(EvaluationRecord.id).desc())
         .limit(8)
         .all()
