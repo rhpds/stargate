@@ -3156,8 +3156,8 @@ def dashboard_failure_interpretation(request: Request, req: dict, db: Session = 
             EvaluationRecord.stage_id == stage_id,
         ).order_by(EvaluationRecord.id.desc()).first()
         if ev:
-            failure_class = ev.result_failure_class
-            evidence_parts.append(f"## Evaluation Result\n- Stage: {stage_id}\n- Outcome: {ev.result_outcome}\n- Failure class: {failure_class}\n- Message: {ev.result_message}")
+            failure_class = ev.failure_class
+            evidence_parts.append(f"## Evaluation Result\n- Stage: {stage_id}\n- Outcome: {ev.outcome}\n- Failure class: {failure_class}\n- Message: {ev.message}")
             if ev.criteria_results:
                 evidence_parts.append(f"## Criteria Results\n{json.dumps(ev.criteria_results, indent=2)}")
     except Exception as e:
@@ -3215,15 +3215,15 @@ def dashboard_trend_analysis(request: Request, db: Session = Depends(get_db), _a
         cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
         recent_evals = db.query(
             EvaluationRecord.stage_id,
-            EvaluationRecord.result_outcome,
-            EvaluationRecord.result_failure_class,
+            EvaluationRecord.outcome,
+            EvaluationRecord.failure_class,
             func.count(EvaluationRecord.id),
         ).filter(
             EvaluationRecord.evaluated_at >= cutoff
         ).group_by(
             EvaluationRecord.stage_id,
-            EvaluationRecord.result_outcome,
-            EvaluationRecord.result_failure_class,
+            EvaluationRecord.outcome,
+            EvaluationRecord.failure_class,
         ).all()
         trend_data = [{"stage": r[0], "outcome": r[1], "failure_class": r[2], "count": r[3]} for r in recent_evals]
         evidence_parts.append(f"## Evaluation Trends (24h)\n{json.dumps(trend_data, indent=2)}")

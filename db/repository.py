@@ -1211,13 +1211,13 @@ def refresh_evaluation_trends(db: Session) -> None:
 
     rows = (
         db.query(
-            func.date_trunc('hour', EvaluationRecord.created_at).label("bucket"),
+            func.date_trunc('hour', EvaluationRecord.evaluated_at).label("bucket"),
             EvaluationRecord.cluster_name,
             EvaluationRecord.outcome,
             EvaluationRecord.failure_class,
             func.count().label("count"),
         )
-        .filter(EvaluationRecord.created_at >= cutoff)
+        .filter(EvaluationRecord.evaluated_at >= cutoff)
         .group_by("bucket", EvaluationRecord.cluster_name,
                   EvaluationRecord.outcome, EvaluationRecord.failure_class)
         .all()
@@ -1243,10 +1243,9 @@ def refresh_mttr_by_class(db: Session) -> None:
 
     evals = (
         db.query(EvaluationRecord)
-        .filter(EvaluationRecord.created_at >= cutoff,
-                EvaluationRecord.outcome == "fail",
+        .filter(EvaluationRecord.evaluated_at >= cutoff,
                 EvaluationRecord.failure_class.isnot(None))
-        .order_by(EvaluationRecord.lab_code, EvaluationRecord.created_at)
+        .order_by(EvaluationRecord.lab_code, EvaluationRecord.evaluated_at)
         .limit(10000)
         .all()
     )
@@ -1290,7 +1289,7 @@ def refresh_overview_snapshot(db: Session) -> None:
 
     rows = (
         db.query(EvaluationRecord.failure_class, func.count().label("count"))
-        .filter(EvaluationRecord.created_at >= cutoff,
+        .filter(EvaluationRecord.evaluated_at >= cutoff,
                 EvaluationRecord.outcome == "fail",
                 EvaluationRecord.failure_class.isnot(None))
         .group_by(EvaluationRecord.failure_class)
