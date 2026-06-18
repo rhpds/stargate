@@ -1,53 +1,25 @@
 {
   "event_name": "Red Hat Summit 2026",
   "dates": {
-    "start": "2026-05-05",
-    "end": "2026-05-08"
+    "start": "2026-05-11",
+    "end": "2026-05-14"
   },
-  "generated_at": "2026-06-08T15:44:02.950797+00:00",
+  "generated_at": "2026-06-09T08:30:00+00:00",
   "evaluations": {
-    "total": 3695,
-    "outcomes": {
-      "pass": 1523,
-      "fail": 1397,
-      "warn": 775
-    },
-    "pass_rate": 41.2,
-    "failure_classes": {
-      "health_check_failed": 472,
-      "guest_agent_not_connected": 419,
-      "route_missing": 217,
-      "pods_not_ready": 92,
-      "service_has_no_endpoints": 82,
-      "deployment_missing": 56,
-      "datavolume_missing": 9,
-      "vmi_not_running": 8,
-      "datavolume_failed": 3,
-      "namespace_missing": 2,
-      "pvc_not_bound": 1
-    },
-    "total_failure_classes": 11
+    "total": 0,
+    "outcomes": {},
+    "pass_rate": 0,
+    "failure_classes": {},
+    "total_failure_classes": 0,
+    "note": "Not operational during Summit week (May 11-14)"
   },
   "runs": {
-    "total": 792,
-    "statuses": {
-      "running": 792
-    }
+    "total": 0,
+    "statuses": {}
   },
   "evidence": {
-    "total": 130663,
-    "by_type": {
-      "Deployment": 2380,
-      "DataVolume": 19227,
-      "Endpoints": 23656,
-      "Namespace": 3690,
-      "PodList": 3695,
-      "PersistentVolumeClaim": 22646,
-      "Route": 8706,
-      "Service": 23636,
-      "VirtualMachine": 11573,
-      "VirtualMachineInstance": 11454
-    }
+    "total": 0,
+    "by_type": {}
   },
   "events": {
     "total": 0,
@@ -55,898 +27,678 @@
     "systemic": 0
   },
   "labs": {
-    "total": 5,
+    "total": 29,
     "labs": [
       {
-        "lab_name": "Unattributed (no namespace)",
-        "lab_code": "Unattributed (no namespace)",
-        "total_evals": 3039,
-        "passed": 1273,
-        "failed": 1124,
-        "warned": 642,
-        "pass_rate": 41.9,
-        "namespace_count": 1
-      },
-      {
-        "lab_name": "RHEL Hands-On Lab (ZeroTouch)",
-        "lab_code": "RHEL Hands-On Lab (ZeroTouch)",
-        "total_evals": 210,
-        "passed": 70,
-        "failed": 98,
-        "warned": 42,
-        "pass_rate": 33.3,
-        "namespace_count": 29
-      },
-      {
-        "lab_name": "Ansible Automation Platform (ZeroTouch)",
-        "lab_code": "Ansible Automation Platform (ZeroTouch)",
-        "total_evals": 125,
-        "passed": 48,
-        "failed": 52,
-        "warned": 25,
-        "pass_rate": 38.4,
-        "namespace_count": 15
-      },
-      {
-        "lab_name": "OpenShift 4 Cluster Sandbox",
-        "lab_code": "OpenShift 4 Cluster Sandbox",
-        "total_evals": 32,
-        "passed": 16,
-        "failed": 8,
-        "warned": 8,
-        "pass_rate": 50.0,
-        "namespace_count": 4
-      },
-      {
-        "lab_name": "Sandbox Assignment Service",
-        "lab_code": "Sandbox Assignment Service",
-        "total_evals": 15,
-        "passed": 6,
-        "failed": 9,
+        "lab_code": "lb1305",
+        "lab_name": "LB1305",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 299,
         "warned": 0,
-        "pass_rate": 40.0,
-        "namespace_count": 1
-      }
-    ],
-    "top_failing": [
-      {
-        "lab_name": "Unattributed (no namespace)",
-        "lab_code": "Unattributed (no namespace)",
-        "total_evals": 3039,
-        "passed": 1273,
-        "failed": 1124,
-        "warned": 642,
-        "pass_rate": 41.9,
-        "namespace_count": 1
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 299,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 241
       },
       {
-        "lab_name": "RHEL Hands-On Lab (ZeroTouch)",
-        "lab_code": "RHEL Hands-On Lab (ZeroTouch)",
-        "total_evals": 210,
-        "passed": 70,
-        "failed": 98,
-        "warned": 42,
-        "pass_rate": 33.3,
-        "namespace_count": 29
-      },
-      {
-        "lab_name": "Ansible Automation Platform (ZeroTouch)",
-        "lab_code": "Ansible Automation Platform (ZeroTouch)",
-        "total_evals": 125,
-        "passed": 48,
-        "failed": 52,
-        "warned": 25,
-        "pass_rate": 38.4,
-        "namespace_count": 15
-      },
-      {
-        "lab_name": "OpenShift 4 Cluster Sandbox",
-        "lab_code": "OpenShift 4 Cluster Sandbox",
-        "total_evals": 32,
-        "passed": 16,
-        "failed": 8,
-        "warned": 8,
-        "pass_rate": 50.0,
-        "namespace_count": 4
-      },
-      {
-        "lab_name": "Sandbox Assignment Service",
-        "lab_code": "Sandbox Assignment Service",
-        "total_evals": 15,
-        "passed": 6,
-        "failed": 9,
+        "lab_code": "lb1839",
+        "lab_name": "LB1839",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 195,
         "warned": 0,
-        "pass_rate": 40.0,
-        "namespace_count": 1
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 195,
+        "aap_provision_failures": 4,
+        "aap_destroy_failures": 191
+      },
+      {
+        "lab_code": "ai-quickstarts",
+        "lab_name": "ai-quickstarts",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 109,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 109,
+        "aap_provision_failures": 5,
+        "aap_destroy_failures": 104
+      },
+      {
+        "lab_code": "lb2144",
+        "lab_name": "LB2144",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 79,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 79,
+        "aap_provision_failures": 1,
+        "aap_destroy_failures": 78
+      },
+      {
+        "lab_code": "lb2865",
+        "lab_name": "LB2865",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 48,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 48,
+        "aap_provision_failures": 8,
+        "aap_destroy_failures": 40
+      },
+      {
+        "lab_code": "zt-rhelbu",
+        "lab_name": "zt-rhelbu",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 33,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 33,
+        "aap_provision_failures": 33,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "ocp4-getting-started-module-",
+        "lab_name": "ocp4-getting-started-module-",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 28,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 28,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 28
+      },
+      {
+        "lab_code": "lb2596",
+        "lab_name": "LB2596",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 24,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 24,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 10
+      },
+      {
+        "lab_code": "lb1216",
+        "lab_name": "LB1216",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 20,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 20,
+        "aap_provision_failures": 19,
+        "aap_destroy_failures": 1
+      },
+      {
+        "lab_code": "lb1161",
+        "lab_name": "LB1161",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 16,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 16,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 15
+      },
+      {
+        "lab_code": "lb1758",
+        "lab_name": "LB1758",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 13,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 13,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb1912",
+        "lab_name": "LB1912",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 12,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 12,
+        "aap_provision_failures": 10,
+        "aap_destroy_failures": 2
+      },
+      {
+        "lab_code": "lb1404",
+        "lab_name": "LB1404",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 12,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 12,
+        "aap_provision_failures": 11,
+        "aap_destroy_failures": 1
+      },
+      {
+        "lab_code": "zt-ansiblebu",
+        "lab_name": "zt-ansiblebu",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 7,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 7,
+        "aap_provision_failures": 7,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2645",
+        "lab_name": "LB2645",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 7,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 7,
+        "aap_provision_failures": 2,
+        "aap_destroy_failures": 5
+      },
+      {
+        "lab_code": "lb2236",
+        "lab_name": "LB2236",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 7,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 7,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2131",
+        "lab_name": "LB2131",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 6,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 6,
+        "aap_provision_failures": 6,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2862",
+        "lab_name": "LB2862",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 6,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 6,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 6
+      },
+      {
+        "lab_code": "lb2863",
+        "lab_name": "LB2863",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 6,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 6,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "ocp4-getting-started-cluster",
+        "lab_name": "ocp4-getting-started-cluster",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 4,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 4,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 4
+      },
+      {
+        "lab_code": "lb1401",
+        "lab_name": "LB1401",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 3,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 3,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 1
+      },
+      {
+        "lab_code": "lb2861",
+        "lab_name": "LB2861",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 3,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 3,
+        "aap_provision_failures": 3,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb1393",
+        "lab_name": "LB1393",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 3,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 3,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 3
+      },
+      {
+        "lab_code": "lb2010",
+        "lab_name": "LB2010",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2391",
+        "lab_name": "LB2391",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb1237",
+        "lab_name": "LB1237",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 1,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb1559",
+        "lab_name": "LB1559",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 1,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2759",
+        "lab_name": "LB2759",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 1,
+        "aap_destroy_failures": 0
+      },
+      {
+        "lab_code": "lb2860",
+        "lab_name": "LB2860",
+        "total_evals": 0,
+        "passed": 0,
+        "failed": 1,
+        "warned": 0,
+        "pass_rate": 0,
+        "namespace_count": 0,
+        "aap_failed": 1,
+        "aap_provision_failures": 0,
+        "aap_destroy_failures": 1
       }
     ]
   },
-  "clusters": [
-    {
-      "cluster": "Unattributed",
-      "total_evals": 3039,
-      "passed": 1273,
-      "failed": 1124,
-      "pass_rate": 41.9
-    },
-    {
-      "cluster": "ocpv06",
-      "total_evals": 149,
-      "passed": 67,
-      "failed": 50,
-      "pass_rate": 45.0
-    },
-    {
-      "cluster": "ocpv05",
-      "total_evals": 109,
-      "passed": 41,
-      "failed": 46,
-      "pass_rate": 37.6
-    },
-    {
-      "cluster": "ocpv08",
-      "total_evals": 101,
-      "passed": 35,
-      "failed": 46,
-      "pass_rate": 34.7
-    },
-    {
-      "cluster": "ocpv07",
-      "total_evals": 97,
-      "passed": 32,
-      "failed": 45,
-      "pass_rate": 33.0
-    },
-    {
-      "cluster": "ocpv10",
-      "total_evals": 95,
-      "passed": 30,
-      "failed": 46,
-      "pass_rate": 31.6
-    },
-    {
-      "cluster": "ocpv09",
-      "total_evals": 90,
-      "passed": 39,
-      "failed": 31,
-      "pass_rate": 43.3
-    },
-    {
-      "cluster": "ocp-us-east-1",
-      "total_evals": 15,
-      "passed": 6,
-      "failed": 9,
-      "pass_rate": 40.0
-    }
-  ],
-  "stages": [
-    {
-      "stage_id": "namespace-ready",
-      "total": 792,
-      "passed": 790,
-      "failed": 2,
-      "pass_rate": 99.7
-    },
-    {
-      "stage_id": "storage-clone-ready",
-      "total": 790,
-      "passed": 0,
-      "failed": 15,
-      "pass_rate": 0.0
-    },
-    {
-      "stage_id": "deployment-ready",
-      "total": 532,
-      "passed": 382,
-      "failed": 150,
-      "pass_rate": 71.8
-    },
-    {
-      "stage_id": "vm-runtime-ready",
-      "total": 790,
-      "passed": 351,
-      "failed": 439,
-      "pass_rate": 44.4
-    },
-    {
-      "stage_id": "route-ready",
-      "total": 791,
-      "passed": 0,
-      "failed": 791,
-      "pass_rate": 0.0
-    }
-  ],
-  "daily": [
-    {
-      "date": "2026-05-07",
-      "total": 3695,
-      "passed": 1523,
-      "failed": 1397,
-      "pass_rate": 41.2
-    }
-  ],
-  "hourly_timeline": [
-    {
-      "hour": "2026-05-07 12",
-      "total": 2651,
-      "passed": 1121,
-      "failed": 966
-    },
-    {
-      "hour": "2026-05-07 13",
-      "total": 678,
-      "passed": 268,
-      "failed": 273
-    },
-    {
-      "hour": "2026-05-07 14",
-      "total": 45,
-      "passed": 21,
-      "failed": 14
-    },
-    {
-      "hour": "2026-05-07 15",
-      "total": 321,
-      "passed": 113,
-      "failed": 144
-    }
-  ],
-  "llm": {
-    "total_calls": 0
-  },
+  "clusters": [],
+  "stages": [],
+  "daily": [],
+  "hourly_timeline": [],
   "classifications": {
     "total_proposed": 0,
     "reviewed": 0,
     "approved": 0
   },
+  "correlation": [],
   "aap": {
-    "event0": {
-      "controller": "event0",
-      "by_day": {
-        "2026-05-05": {
-          "total": 5595,
-          "successful": 3021,
-          "failed": 2362,
-          "error": 1,
-          "canceled": 211,
-          "success_rate": 54.0
-        },
-        "2026-05-06": {
-          "total": 6236,
-          "successful": 4571,
-          "failed": 1588,
-          "error": 0,
-          "canceled": 77,
-          "success_rate": 73.3
-        },
-        "2026-05-07": {
-          "total": 5552,
-          "successful": 4034,
-          "failed": 1248,
-          "error": 187,
-          "canceled": 83,
-          "success_rate": 72.7
-        },
-        "2026-05-08": {
-          "total": 5255,
-          "successful": 4158,
-          "failed": 1043,
-          "error": 0,
-          "canceled": 54,
-          "success_rate": 79.1
-        }
-      },
-      "total_summit_jobs": 22638,
-      "total_failed": 6241,
-      "overall_success_rate": 69.7,
-      "top_errors": {
-        "": 50
-      },
-      "top_failing_labs": {
-        "RHPDS summit-2026.ai-lightning": {
-          "total": 0,
-          "failed": 24
-        },
-        "RHPDS ai-quickstarts.ai-qs-rag": {
-          "total": 0,
-          "failed": 9
-        },
-        "RHPDS ai-quickstarts.ai-qs-pro": {
-          "total": 0,
-          "failed": 4
-        },
-        "LB1216": {
-          "total": 0,
-          "failed": 4
-        },
-        "RHPDS agd-v2.ocp4-getting-star": {
-          "total": 0,
-          "failed": 3
-        },
-        "RHPDS zt-ansiblebu.zt-ans-bu-l": {
-          "total": 0,
-          "failed": 2
-        },
-        "RHPDS agd-v2.ocp-virt-labs-poo": {
-          "total": 0,
-          "failed": 1
-        },
-        "LB2865": {
-          "total": 0,
-          "failed": 1
-        },
-        "LB1404": {
-          "total": 0,
-          "failed": 1
-        },
-        "LB2596": {
-          "total": 0,
-          "failed": 1
-        }
-      },
-      "recent_failures": [
-        {
-          "id": 71373,
-          "name": "RHPDS agd-v2.ocp-virt-labs-pool.event-hw5n7-provision-sjlwm 89b13ce5-030a-5c78-a",
-          "lab": "RHPDS agd-v2.ocp-virt-labs-poo",
-          "status": "failed",
-          "finished": "2026-05-08T23:25:32.985137Z",
-          "elapsed": 1528.802
-        },
-        {
-          "id": 71372,
-          "name": "RHPDS summit-2026.lb2865-hummingbird-cnv-tenant.event-kjbfk-destlgv6j e516c1e4-7",
-          "lab": "LB2865",
-          "status": "failed",
-          "finished": "2026-05-08T22:08:40.597191Z",
-          "elapsed": 102.456
-        },
-        {
-          "id": 71268,
-          "name": "RHPDS zt-ansiblebu.zt-ans-bu-lab-developer-cnv.event-9pzch-provich469 b0cc6474-0",
-          "lab": "RHPDS zt-ansiblebu.zt-ans-bu-l",
-          "status": "failed",
-          "finished": "2026-05-08T22:08:30.853948Z",
-          "elapsed": 3640.354
-        },
-        {
-          "id": 71261,
-          "name": "RHPDS zt-ansiblebu.zt-ans-bu-lab-developer-cnv.event-k7dwd-provi9w47b 1b2d5213-0",
-          "lab": "RHPDS zt-ansiblebu.zt-ans-bu-l",
-          "status": "failed",
-          "finished": "2026-05-08T22:04:19.377199Z",
-          "elapsed": 3617.91
-        },
-        {
-          "id": 71370,
-          "name": "RHPDS ai-quickstarts.ai-qs-product-rec-tenant.event-jgc49-destro49hk2 65441c2f-7",
-          "lab": "RHPDS ai-quickstarts.ai-qs-pro",
-          "status": "failed",
-          "finished": "2026-05-08T22:03:48.175766Z",
-          "elapsed": 29.447
-        },
-        {
-          "id": 71369,
-          "name": "RHPDS ai-quickstarts.ai-qs-product-rec-tenant.event-52j7p-destrorpx6d 06fdd8c2-c",
-          "lab": "RHPDS ai-quickstarts.ai-qs-pro",
-          "status": "failed",
-          "finished": "2026-05-08T22:03:26.329285Z",
-          "elapsed": 30.557
-        },
-        {
-          "id": 71361,
-          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-ls7nj-destroy-fnzbl 6485ff66-e2e9-51",
-          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
-          "status": "failed",
-          "finished": "2026-05-08T21:47:04.510266Z",
-          "elapsed": 97.833
-        },
-        {
-          "id": 71272,
-          "name": "RHPDS summit-2026.lb1404-vmware-migration-cnv.event-stbkg-provistjmqt a1cade47-7",
-          "lab": "LB1404",
-          "status": "failed",
-          "finished": "2026-05-08T21:43:52.688436Z",
-          "elapsed": 2115.029
-        },
-        {
-          "id": 71358,
-          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-ls7nj-destroy-fnzbl 6485ff66-e2e9-51",
-          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
-          "status": "failed",
-          "finished": "2026-05-08T21:40:13.603555Z",
-          "elapsed": 96.862
-        },
-        {
-          "id": 71318,
-          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-nwrtx-d62qjj 5fea95e8-f",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:26:55.984154Z",
-          "elapsed": 91.855
-        },
-        {
-          "id": 71310,
-          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-cdkkh-dcnwk4 4de107d9-0",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:15:42.534482Z",
-          "elapsed": 93.123
-        },
-        {
-          "id": 71309,
-          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-26jmx-d9jhpk 7a2457fd-2",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:15:31.361152Z",
-          "elapsed": 92.891
-        },
-        {
-          "id": 71305,
-          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-whlv2-d8xrf6 8356b244-f",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:13:43.043998Z",
-          "elapsed": 91.401
-        },
-        {
-          "id": 71271,
-          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-8trnp-df7mnl 2e0727ef-9",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:09:42.008522Z",
-          "elapsed": 91.186
-        },
-        {
-          "id": 71270,
-          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-66lwg-d5zqfd 45988246-7",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:09:40.809277Z",
-          "elapsed": 97.409
-        },
-        {
-          "id": 71269,
-          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-t7f47-d2wx57 f21dd0ca-e",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:09:39.303158Z",
-          "elapsed": 96.917
-        },
-        {
-          "id": 71263,
-          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-vbgcm-dlkwqk afbc5c53-1",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:05:51.507372Z",
-          "elapsed": 99.598
-        },
-        {
-          "id": 71264,
-          "name": "RHPDS summit-2026.ai-lightning-private-maas-tenant.event-r9sbw-dks9l7 e55744c5-0",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:05:45.915820Z",
-          "elapsed": 92.892
-        },
-        {
-          "id": 71222,
-          "name": "RHPDS summit-2026.ai-lightning-voice-agents-tenant.event-whlv2-d8xrf6 8356b244-f",
-          "lab": "RHPDS summit-2026.ai-lightning",
-          "status": "failed",
-          "finished": "2026-05-08T21:02:54.507595Z",
-          "elapsed": 95.866
-        },
-        {
-          "id": 71166,
-          "name": "RHPDS ai-quickstarts.ai-qs-rag-tenant.event-d85jm-destroy-cz4gd f0dd16e9-7232-56",
-          "lab": "RHPDS ai-quickstarts.ai-qs-rag",
-          "status": "failed",
-          "finished": "2026-05-08T20:58:57.494950Z",
-          "elapsed": 104.383
-        }
-      ]
-    },
-    "total_jobs": 22638,
-    "total_failed": 6241,
-    "overall_success_rate": 69.7,
+    "event0": "https://event0.apps.ocpv-infra01.dal12.infra.demo.redhat.com",
+    "total_jobs": 9024,
+    "total_failed": 992,
+    "overall_success_rate": 88.3,
     "by_day": {
-      "2026-05-05": {
-        "total": 5595,
-        "successful": 3021,
-        "failed": 2362,
-        "error": 1,
-        "canceled": 211,
-        "success_rate": 54.0
-      },
-      "2026-05-06": {
-        "total": 6236,
-        "successful": 4571,
-        "failed": 1588,
+      "2026-05-11": {
+        "total": 690,
+        "successful": 550,
+        "failed": 138,
         "error": 0,
-        "canceled": 77,
-        "success_rate": 73.3
+        "canceled": 2,
+        "success_rate": 79.7
       },
-      "2026-05-07": {
-        "total": 5552,
-        "successful": 4034,
-        "failed": 1248,
-        "error": 187,
-        "canceled": 83,
-        "success_rate": 72.7
-      },
-      "2026-05-08": {
-        "total": 5255,
-        "successful": 4158,
-        "failed": 1043,
+      "2026-05-12": {
+        "total": 2613,
+        "successful": 2431,
+        "failed": 174,
         "error": 0,
-        "canceled": 54,
-        "success_rate": 79.1
+        "canceled": 8,
+        "success_rate": 93.0
+      },
+      "2026-05-13": {
+        "total": 4079,
+        "successful": 3592,
+        "failed": 450,
+        "error": 5,
+        "canceled": 32,
+        "success_rate": 88.1
+      },
+      "2026-05-14": {
+        "total": 1642,
+        "successful": 1396,
+        "failed": 230,
+        "error": 0,
+        "canceled": 16,
+        "success_rate": 85.0
       }
     },
     "top_failing_labs": {
-      "LB1401": {
-        "failed": 228,
+      "lb1305": {
+        "failed": 299,
         "provision_failures": 0,
-        "destroy_failures": 228,
-        "catalog_items": [
-          "summit-2026.lb1401-guardrails-cnv-slfsrv",
-          "summit-2026.lb1401-guardrails-cnv-tenant"
-        ]
-      },
-      "ocp4-getting-started-module-1-tenant": {
-        "failed": 97,
-        "provision_failures": 0,
-        "destroy_failures": 97,
-        "catalog_items": [
-          "agd-v2.ocp4-getting-started-module-1-tenant"
-        ]
-      },
-      "LB1305": {
-        "failed": 90,
-        "provision_failures": 0,
-        "destroy_failures": 60,
+        "destroy_failures": 241,
         "catalog_items": [
           "summit-2026.lb1305-ai-powered-rhel-mgmt-cnv"
         ]
       },
-      "ai-lightning-voice-agents-tenant": {
-        "failed": 82,
-        "provision_failures": 0,
-        "destroy_failures": 82,
+      "lb1839": {
+        "failed": 195,
+        "provision_failures": 4,
+        "destroy_failures": 191,
         "catalog_items": [
-          "summit-2026.ai-lightning-voice-agents-tenant"
+          "summit-2026.lb1839-balance-virt-fallback"
         ]
       },
-      "zt-ans-bu-lab-developer-cnv": {
-        "failed": 64,
-        "provision_failures": 44,
+      "ai-quickstarts": {
+        "failed": 109,
+        "provision_failures": 5,
+        "destroy_failures": 104,
+        "catalog_items": [
+          "ai-quickstarts.ai-qs-data-gov-tenant",
+          "ai-quickstarts.ai-qs-ppe-comp-tenant",
+          "ai-quickstarts.ai-qs-product-rec-tenant"
+        ]
+      },
+      "lb2144": {
+        "failed": 79,
+        "provision_failures": 1,
+        "destroy_failures": 78,
+        "catalog_items": [
+          "summit-2026.lb2144-agentops-ocp-aws",
+          "summit-2026.lb2144-agentops-ocp-cnv"
+        ]
+      },
+      "lb2865": {
+        "failed": 48,
+        "provision_failures": 8,
+        "destroy_failures": 40,
+        "catalog_items": [
+          "summit-2026.lb2865-hummingbird-cnv-tenant"
+        ]
+      },
+      "zt-rhelbu": {
+        "failed": 33,
+        "provision_failures": 33,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "zt-rhelbu.zt-rhel-bu-lab-developer-cnv"
+        ]
+      },
+      "ocp4-getting-started-module-": {
+        "failed": 28,
+        "provision_failures": 0,
+        "destroy_failures": 28,
+        "catalog_items": [
+          "agd-v2.ocp4-getting-started-module-1-tenant",
+          "agd-v2.ocp4-getting-started-module-2-tenant",
+          "agd-v2.ocp4-getting-started-module-3-tenant"
+        ]
+      },
+      "lb2596": {
+        "failed": 24,
+        "provision_failures": 0,
+        "destroy_failures": 10,
+        "catalog_items": [
+          "summit-2026.lb2596-quarkus-openshift-cluster",
+          "summit-2026.lb2596-quarkus-openshift-tenant"
+        ]
+      },
+      "lb1216": {
+        "failed": 20,
+        "provision_failures": 19,
+        "destroy_failures": 1,
+        "catalog_items": [
+          "summit-2026.lb1216-demyst-aap-ocp-tenant"
+        ]
+      },
+      "lb1161": {
+        "failed": 16,
+        "provision_failures": 0,
+        "destroy_failures": 15,
+        "catalog_items": [
+          "summit-2026.lb1161-sovereign-cloud-cnv",
+          "summit-2026.lb1161-sovereign-cloud-sno-aws"
+        ]
+      },
+      "lb1758": {
+        "failed": 13,
+        "provision_failures": 0,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb1758-intelligent-apps-rag-tenant"
+        ]
+      },
+      "lb1912": {
+        "failed": 12,
+        "provision_failures": 10,
+        "destroy_failures": 2,
+        "catalog_items": [
+          "summit-2026.lb1912-infoscale",
+          "summit-2026.lb1912-infoscale-pool"
+        ]
+      },
+      "lb1404": {
+        "failed": 12,
+        "provision_failures": 11,
+        "destroy_failures": 1,
+        "catalog_items": [
+          "summit-2026.lb1404-vmware-migration-cnv"
+        ]
+      },
+      "zt-ansiblebu": {
+        "failed": 7,
+        "provision_failures": 7,
         "destroy_failures": 0,
         "catalog_items": [
           "zt-ansiblebu.zt-ans-bu-lab-developer-cnv"
         ]
       },
-      "ai-lightning-wordswarm-tenant": {
-        "failed": 54,
-        "provision_failures": 0,
-        "destroy_failures": 54,
+      "lb2645": {
+        "failed": 7,
+        "provision_failures": 2,
+        "destroy_failures": 5,
         "catalog_items": [
-          "summit-2026.ai-lightning-wordswarm-tenant"
+          "summit-2026.lb2645-agentic-devops-cluster",
+          "summit-2026.lb2645-agentic-devops-tenant"
         ]
       },
-      "ocp4-getting-started-module-2-tenant": {
-        "failed": 38,
-        "provision_failures": 0,
-        "destroy_failures": 38,
-        "catalog_items": [
-          "agd-v2.ocp4-getting-started-module-2-tenant"
-        ]
-      },
-      "LB1839": {
-        "failed": 37,
-        "provision_failures": 0,
-        "destroy_failures": 36,
-        "catalog_items": [
-          "summit-2026.lb1839-balance-virt-fallback"
-        ]
-      },
-      "LB1216": {
-        "failed": 34,
-        "provision_failures": 23,
-        "destroy_failures": 11,
-        "catalog_items": [
-          "summit-2026.lb1216-demyst-aap-ocp-tenant"
-        ]
-      },
-      "ocp4-getting-started-module-3-tenant": {
-        "failed": 30,
-        "provision_failures": 0,
-        "destroy_failures": 28,
-        "catalog_items": [
-          "agd-v2.ocp4-getting-started-module-3-tenant"
-        ]
-      },
-      "LB2862": {
-        "failed": 22,
-        "provision_failures": 11,
-        "destroy_failures": 11,
-        "catalog_items": [
-          "summit-2026.lb2862-ai-app-dev-cluster"
-        ]
-      },
-      "ocp-cluster-cnv-pools": {
-        "failed": 21,
-        "provision_failures": 21,
-        "destroy_failures": 0,
-        "catalog_items": [
-          "agd-v2.ocp-cluster-cnv-pools"
-        ]
-      },
-      "ai-qs-ppe-comp-tenant": {
-        "failed": 19,
-        "provision_failures": 0,
-        "destroy_failures": 19,
-        "catalog_items": [
-          "ai-quickstarts.ai-qs-ppe-comp-tenant"
-        ]
-      },
-      "ai-qs-rag-tenant": {
-        "failed": 18,
-        "provision_failures": 0,
-        "destroy_failures": 18,
-        "catalog_items": [
-          "ai-quickstarts.ai-qs-rag-tenant"
-        ]
-      },
-      "ai-lightning-private-maas-tenant": {
-        "failed": 17,
-        "provision_failures": 0,
-        "destroy_failures": 17,
-        "catalog_items": [
-          "summit-2026.ai-lightning-private-maas-tenant"
-        ]
-      },
-      "LB1237": {
-        "failed": 16,
-        "provision_failures": 16,
-        "destroy_failures": 0,
-        "catalog_items": [
-          "summit-2026.lb1237-hol-rhel10-aws",
-          "summit-2026.lb1237-hol-rhel10-cnv"
-        ]
-      },
-      "ai-qs-product-rec-tenant": {
-        "failed": 12,
-        "provision_failures": 0,
-        "destroy_failures": 12,
-        "catalog_items": [
-          "ai-quickstarts.ai-qs-product-rec-tenant"
-        ]
-      },
-      "ai-qs-data-gov-tenant": {
-        "failed": 11,
-        "provision_failures": 0,
-        "destroy_failures": 11,
-        "catalog_items": [
-          "ai-quickstarts.ai-qs-data-gov-tenant"
-        ]
-      },
-      "LB2236": {
-        "failed": 11,
-        "provision_failures": 0,
-        "destroy_failures": 8,
-        "catalog_items": [
-          "summit-2026.lb2236-ansible-dev-tools-cluster",
-          "summit-2026.lb2236-ansible-dev-tools-tenant"
-        ]
-      },
-      "LB1347": {
-        "failed": 10,
+      "lb2236": {
+        "failed": 7,
         "provision_failures": 0,
         "destroy_failures": 0,
         "catalog_items": [
-          "summit-2026.lb1347-advanced-features-of-aap-cnv"
+          "summit-2026.lb2236-ansible-dev-tools-cluster"
         ]
-      }
-    },
-    "top_catalogs": {
-      "summit-2026.lb1401-guardrails-cnv-tenant": {
-        "failed": 198,
-        "provision": 0,
-        "destroy": 198
       },
-      "agd-v2.ocp4-getting-started-module-1-tenant": {
-        "failed": 97,
-        "provision": 0,
-        "destroy": 97
+      "lb2131": {
+        "failed": 6,
+        "provision_failures": 6,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb2131-ai-data-flows"
+        ]
       },
-      "summit-2026.lb1305-ai-powered-rhel-mgmt-cnv": {
-        "failed": 90,
-        "provision": 0,
-        "destroy": 60
+      "lb2862": {
+        "failed": 6,
+        "provision_failures": 0,
+        "destroy_failures": 6,
+        "catalog_items": [
+          "summit-2026.lb2862-ai-app-dev-cluster",
+          "summit-2026.lb2862-ai-app-dev-tenant"
+        ]
       },
-      "summit-2026.ai-lightning-voice-agents-tenant": {
-        "failed": 82,
-        "provision": 0,
-        "destroy": 82
+      "lb2863": {
+        "failed": 6,
+        "provision_failures": 0,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb2863-ocp-app-platform-roi-cluster"
+        ]
       },
-      "zt-ansiblebu.zt-ans-bu-lab-developer-cnv": {
-        "failed": 64,
-        "provision": 44,
-        "destroy": 0
+      "ocp4-getting-started-cluster": {
+        "failed": 4,
+        "provision_failures": 0,
+        "destroy_failures": 4,
+        "catalog_items": [
+          "agd-v2.ocp4-getting-started-cluster"
+        ]
       },
-      "summit-2026.ai-lightning-wordswarm-tenant": {
-        "failed": 54,
-        "provision": 0,
-        "destroy": 54
+      "lb1401": {
+        "failed": 3,
+        "provision_failures": 0,
+        "destroy_failures": 1,
+        "catalog_items": [
+          "summit-2026.lb1401-guardrails-cnv-tenant"
+        ]
       },
-      "agd-v2.ocp4-getting-started-module-2-tenant": {
-        "failed": 38,
-        "provision": 0,
-        "destroy": 38
+      "lb2861": {
+        "failed": 3,
+        "provision_failures": 3,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb2861-introducing-llm-d-aws"
+        ]
       },
-      "summit-2026.lb1839-balance-virt-fallback": {
-        "failed": 37,
-        "provision": 0,
-        "destroy": 36
+      "lb1393": {
+        "failed": 3,
+        "provision_failures": 0,
+        "destroy_failures": 3,
+        "catalog_items": [
+          "summit-2026.lb1393-trilio-protect-vms-cnv"
+        ]
       },
-      "summit-2026.lb1216-demyst-aap-ocp-tenant": {
-        "failed": 34,
-        "provision": 23,
-        "destroy": 11
+      "lb2010": {
+        "failed": 1,
+        "provision_failures": 0,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb2010-rhads-ols-modernize-cluster"
+        ]
       },
-      "agd-v2.ocp4-getting-started-module-3-tenant": {
-        "failed": 30,
-        "provision": 0,
-        "destroy": 28
-      },
-      "summit-2026.lb1401-guardrails-cnv-slfsrv": {
-        "failed": 30,
-        "provision": 0,
-        "destroy": 30
-      },
-      "summit-2026.lb2862-ai-app-dev-cluster": {
-        "failed": 22,
-        "provision": 11,
-        "destroy": 11
-      },
-      "agd-v2.ocp-cluster-cnv-pools": {
-        "failed": 21,
-        "provision": 21,
-        "destroy": 0
-      },
-      "ai-quickstarts.ai-qs-ppe-comp-tenant": {
-        "failed": 19,
-        "provision": 0,
-        "destroy": 19
-      },
-      "ai-quickstarts.ai-qs-rag-tenant": {
-        "failed": 18,
-        "provision": 0,
-        "destroy": 18
+      "lb2391": {
+        "failed": 1,
+        "provision_failures": 0,
+        "destroy_failures": 0,
+        "catalog_items": [
+          "summit-2026.lb2391-modernize-ocp-virt-cluster"
+        ]
       }
     },
     "top_playbooks": {
-      "ansible/destroy.yml": 765,
-      "ansible/main.yml": 235
-    },
-    "top_errors": {
-      "ansible/destroy.yml": 765,
-      "ansible/main.yml": 235
+      "ansible/destroy.yml": 755,
+      "ansible/main.yml": 134
     },
     "failure_breakdown": {
       "by_type": {
-        "provision": 160,
-        "destroy": 765,
-        "other": 75
+        "provision": 134,
+        "destroy": 755,
+        "other": 103
       },
-      "avg_duration_minutes": 8.7,
-      "max_duration_minutes": 180.1
+      "avg_duration_minutes": 8.5,
+      "max_duration_minutes": 194.8
     }
   },
-  "correlation": [
-    {
-      "lab_type": "summit-2026",
-      "aap_failed": 654,
-      "aap_provision_failed": 77,
-      "aap_destroy_failed": 525,
-      "eval_total": 0,
-      "eval_failed": 0,
-      "eval_namespaces": 0,
-      "top_failure_classes": {},
-      "both_systems_affected": false
+  "data_coverage": {
+    "evaluations": {
+      "days": [],
+      "note": "Not operational during Summit week (May 11-14)"
     },
-    {
-      "lab_type": "agd-v2",
-      "aap_failed": 198,
-      "aap_provision_failed": 31,
-      "aap_destroy_failed": 165,
-      "eval_total": 0,
-      "eval_failed": 0,
-      "eval_namespaces": 0,
-      "top_failure_classes": {},
-      "both_systems_affected": false
+    "aap_jobs": {
+      "days": [
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14"
+      ],
+      "note": "Mined from event0 AAP controller \u2014 9,024 jobs"
     },
-    {
-      "lab_type": "zt-rhelbu",
-      "aap_failed": 8,
-      "aap_provision_failed": 7,
-      "aap_destroy_failed": 1,
-      "eval_total": 325,
-      "eval_failed": 154,
-      "eval_namespaces": 52,
-      "top_failure_classes": {
-        "guest_agent_not_connected": 64,
-        "health_check_failed": 51,
-        "deployment_missing": 13
-      },
-      "both_systems_affected": true
-    },
-    {
-      "lab_type": "zt-ansiblebu",
-      "aap_failed": 64,
-      "aap_provision_failed": 44,
-      "aap_destroy_failed": 0,
-      "eval_total": 170,
-      "eval_failed": 68,
-      "eval_namespaces": 24,
-      "top_failure_classes": {
-        "health_check_failed": 22,
-        "pods_not_ready": 16,
-        "guest_agent_not_connected": 14
-      },
-      "both_systems_affected": true
-    },
-    {
-      "lab_type": "ai-quickstarts",
-      "aap_failed": 75,
-      "aap_provision_failed": 0,
-      "aap_destroy_failed": 74,
-      "eval_total": 0,
-      "eval_failed": 0,
-      "eval_namespaces": 0,
-      "top_failure_classes": {},
-      "both_systems_affected": false
-    },
-    {
-      "lab_type": "ocp4",
-      "aap_failed": 0,
-      "aap_provision_failed": 0,
-      "aap_destroy_failed": 0,
-      "eval_total": 146,
-      "eval_failed": 42,
-      "eval_namespaces": 33,
-      "top_failure_classes": {
-        "route_missing": 29,
-        "service_has_no_endpoints": 4,
-        "health_check_failed": 3
-      },
-      "both_systems_affected": false
-    },
-    {
-      "lab_type": "sandbox-api",
-      "aap_failed": 0,
-      "aap_provision_failed": 0,
-      "aap_destroy_failed": 0,
-      "eval_total": 15,
-      "eval_failed": 9,
-      "eval_namespaces": 1,
-      "top_failure_classes": {
-        "health_check_failed": 3,
-        "datavolume_missing": 3
-      },
-      "both_systems_affected": false
-    },
-    {
-      "lab_type": "sandboxes-gpte",
-      "aap_failed": 1,
-      "aap_provision_failed": 1,
-      "aap_destroy_failed": 0,
-      "eval_total": 0,
-      "eval_failed": 0,
-      "eval_namespaces": 0,
-      "top_failure_classes": {},
-      "both_systems_affected": false
+    "cluster_metrics": {
+      "note": "Not available for Summit week"
     }
-  ]
+  }
 }

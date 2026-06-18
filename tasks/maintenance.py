@@ -10,10 +10,11 @@ logger = logging.getLogger("stargate.tasks.maintenance")
 @shared_task(bind=True, max_retries=1)
 def mv_refresh(self):
     """Refresh materialized views and run calibration."""
+    from db.database import get_db
+    gen = get_db()
+    db = next(gen)
     try:
-        from db.database import get_db
         from db import repository
-        db = next(get_db())
         repository.refresh_cluster_summary(db)
         repository.refresh_pipeline_stages(db)
         repository.refresh_lab_eval_summary(db)
@@ -35,12 +36,13 @@ def mv_refresh(self):
             refresh_lab_mappings(db)
         except Exception as e:
             logger.warning("refresh_lab_mappings failed: %s", e)
-        db.close()
         logger.info("MV refresh complete")
         return {"status": "ok"}
     except Exception as e:
         logger.warning("MV refresh failed: %s", e)
-        return {"error": str(e)}
+        raise self.retry(exc=e)
+    finally:
+        gen.close()
 
 
 @shared_task
@@ -61,9 +63,12 @@ def warm_caches():
         from db import repository
         data = collect_sandbox_health()
         if data and not data.get("error"):
-            db = next(get_db())
-            repository.save_sandbox_metrics(db, data)
-            db.close()
+            gen = get_db()
+            db = next(gen)
+            try:
+                repository.save_sandbox_metrics(db, data)
+            finally:
+                gen.close()
     except Exception as e:
         logger.warning("Sandbox metrics persist failed: %s", e)
     return {"status": "ok"}
@@ -91,14 +96,16 @@ def babylon_collect(self):
 @shared_task(bind=True, max_retries=1, soft_time_limit=300)
 def corpus_mine(self):
     """Run all corpus miners and load results into DB."""
+    from db.database import get_db
+    gen = get_db()
+    db = next(gen)
     try:
         from engine.corpus_runner import run_all_miners
-        from db.database import get_db
-        db = next(get_db())
         result = run_all_miners(db=db)
-        db.close()
         logger.info("Corpus mining: %d findings", result.get("total_findings", 0))
         return result
     except Exception as e:
         logger.warning("Corpus mining failed: %s", e)
         return {"error": str(e)}
+    finally:
+        gen.close()

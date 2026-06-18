@@ -145,7 +145,7 @@ export default function LLMAdmin() {
                 <div><span className="text-[#6A6E73]">Accuracy: </span><span className="text-white font-bold">{accData.accuracy != null ? `${(accData.accuracy * 100).toFixed(1)}%` : '--'}</span></div>
                 <div><span className="text-[#6A6E73]">Total Evaluated: </span><span className="text-white">{accData.total ?? 0}</span></div>
                 <div><span className="text-[#6A6E73]">Correct: </span><span className="text-[#3E8635]">{accData.correct ?? 0}</span></div>
-                <div><span className="text-[#6A6E73]">Incorrect: </span><span className="text-[#C9190B]">{accData.incorrect ?? 0}</span></div>
+                <div><span className="text-[#6A6E73]">Incorrect: </span><span className="text-[#C9190B]">{(accData.total ?? 0) - (accData.correct ?? 0)}</span></div>
               </div>
             </div>
           </section>

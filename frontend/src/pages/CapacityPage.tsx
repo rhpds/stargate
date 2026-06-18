@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForecast, useCapacityAnalysis, usePoolsDashboard } from '../api/hooks';
 import { Link } from 'react-router-dom';
 import FormattedAnalysis from '../components/FormattedAnalysis';
@@ -40,6 +40,8 @@ export default function CapacityPage() {
 
   const fc = forecast.data as any;
   const cap = capacity.data as any;
+
+  useEffect(() => { capacity.mutate(); }, []);
   const pls = pools.data as any;
 
   const forecastHours = fc?.forecast_hours ?? [];
