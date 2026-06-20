@@ -87,7 +87,10 @@ def main():
         print("Cannot get AAP credentials. Make sure you're logged into the cluster.")
         return 1
 
-    base_url = "https://event0.apps.ocpv-infra01.dal12.infra.demo.redhat.com"
+    base_url = os.environ.get("STARGATE_AAP_EVENT0_URL", "")
+    if not base_url:
+        print("Set STARGATE_AAP_EVENT0_URL to the AAP controller URL.")
+        return 1
     print(f"Mining AAP job details from {base_url}...")
 
     # Fetch failed jobs

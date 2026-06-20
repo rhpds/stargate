@@ -81,7 +81,7 @@ class TestAAP2FailureParser:
             "guid": "729h4",
             "job_title": "partner.ocp-virt-roadshow-multi.prod",
             "type": "provision",
-            "error_msg": "Shared connection to ssh.ocpv03.rhdp.net closed.",
+            "error_msg": "Shared connection to ssh.cluster.rhdp.example.com closed.",
             "task": "Find installer Pods in Error Status",
             "role": "host-ocp4-assisted-installer",
             "status": "failed",

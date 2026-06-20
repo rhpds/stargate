@@ -37,6 +37,9 @@ node_modules/
 # Podman/Docker
 *.tar
 
+# Receipts — generated scan output, do not commit
+receipts/
+
 # Runtime artifacts
 *.db
 scheduler.log

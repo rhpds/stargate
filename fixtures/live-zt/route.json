@@ -12,7 +12,7 @@
         "uid": "9e61dc3b-bb92-4913-9207-51537f28619b"
       },
       "spec": {
-        "host": "control-zz95m.apps.ocpv06.rhdp.net",
+        "host": "control-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -63,8 +63,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "control-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "control-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -76,7 +76,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "control-zz95m.apps.ocpv06.rhdp.net",
+            "host": "control-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -95,7 +95,7 @@
         "uid": "b4bfdcd5-944e-4136-9f84-d4706958061e"
       },
       "spec": {
-        "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
+        "host": "dbserver-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -145,7 +145,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
+            "host": "dbserver-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -158,8 +158,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "dbserver-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "dbserver-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -177,7 +177,7 @@
         "uid": "39063eda-fa07-4dbf-878b-6891dc65c5ce"
       },
       "spec": {
-        "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
+        "host": "gitea-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -215,7 +215,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
+            "host": "gitea-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -228,8 +228,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "gitea-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "gitea-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -247,7 +247,7 @@
         "uid": "83a18861-16ec-435b-8ee1-a3c32fe1ee31"
       },
       "spec": {
-        "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
+        "host": "haproxy-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -297,7 +297,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
+            "host": "haproxy-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -310,8 +310,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "haproxy-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "haproxy-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -329,7 +329,7 @@
         "uid": "6be7313c-1520-4321-8f5f-09883919772b"
       },
       "spec": {
-        "host": "node01-zz95m.apps.ocpv06.rhdp.net",
+        "host": "node01-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -379,7 +379,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "node01-zz95m.apps.ocpv06.rhdp.net",
+            "host": "node01-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -392,8 +392,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "node01-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "node01-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -422,7 +422,7 @@
         "uid": "c75b058d-81c0-49c2-ab9f-2d8560f6f9e6"
       },
       "spec": {
-        "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
+        "host": "showroom-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -460,8 +460,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "showroom-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -473,7 +473,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "showroom-zz95m.apps.ocpv06.rhdp.net",
+            "host": "showroom-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -492,7 +492,7 @@
         "uid": "978c2f58-7dc2-40b1-8e3b-8092f5583ef2"
       },
       "spec": {
-        "host": "windows-zz95m.apps.ocpv06.rhdp.net",
+        "host": "windows-zz95m.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -542,7 +542,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-zz95m.apps.ocpv06.rhdp.net",
+            "host": "windows-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -555,8 +555,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "windows-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -585,7 +585,7 @@
         "uid": "5d7bdae0-7344-4811-a162-af939f98c99e"
       },
       "spec": {
-        "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
+        "host": "windows-ironrdp-zz95m.apps.cluster.rhdp.example.com",
         "port": {
           "targetPort": 9000
         },
@@ -610,8 +610,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "windows-ironrdp-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -623,7 +623,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-ironrdp-zz95m.apps.ocpv06.rhdp.net",
+            "host": "windows-ironrdp-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -653,7 +653,7 @@
         "uid": "5ab2ac1a-d0af-4297-86fd-2e048fd6c75d"
       },
       "spec": {
-        "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
+        "host": "windows-jetrdp-zz95m.apps.cluster.rhdp.example.com",
         "port": {
           "targetPort": 7171
         },
@@ -678,8 +678,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "windows-jetrdp-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -691,7 +691,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-jetrdp-zz95m.apps.ocpv06.rhdp.net",
+            "host": "windows-jetrdp-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -721,7 +721,7 @@
         "uid": "9525f207-55dc-4311-92c4-4684807f4331"
       },
       "spec": {
-        "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
+        "host": "windows-tokengen-zz95m.apps.cluster.rhdp.example.com",
         "port": {
           "targetPort": 8081
         },
@@ -746,8 +746,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "windows-tokengen-zz95m.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -759,7 +759,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "windows-tokengen-zz95m.apps.ocpv06.rhdp.net",
+            "host": "windows-tokengen-zz95m.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"

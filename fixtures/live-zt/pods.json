@@ -414,14 +414,14 @@
               },
               {
                 "name": "DOMAIN",
-                "value": "apps.ocpv06.rhdp.net"
+                "value": "apps.cluster.rhdp.example.com"
               },
               {
                 "name": "REGISTRY_PULL_TOKEN"
               },
               {
                 "name": "SATELLITE_URL",
-                "value": "demosat-ha.infra.demo.redhat.com"
+                "value": "demosat.infra.example.com"
               },
               {
                 "name": "SATELLITE_ORG",
@@ -508,7 +508,7 @@
               },
               {
                 "name": "DOMAIN",
-                "value": "apps.ocpv06.rhdp.net"
+                "value": "apps.cluster.rhdp.example.com"
               }
             ],
             "image": "quay.io/rhpds/nginx:1.25",
@@ -584,7 +584,7 @@
               },
               {
                 "name": "DOMAIN",
-                "value": "apps.ocpv06.rhdp.net"
+                "value": "apps.cluster.rhdp.example.com"
               }
             ],
             "image": "quay.io/rhpds/showroom-content:v1.4.1",
@@ -1121,11 +1121,11 @@
               },
               {
                 "name": "JETSERVER",
-                "value": "https://windows-jetrdp-zz95m.apps.ocpv06.rhdp.net/jet/rdp"
+                "value": "https://windows-jetrdp-zz95m.apps.cluster.rhdp.example.com/jet/rdp"
               },
               {
                 "name": "TOKENGENSERVER",
-                "value": "https://windows-tokengen-zz95m.apps.ocpv06.rhdp.net"
+                "value": "https://windows-tokengen-zz95m.apps.cluster.rhdp.example.com"
               }
             ],
             "image": "quay.io/agonzalezrh/ironrdp:v0.0.2",
@@ -1400,11 +1400,11 @@
               },
               {
                 "name": "DOMAIN",
-                "value": "apps.ocpv06.rhdp.net"
+                "value": "apps.cluster.rhdp.example.com"
               },
               {
                 "name": "SATELLITE_URL",
-                "value": "demosat-ha.infra.demo.redhat.com"
+                "value": "demosat.infra.example.com"
               },
               {
                 "name": "SATELLITE_ORG",

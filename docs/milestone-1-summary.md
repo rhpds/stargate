@@ -10,9 +10,9 @@ Ran StarGate against 2 production clusters and 3 different lab types:
 
 | Cluster | Lab Type | Evidence Items | Stages Evaluated | Result |
 |---|---|---|---|---|
-| `ocp-us-east-1.infra.open.redhat.com` | AnarchySubject (healthy) | 1 | 1 | PASS — provisioned, started |
-| `ocp-us-east-1.infra.open.redhat.com` | AnarchySubject (provision-failed) | 1 | 1 | FAIL — `provision_not_started` |
-| `ocp-us-east-1.infra.open.redhat.com` | AnarchySubject (destroy-failed) | 1 | 1 | FAIL — `provision_not_started` |
+| `ocp-us-east-1.infra.example.com` | AnarchySubject (healthy) | 1 | 1 | PASS — provisioned, started |
+| `ocp-us-east-1.infra.example.com` | AnarchySubject (provision-failed) | 1 | 1 | FAIL — `provision_not_started` |
+| `ocp-us-east-1.infra.example.com` | AnarchySubject (destroy-failed) | 1 | 1 | FAIL — `provision_not_started` |
 | `cluster.example.com` | CNV OCP Cluster Lab | 43 | 4 | 3 PASS, 1 FAIL |
 | `cluster.example.com` | ZT Ansible Lab (Windows + RHEL VMs) | 67 | 5 | 4 PASS, 1 FAIL |
 | `cluster.example.com` | ZT RHEL Lab | 17 | 5 | 4 PASS, 1 FAIL |

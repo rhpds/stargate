@@ -12,7 +12,7 @@
         "uid": "586a6a2e-3313-4ed9-afb2-cf8540f81ec3"
       },
       "spec": {
-        "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "gitea-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -49,8 +49,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "gitea-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -62,7 +62,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "gitea-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "gitea-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -81,7 +81,7 @@
         "uid": "2e4961c2-45c4-4c50-8d81-2ce309bee618"
       },
       "spec": {
-        "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "bastion-443-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -118,8 +118,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "bastion-443-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -131,7 +131,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "bastion-443-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "bastion-443-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -150,7 +150,7 @@
         "uid": "0c298d76-12d8-411b-8248-3f8e8b6b5677"
       },
       "spec": {
-        "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "bastion-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -187,8 +187,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "bastion-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -200,7 +200,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "bastion-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "bastion-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -219,7 +219,7 @@
         "uid": "60c9875b-9036-48d1-909e-03d0c78b4e57"
       },
       "spec": {
-        "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "vscode-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -256,8 +256,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "vscode-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -269,7 +269,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "vscode-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "vscode-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -288,7 +288,7 @@
         "uid": "0e222609-706f-42b7-8f8c-31574a786a9a"
       },
       "spec": {
-        "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "opa-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -325,7 +325,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "opa-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -338,8 +338,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "opa-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "opa-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }
@@ -357,7 +357,7 @@
         "uid": "82fe8113-0ced-48cd-9474-85e7b2e62531"
       },
       "spec": {
-        "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "controller-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -395,8 +395,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "controller-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -408,7 +408,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "controller-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "controller-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -427,7 +427,7 @@
         "uid": "6e66948f-f762-4d4f-8a79-833345779336"
       },
       "spec": {
-        "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "eda-webhook-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -464,8 +464,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "eda-webhook-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -477,7 +477,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "eda-webhook-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "eda-webhook-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -496,7 +496,7 @@
         "uid": "09115efd-c221-4093-8cb4-a807e305ded3"
       },
       "spec": {
-        "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "ssap-2cf6p.apps.cluster.rhdp.example.com",
         "port": {
           "targetPort": "443"
         },
@@ -520,8 +520,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "ssap-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -533,7 +533,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "ssap-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "ssap-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -552,7 +552,7 @@
         "uid": "8e3d956d-2b95-40b6-aded-deb13753906e"
       },
       "spec": {
-        "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
+        "host": "ssap-portal-2cf6p.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -590,8 +590,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "ssap-portal-2cf6p.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           },
@@ -603,7 +603,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "ssap-portal-2cf6p.apps.ocpv06.rhdp.net",
+            "host": "ssap-portal-2cf6p.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"

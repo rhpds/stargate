@@ -185,27 +185,27 @@
                 "aws_region": "us-east-2",
                 "aws_route53_domain": ".sandbox4590.opentlc.com",
                 "aws_sandbox_account_id": "528757826952",
-                "aws_secret_access_key": "REDACTED-dummy-value",
-                "aws_web_console_password": "REDACTED-dummy-value",
+                "aws_secret_access_key": "REDACTED",
+                "aws_web_console_password": "REDACTED",
                 "aws_web_console_url": "https://XXXXXXXXXXXX.signin.aws.amazon.com/console",
                 "aws_web_console_user_name": "open-environment-fcs6h-admin",
                 "bastion_public_hostname": "bastion.fcs6h.sandbox4590.opentlc.com",
-                "bastion_ssh_password": "REDACTED-dummy-value",
+                "bastion_ssh_password": "REDACTED",
                 "bastion_ssh_user_name": "lab-user",
                 "cloud_provider": "ec2",
                 "guid": "fcs6h",
-                "openshift_api_ca_cert": "REDACTED-dummy-value",
+                "openshift_api_ca_cert": "REDACTED",
                 "openshift_api_url": "https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443",
                 "openshift_client_download_url": "http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
-                "openshift_cluster_admin_token": "REDACTED-dummy-value",
+                "openshift_cluster_admin_token": "REDACTED",
                 "openshift_cluster_ingress_domain": "apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
                 "openshift_console_url": "https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
-                "openshift_kubeadmin_password": "REDACTED-dummy-value"
+                "openshift_kubeadmin_password": "REDACTED"
               },
               "provision_messages": [
                 "\nYour AWS credentials are:\n\n`AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE`\n\n`AWS_SECRET_ACCESS_KEY: REDACTED`\n\n*Please DO NOT expose these AWS credentials in GIT repos or anywhere else that could be public! If detected, your environment will be deleted without warning.*\n\nTop level route53 domain: .sandbox4590.opentlc.com\n\nWeb Console Access: https://XXXXXXXXXXXX.signin.aws.amazon.com/console\n\nWeb Console Credentials: open-environment-xxxxx-admin / REDACTED\n\nRefer to the following pages regarding the AWS CLI and APIs:\n\n** AWS CLI Installation: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html\n\n** AWS Config Basics: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html\n\n** AWS API Getting Started: https://aws.amazon.com/developers/getting-started/\n\n*WARNING*\n\n** *We monitor usage and we will be charging back to your cost center.*\n** *Reports from the cloud provider of misuse or account compromise will result in immediate deletion of your environment without any warning to you and referral to Red Hat INFOSEC.*\n** *Do not post your credentials in github/email/web pages/etc.*\n** *NOTE: Most account compromises occur when accidentally checking credentials into github.*\n",
                 "OpenShift Console: https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com\nOpenShift API for command line 'oc' client: https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443\nOpenShift kubeadmin password: REDACTED\nDownload oc client from http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
-                "You can access your bastion via SSH:\nssh lab-user@bastion.fcs6h.sandbox4590.opentlc.com\n\nMake sure you use the username 'lab-user' and the password 'REDACTED' when prompted.\n"
+                "You can access your bastion via SSH:\nssh lab-user@bastion.fcs6h.sandbox4590.opentlc.com\n\nMake sure you use the username 'lab-user' and the password when prompted.\n"
               ]
             }
           },
@@ -254,16 +254,16 @@
                 "deployerJob": 266674,
                 "jobStatus": "successful",
                 "startTimestamp": "2026-05-06T10:12:28Z",
-                "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
-                "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/266674/"
+                "towerHost": "aap-west.aap.infra.example.com",
+                "towerJobURL": "aap-west.aap.infra.example.com#/jobs/266674/"
               },
               "stop": {
                 "completeTimestamp": "2026-05-06T18:13:48Z",
                 "deployerJob": 266903,
                 "jobStatus": "successful",
                 "startTimestamp": "2026-05-06T18:12:41Z",
-                "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
-                "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/266903/"
+                "towerHost": "aap-west.aap.infra.example.com",
+                "towerJobURL": "aap-west.aap.infra.example.com#/jobs/266903/"
               }
             }
           }
@@ -287,22 +287,22 @@
         "aws_region": "us-east-2",
         "aws_route53_domain": ".sandbox4590.opentlc.com",
         "aws_sandbox_account_id": "528757826952",
-        "aws_secret_access_key": "REDACTED-dummy-value",
-        "aws_web_console_password": "REDACTED-dummy-value",
+        "aws_secret_access_key": "REDACTED",
+        "aws_web_console_password": "REDACTED",
         "aws_web_console_url": "https://XXXXXXXXXXXX.signin.aws.amazon.com/console",
         "aws_web_console_user_name": "open-environment-fcs6h-admin",
         "bastion_public_hostname": "bastion.fcs6h.sandbox4590.opentlc.com",
-        "bastion_ssh_password": "REDACTED-dummy-value",
+        "bastion_ssh_password": "REDACTED",
         "bastion_ssh_user_name": "lab-user",
         "cloud_provider": "ec2",
         "guid": "fcs6h",
-        "openshift_api_ca_cert": "REDACTED-dummy-value",
+        "openshift_api_ca_cert": "REDACTED",
         "openshift_api_url": "https://api.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com:6443",
         "openshift_client_download_url": "http://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.18.36/openshift-client-linux-4.18.36.tar.gz",
-        "openshift_cluster_admin_token": "REDACTED-dummy-value",
+        "openshift_cluster_admin_token": "REDACTED",
         "openshift_cluster_ingress_domain": "apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
         "openshift_console_url": "https://console-openshift-console.apps.cluster-fcs6h.fcs6h.sandbox4590.opentlc.com",
-        "openshift_kubeadmin_password": "REDACTED-dummy-value"
+        "openshift_kubeadmin_password": "REDACTED"
       },
       "runtime_default": "8h",
       "runtime_maximum": "5d",

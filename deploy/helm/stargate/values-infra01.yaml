@@ -5,7 +5,7 @@ api:
   replicas: 2
   env:
     STARGATE_SSL_VERIFY: "false"
-    STARGATE_CORS_ORIGINS: "https://stargate.apps.ocpv-infra01.dal12.infra.demo.redhat.com,https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com"
+    STARGATE_CORS_ORIGINS: ""  # Set at deploy time: --set api.env.STARGATE_CORS_ORIGINS=https://<frontend>,https://<api>
     STARGATE_LITELLM_URL: "https://litellm.example.com/v1/chat/completions"
 
 scanner:
@@ -30,8 +30,8 @@ scanHistory:
   storage: 10Gi
 
 routes:
-  frontend: stargate.apps.ocpv-infra01.dal12.infra.demo.redhat.com
-  api: stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com
+  frontend: ""  # Set at deploy time: --set routes.frontend=<hostname>
+  api: ""       # Set at deploy time: --set routes.api=<hostname>
 
 oauth:
   enabled: true

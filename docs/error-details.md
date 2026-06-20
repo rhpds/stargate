@@ -51,7 +51,7 @@
 
 ## 6. VM Control Plane Errors — ocpv07
 
-**Root cause**: Readiness probe timeout — `Get "https://10.129.37.214:6443/healthz": context deadline exceeded`. The VM is running a nested OCP control plane but the API server inside the VM is not responding to health checks. This is a performance issue — the VM's API server is overloaded or the host node is under too much CPU pressure (ocpv07 has 3 nodes above 80% CPU).
+**Root cause**: Readiness probe timeout — `Get "https://10.x.x.x:6443/healthz": context deadline exceeded`. The VM is running a nested OCP control plane but the API server inside the VM is not responding to health checks. This is a performance issue — the VM's API server is overloaded or the host node is under too much CPU pressure (ocpv07 has 3 nodes above 80% CPU).
 
 **Impact**: 2 lab environments with nested OCP clusters have unhealthy control planes.
 

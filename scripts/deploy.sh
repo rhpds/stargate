@@ -23,9 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
-CLUSTER="${STARGATE_CLUSTER:-https://api.ocpv-infra01.dal12.infra.demo.redhat.com:6443}"
+CLUSTER="${STARGATE_CLUSTER:?Set STARGATE_CLUSTER to the API server URL}"
 NS="${STARGATE_NS:-stargate}"
-REGISTRY="default-route-openshift-image-registry.apps.ocpv-infra01.dal12.infra.demo.redhat.com"
+REGISTRY="${STARGATE_REGISTRY:?Set STARGATE_REGISTRY to the OpenShift image registry route}"
 INTERNAL_REG="image-registry.openshift-image-registry.svc:5000/${NS}"
 GIT_SHA=$(git rev-parse --short HEAD)
 DEPLOYER_TOKEN="${PROJECT_DIR}/secrets/deployer-token"
@@ -157,5 +157,5 @@ fi
 
 echo ""
 echo "=== Done ==="
-echo "Dashboard: https://stargate.apps.ocpv-infra01.dal12.infra.demo.redhat.com"
+echo "Dashboard: ${STARGATE_DASHBOARD_URL:-<not configured>}"
 echo "Image:     stargate-api:${GIT_SHA}"

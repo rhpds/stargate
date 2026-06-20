@@ -1,7 +1,7 @@
 # StarGate — Summit 2026 Event Controller Status
 
 **Scanned**: 2026-05-06
-**Source**: `ocp-us-east-1.infra.open.redhat.com` (Babylon control plane)
+**Source**: `ocp-us-east-1.infra.example.com` (Babylon control plane)
 
 ## Event Controller Health
 
