@@ -127,5 +127,5 @@ Audit log → Effectiveness tracking → Feedback loop
 ## Links
 
 - **Repo:** https://github.com/rhpds/stargate
-- **Dashboard:** https://stargate.apps.ocpv-infra01.dal12.infra.demo.redhat.com
+- **Dashboard:** (set STARGATE_DASHBOARD_URL)
 - **Launchpad:** https://github.com/rhpds/launchpad

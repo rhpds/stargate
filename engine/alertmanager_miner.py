@@ -195,10 +195,10 @@ def parse_alert(alert: Dict, cluster: str = "unknown") -> Dict:
 def collect_alerts(cluster_name: str = "infra01", alertmanager_url: str = "") -> List[Dict]:
     """Collect alerts from Alertmanager API."""
     if not alertmanager_url:
-        alertmanager_url = os.environ.get(
-            "ALERTMANAGER_URL",
-            "https://alertmanager-main-openshift-monitoring.apps.ocpv-infra01.dal12.infra.demo.redhat.com",
-        )
+        alertmanager_url = os.environ.get("ALERTMANAGER_URL", "")
+    if not alertmanager_url:
+        logger.warning("No ALERTMANAGER_URL configured")
+        return []
 
     token = os.environ.get("OPENSHIFT_TOKEN", "")
     if not token:

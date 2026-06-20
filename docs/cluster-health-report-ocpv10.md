@@ -1,6 +1,6 @@
 # StarGate Cluster Health Report — ocpv10
 
-**Cluster**: `ocpv10.wdc07.infra.demo.redhat.com`
+**Cluster**: `ocpv10.wdc07.infra.example.com`
 **Scanned**: 2026-05-06
 **Type**: CNV lab workload cluster
 

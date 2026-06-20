@@ -1,6 +1,6 @@
 # StarGate Cluster Health Report — ocpv08
 
-**Cluster**: `ocpv08.dal10.infra.demo.redhat.com`
+**Cluster**: `ocpv08.dal10.infra.example.com`
 **Scanned**: 2026-05-06
 **Type**: CNV lab workload cluster (large)
 **Nodes**: 25 (3 control plane, 14 compute/worker, 1 unknown-metrics, 7 ceph)
