@@ -72,17 +72,23 @@ HEALTH_QUERIES = {
 }
 
 
+def _load_cluster_urls() -> dict:
+    """Load cluster→Thanos URL mapping from STARGATE_CLUSTER_URLS env var (JSON dict)."""
+    raw = os.environ.get("STARGATE_CLUSTER_URLS", "")
+    if raw:
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("STARGATE_CLUSTER_URLS is not valid JSON — ignoring")
+    return {}
+
+
+_CLUSTER_URLS = _load_cluster_urls()
+
+
 def _get_thanos_url(cluster_name: str) -> str:
     """Get the Thanos URL for a cluster."""
-    cluster_urls = {
-        "ocpv-infra01": "https://thanos-querier-openshift-monitoring.apps.ocpv-infra01.dal12.infra.demo.redhat.com",
-        "ocpv-infra02": "https://thanos-querier-openshift-monitoring.apps.ocpv-infra02.wdc07.infra.demo.redhat.com",
-        "ocpv05": "https://thanos-querier-openshift-monitoring.apps.ocpv05.dal10.infra.demo.redhat.com",
-        "ocpv07": "https://thanos-querier-openshift-monitoring.apps.ocpv07.wdc06.infra.demo.redhat.com",
-        "ocpv08": "https://thanos-querier-openshift-monitoring.apps.ocpv08.dal10.infra.demo.redhat.com",
-        "ocpv09": "https://thanos-querier-openshift-monitoring.apps.ocpv09.dal13.infra.demo.redhat.com",
-    }
-    return cluster_urls.get(cluster_name, "")
+    return _CLUSTER_URLS.get(cluster_name, "")
 
 
 def _get_token(cluster_name: str) -> str:

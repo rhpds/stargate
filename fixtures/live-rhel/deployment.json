@@ -64,7 +64,7 @@
                   },
                   {
                     "name": "DOMAIN",
-                    "value": "apps.ocpv06.rhdp.net"
+                    "value": "apps.cluster.rhdp.example.com"
                   },
                   {
                     "name": "REGISTRY_PULL_TOKEN",
@@ -72,7 +72,7 @@
                   },
                   {
                     "name": "SATELLITE_URL",
-                    "value": "demosat-ha.infra.demo.redhat.com"
+                    "value": "demosat.infra.example.com"
                   },
                   {
                     "name": "SATELLITE_ORG",
@@ -144,7 +144,7 @@
                   },
                   {
                     "name": "DOMAIN",
-                    "value": "apps.ocpv06.rhdp.net"
+                    "value": "apps.cluster.rhdp.example.com"
                   }
                 ],
                 "image": "quay.io/rhpds/nginx:1.25",
@@ -209,7 +209,7 @@
                   },
                   {
                     "name": "DOMAIN",
-                    "value": "apps.ocpv06.rhdp.net"
+                    "value": "apps.cluster.rhdp.example.com"
                   }
                 ],
                 "image": "quay.io/rhpds/showroom-content:v1.3.0",
@@ -583,11 +583,11 @@
                   },
                   {
                     "name": "DOMAIN",
-                    "value": "apps.ocpv06.rhdp.net"
+                    "value": "apps.cluster.rhdp.example.com"
                   },
                   {
                     "name": "SATELLITE_URL",
-                    "value": "demosat-ha.infra.demo.redhat.com"
+                    "value": "demosat.infra.example.com"
                   },
                   {
                     "name": "SATELLITE_ORG",

@@ -59,16 +59,16 @@
         "guid": "49rj2",
         "platform": "RHPDS",
         "requester_email": "user@example.com",
-        "sandbox_openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
-        "sandbox_openshift_apps_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "sandbox_openshift_api_url": "https://api.cluster-4px7h.dyn.workshops.example.com:6443",
+        "sandbox_openshift_apps_domain": "apps.cluster-4px7h.dyn.workshops.example.com",
         "sandbox_openshift_cluster": "cluster-4px7h",
-        "sandbox_openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "sandbox_openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.workshops.example.com",
         "sandbox_openshift_name": "49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
         "sandbox_openshift_namespace": "sandbox-49rj2-168e13b3-7cda-5857-bae7-a8126d71a6b0",
         "uuid": "168e13b3-7cda-5857-bae7-a8126d71a6b0"
       },
       "provision_data": {
-        "lab_ui_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/",
+        "lab_ui_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.workshops.example.com/",
         "litellm_api_base_url": "https://litellm.example.com/v1",
         "litellm_api_endpoint": "https://litellm.example.com",
         "litellm_available_models": [
@@ -79,11 +79,11 @@
         "litellm_key_duration": "7d",
         "litellm_key_id": "3dc026fb32af88ad67881acf835d3e312084563868f32b20735322ff8d753081",
         "litellm_virtual_key": "sk-REDACTED-EXAMPLE-KEY",
-        "openshift_api_url": "https://api.cluster-4px7h.dyn.redhatworkshops.io:6443",
-        "openshift_cluster_ingress_domain": "apps.cluster-4px7h.dyn.redhatworkshops.io",
-        "openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.redhatworkshops.io",
+        "openshift_api_url": "https://api.cluster-4px7h.dyn.workshops.example.com:6443",
+        "openshift_cluster_ingress_domain": "apps.cluster-4px7h.dyn.workshops.example.com",
+        "openshift_console_url": "https://console-openshift-console.apps.cluster-4px7h.dyn.workshops.example.com",
         "password": "REDACTED-dummy-password",
-        "showroom_primary_view_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/",
+        "showroom_primary_view_url": "https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.workshops.example.com/",
         "user": "user-49rj2"
       },
       "provision_message_body": "[]",
@@ -92,7 +92,7 @@
         "LiteMaaS Virtual Key: sk-REDACTED-EXAMPLE-KEY",
         "Available Models: llama-scout-17b",
         "Key Duration: 7d",
-        "Lab instructions: https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.redhatworkshops.io/"
+        "Lab instructions: https://showroom-user-49rj2-showroom.apps.cluster-4px7h.dyn.workshops.example.com/"
       ]
     }
   },
@@ -148,8 +148,8 @@
         "deployerJob": 232313,
         "jobStatus": "successful",
         "startTimestamp": "2026-04-29T21:44:02Z",
-        "towerHost": "aap2-prod-us-west-2.aap.infra.demo.redhat.com",
-        "towerJobURL": "aap2-prod-us-west-2.aap.infra.demo.redhat.com#/jobs/232313/"
+        "towerHost": "aap-west.aap.infra.example.com",
+        "towerJobURL": "aap-west.aap.infra.example.com#/jobs/232313/"
       }
     }
   }

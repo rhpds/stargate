@@ -5,7 +5,7 @@
 # Usage:
 #   ./scripts/deploy-scanner-sa.sh <cluster-name> <api-url>
 #   ./scripts/deploy-scanner-sa.sh ocpv05 https://api.ocpv05.example.com:6443
-#   ./scripts/deploy-scanner-sa.sh ocpv-infra01 https://api.ocpv-infra01.dal12.infra.demo.redhat.com:6443 --with-executor
+#   ./scripts/deploy-scanner-sa.sh ocpv-infra01 https://api.<cluster>.example.com:6443 --with-executor
 #
 # Prerequisites:
 #   - oc CLI logged into the target cluster (user with cluster-admin)
@@ -173,8 +173,8 @@ echo "=== Done ==="
 echo "Kubeconfig: secrets/${KC_NAME}"
 echo "Token type: kubernetes.io/service-account-token (does not expire)"
 echo ""
-echo "To sync kubeconfigs to infra01:"
-echo "  oc login --token=\$(cat secrets/deployer-token) --server=https://api.ocpv-infra01.dal12.infra.demo.redhat.com:6443"
+echo "To sync kubeconfigs to the control cluster:"
+echo "  oc login --token=\$(cat secrets/deployer-token) --server=\${STARGATE_CLUSTER}"
 echo "  oc project stargate"
 echo "  oc create secret generic stargate-kubeconfigs \\"
 echo "    --from-file=kubeconfig-${CLUSTER_NAME}=secrets/${KC_NAME} \\"

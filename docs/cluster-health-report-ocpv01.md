@@ -1,6 +1,6 @@
 # StarGate Cluster Health Report — ocpv01
 
-**Cluster**: `ocpv01.dfw3.infra.demo.redhat.com`
+**Cluster**: `ocpv01.dfw3.infra.example.com`
 **Scanned**: 2026-05-06
 **Type**: CNV lab workload cluster (large)
 **Nodes**: 50 (3 control plane, 40 workers, 7 ceph)

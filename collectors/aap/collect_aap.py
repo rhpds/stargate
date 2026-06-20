@@ -172,7 +172,7 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                         ev = json.loads(extra_vars)
                         host = ev.get("bastion_ansible_host", "") or ev.get("target_host", "")
                         if host:
-                            # "ssh.ocpv01.rhdp.net" → "ocpv01"
+                            # "ssh.<cluster>.<domain>" → "<cluster>"
                             parts = host.replace("ssh.", "").split(".")
                             cluster = parts[0] if parts else host
                         if not cluster:

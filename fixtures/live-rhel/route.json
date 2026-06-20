@@ -16,7 +16,7 @@
         "uid": "3cb51a93-b855-461a-84f6-e838bf16e97f"
       },
       "spec": {
-        "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
+        "host": "showroom-2dclz.apps.cluster.rhdp.example.com",
         "httpHeaders": {
           "actions": {
             "request": null,
@@ -54,7 +54,7 @@
                 "type": "Admitted"
               }
             ],
-            "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
+            "host": "showroom-2dclz.apps.cluster.rhdp.example.com",
             "routerCanonicalHostname": "router-default.apps.cluster.example.com",
             "routerName": "default",
             "wildcardPolicy": "None"
@@ -67,8 +67,8 @@
                 "type": "Admitted"
               }
             ],
-            "host": "showroom-2dclz.apps.ocpv06.rhdp.net",
-            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.ocpv06.rhdp.net",
+            "host": "showroom-2dclz.apps.cluster.rhdp.example.com",
+            "routerCanonicalHostname": "router-ingress-rhdp-net.apps.cluster.rhdp.example.com",
             "routerName": "ingress-rhdp-net",
             "wildcardPolicy": "None"
           }

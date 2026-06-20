@@ -5,7 +5,7 @@
 | Cluster | Location | Namespaces | Nodes | Worker Memory | Issues |
 |---|---|---|---|---|---|
 | `cluster.example.com` | Dallas | 75 | 9 | 49-52% | 7 findings |
-| `ocpv-infra02.wdc07.infra.demo.redhat.com` | Washington DC | 30 | 9 | 26-37% | 1 finding |
+| `ocpv-infra02.wdc07.infra.example.com` | Washington DC | 30 | 9 | 26-37% | 1 finding |
 
 ## Critical Findings
 
