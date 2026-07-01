@@ -46,4 +46,12 @@ metadata:
   annotations:
     serviceaccounts.openshift.io/oauth-redirectreference.primary: |
       {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"stargate"}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stargate-frontend
+  annotations:
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: |
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"stargate-frontend"}}
 {{- end }}
