@@ -1,0 +1,82 @@
+id: troshka-failures
+version: "1.0"
+description: Troshka VM topology platform — deploy pipeline and VM lifecycle failures
+source: troshka
+
+classes:
+  vm_start_failure:
+    pattern: "(virsh start failed|domain.*not.*found|failed to start|boot.*failed)"
+    severity: high
+    remediation:
+      - Check VM definition on host via troshkad /commands/vms/config
+      - Verify disk paths exist on the host
+      - Check host capacity (RAM/CPU overcommit)
+      - Review deploy logs in troshka backend
+
+  disk_cache_failure:
+    pattern: "(image.*download.*failed|cache.*failed|s3.*error|disk.*not.*found|backing.*file)"
+    severity: high
+    remediation:
+      - Check S3 connectivity from the host
+      - Verify library item exists and is in 'ready' state
+      - Check host disk space (df -h /var/lib/troshka)
+      - Retry deploy — image cache may have been evicted
+
+  network_setup_failure:
+    pattern: "(vxlan.*failed|bridge.*failed|nftables.*error|namespace.*error|gateway.*failed)"
+    severity: high
+    remediation:
+      - Check VXLAN connectivity between hosts (peer IPs)
+      - Verify network namespace exists on the host
+      - Check nftables rules for conflicts
+      - Review troshkad network logs
+
+  host_capacity_exhausted:
+    pattern: "(not enough capacity|no host has room|insufficient.*ram|insufficient.*cpu)"
+    severity: medium
+    remediation:
+      - Check host overcommit ratios (default CPU 4.0x, RAM 1.5x)
+      - Stop idle projects on the same host
+      - Add a new host to the storage pool
+      - Increase overcommit ratios if workload allows
+
+  seed_iso_failure:
+    pattern: "(seed.*failed|cloud-init.*error|genisoimage.*failed)"
+    severity: medium
+    remediation:
+      - Check cloud-init userdata for syntax errors
+      - Verify genisoimage is installed on the host
+      - Check /var/lib/troshka/seeds/ directory permissions
+
+  eip_allocation_failure:
+    pattern: "(eip.*failed|elastic.*ip.*error|no.*available.*address|associate.*failed)"
+    severity: medium
+    remediation:
+      - Check provider EIP quota
+      - Verify provider credentials are valid
+      - Release unused EIPs from other projects
+
+  host_storage_critical:
+    pattern: "(storage.*warning.*critical|disk.*usage.*9[5-9]%|partition.*full)"
+    severity: critical
+    remediation:
+      - Run garbage collection to free disk cache
+      - Extend storage via provider (EBS/FSx/Azure Files)
+      - Stop pattern capture operations consuming disk
+
+  vm_migration_failure:
+    pattern: "(migration.*failed|migrate.*error|live.*migration.*failed)"
+    severity: high
+    remediation:
+      - Verify shared storage is accessible from both hosts
+      - Check libvirt TLS certificates between hosts
+      - Ensure target host has enough capacity
+      - Check virsh migrate logs on both hosts
+
+  container_pull_failure:
+    pattern: "(pull.*failed|image.*not.*found|registry.*error|authentication.*required)"
+    severity: medium
+    remediation:
+      - Verify container image name and tag
+      - Check registry credentials if private registry
+      - Verify host has internet access (or pull-through cache configured)
