@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import urllib.request
 from typing import Optional
 
@@ -199,13 +200,21 @@ class DeepFieldConsumer(EventConsumer):
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-            urllib.request.urlopen(req, timeout=10)
-            logger.info(
-                "DeepField event delivered: %s run=%s stage=%s",
-                deepfield_event_type, event.run_id, event.stage_id,
-            )
+            for attempt in range(3):
+                try:
+                    urllib.request.urlopen(req, timeout=10)
+                    logger.info(
+                        "DeepField event delivered: %s run=%s stage=%s",
+                        deepfield_event_type, event.run_id, event.stage_id,
+                    )
+                    break
+                except Exception:
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                    else:
+                        raise
         except Exception as e:
-            logger.error("DeepField delivery failed: %s", e)
+            logger.error("DeepField delivery failed after 3 attempts: %s", e)
 
 
 class GeoLuxConsumer(EventConsumer):
@@ -265,10 +274,18 @@ class GeoLuxConsumer(EventConsumer):
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-            urllib.request.urlopen(req, timeout=10)
-            logger.info(
-                "GeoLux event delivered: %s run=%s stage=%s cluster=%s",
-                geolux_event_type, event.run_id, event.stage_id, event.cluster_name,
-            )
+            for attempt in range(3):
+                try:
+                    urllib.request.urlopen(req, timeout=10)
+                    logger.info(
+                        "GeoLux event delivered: %s run=%s stage=%s cluster=%s",
+                        geolux_event_type, event.run_id, event.stage_id, event.cluster_name,
+                    )
+                    break
+                except Exception:
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                    else:
+                        raise
         except Exception as e:
-            logger.warning("GeoLux delivery failed: %s", e)
+            logger.warning("GeoLux delivery failed after 3 attempts: %s", e)

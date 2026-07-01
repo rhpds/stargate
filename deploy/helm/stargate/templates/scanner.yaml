@@ -22,12 +22,24 @@ spec:
       labels:
         app: stargate-scheduler
     spec:
+      serviceAccountName: stargate-scanner
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: scheduler
           image: {{ .Values.scanner.image }}
           command: ["python3", "-m", "cli.scheduler", "--clusters", {{ .Values.scanner.clusters | quote }},
                     "--tier1", {{ .Values.scanner.tier1 | quote }}, "--tier2", {{ .Values.scanner.tier2 | quote }},
                     "--tier3", {{ .Values.scanner.tier3 | quote }}, "--batch", {{ .Values.scanner.batch | quote }}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            exec:
+              command: ["python3", "-c", "import os; os.stat('/opt/app-root/src/scan-history')"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
           volumeMounts:
             - name: secrets
               mountPath: {{ .Values.secrets.mountPath }}
@@ -58,10 +70,17 @@ spec:
       labels:
         app: stargate-babylon-worker
     spec:
+      serviceAccountName: stargate-scanner
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: babylon-worker
           image: {{ .Values.babylonWorker.image }}
           command: ["python3", "-m", "cli.babylon_worker", "--interval", {{ .Values.babylonWorker.interval | quote }}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: secrets
               mountPath: {{ .Values.secrets.mountPath }}
