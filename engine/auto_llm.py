@@ -143,7 +143,7 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         for s in similar:
             status = "APPROVED" if s["approved"] else "REJECTED" if s["approved"] is False else "pending"
             sim_lines.append(
-                f"- \"{s['original_message']}\" → {s['proposed_class']} "
+                f"- \"{_sanitize_for_prompt(s['original_message'], 200)}\" → {s['proposed_class']} "
                 f"(confidence {s['confidence']}, {status}, match {s['match_score']:.0%})"
             )
         evidence_parts.append("\n".join(sim_lines))

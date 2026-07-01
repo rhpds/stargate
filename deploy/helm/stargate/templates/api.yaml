@@ -90,11 +90,15 @@ spec:
             - --https-address=
             - --http-address=:4180
             - --upstream=http://localhost:{{ .Values.api.port }}
-            - --cookie-secret={{ required "oauth.cookieSecret must be set when oauth is enabled" .Values.oauth.cookieSecret }}
+            - --cookie-secret-file=/var/run/secrets/oauth/cookie-secret
             - --cookie-name=_stargate_oauth
             - --provider=openshift
             - --openshift-service-account=stargate-oauth
             - --pass-user-headers=true
+          volumeMounts:
+            - name: oauth-cookie
+              mountPath: /var/run/secrets/oauth
+              readOnly: true
           resources:
             requests:
               cpu: 50m
@@ -104,6 +108,11 @@ spec:
               memory: 128Mi
         {{- end }}
       volumes:
+        {{- if .Values.oauth.enabled }}
+        - name: oauth-cookie
+          secret:
+            secretName: {{ .Values.oauth.cookieSecretName | default "stargate-oauth-cookie" }}
+        {{- end }}
         - name: scan-history
           persistentVolumeClaim:
             claimName: stargate-scan-history-pvc
