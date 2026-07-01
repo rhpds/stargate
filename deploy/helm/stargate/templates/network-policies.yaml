@@ -11,8 +11,10 @@ spec:
   ingress:
     - from:
         - podSelector:
-            matchLabels:
-              app: stargate-api
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [stargate-api, stargate-scheduler, stargate-babylon-worker]
       ports:
         - port: 5432
           protocol: TCP
