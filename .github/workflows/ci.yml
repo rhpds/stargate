@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: summit-demo-factory
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
 

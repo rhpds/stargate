@@ -288,6 +288,7 @@ def _mv_refresh_loop():
     from datetime import datetime, timezone
     logger = _stargate_logger
     while not _shutdown_event.is_set():
+        db = None
         try:
             from db.database import get_session_factory
             factory = get_session_factory()
@@ -322,15 +323,16 @@ def _mv_refresh_loop():
                 check_and_notify(db)
             except Exception as e:
                 logger.debug(f"Notifications skipped: {e}")
-            db.close()
             logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")
-            try:
-                db.rollback()
+        finally:
+            if db is not None:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
                 db.close()
-            except Exception:
-                pass
 
         try:
             scans = _load_latest_scan()
