@@ -1244,6 +1244,7 @@ def refresh_mttr_by_class(db: Session) -> None:
     evals = (
         db.query(EvaluationRecord)
         .filter(EvaluationRecord.evaluated_at >= cutoff,
+                EvaluationRecord.outcome == "fail",
                 EvaluationRecord.failure_class.isnot(None))
         .order_by(EvaluationRecord.lab_code, EvaluationRecord.evaluated_at)
         .limit(10000)
@@ -1259,7 +1260,7 @@ def refresh_mttr_by_class(db: Session) -> None:
         elif key in prev_by_lab and prev_by_lab[key].outcome == "pass":
             fc = ev.failure_class
             if fc:
-                dur = (ev.created_at - prev_by_lab[key].created_at).total_seconds() / 60
+                dur = (ev.evaluated_at - prev_by_lab[key].evaluated_at).total_seconds() / 60
                 if 0 < dur < 1440:
                     durations_by_class.setdefault(fc, []).append(dur)
         prev_by_lab[key] = ev

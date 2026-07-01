@@ -95,7 +95,7 @@ def submit_feedback(run_id: str, req: FeedbackRequest, db: Session = Depends(get
 
 
 @router.post("/integration/geolux-proposal", status_code=201)
-def receive_geolux_proposal(body: dict, db: Session = Depends(get_db)):
+def receive_geolux_proposal(body: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Receive a remediation proposal from GeoLux.
 
     GeoLux sends classification results and remediation recommendations
