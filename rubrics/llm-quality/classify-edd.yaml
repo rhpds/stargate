@@ -1,0 +1,29 @@
+id: classify-edd
+version: "1.0"
+prompt_type: classify
+dimension: edd
+criteria:
+  - name: proposed_class_from_known_list
+    check_type: value_in_set
+    target: "proposed_class"
+    required: false
+    params:
+      known_set_source: "failure-classes"
+      allow_novel: true
+
+  - name: conditions_reference_criteria
+    check_type: evidence_cited
+    target: "conditions_match_evidence"
+    required: true
+
+  - name: reasoning_cites_evidence
+    check_type: evidence_cited
+    target: "reasoning"
+    required: true
+
+  - name: no_fabricated_stages
+    check_type: no_hallucination
+    target: "stage_ids"
+    required: true
+    params:
+      pattern: "[a-z]+-[a-z]+(-[a-z]+)?"

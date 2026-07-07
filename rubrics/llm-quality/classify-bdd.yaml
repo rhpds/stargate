@@ -1,0 +1,21 @@
+id: classify-bdd
+version: "1.0"
+prompt_type: classify
+dimension: bdd
+criteria:
+  - name: known_failure_matches_expected
+    check_type: scenario_assertion
+    target: "proposed_class_matches_expected"
+    required: true
+
+  - name: confidence_above_threshold
+    check_type: scenario_assertion
+    target: "confidence_reasonable"
+    required: true
+    params:
+      threshold: 0.5
+
+  - name: novel_failure_flagged
+    check_type: scenario_assertion
+    target: "novel_failure_low_confidence"
+    required: false
