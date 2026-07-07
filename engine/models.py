@@ -215,3 +215,58 @@ class BuildReport(BaseModel):
     status: BuildStageResult = BuildStageResult.RED
     stages: List[BuildStageReport] = Field(default_factory=list)
     blocking: List[str] = Field(default_factory=list)
+
+
+# --- LLM Quality ---
+
+class QualityDimension(str, Enum):
+    TDD = "tdd"
+    EDD = "edd"
+    CDD = "cdd"
+    BDD = "bdd"
+
+
+class QualityOutcome(str, Enum):
+    GREEN = "green"
+    YELLOW = "yellow"
+    RED = "red"
+
+
+class QualityCriterion(BaseModel):
+    name: str = Field(..., min_length=1)
+    check_type: str = Field(..., min_length=1)
+    target: str = ""
+    required: bool = True
+    params: Dict[str, Any] = Field(default_factory=dict)
+
+
+class QualityRubric(BaseModel):
+    id: str = Field(..., min_length=1)
+    version: str = Field(..., min_length=1)
+    prompt_type: str = Field(..., min_length=1)
+    dimension: QualityDimension
+    criteria: List[QualityCriterion] = Field(default_factory=list)
+
+
+class QualityCriterionResult(BaseModel):
+    name: str
+    dimension: QualityDimension
+    required: bool
+    passed: bool
+    message: str = ""
+
+
+class QualityDimensionResult(BaseModel):
+    dimension: QualityDimension
+    outcome: QualityOutcome
+    criteria_results: List[QualityCriterionResult] = Field(default_factory=list)
+    message: str = ""
+
+
+class LLMQualityResult(BaseModel):
+    prompt_type: str
+    scenario: str = ""
+    overall_outcome: QualityOutcome = QualityOutcome.GREEN
+    dimensions: Dict[str, QualityDimensionResult] = Field(default_factory=dict)
+    response_preview: str = ""
+    timestamp: Optional[datetime] = None

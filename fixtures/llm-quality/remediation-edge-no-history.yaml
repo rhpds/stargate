@@ -1,0 +1,99 @@
+id: remediation-edge-no-history
+prompt_type: remediation
+scenario: "Lab with pods_not_ready but no historical data available — the response handles the missing history gracefully"
+quality: edge
+context_type: remediation
+
+evidence:
+  lab_code: "LB0117"
+  failure_class: "pods_not_ready"
+  cluster_name: "sandbox-r3t5w-ocpv12"
+  summary: |
+    Lab LB0117 on cluster sandbox-r3t5w-ocpv12 is experiencing pods_not_ready failure.
+    2 of 4 pods in namespace lb0117-demo are in NotReady state since 2026-07-07T09:10:00Z.
+    Health trend: STABLE (pods have been NotReady for 45 minutes with no further change).
+    Current readiness: 50%.
+    Affected pods: demo-app-5c7d8e9f0-vw2xy, demo-worker-3a4b5c6d7-gh8jk.
+  history: ""
+  related: |
+    All 3 worker nodes on sandbox-r3t5w-ocpv12 are in Ready state.
+    Cluster memory utilization: 62%. No resource pressure detected.
+  remediations: ""
+
+response: |
+  ## Readiness Assessment
+
+  **Status: AT-RISK** — Lab LB0117 on cluster sandbox-r3t5w-ocpv12 has 2 of 4 pods in NotReady state. Readiness is at 50%. The health trend is STABLE, meaning the situation is not actively worsening, but the lab is not functional at this readiness level.
+
+  ## New vs. Recurring Analysis
+
+  **No historical data is available** for this lab or cluster. Without prior incident records, this is treated as a new issue. There are no historical patterns to reference for root cause correlation.
+
+  ## Remediation Steps
+
+  Since there is no node-level resource pressure (cluster memory at 62%, all nodes Ready), the issue is likely application-level.
+
+  **Priority 1 — Diagnose pod failures:**
+  ```
+  oc describe pod demo-app-5c7d8e9f0-vw2xy -n lb0117-demo
+  oc describe pod demo-worker-3a4b5c6d7-gh8jk -n lb0117-demo
+  oc logs demo-app-5c7d8e9f0-vw2xy -n lb0117-demo --previous
+  oc logs demo-worker-3a4b5c6d7-gh8jk -n lb0117-demo --previous
+  ```
+
+  **Priority 2 — Check for configuration issues:**
+  ```
+  oc get events -n lb0117-demo --sort-by=.lastTimestamp | tail -20
+  oc get configmaps -n lb0117-demo
+  oc get secrets -n lb0117-demo
+  ```
+
+  **Priority 3 — Restart pods if logs indicate transient failure:**
+  ```
+  oc delete pod demo-app-5c7d8e9f0-vw2xy -n lb0117-demo
+  oc delete pod demo-worker-3a4b5c6d7-gh8jk -n lb0117-demo
+  ```
+
+  ## Verification Steps
+
+  Confirm recovery after remediation:
+  ```
+  oc get pods -n lb0117-demo -o wide
+  oc wait --for=condition=Ready pod -l app=demo-app -n lb0117-demo --timeout=120s
+  ```
+
+  ## Systemic Assessment
+
+  **Scope: Namespace-level.** No cluster-wide resource pressure is detected. The issue appears isolated to the lb0117-demo namespace. Other labs on sandbox-r3t5w-ocpv12 are unlikely to be affected.
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    has_readiness_assessment: true
+    has_new_vs_recurring: true
+    has_remediation_steps: true
+    has_verification_steps: true
+    has_systemic_assessment: true
+    has_prior_remediation_analysis: false
+    minimum_length: true
+  edd:
+    cites_lab_code: true
+    cites_failure_class: true
+    cites_cluster_name: true
+    no_fabricated_lab_codes: true
+    references_evidence_data: true
+  cdd:
+    is_not_json: true
+    no_system_prompt_leak: true
+    finish_reason_stop: true
+  bdd:
+    mentions_correct_failure: true
+    does_not_recommend_forbidden: true
+    recommendations_are_openshift: true
+    risk_appropriate: true

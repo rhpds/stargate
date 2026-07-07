@@ -1,0 +1,39 @@
+id: remediation-tdd
+version: "1.0"
+prompt_type: remediation
+dimension: tdd
+criteria:
+  - name: has_readiness_assessment
+    check_type: section_present
+    target: "readiness|at-risk|blocked|assessment"
+    required: true
+
+  - name: has_new_vs_recurring
+    check_type: section_present
+    target: "new issue|recurring|historical pattern"
+    required: true
+
+  - name: has_remediation_steps
+    check_type: section_present
+    target: "remediation|steps|fix|resolve|priority"
+    required: true
+
+  - name: has_verification_steps
+    check_type: section_present
+    target: "verify|verification|confirm|check after"
+    required: false
+
+  - name: has_systemic_assessment
+    check_type: section_present
+    target: "systemic|blast radius|cluster-level|scope"
+    required: false
+
+  - name: has_prior_remediation_analysis
+    check_type: section_present
+    target: "prior|previous|attempted|tried"
+    required: false
+
+  - name: minimum_length
+    check_type: min_length
+    target: "200"
+    required: true

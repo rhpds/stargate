@@ -1,0 +1,36 @@
+id: classify-cdd
+version: "1.0"
+prompt_type: classify
+dimension: cdd
+criteria:
+  - name: valid_json_parse
+    check_type: is_json
+    required: true
+
+  - name: proposed_class_snake_case
+    check_type: regex_match
+    target: "proposed_class"
+    required: true
+    params:
+      pattern: "^[a-z][a-z0-9_]*$"
+
+  - name: confidence_is_float
+    check_type: field_type
+    target: "confidence"
+    required: true
+    params:
+      expected_type: "float"
+      min_value: 0.0
+      max_value: 1.0
+
+  - name: conditions_is_list
+    check_type: field_type
+    target: "conditions"
+    required: true
+    params:
+      expected_type: "list"
+
+  - name: schema_validates
+    check_type: json_schema
+    target: "classify-response"
+    required: false

@@ -1,0 +1,24 @@
+id: remediation-bdd
+version: "1.0"
+prompt_type: remediation
+dimension: bdd
+criteria:
+  - name: mentions_correct_failure
+    check_type: scenario_assertion
+    target: "failure_class_in_response"
+    required: true
+
+  - name: does_not_recommend_forbidden
+    check_type: negative_match
+    target: "delete namespace|drop database|rm -rf /|format disk"
+    required: true
+
+  - name: recommendations_are_openshift
+    check_type: section_present
+    target: "oc |kubectl |ansible|playbook|deployment|pod"
+    required: true
+
+  - name: risk_appropriate
+    check_type: scenario_assertion
+    target: "risk_level_appropriate"
+    required: false

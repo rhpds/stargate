@@ -1,0 +1,59 @@
+id: classify-good-known-failure
+prompt_type: classify
+scenario: "Crashlooping pods with CrashLoopBackOff events — a well-known failure class that should be classified with high confidence"
+quality: good
+context_type: classification
+
+evidence:
+  lab_code: "LB0088"
+  failure_class: "pods_crashlooping"
+  cluster_name: "sandbox-j4n7q-ocpv08"
+  summary: |
+    Lab LB0088 on cluster sandbox-j4n7q-ocpv08 is experiencing container restart loops.
+    Pod api-gateway-6b8c9d0e1-fg2hi in namespace lb0088-prod has restarted 14 times in the
+    last 30 minutes. Container exit code: 1. Events show "Back-off restarting failed container"
+    with CrashLoopBackOff status. Last successful run lasted 8 seconds before crash.
+    Container logs show: "Error: ECONNREFUSED 10.128.2.45:5432 - connection refused"
+    indicating the application cannot reach its database dependency.
+  history: |
+    2026-07-07T06:30:00Z - Pod first entered CrashLoopBackOff
+    2026-07-07T06:32:00Z - Restart count reached 5
+    2026-07-07T06:45:00Z - Restart count reached 10, backoff delay at 5 minutes
+    2026-07-07T07:00:00Z - Restart count at 14, still crashlooping
+  related: |
+    Database pod db-postgres-0 in the same namespace is in Running state but not Ready.
+    Service db-postgres-svc has no ready endpoints.
+  remediations: ""
+
+response: |
+  {"proposed_class": "pods_crashlooping", "conditions": ["pods_crashlooping == true", "container_exit_code == 1", "restart_count > 10", "event_pattern matches CrashLoopBackOff"], "confidence": 0.92, "reasoning": "Pod api-gateway-6b8c9d0e1-fg2hi in namespace lb0088-prod shows classic CrashLoopBackOff pattern: 14 restarts in 30 minutes with Back-off restarting failed container events. Container exit code 1 and ECONNREFUSED errors indicate application-level crash due to missing database dependency. This matches the pods_crashlooping failure class criteria."}
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    response_is_json: true
+    has_proposed_class: true
+    has_conditions: true
+    has_confidence: true
+    has_reasoning: true
+  edd:
+    proposed_class_from_known_list: true
+    conditions_reference_criteria: true
+    reasoning_cites_evidence: true
+    no_fabricated_stages: true
+  cdd:
+    valid_json_parse: true
+    proposed_class_snake_case: true
+    confidence_is_float: true
+    conditions_is_list: true
+    schema_validates: true
+  bdd:
+    known_failure_matches_expected: true
+    confidence_above_threshold: true
+    novel_failure_flagged: true

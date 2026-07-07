@@ -1,0 +1,61 @@
+id: classify-edge-novel-failure
+prompt_type: classify
+scenario: "Troshka VM failure with an unusual error pattern that does not match any known failure class — a genuinely novel failure requiring low-confidence classification"
+quality: edge
+context_type: classification
+
+evidence:
+  lab_code: "LB0203"
+  failure_class: "unknown"
+  cluster_name: "sandbox-p8v2x-troshka04"
+  summary: |
+    Lab LB0203 on Troshka host sandbox-p8v2x-troshka04 failed during VM provisioning.
+    The deploy pipeline reached the vm-topology stage but encountered an unexpected error:
+    "topology constraint violation: requested CPU topology (sockets=2, cores=4, threads=2)
+    incompatible with host NUMA layout (nodes=1, cpus=16)". The VM was defined with a
+    multi-socket topology but the target host only exposes a single NUMA node, making the
+    requested topology unsatisfiable. This error is not covered by existing failure class
+    patterns. Host has 64GB RAM available and 16 CPUs, so capacity is not the issue.
+  history: |
+    2026-07-07T08:00:00Z - Deploy pipeline started for LB0203
+    2026-07-07T08:02:00Z - vm-topology stage reached
+    2026-07-07T08:02:15Z - topology constraint violation error
+    2026-07-07T08:02:16Z - Pipeline failed at vm-topology stage
+  related: |
+    Other VMs on sandbox-p8v2x-troshka04 with single-socket topologies are running normally.
+    Host CPU model: AMD EPYC 7543 32-Core (but only 16 allocated to Troshka).
+    VM definition requested: sockets=2, cores=4, threads=2 (total 16 vCPUs).
+  remediations: ""
+
+response: |
+  {"proposed_class": "vm_topology_mismatch", "conditions": ["vm_topology_constraint_violated == true", "host_numa_nodes < requested_sockets", "vm_start_failure == false", "disk_cache_failure == false"], "confidence": 0.45, "reasoning": "The error 'topology constraint violation: requested CPU topology incompatible with host NUMA layout' does not match any existing failure class. The closest candidates are vm_start_failure and host_capacity_exhausted, but neither fits: the VM did not attempt to start (it failed at topology validation), and the host has sufficient raw capacity (64GB RAM, 16 CPUs). The root cause is a mismatch between the VM definition requesting a multi-socket topology (sockets=2) and the host exposing only a single NUMA node. Proposing novel class vm_topology_mismatch with low confidence as this pattern has not been seen before."}
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    response_is_json: true
+    has_proposed_class: true
+    has_conditions: true
+    has_confidence: true
+    has_reasoning: true
+  edd:
+    proposed_class_from_known_list: false
+    conditions_reference_criteria: true
+    reasoning_cites_evidence: true
+    no_fabricated_stages: true
+  cdd:
+    valid_json_parse: true
+    proposed_class_snake_case: true
+    confidence_is_float: true
+    conditions_is_list: true
+    schema_validates: true
+  bdd:
+    known_failure_matches_expected: false
+    confidence_above_threshold: false
+    novel_failure_flagged: true

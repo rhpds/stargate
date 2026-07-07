@@ -1,0 +1,96 @@
+id: remediation-bad-lab-hallucinated
+prompt_type: remediation
+scenario: "Same pods_not_ready evidence as the good fixture, but the response hallucinates lab codes and cluster names not in the evidence"
+quality: bad
+context_type: remediation
+
+evidence:
+  lab_code: "LB0042"
+  failure_class: "pods_not_ready"
+  cluster_name: "sandbox-m7k2p-ocpv05"
+  summary: |
+    Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is experiencing pods_not_ready failure.
+    3 of 5 pods in namespace lb0042-workshop are in NotReady state since 2026-07-06T14:22:00Z.
+    Health trend: DEGRADING over the last 4 hours. Current readiness: 40%.
+    Affected pods: workshop-frontend-5d8b7c9f4-xk2lm, workshop-backend-6f9a3b2c1-mn4jp,
+    workshop-db-7c4d5e8f3-qr9st. Node sandbox-m7k2p-ocpv05-worker-2 shows MemoryPressure condition.
+  history: |
+    2026-07-06T12:15:00Z - Readiness dropped from 100% to 80% (1 pod NotReady)
+    2026-07-06T13:00:00Z - Rollout restart attempted on workshop-backend deployment
+    2026-07-06T13:05:00Z - Rollout restart failed: new pods also entered NotReady state
+    2026-07-06T14:22:00Z - Readiness dropped to 40% (3 pods NotReady)
+    This is a recurring issue on this cluster — similar incident on 2026-06-28.
+  related: |
+    Node sandbox-m7k2p-ocpv05-worker-2 has MemoryPressure condition active since 2026-07-06T13:45:00Z.
+    Cluster has 3 worker nodes, 2 healthy. Total cluster memory utilization: 87%.
+  remediations: |
+    Prior attempted remediation: oc rollout restart deployment/workshop-backend -n lb0042-workshop
+    Result: Failed — new pods also entered NotReady due to underlying node memory pressure.
+
+response: |
+  ## Readiness Assessment
+
+  **Status: AT-RISK** — Lab LB9999 on cluster sandbox-fake-cluster is experiencing pod failures. Additionally, we have observed similar issues on lab LB5555 running on cluster sandbox-x9y8z-prodcluster which may be related.
+
+  ## New vs. Recurring Analysis
+
+  This appears to be a new issue. We have not seen this pattern before across any of our monitored environments.
+
+  ## Remediation Steps
+
+  **Step 1 — Check the pods on sandbox-fake-cluster:**
+  ```
+  oc get pods -n lb9999-workshop
+  oc describe pod workshop-api-7f8g9h0j1-abc123 -n lb9999-workshop
+  ```
+
+  **Step 2 — Restart the affected deployments:**
+  ```
+  oc rollout restart deployment/workshop-frontend -n lb9999-workshop
+  oc rollout restart deployment/workshop-backend -n lb9999-workshop
+  ```
+
+  **Step 3 — If the issue persists on sandbox-x9y8z-prodcluster, also check:**
+  ```
+  oc get nodes --selector=node-role.kubernetes.io/worker
+  oc adm top nodes
+  ```
+
+  ## Verification Steps
+
+  Confirm pods are running:
+  ```
+  oc get pods -n lb9999-workshop -w
+  ```
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    has_readiness_assessment: true
+    has_new_vs_recurring: true
+    has_remediation_steps: true
+    has_verification_steps: true
+    has_systemic_assessment: false
+    has_prior_remediation_analysis: false
+    minimum_length: true
+  edd:
+    cites_lab_code: false
+    cites_failure_class: false
+    cites_cluster_name: false
+    no_fabricated_lab_codes: false
+    references_evidence_data: false
+  cdd:
+    is_not_json: true
+    no_system_prompt_leak: true
+    finish_reason_stop: true
+  bdd:
+    mentions_correct_failure: false
+    does_not_recommend_forbidden: true
+    recommendations_are_openshift: true
+    risk_appropriate: false

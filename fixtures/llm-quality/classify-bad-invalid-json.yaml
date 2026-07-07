@@ -1,0 +1,58 @@
+id: classify-bad-invalid-json
+prompt_type: classify
+scenario: "Same crashlooping evidence, but the response is plain text instead of the required JSON format"
+quality: bad
+context_type: classification
+
+evidence:
+  lab_code: "LB0088"
+  failure_class: "pods_crashlooping"
+  cluster_name: "sandbox-j4n7q-ocpv08"
+  summary: |
+    Lab LB0088 on cluster sandbox-j4n7q-ocpv08 is experiencing container restart loops.
+    Pod api-gateway-6b8c9d0e1-fg2hi in namespace lb0088-prod has restarted 14 times in the
+    last 30 minutes. Container exit code: 1. Events show "Back-off restarting failed container"
+    with CrashLoopBackOff status. Last successful run lasted 8 seconds before crash.
+    Container logs show: "Error: ECONNREFUSED 10.128.2.45:5432 - connection refused"
+    indicating the application cannot reach its database dependency.
+  history: |
+    2026-07-07T06:30:00Z - Pod first entered CrashLoopBackOff
+    2026-07-07T06:32:00Z - Restart count reached 5
+    2026-07-07T06:45:00Z - Restart count reached 10, backoff delay at 5 minutes
+    2026-07-07T07:00:00Z - Restart count at 14, still crashlooping
+  related: |
+    Database pod db-postgres-0 in the same namespace is in Running state but not Ready.
+    Service db-postgres-svc has no ready endpoints.
+  remediations: ""
+
+response: "I think the failure class is pods_crashlooping because the pods are crash looping. The api-gateway pod has restarted 14 times and the events show CrashLoopBackOff which is a clear indicator. My confidence is high, probably around 0.9 or so."
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    response_is_json: false
+    has_proposed_class: false
+    has_conditions: false
+    has_confidence: false
+    has_reasoning: false
+  edd:
+    proposed_class_from_known_list: false
+    conditions_reference_criteria: false
+    reasoning_cites_evidence: false
+    no_fabricated_stages: true
+  cdd:
+    valid_json_parse: false
+    proposed_class_snake_case: false
+    confidence_is_float: false
+    conditions_is_list: false
+    schema_validates: false
+  bdd:
+    known_failure_matches_expected: false
+    confidence_above_threshold: false
+    novel_failure_flagged: false

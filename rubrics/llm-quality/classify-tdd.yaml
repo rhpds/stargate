@@ -1,0 +1,28 @@
+id: classify-tdd
+version: "1.0"
+prompt_type: classify
+dimension: tdd
+criteria:
+  - name: response_is_json
+    check_type: is_json
+    required: true
+
+  - name: has_proposed_class
+    check_type: json_field
+    target: "proposed_class"
+    required: true
+
+  - name: has_conditions
+    check_type: json_field
+    target: "conditions"
+    required: true
+
+  - name: has_confidence
+    check_type: json_field
+    target: "confidence"
+    required: true
+
+  - name: has_reasoning
+    check_type: json_field
+    target: "reasoning"
+    required: true
