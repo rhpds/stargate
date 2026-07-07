@@ -2,8 +2,7 @@ FROM registry.access.redhat.com/ubi9/python-39:latest
 
 USER 0
 
-ARG OC_ARCH=linux-arm64
-RUN curl -sL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-${OC_ARCH}.tar.gz" \
+RUN curl -sL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux-amd64-rhel8.tar.gz" \
     | tar xzf - -C /usr/local/bin oc kubectl && \
     chmod +x /usr/local/bin/oc /usr/local/bin/kubectl
 
@@ -19,7 +18,6 @@ COPY collectors/ collectors/
 COPY engine/ engine/
 COPY events/ events/
 COPY constraints/ constraints/
-COPY normalizers/ normalizers/
 COPY db/ db/
 COPY rubrics/ rubrics/
 COPY evidence-schemas/ evidence-schemas/
