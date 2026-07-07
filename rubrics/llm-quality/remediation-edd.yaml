@@ -1,0 +1,31 @@
+id: remediation-edd
+version: "1.0"
+prompt_type: remediation
+dimension: edd
+criteria:
+  - name: cites_lab_code
+    check_type: evidence_cited
+    target: "lab_code"
+    required: true
+
+  - name: cites_failure_class
+    check_type: evidence_cited
+    target: "failure_class"
+    required: true
+
+  - name: cites_cluster_name
+    check_type: evidence_cited
+    target: "cluster_name"
+    required: false
+
+  - name: no_fabricated_lab_codes
+    check_type: no_hallucination
+    target: "lab_code"
+    required: true
+    params:
+      pattern: "(LB\\d{4}|sandbox-[a-z0-9]{5}-[a-z0-9-]+)"
+
+  - name: references_evidence_data
+    check_type: evidence_cited
+    target: "any_numeric"
+    required: true

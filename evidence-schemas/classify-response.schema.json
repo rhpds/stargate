@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassifyResponse",
+  "description": "Expected JSON output from the classify LLM prompt",
+  "type": "object",
+  "required": ["proposed_class", "conditions", "confidence", "reasoning"],
+  "properties": {
+    "proposed_class": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Snake-case failure class identifier"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Rubric conditions that led to this classification"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Classification confidence score"
+    },
+    "reasoning": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Brief explanation of the classification"
+    }
+  },
+  "additionalProperties": false
+}

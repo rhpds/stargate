@@ -1,0 +1,62 @@
+id: remediation-bad-lab-empty
+prompt_type: remediation
+scenario: "Same pods_not_ready evidence, but the response is a single trivial sentence with no structure or substance"
+quality: bad
+context_type: remediation
+
+evidence:
+  lab_code: "LB0042"
+  failure_class: "pods_not_ready"
+  cluster_name: "sandbox-m7k2p-ocpv05"
+  summary: |
+    Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is experiencing pods_not_ready failure.
+    3 of 5 pods in namespace lb0042-workshop are in NotReady state since 2026-07-06T14:22:00Z.
+    Health trend: DEGRADING over the last 4 hours. Current readiness: 40%.
+    Affected pods: workshop-frontend-5d8b7c9f4-xk2lm, workshop-backend-6f9a3b2c1-mn4jp,
+    workshop-db-7c4d5e8f3-qr9st. Node sandbox-m7k2p-ocpv05-worker-2 shows MemoryPressure condition.
+  history: |
+    2026-07-06T12:15:00Z - Readiness dropped from 100% to 80% (1 pod NotReady)
+    2026-07-06T13:00:00Z - Rollout restart attempted on workshop-backend deployment
+    2026-07-06T13:05:00Z - Rollout restart failed: new pods also entered NotReady state
+    2026-07-06T14:22:00Z - Readiness dropped to 40% (3 pods NotReady)
+    This is a recurring issue on this cluster — similar incident on 2026-06-28.
+  related: |
+    Node sandbox-m7k2p-ocpv05-worker-2 has MemoryPressure condition active since 2026-07-06T13:45:00Z.
+    Cluster has 3 worker nodes, 2 healthy. Total cluster memory utilization: 87%.
+  remediations: |
+    Prior attempted remediation: oc rollout restart deployment/workshop-backend -n lb0042-workshop
+    Result: Failed — new pods also entered NotReady due to underlying node memory pressure.
+
+response: "Check the pods."
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 12
+    total_tokens: 862
+
+expected:
+  tdd:
+    has_readiness_assessment: false
+    has_new_vs_recurring: false
+    has_remediation_steps: false
+    has_verification_steps: false
+    has_systemic_assessment: false
+    has_prior_remediation_analysis: false
+    minimum_length: false
+  edd:
+    cites_lab_code: false
+    cites_failure_class: false
+    cites_cluster_name: false
+    no_fabricated_lab_codes: true
+    references_evidence_data: false
+  cdd:
+    is_not_json: true
+    no_system_prompt_leak: true
+    finish_reason_stop: true
+  bdd:
+    mentions_correct_failure: false
+    does_not_recommend_forbidden: true
+    recommendations_are_openshift: false
+    risk_appropriate: false

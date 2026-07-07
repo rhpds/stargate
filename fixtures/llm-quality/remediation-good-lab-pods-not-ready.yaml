@@ -1,0 +1,109 @@
+id: remediation-good-lab-pods-not-ready
+prompt_type: remediation
+scenario: "Lab LB0042 has pods in NotReady state on cluster ocpv05, with a DEGRADING health trend and a prior failed rollout restart attempt"
+quality: good
+context_type: remediation
+
+evidence:
+  lab_code: "LB0042"
+  failure_class: "pods_not_ready"
+  cluster_name: "sandbox-m7k2p-ocpv05"
+  summary: |
+    Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is experiencing pods_not_ready failure.
+    3 of 5 pods in namespace lb0042-workshop are in NotReady state since 2026-07-06T14:22:00Z.
+    Health trend: DEGRADING over the last 4 hours. Current readiness: 40%.
+    Affected pods: workshop-frontend-5d8b7c9f4-xk2lm, workshop-backend-6f9a3b2c1-mn4jp,
+    workshop-db-7c4d5e8f3-qr9st. Node sandbox-m7k2p-ocpv05-worker-2 shows MemoryPressure condition.
+  history: |
+    2026-07-06T12:15:00Z - Readiness dropped from 100% to 80% (1 pod NotReady)
+    2026-07-06T13:00:00Z - Rollout restart attempted on workshop-backend deployment
+    2026-07-06T13:05:00Z - Rollout restart failed: new pods also entered NotReady state
+    2026-07-06T14:22:00Z - Readiness dropped to 40% (3 pods NotReady)
+    This is a recurring issue on this cluster — similar incident on 2026-06-28.
+  related: |
+    Node sandbox-m7k2p-ocpv05-worker-2 has MemoryPressure condition active since 2026-07-06T13:45:00Z.
+    Cluster has 3 worker nodes, 2 healthy. Total cluster memory utilization: 87%.
+  remediations: |
+    Prior attempted remediation: oc rollout restart deployment/workshop-backend -n lb0042-workshop
+    Result: Failed — new pods also entered NotReady due to underlying node memory pressure.
+
+response: |
+  ## Readiness Assessment
+
+  **Status: AT-RISK** — Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is failing with pods_not_ready (3 of 5 pods in NotReady condition). Current readiness is at 40%, trending DEGRADING over the past 4 hours. Immediate intervention is required to prevent full lab failure.
+
+  ## New vs. Recurring Analysis
+
+  This is a **recurring issue**. A similar incident was recorded on 2026-06-28 on the same cluster. The historical pattern suggests an underlying capacity problem on sandbox-m7k2p-ocpv05 rather than a transient application fault. The recurrence interval of approximately 8 days points to a workload accumulation pattern.
+
+  ## Remediation Steps
+
+  **Priority 1 — Relieve node memory pressure (root cause):**
+  ```
+  oc adm top nodes
+  oc describe node sandbox-m7k2p-ocpv05-worker-2 | grep -A5 Conditions
+  oc adm drain sandbox-m7k2p-ocpv05-worker-2 --ignore-daemonsets --delete-emptydir-data --grace-period=60
+  ```
+
+  **Priority 2 — Reschedule affected pods to healthy nodes:**
+  ```
+  oc delete pod workshop-frontend-5d8b7c9f4-xk2lm -n lb0042-workshop
+  oc delete pod workshop-backend-6f9a3b2c1-mn4jp -n lb0042-workshop
+  oc delete pod workshop-db-7c4d5e8f3-qr9st -n lb0042-workshop
+  ```
+  The deployment controllers will reschedule these pods onto the 2 remaining healthy worker nodes.
+
+  **Priority 3 — Prevent recurrence:**
+  ```
+  oc set resources deployment/workshop-frontend -n lb0042-workshop --limits=memory=512Mi --requests=memory=256Mi
+  oc set resources deployment/workshop-backend -n lb0042-workshop --limits=memory=1Gi --requests=memory=512Mi
+  ```
+
+  ## Verification Steps
+
+  After remediation, confirm recovery:
+  ```
+  oc get pods -n lb0042-workshop -o wide
+  oc get nodes -o custom-columns=NAME:.metadata.name,STATUS:.status.conditions[-1].type,MEMORY:.status.allocatable.memory
+  ```
+  Verify all 5 pods reach Ready state and node memory pressure is resolved. Check that readiness returns to 100% within 10 minutes.
+
+  ## Systemic Assessment
+
+  **Blast radius: Cluster-level.** The MemoryPressure condition on worker-2 affects all workloads scheduled to that node, not just LB0042. Other labs on sandbox-m7k2p-ocpv05 sharing worker-2 may also be impacted. With cluster memory utilization at 87%, the cluster is operating near capacity. Consider scaling the cluster or redistributing labs.
+
+  ## Prior Remediation Analysis
+
+  A previous rollout restart was attempted at 13:00Z on the workshop-backend deployment. This failed because the underlying cause is node-level memory pressure, not an application-level issue. Restarting pods on the same memory-pressured node simply resulted in new pods also entering NotReady state. The correct approach is to address the node pressure first, then allow pods to reschedule to healthy nodes.
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 850
+    completion_tokens: 200
+    total_tokens: 1050
+
+expected:
+  tdd:
+    has_readiness_assessment: true
+    has_new_vs_recurring: true
+    has_remediation_steps: true
+    has_verification_steps: true
+    has_systemic_assessment: true
+    has_prior_remediation_analysis: true
+    minimum_length: true
+  edd:
+    cites_lab_code: true
+    cites_failure_class: true
+    cites_cluster_name: true
+    no_fabricated_lab_codes: true
+    references_evidence_data: true
+  cdd:
+    is_not_json: true
+    no_system_prompt_leak: true
+    finish_reason_stop: true
+  bdd:
+    mentions_correct_failure: true
+    does_not_recommend_forbidden: true
+    recommendations_are_openshift: true
+    risk_appropriate: true

@@ -1,0 +1,20 @@
+id: remediation-cdd
+version: "1.0"
+prompt_type: remediation
+dimension: cdd
+criteria:
+  - name: is_not_json
+    check_type: not_json
+    required: true
+
+  - name: no_system_prompt_leak
+    check_type: negative_match
+    target: "You are a Red Hat|system prompt|instructions say"
+    required: true
+
+  - name: finish_reason_stop
+    check_type: metadata_check
+    target: "finish_reason"
+    required: true
+    params:
+      expected: "stop"
