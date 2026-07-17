@@ -275,3 +275,42 @@ class FeedbackRequest(BaseModel):
     corrected_class: Optional[str] = None
     notes: Optional[str] = None
     reviewed_by: Optional[str] = None
+
+
+# --- Remediation ---
+
+class RemediationPreviewRequest(BaseModel):
+    namespace: str = Field(..., min_length=1)
+    failure_class: str = ""
+    cluster: str = ""
+    lab_code: Optional[str] = None
+    action_type: Optional[str] = None
+
+
+class RemediationExecuteRequest(BaseModel):
+    namespace: str = Field(..., min_length=1)
+    failure_class: str = ""
+    cluster: str = ""
+    lab_code: Optional[str] = None
+    action_type: Optional[str] = None
+
+
+class RemediationConfigRequest(BaseModel):
+    execution_mode: str = "recommend_only"
+    max_actions_per_hour: int = Field(default=5, ge=1, le=100)
+    enabled_by: str = "admin"
+    notes: Optional[str] = None
+
+
+class PlaybookRunRequest(BaseModel):
+    namespace: str = Field(default="stargate-test", min_length=1)
+    failure_class: str = "pods_crashlooping"
+    pod: str = ""
+    lab_code: Optional[str] = None
+    cluster_name: Optional[str] = None
+    mock_context: Dict[str, Any] = Field(default_factory=dict)
+
+
+class GeoluxProposalRequest(BaseModel):
+    proposal: Dict[str, Any] = Field(default_factory=dict)
+    event_id: str = ""

@@ -1,0 +1,26 @@
+id: tdd-integration-ready
+version: "1.0"
+stage: integration-tests
+timeout_seconds: 300
+entry_criteria:
+  - name: unit_tests_pass
+    required: true
+exit_criteria:
+  - name: integration_tests_exist
+    required: true
+  - name: integration_tests_pass
+    required: true
+  - name: service_dependencies_available
+    required: false
+outcomes:
+  pass:
+    when: "Integration tests exist and pass"
+  fail:
+    when: "Entry gate failed or integration tests missing/failing"
+failure_classes:
+  no_integration_tests:
+    when:
+      - "integration_tests_exist == false"
+    recommended_action: add_integration_tests
+allowed_remediations:
+  - add_integration_tests

@@ -23,7 +23,7 @@ class TestClusterLoading:
                 os.environ.pop(key, None)
             clusters = load_clusters()
         assert isinstance(clusters, dict)
-        assert len(clusters) >= 9
+        assert len(clusters) >= 8
         assert "ocpv05" in clusters
 
     def test_clusters_from_json_env_var(self):

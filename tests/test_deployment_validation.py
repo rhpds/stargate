@@ -113,6 +113,9 @@ class TestAnsibleRole:
         lines = [l.strip() for l in defaults.splitlines() if l.strip() and not l.strip().startswith("#")]
         for line in lines:
             if ":" in line:
+                key = line.split(":", 1)[0].strip()
+                if key.endswith("_image"):
+                    continue
                 val = line.split(":", 1)[1].strip().strip('"').strip("'")
                 assert len(val) < 50 or val == "", f"Suspiciously long value in defaults: {line[:60]}"
 

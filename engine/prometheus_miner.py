@@ -93,14 +93,8 @@ def _get_thanos_url(cluster_name: str) -> str:
 
 def _get_token(cluster_name: str) -> str:
     """Get auth token for a cluster — from kubeconfig or env."""
-    kc_map = {
-        "ocpv-infra01": "kubeconfig-infra01",
-        "ocpv-infra02": "kubeconfig-infra02",
-        "ocpv05": "kubeconfig-ocpv05",
-        "ocpv07": "kubeconfig-ocpv07",
-        "ocpv08": "kubeconfig-ocpv08",
-        "ocpv09": "kubeconfig-ocpv09",
-    }
+    from cli.scan import load_clusters
+    kc_map = load_clusters()
     kc_file = SECRETS_DIR / kc_map.get(cluster_name, "")
     if kc_file.exists():
         with open(kc_file) as f:
@@ -173,7 +167,8 @@ def mine_cluster_metrics(cluster_name: str) -> List[Dict]:
 def mine_all_clusters(clusters: Optional[List[str]] = None) -> List[Dict]:
     """Mine metrics from all configured clusters."""
     if clusters is None:
-        clusters = ["ocpv-infra01", "ocpv-infra02", "ocpv05", "ocpv07", "ocpv08", "ocpv09"]
+        from cli.scan import load_clusters
+        clusters = list(load_clusters().keys())
 
     all_results = []
     for cluster in clusters:

@@ -373,7 +373,7 @@ def get_cluster_failure_summary(
         .all()
     )
 
-    warning_classes = {"guest_agent_not_connected", "health_check_failed"}
+    from api.constants import WARNING_CLASSES as warning_classes
 
     passed = 0
     real_failed = 0

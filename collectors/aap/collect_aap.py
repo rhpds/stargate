@@ -158,8 +158,8 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                                     failing_task = task
                                 if not error_msg:
                                     error_msg = msg
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug("Job event fetch failed: %s", e)
                 if not failing_task:
                     failing_task = "Unknown task"
                 if not error_msg:
@@ -182,8 +182,8 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                                     if m:
                                         cluster = m.group(1)
                                         break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("extra_vars parse failed: %s", e)
 
                 all_failures.append({
                     "job_id": job.get("id"),
@@ -266,8 +266,8 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
     try:
         from api.contracts import record_source_fetch
         record_source_fetch("aap")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("record_source_fetch failed: %s", e)
     return result
 
 
@@ -307,7 +307,8 @@ def _fetch_job_events(controller: Dict, job_id: int) -> List[Dict]:
         resp = urllib.request.urlopen(req, timeout=10, context=ctx)
         data = json.loads(resp.read())
         return data.get("results", [])
-    except Exception:
+    except Exception as e:
+        logger.warning("Job events fetch failed: %s", e)
         return []
 
 
@@ -328,8 +329,8 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
             count = data.get("count", 0)
             counts[status] = count
             counts["total"] += count
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Job count fetch failed: %s", e)
 
     try:
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&page_size=1"
@@ -343,7 +344,7 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
         resp = urllib.request.urlopen(req, timeout=15, context=ctx)
         data = json.loads(resp.read())
         counts["provision_success"] = data.get("count", 0)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Job count fetch failed: %s", e)
 
     return counts

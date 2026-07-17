@@ -8,7 +8,7 @@ class TestSandboxAPIHealth:
 
     def test_collect_sandbox_api_health_returns_required_fields(self):
         from collectors.sandbox_api.collect_sandbox_api import collect_sandbox_api_health
-        result = collect_sandbox_api_health("")
+        result = collect_sandbox_api_health()
         assert "api_healthy" in result
         assert "replicas_desired" in result
         assert "replicas_ready" in result

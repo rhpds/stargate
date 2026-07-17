@@ -58,7 +58,8 @@ def run_all_miners(
     # Prometheus Metrics
     try:
         from engine.prometheus_miner import mine_all_clusters as mine_prom, batch_classify_metrics
-        prom_clusters = prometheus_clusters or ["ocpv-infra01", "ocpv05"]
+        from cli.scan import load_clusters
+        prom_clusters = prometheus_clusters or list(load_clusters().keys())
         metrics = mine_prom(clusters=prom_clusters)
         if metrics:
             classified = batch_classify_metrics(metrics)

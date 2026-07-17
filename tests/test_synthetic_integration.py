@@ -94,7 +94,7 @@ class TestDryRunMode:
         from api.routers import _shared
         _shared._dry_run_enabled = True
         try:
-            result = execute_action("test_action", "test_target", {"key": "val"}, confidence=0.9, db=None)
+            result = execute_action("test_action", "stargate-test", {"key": "val"}, confidence=0.9, db=None)
             assert result["executed"] is False
             assert result["reason"] == "dry_run"
         finally:
@@ -117,7 +117,7 @@ class TestConfidenceGate:
         from api.action_executor import execute_action
         from api.routers import _shared
         _shared._dry_run_enabled = False
-        result = execute_action("test", "target", {}, confidence=0.95, db=None)
+        result = execute_action("test", "stargate-test", {}, confidence=0.95, db=None)
         assert result["executed"] is True or result["reason"] != "low_confidence"
 
     def test_low_confidence_queued(self, db):
@@ -125,7 +125,7 @@ class TestConfidenceGate:
         from api.action_executor import execute_action
         from api.routers import _shared
         _shared._dry_run_enabled = False
-        result = execute_action("test", "target", {}, confidence=0.3, db=db)
+        result = execute_action("test", "stargate-test", {}, confidence=0.3, db=db)
         assert result["executed"] is False
         assert result["reason"] == "low_confidence"
         assert "pending_id" in result
@@ -140,7 +140,7 @@ class TestConfidenceGate:
     def test_approve_action(self, client, db):
         """POST /admin/approval-queue/{id}/approve approves a pending action."""
         from api.action_executor import execute_action
-        result = execute_action("test", "target", {}, confidence=0.3, db=db)
+        result = execute_action("test", "stargate-test", {}, confidence=0.3, db=db)
         if result.get("pending_id"):
             resp = client.post(f"/admin/approval-queue/{result['pending_id']}/approve")
             assert resp.status_code == 200
@@ -148,7 +148,7 @@ class TestConfidenceGate:
     def test_reject_action(self, client, db):
         """POST /admin/approval-queue/{id}/reject rejects a pending action."""
         from api.action_executor import execute_action
-        result = execute_action("test", "target", {}, confidence=0.3, db=db)
+        result = execute_action("test", "stargate-test", {}, confidence=0.3, db=db)
         if result.get("pending_id"):
             resp = client.post(f"/admin/approval-queue/{result['pending_id']}/reject")
             assert resp.status_code == 200
@@ -164,7 +164,7 @@ class TestAuditTrail:
         from api.action_executor import execute_action
         from db.models import AuditLog
         before = db.query(AuditLog).count()
-        execute_action("test_audit", "target", {}, confidence=0.9, db=db)
+        execute_action("test_audit", "stargate-test", {}, confidence=0.9, db=db)
         after = db.query(AuditLog).count()
         assert after > before
 
@@ -172,7 +172,7 @@ class TestAuditTrail:
         """Audit entry records evidence source."""
         from api.action_executor import execute_action
         from db.models import AuditLog
-        execute_action("test", "target", {}, confidence=0.9, db=db,
+        execute_action("test", "stargate-test", {}, confidence=0.9, db=db,
                        evidence_source="synthetic", scenario_name="gaudi-saturation")
         entry = db.query(AuditLog).order_by(AuditLog.id.desc()).first()
         params = entry.parameters or {}
@@ -183,7 +183,7 @@ class TestAuditTrail:
         """Audit entry records confidence score."""
         from api.action_executor import execute_action
         from db.models import AuditLog
-        execute_action("test", "target", {}, confidence=0.85, db=db)
+        execute_action("test", "stargate-test", {}, confidence=0.85, db=db)
         entry = db.query(AuditLog).order_by(AuditLog.id.desc()).first()
         assert entry.parameters.get("confidence") == 0.85
 
