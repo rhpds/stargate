@@ -1535,3 +1535,49 @@
     {service_detail}
   forbidden_when:
   - namespace == openshift-*
+
+- id: add_unit_tests
+  risk: low
+  mode: recommend_only
+  scope: build
+  execution_method: kubernetes
+  requires_approval: false
+  allowed_when:
+  - failure_class == no_unit_tests
+  commands: []
+- id: fix_unit_tests
+  risk: low
+  mode: recommend_only
+  scope: build
+  execution_method: kubernetes
+  requires_approval: false
+  allowed_when:
+  - failure_class == unit_tests_failing
+  commands: []
+- id: add_integration_tests
+  risk: low
+  mode: recommend_only
+  scope: build
+  execution_method: kubernetes
+  requires_approval: false
+  allowed_when:
+  - failure_class == no_integration_tests
+  commands: []
+- id: add_contract_tests
+  risk: low
+  mode: recommend_only
+  scope: build
+  execution_method: kubernetes
+  requires_approval: false
+  allowed_when:
+  - failure_class == no_contract_tests
+  commands: []
+- id: fix_e2e_tests
+  risk: low
+  mode: recommend_only
+  scope: build
+  execution_method: kubernetes
+  requires_approval: false
+  allowed_when:
+  - failure_class == e2e_tests_failing
+  commands: []

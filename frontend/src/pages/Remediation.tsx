@@ -373,7 +373,7 @@ export default function Remediation() {
                   <div
                     className={`grid grid-cols-[1fr_120px_150px_80px_80px_100px] gap-3 items-center py-1.5 rounded cursor-pointer transition ${
                       expandedRec === i ? 'bg-[#2e2e2e]' : 'hover:bg-[#2a2a2a]'
-                    } ${r.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : 'opacity-50'}`}
+                    } ${r.is_ecosystem ? 'border-l-2 border-l-[#EE0000]' : ''}`}
                     onClick={() => {
                       if (expandedRec === i) {
                         setExpandedRec(null);
@@ -459,8 +459,9 @@ export default function Remediation() {
                             e.stopPropagation();
                             setAiLoading(true);
                             setAiAnalysis(null);
+                            const isInfraNamespace = /^(openshift-|kube-|default$|cnv-|redhat-|rhacs-|aap-|open-cluster)/.test(r.namespace);
                             remediation.mutate(
-                              { failure_class: r.failure_class, lab_code: r.namespace, cluster: r.cluster, context_type: 'lab' },
+                              { failure_class: r.failure_class, lab_code: r.namespace, cluster: r.cluster, context_type: isInfraNamespace ? 'error' : 'lab' },
                               {
                                 onSuccess: (data: any) => {
                                   setAiAnalysis(data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2));

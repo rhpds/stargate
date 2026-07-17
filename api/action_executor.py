@@ -25,7 +25,8 @@ def _get_lab_execution_mode(db: Optional[Session], lab_code: Optional[str]) -> s
         from db import repository
         config = repository.get_lab_remediation_config(db, lab_code)
         return config.execution_mode if config else "recommend_only"
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to get lab execution mode for %s: %s", lab_code, e)
         return "recommend_only"
 
 
@@ -37,7 +38,8 @@ def _check_rate_limit(db: Optional[Session], lab_code: str, max_per_hour: int) -
         from db import repository
         count = repository.count_recent_actions(db, lab_code, hours=1)
         return count >= max_per_hour
-    except Exception:
+    except Exception as e:
+        logger.warning("Rate limit check failed for %s: %s", lab_code, e)
         return False
 
 
@@ -84,13 +86,10 @@ def execute_action(
             logger.warning(f"Failed to write audit entry: {e}")
 
     # Gate -1: namespace allowlist — NEVER remediate outside our ecosystem
-    REMEDIATION_ALLOWED_PREFIXES = os.environ.get(
-        "STARGATE_REMEDIATION_NS",
-        "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
-    ).split(",")
+    from api.constants import REMEDIATION_ALLOWED_PREFIXES
     target_ns = target or parameters.get("namespace", "")
     ns_allowed = target_ns == TEST_NAMESPACE or any(
-        target_ns.startswith(p.strip()) for p in REMEDIATION_ALLOWED_PREFIXES if p.strip()
+        target_ns.startswith(p) for p in REMEDIATION_ALLOWED_PREFIXES
     )
     if not ns_allowed:
         _update_audit(db, audit_id, "blocked_namespace")
@@ -203,8 +202,8 @@ def _update_audit(db, audit_id, status, result=None):
             if result is not None:
                 entry.result = json.dumps(result, default=str)[:2000]
             db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to update audit log: %s", e)
 
 
 def _is_rhdp_action(action_type: str, parameters: Dict[str, Any]) -> bool:
@@ -222,8 +221,8 @@ def _preflight_check(target: str, parameters: Dict[str, Any]) -> Optional[Dict[s
         if state in ("provisioning", "starting"):
             logger.info(f"PRE-FLIGHT: {target} is {state} — skipping remediation")
             return {"executed": False, "reason": "provisioning_in_progress", "anarchy_state": state}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Preflight check failed for %s: %s", target, e)
     return None
 
 

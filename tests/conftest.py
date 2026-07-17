@@ -1,9 +1,12 @@
 """Shared test fixtures — SQLite-backed test database and FastAPI test client."""
 
+import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+os.environ.setdefault("STARGATE_ADMIN_API_KEY", "test-key-for-ci")
 
 from db.database import Base, get_db, set_engine
 
@@ -62,7 +65,7 @@ def client():
     Base.metadata.create_all(bind=test_engine)
     app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(app) as c:
+    with TestClient(app, headers={"X-API-Key": "test-key-for-ci"}) as c:
         yield c
 
     app.dependency_overrides.clear()

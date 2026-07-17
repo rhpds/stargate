@@ -1,0 +1,27 @@
+id: tdd-e2e-ready
+version: "1.0"
+stage: e2e-tests
+timeout_seconds: 600
+entry_criteria:
+  - name: integration_tests_pass
+    required: true
+exit_criteria:
+  - name: e2e_tests_exist
+    required: true
+  - name: e2e_tests_pass
+    required: true
+  - name: all_stages_green
+    required: false
+outcomes:
+  pass:
+    when: "E2E tests exist and pass"
+  fail:
+    when: "E2E tests missing or failing"
+failure_classes:
+  e2e_tests_failing:
+    when:
+      - "e2e_tests_exist == true"
+      - "e2e_tests_pass == false"
+    recommended_action: fix_e2e_tests
+allowed_remediations:
+  - fix_e2e_tests

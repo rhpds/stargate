@@ -39,7 +39,7 @@ classes:
       - Check HPA target reference matches the deployment
 
   readiness_probe_failed:
-    pattern: "(Readiness probe failed|Liveness probe failed|Unhealthy)"
+    pattern: "(Readiness probe failed|Liveness probe failed|Startup probe failed|Unhealthy.*probe|Unhealthy.*Readiness|Unhealthy.*Liveness)"
     severity: medium
     remediation:
       - Check application startup time vs probe initialDelaySeconds
@@ -47,7 +47,7 @@ classes:
       - Check container port configuration matches probe port
 
   oom_killed:
-    pattern: "(OOMKill|OOM|out of memory|exit code 137)"
+    pattern: "(OOMKill|\\bOOM\\b|out of memory|exit code 137)"
     severity: high
     remediation:
       - Increase memory limits in the deployment spec
@@ -135,7 +135,7 @@ classes:
       - "oc get events -n {namespace} --field-selector=reason=InvalidConfiguration"
 
   deprecated_api:
-    pattern: "(deprecatedAnnotation|deprecated.*API|deprecated.*version)"
+    pattern: "(deprecatedAnnotation|deprecated.*API|deprecated.*apiVersion|API version.*deprecated)"
     severity: low
     remediation:
       - Update resource to use the current API version
@@ -143,7 +143,7 @@ classes:
       - No immediate action needed — will break on future upgrades
 
   sync_failed:
-    pattern: "(SyncFailed|reconcil.*failed|ReconcileFailed)"
+    pattern: "(SyncFailed|ReconcileFailed|reconcil\\w*\\s+fail)"
     severity: medium
     remediation:
       - Check operator logs for the failing controller
@@ -151,7 +151,7 @@ classes:
       - "oc logs deployment/{operator} -n {namespace}"
 
   image_pull_secret_missing:
-    pattern: "(FailedToRetrieveImagePullSecret|pull secret.*not found|imagePullSecrets)"
+    pattern: "(FailedToRetrieveImagePullSecret|pull secret.*not found|imagePullSecrets.*missing|imagePullSecrets.*not found|missing.*imagePullSecret)"
     severity: high
     remediation:
       - Create or link the image pull secret in the namespace
@@ -176,7 +176,7 @@ classes:
       - "oc get sc {storageclass} -o yaml | grep allowVolumeExpansion"
 
   resolution_failed:
-    pattern: "(ResolutionFailed|failed to resolve|OLM.*resolution)"
+    pattern: "(ResolutionFailed|OLM.*resolution|failed to resolve.*(catalog|operator|subscription|package|bundle)|resolution.*failed.*(operator|OLM|catalog))"
     severity: medium
     remediation:
       - Check operator catalog source health
@@ -184,7 +184,7 @@ classes:
       - "oc get catalogsource -n openshift-marketplace"
 
   datasource_unrecognized:
-    pattern: "(UnrecognizedDataSourceKind|unrecognized.*datasource|unknown.*source)"
+    pattern: "(UnrecognizedDataSourceKind|unrecognized.*datasource|unrecognized.*DataSource|unknown.*DataSource)"
     severity: medium
     remediation:
       - Check if the CDI (Containerized Data Importer) operator is installed
@@ -192,7 +192,7 @@ classes:
       - "oc get crd | grep datavolumes"
 
   pod_pending:
-    pattern: "(Pending|pod.*pending|awaiting.*scheduling)"
+    pattern: "(pod.*Pending|phase.*Pending|status.*Pending|awaiting.*scheduling|PodPending)"
     severity: medium
     remediation:
       - Check if resource requests exceed available node capacity

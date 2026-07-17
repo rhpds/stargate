@@ -95,7 +95,7 @@ def submit_feedback(run_id: str, req: FeedbackRequest, db: Session = Depends(get
 
 
 @router.post("/integration/geolux-proposal", status_code=201)
-def receive_geolux_proposal(body: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+def receive_geolux_proposal(body: "GeoluxProposalRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Receive a remediation proposal from GeoLux.
 
     GeoLux sends classification results and remediation recommendations
@@ -117,13 +117,14 @@ def receive_geolux_proposal(body: dict, db: Session = Depends(get_db), _auth=Dep
         }
     }
     """
+    from api.schemas import GeoluxProposalRequest  # noqa: F811
     from db.models import PendingAction, AuditLog
 
-    proposal = body.get("proposal", {})
+    proposal = body.proposal
     action_type = proposal.get("action_type", "geolux_recommendation")
     target = proposal.get("target", "")
     confidence = float(proposal.get("confidence", 0.5))
-    event_id = body.get("event_id", "")
+    event_id = body.event_id
 
     if not target:
         raise HTTPException(status_code=422, detail="proposal.target is required")

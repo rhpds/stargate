@@ -223,6 +223,22 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         logger.warning(f"LLM classify failed: {llm_result.get('error')}")
         return None
 
+    # Quality gate — evaluate response across TDD/EDD/CDD/BDD dimensions
+    from engine.llm_quality_gate import check_response_quality
+    quality_passed, quality_result = check_response_quality(
+        prompt_type="classify",
+        response=llm_result["content"],
+        evidence={"raw": evidence, "stage_id": str(ev.stage_id), "message": ev.message or ""},
+        metadata={"lab_code": ev.lab_code, "cluster_name": ev.cluster_name},
+    )
+    quality_outcome = quality_result.overall_outcome.value if quality_result else None
+    quality_details = quality_result.model_dump() if quality_result else None
+
+    if not quality_passed:
+        logger.warning("LLM quality gate REJECTED for %s/%s: outcome=%s",
+                        ev.lab_code, ev.failure_class, quality_outcome)
+        return None
+
     proposed_class = ev.failure_class or "unknown"
     conditions = []
     confidence = 0.0
@@ -244,8 +260,11 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         llm_model=LLM_MODEL,
         proposed_at=datetime.now(timezone.utc),
         llm_metric_id=llm_result.get("metric_id"),
+        quality_outcome=quality_outcome,
+        quality_passed=quality_passed,
+        quality_details=quality_details,
     )
     db.add(proposal)
     db.commit()
 
-    return {"proposed_class": proposed_class, "confidence": confidence}
+    return {"proposed_class": proposed_class, "confidence": confidence, "quality": quality_outcome}

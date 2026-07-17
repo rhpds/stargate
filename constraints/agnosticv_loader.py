@@ -30,7 +30,7 @@ def load_lab_constraints(common_yaml_path: Path) -> Dict[str, Any]:
 
     # Strip #include directives before parsing (they're not valid YAML)
     lines = [l for l in text.split("\n") if not l.strip().startswith("#include")]
-    data = yaml.safe_load("\n".join(lines), Loader=_VaultLoader)
+    data = yaml.load("\n".join(lines), Loader=_VaultLoader)
 
     if not data:
         return {"error": "empty or unparseable YAML"}

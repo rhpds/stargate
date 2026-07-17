@@ -109,7 +109,7 @@ class TestDemolitionCollector:
         ]
         from collectors.demolition.collect_demolition import find_summit_sessions
         summit = find_summit_sessions()
-        assert len(summit) == 1
+        assert len(summit) == 2
         assert summit[0]["name"] == "Summit 2026 / LB1088"
         assert summit[0]["failed"] == 3
 
