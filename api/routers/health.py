@@ -1,8 +1,11 @@
 """Health and metrics endpoints."""
 
+import logging
 import os
 import subprocess
 from datetime import datetime, timezone
+
+logger = logging.getLogger("stargate.health")
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -43,7 +46,8 @@ def _check_executor_kubeconfig() -> str:
             env={**os.environ, "KUBECONFIG": kc},
         )
         return "ok" if r.returncode == 0 else "unauthorized"
-    except Exception:
+    except Exception as e:
+        logger.debug("Executor kubeconfig check: %s", e)
         return "unreachable"
 
 
@@ -56,7 +60,8 @@ def _check_sandbox_api() -> str:
         try:
             urllib.request.urlopen(SANDBOX_API_METRICS_URL, timeout=3)
             return "ok"
-        except Exception:
+        except Exception as e:
+            logger.debug("Sandbox API check: %s", e)
             return "unreachable_svc"
     return "ok"
 
@@ -67,7 +72,8 @@ def health(db: Session = Depends(get_db)):
     try:
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
         components["database"] = "ok"
-    except Exception:
+    except Exception as e:
+        logger.warning("Database health check failed: %s", e)
         components["database"] = "error"
 
     scan_data = _load_latest_scan()
@@ -78,7 +84,8 @@ def health(db: Session = Depends(get_db)):
                 scan_age = (datetime.now(timezone.utc) - datetime.fromisoformat(ts)).total_seconds()
                 components["scanners"] = "ok" if scan_age < 600 else "stale"
                 components["scanner_age_minutes"] = round(scan_age / 60, 1)
-            except Exception:
+            except Exception as e:
+                logger.debug("Scanner status check: %s", e)
                 components["scanners"] = "unknown"
 
     components["llm"] = _check_llm_status()

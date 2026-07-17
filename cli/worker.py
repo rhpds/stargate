@@ -18,6 +18,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import json
 import os
 import subprocess
@@ -29,6 +30,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
+logger = logging.getLogger(__name__)
 
 SECRETS_DIR = Path(__file__).parent.parent / "secrets"
 
@@ -133,7 +136,8 @@ class ClusterWorker:
                 timeout=10, env=self._env,
             )
             return bool(r.stdout.strip())
-        except Exception:
+        except Exception as e:
+            logger.warning("Cluster availability check failed: %s", e)
             return False
 
     def tick(self) -> Dict:
@@ -399,8 +403,8 @@ class ClusterWorker:
                 if r.returncode == 0 and r.stdout.strip():
                     with open(f"{tmpdir}/{res}.json", "w") as f:
                         f.write(r.stdout)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Resource collection failed: %s", e)
 
         # HTTP health checks for showroom
         self._check_showroom_health(namespace, tmpdir)
@@ -422,7 +426,8 @@ class ClusterWorker:
 
         try:
             return json.loads(r.stdout)
-        except Exception:
+        except Exception as e:
+            logger.warning("Namespace collection parse failed: %s", e)
             return None
 
     def _get_lab_mappings(self) -> list:
@@ -435,7 +440,8 @@ class ClusterWorker:
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
                 return data.get("mappings", [])
-        except Exception:
+        except Exception as e:
+            logger.warning("Lab mapping fetch failed: %s", e)
             return []
 
     def _check_showroom_health(self, namespace: str, tmpdir: str):
@@ -550,8 +556,8 @@ class ClusterWorker:
                 headers=self._api_headers(),
             )
             urllib_req.urlopen(req, timeout=10)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to persist cluster health: %s", e)
 
     def format_status(self) -> str:
         """One-line status for this cluster."""

@@ -74,7 +74,8 @@ def _origin_from_url(url: str) -> str:
 
 def require_admin(request: Request = None, api_key: str = Security(_api_key_header)):
     """Require API key or trusted proxy auth. Used for mutating admin operations."""
-    if api_key and ADMIN_API_KEY and api_key == ADMIN_API_KEY:
+    import hmac
+    if api_key and ADMIN_API_KEY and hmac.compare_digest(api_key, ADMIN_API_KEY):
         return
     if request and TRUST_PROXY_AUTH:
         oauth_user = request.headers.get("x-forwarded-user", "")
@@ -128,11 +129,16 @@ _shutdown_event = __import__("threading").Event()
 
 # --- Caches ---
 
+import threading as _threading
+
+_cache_lock = _threading.Lock()
+
 _scan_cache: Dict = {"data": [], "ts": 0.0}
 _babylon_cache: Dict = {"data": {}, "ts": 0.0}
 _labagator_cache: Dict = {"labs": None, "sessions": None, "ts": 0.0}
 _demolition_cache: Dict = {"data": None, "ts": 0.0}
 _deployments_cache: Dict = {"data": None, "ts": 0.0}
+_deployments_refreshing = _threading.Event()
 _constraints_cache: Dict[str, Dict] = {}
 _constraints_cache_ts: float = 0
 _rubric_cache: Dict[str, Rubric] = {}
@@ -150,6 +156,14 @@ def _load_latest_scan() -> List[Dict]:
     """Load the most recent scan. Cached 30s. Tries live scheduler → files → DB."""
     if time.time() - _scan_cache["ts"] < _FILE_CACHE_TTL:
         return _scan_cache["data"]
+    with _cache_lock:
+        if time.time() - _scan_cache["ts"] < _FILE_CACHE_TTL:
+            return _scan_cache["data"]
+        return _load_latest_scan_inner()
+
+
+def _load_latest_scan_inner() -> List[Dict]:
+    """Inner loader — called under _cache_lock."""
 
     data: List[Dict] = []
 
@@ -231,6 +245,14 @@ def _load_latest_babylon() -> Dict:
     """Load the most recent babylon scan. Cached 30s. Tries files first, falls back to DB."""
     if time.time() - _babylon_cache["ts"] < _FILE_CACHE_TTL:
         return _babylon_cache["data"]
+    with _cache_lock:
+        if time.time() - _babylon_cache["ts"] < _FILE_CACHE_TTL:
+            return _babylon_cache["data"]
+        return _load_latest_babylon_inner()
+
+
+def _load_latest_babylon_inner() -> Dict:
+    """Inner loader — called under _cache_lock."""
 
     data: Dict = {}
 
@@ -550,15 +572,17 @@ def _load_agnosticv_constraints(lab_code: Optional[str], ci_name: Optional[str] 
 
 def _load_rubric_for_stage(stage_id: str) -> Optional[Rubric]:
     """Load a rubric for a stage. Cached 5 min."""
-    global _rubric_cache_ts
     if stage_id in _rubric_cache and time.time() - _rubric_cache_ts < _RUBRIC_CACHE_TTL:
         return _rubric_cache[stage_id]
-    _load_all_rubrics()
+    with _cache_lock:
+        if stage_id in _rubric_cache and time.time() - _rubric_cache_ts < _RUBRIC_CACHE_TTL:
+            return _rubric_cache[stage_id]
+        _load_all_rubrics()
     return _rubric_cache.get(stage_id)
 
 
 def _load_all_rubrics():
-    """Load all rubrics from disk."""
+    """Load all rubrics from disk. Caller must hold _cache_lock."""
     global _rubric_cache_ts
     from engine.rubric_loader import load_rubrics_from_directory
     try:

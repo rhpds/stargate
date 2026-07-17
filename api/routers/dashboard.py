@@ -208,7 +208,7 @@ def dashboard_summit(db: Session = Depends(get_db), include_all: bool = False):
     import ssl
     import urllib.request as urllib_req
 
-    WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed"}
+    from api.constants import WARNING_CLASSES
 
     # Pull from Labagator — cached API call (60s TTL)
     labagator_labs = _fetch_labagator_labs()
@@ -639,8 +639,8 @@ def dashboard_summit(db: Session = Depends(get_db), include_all: bool = False):
 @router.get("/dashboard/clusters")
 def dashboard_clusters(db: Session = Depends(get_db)):
     """All clusters at a glance — CPU, VMs, health rate, events."""
-    clusters_to_check = ["ocpv05", "ocpv06", "ocpv07", "ocpv08", "ocpv09", "ocpv10",
-                         "ocpv-infra01", "ocpv-infra02", "ocp-us-east-1"]
+    from cli.scan import load_clusters
+    clusters_to_check = list(load_clusters().keys())
 
     cluster_data = []
     for cluster in clusters_to_check:
@@ -847,7 +847,7 @@ def dashboard_overview(db: Session = Depends(get_db), since_minutes: int = 60, c
     """
     from db.models import EvaluationRecord
 
-    WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed"}
+    from api.constants import WARNING_CLASSES
 
     # Lab stats from Labagator cache — filtered to match labs page
     babylon = _load_latest_babylon()
@@ -2234,14 +2234,7 @@ def dashboard_evaluation_matrix(db: Session = Depends(get_db), cluster: str = No
     }
 
 
-ECOSYSTEM_PREFIXES = os.environ.get(
-    "STARGATE_ECOSYSTEM_NS",
-    "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
-).split(",")
-
-
-def _is_ecosystem_ns(ns: str) -> bool:
-    return any(ns.startswith(p.strip()) for p in ECOSYSTEM_PREFIXES if p.strip())
+from api.constants import is_ecosystem_ns as _is_ecosystem_ns
 
 
 @router.get("/dashboard/labs-pipeline")
@@ -3864,6 +3857,21 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     )
     llm_analysis = llm_result["content"] if llm_result["success"] else f"LLM call failed: {llm_result['error']}"
 
+    # Quality gate — evaluate response but don't block (user-facing endpoint)
+    quality_outcome = None
+    if llm_result["success"]:
+        try:
+            from engine.llm_quality_gate import check_response_quality
+            _, quality_result = check_response_quality(
+                prompt_type="remediation",
+                response=llm_result["content"],
+                evidence={"raw": prompt, "failure_class": failure_class, "lab_code": lab_code},
+                metadata={"cluster": cluster, "context_type": context_type},
+            )
+            quality_outcome = quality_result.overall_outcome.value if quality_result else None
+        except Exception:
+            pass
+
     return {
         "failure_class": failure_class,
         "lab_code": lab_code,
@@ -3881,6 +3889,7 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
         "llm_latency_ms": llm_result.get("latency_ms"),
         "llm_tokens": llm_result.get("usage", {}).get("total_tokens"),
         "evidence_summary": evidence_context.get("summary", ""),
+        "quality_outcome": quality_outcome,
     }
 
 
@@ -4246,27 +4255,25 @@ def verify_audit_chain(chain: list, _auth=Depends(require_admin)):
 # ---------------------------------------------------------------------------
 
 @router.post("/remediation/playbook")
-def run_remediation_playbook(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+def run_remediation_playbook(req: "PlaybookRunRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Run a single remediation playbook: investigate → diagnose → fix → verify.
 
     Called by the platform-dashboard to visualize real remediation in the UI.
     Reuses existing StarGate infrastructure — no new logic, just orchestration.
-
-    Body: {"namespace": "...", "failure_class": "pods_crashlooping", "pod": "...",
-           "lab_code": "...", "cluster_name": "..."}
     """
     import os
     import re
     import time as _t
+    from api.schemas import PlaybookRunRequest  # noqa: F811
 
     _K8S_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,252}$")
 
-    namespace = req.get("namespace", "stargate-test")
-    failure_class = req.get("failure_class", "pods_crashlooping")
-    pod = req.get("pod", "")
-    lab_code = req.get("lab_code")
-    cluster_name = req.get("cluster_name")
-    mock_context = req.get("mock_context", {})
+    namespace = req.namespace
+    failure_class = req.failure_class
+    pod = req.pod
+    lab_code = req.lab_code
+    cluster_name = req.cluster_name
+    mock_context = req.mock_context
 
     if namespace and not _K8S_NAME.match(namespace):
         raise HTTPException(status_code=422, detail="Invalid namespace name")
@@ -4349,7 +4356,7 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db), _auth=Dep
 
     llm_classification = None
     try:
-        from api.llm import call_llm, load_prompt
+        from api.llm import call_llm, load_prompt, LLM_MODEL
         prompt = load_prompt("classify")
         if prompt:
             evidence_str = (
@@ -4380,7 +4387,7 @@ def run_remediation_playbook(req: dict, db: Session = Depends(get_db), _auth=Dep
                     "confidence": parsed.get("confidence"),
                     "reasoning": parsed.get("reasoning"),
                     "prompt_version": prompt.get("version"),
-                    "model": prompt.get("model", "granite-3-2-8b-instruct"),
+                    "model": prompt.get("model", LLM_MODEL),
                     "messages": [
                         {"role": "system", "content": prompt.get("system", "")},
                         {"role": "user", "content": evidence_str},

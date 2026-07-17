@@ -1013,7 +1013,7 @@ def get_latest_receipt(receipt_type: str, db: Session = Depends(get_db)):
 # Per-lab auto-remediation config
 # ---------------------------------------------------------------------------
 
-VALID_EXECUTION_MODES = {"recommend_only", "low_risk_auto", "full_auto"}
+from api.constants import VALID_EXECUTION_MODES
 
 
 @router.get("/admin/remediation/config", dependencies=[Depends(require_admin_read)])
@@ -1057,25 +1057,21 @@ def get_remediation_config(lab_code: str, db: Session = Depends(get_db)):
 
 @router.put("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
-def update_remediation_config(lab_code: str, request: Request, body: dict, db: Session = Depends(get_db)):
+def update_remediation_config(lab_code: str, request: Request, body: "RemediationConfigRequest", db: Session = Depends(get_db)):
     """Create or update remediation config for a lab."""
     from fastapi import HTTPException
+    from api.schemas import RemediationConfigRequest  # noqa: F811
 
-    mode = body.get("execution_mode", "recommend_only")
-    if mode not in VALID_EXECUTION_MODES:
+    if body.execution_mode not in VALID_EXECUTION_MODES:
         raise HTTPException(status_code=400, detail=f"Invalid execution_mode. Must be one of: {VALID_EXECUTION_MODES}")
-
-    max_actions = body.get("max_actions_per_hour", 5)
-    if not isinstance(max_actions, int) or max_actions < 1 or max_actions > 100:
-        raise HTTPException(status_code=400, detail="max_actions_per_hour must be an integer between 1 and 100")
 
     config = repository.upsert_lab_remediation_config(
         db,
         lab_code=lab_code,
-        execution_mode=mode,
-        max_actions_per_hour=max_actions,
-        enabled_by=body.get("enabled_by", "admin"),
-        notes=body.get("notes"),
+        execution_mode=body.execution_mode,
+        max_actions_per_hour=body.max_actions_per_hour,
+        enabled_by=body.enabled_by,
+        notes=body.notes,
     )
 
     from db.models import AuditLog
@@ -1177,12 +1173,18 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
                             "commands": entry.get("commands", []),
                         }
 
-    from api.routers.dashboard import _is_ecosystem_ns
+    from api.constants import is_ecosystem_ns as _is_ecosystem_ns
+    from engine.failure_class_loader import get_class as _get_fc
+    _SEV_LEVELS = ["low", "medium", "high", "critical"]
     recommendations = []
     for lab_code, cluster_name, failure_class, count, last_seen, sample_message in rows:
         is_eco = _is_ecosystem_ns(lab_code)
         catalog = catalog_actions.get(failure_class, {})
-        severity = "critical" if count >= 10 else "high" if count >= 5 else "medium" if count >= 2 else "low"
+        fc_def = _get_fc(failure_class) or {}
+        base = fc_def.get("severity", "medium")
+        base_idx = _SEV_LEVELS.index(base) if base in _SEV_LEVELS else 1
+        bump = 1 if count >= 50 else 0
+        severity = _SEV_LEVELS[min(base_idx + bump, 3)]
         recommendations.append({
             "namespace": lab_code,
             "cluster": cluster_name,
@@ -1208,22 +1210,23 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
 
 @router.post("/admin/remediation/preview", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
-def preview_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
+def preview_remediation(request: Request, body: "RemediationPreviewRequest", db: Session = Depends(get_db)):
     """Preview what remediation would do — shows every gate check and exact commands without executing."""
     import os
     import re
+    from api.schemas import RemediationPreviewRequest  # noqa: F811
     from api.routers._shared import _dry_run_enabled, CONFIDENCE_THRESHOLD, TEST_NAMESPACE, EXECUTION_TARGET
     from api.action_executor import _get_lab_execution_mode, _check_rate_limit
-    from api.routers.dashboard import _is_ecosystem_ns
+    from api.constants import is_ecosystem_ns as _is_ecosystem_ns
     from engine.catalog_loader import load_catalog, ACTION_TO_FAILURE_CLASSES
 
-    namespace = body.get("namespace", "")
-    failure_class = body.get("failure_class", "")
-    cluster = body.get("cluster", "")
-    lab_code = body.get("lab_code", namespace)
+    namespace = body.namespace
+    failure_class = body.failure_class
+    cluster = body.cluster
+    lab_code = body.lab_code or namespace
 
     # Derive action_type from failure_class
-    action_type = body.get("action_type", "")
+    action_type = body.action_type or ""
     if not action_type:
         for at, fcs in ACTION_TO_FAILURE_CLASSES.items():
             if failure_class in fcs:
@@ -1232,22 +1235,15 @@ def preview_remediation(request: Request, body: dict, db: Session = Depends(get_
         if not action_type:
             action_type = "cleanup_stuck"
 
-    if not namespace:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="namespace is required")
-
     # Template substitution helper
     _safe_name = re.compile(r"^[a-zA-Z0-9._\-]*$")
     def _sub(cmd: str) -> str:
         return cmd.replace("{namespace}", namespace).replace("{pod}", "{pod}").replace("{deployment}", "{deployment}")
 
     # --- Gate -1: Namespace allowlist ---
-    REMEDIATION_ALLOWED_PREFIXES = os.environ.get(
-        "STARGATE_REMEDIATION_NS",
-        "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-",
-    ).split(",")
+    from api.constants import REMEDIATION_ALLOWED_PREFIXES
     ns_allowed = namespace == TEST_NAMESPACE or any(
-        namespace.startswith(p.strip()) for p in REMEDIATION_ALLOWED_PREFIXES if p.strip()
+        namespace.startswith(p) for p in REMEDIATION_ALLOWED_PREFIXES
     )
 
     # --- Gate 0: Lab execution mode ---
@@ -1393,21 +1389,22 @@ def preview_remediation(request: Request, body: dict, db: Session = Depends(get_
 
 @router.post("/admin/remediation/execute", dependencies=[Depends(require_admin)])
 @limiter.limit("10/minute")
-def execute_remediation(request: Request, body: dict, db: Session = Depends(get_db)):
+def execute_remediation(request: Request, body: "RemediationExecuteRequest", db: Session = Depends(get_db)):
     """Manually trigger remediation for a specific namespace + failure class.
 
     This is the human-in-the-loop "Remediate Now" button — not auto-execution.
     Requires explicit operator action. Logs everything to audit trail.
     """
+    from api.schemas import RemediationExecuteRequest  # noqa: F811
     from api.action_executor import execute_action
     from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
 
-    namespace = body.get("namespace", "")
-    failure_class = body.get("failure_class", "")
-    cluster = body.get("cluster", "")
-    lab_code = body.get("lab_code", namespace)
+    namespace = body.namespace
+    failure_class = body.failure_class
+    cluster = body.cluster
+    lab_code = body.lab_code or namespace
 
-    action_type = body.get("action_type", "")
+    action_type = body.action_type or ""
     if not action_type:
         for at, fcs in ACTION_TO_FAILURE_CLASSES.items():
             if failure_class in fcs:
@@ -1415,10 +1412,6 @@ def execute_remediation(request: Request, body: dict, db: Session = Depends(get_
                 break
         if not action_type:
             action_type = "cleanup_stuck"
-
-    if not namespace:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="namespace is required")
 
     # Discover target pods/deployments for command substitution
     params: dict = {

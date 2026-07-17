@@ -1,0 +1,26 @@
+id: tdd-contract-ready
+version: "1.0"
+stage: contract-tests
+timeout_seconds: 180
+entry_criteria:
+  - name: unit_tests_pass
+    required: true
+exit_criteria:
+  - name: contract_tests_exist
+    required: true
+  - name: contract_tests_pass
+    required: true
+  - name: schema_compatibility_verified
+    required: true
+outcomes:
+  pass:
+    when: "Contract tests pass and schema compatibility verified"
+  fail:
+    when: "Contract tests missing, failing, or schema incompatible"
+failure_classes:
+  no_contract_tests:
+    when:
+      - "contract_tests_exist == false"
+    recommended_action: add_contract_tests
+allowed_remediations:
+  - add_contract_tests

@@ -141,6 +141,9 @@ class ProposedClassification(Base):
     reviewed_by = Column(String(255), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     llm_metric_id = Column(Integer, nullable=True)
+    quality_outcome = Column(String(10), nullable=True)
+    quality_passed = Column(Boolean, nullable=True)
+    quality_details = Column(JSON, nullable=True)
 
 
 class AuditLog(Base):

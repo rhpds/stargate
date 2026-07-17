@@ -80,7 +80,7 @@ class TestEndToEndFlow:
         # Enable dry-run
         client.post("/admin/dry-run", json={"enabled": True})
 
-        result = execute_action("test_action", "test_target", {"test": True}, confidence=0.95, db=db)
+        result = execute_action("test_action", "stargate-test", {"test": True}, confidence=0.95, db=db)
         assert result["executed"] is False
         assert result["reason"] == "dry_run"
 
@@ -97,7 +97,7 @@ class TestEndToEndFlow:
         """Low confidence → queued → approve → audit shows approved."""
         from api.action_executor import execute_action
 
-        result = execute_action("low_conf_action", "target", {}, confidence=0.3, db=db)
+        result = execute_action("low_conf_action", "stargate-test", {}, confidence=0.3, db=db)
         assert result["executed"] is False
         assert result["reason"] == "low_confidence"
         pending_id = result.get("pending_id")

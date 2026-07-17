@@ -116,7 +116,7 @@ class TestDryRunReceipts:
         try:
             result = execute_action(
                 action_type=f"rec_{scenario_name}",
-                target="synthetic-cluster",
+                target="stargate-test",
                 parameters={"scenario": scenario_name},
                 confidence=0.9,
                 db=db,
@@ -152,7 +152,7 @@ class TestLowConfidenceReceipts:
         """Low confidence: action queued for approval."""
         result = execute_action(
             action_type=f"rec_{scenario_name}",
-            target="synthetic-cluster",
+            target="stargate-test",
             parameters={"scenario": scenario_name},
             confidence=0.3,
             db=db,

@@ -1,0 +1,32 @@
+id: tdd-unit-ready
+version: "1.0"
+stage: unit-tests
+timeout_seconds: 120
+entry_criteria: []
+exit_criteria:
+  - name: unit_tests_exist
+    required: true
+  - name: unit_tests_pass
+    required: true
+  - name: coverage_above_threshold
+    required: false
+outcomes:
+  pass:
+    when: "All unit tests exist and pass"
+  warn:
+    when: "Tests pass but coverage is below threshold"
+  fail:
+    when: "No unit tests or tests are failing"
+failure_classes:
+  no_unit_tests:
+    when:
+      - "unit_tests_exist == false"
+    recommended_action: add_unit_tests
+  unit_tests_failing:
+    when:
+      - "unit_tests_exist == true"
+      - "unit_tests_pass == false"
+    recommended_action: fix_unit_tests
+allowed_remediations:
+  - add_unit_tests
+  - fix_unit_tests

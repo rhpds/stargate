@@ -45,17 +45,17 @@ class TestGeoLuxInbound:
 
     def test_proposal_creates_pending_action(self, mock_db):
         from api.routers.integration import receive_geolux_proposal
-        body = {
-            "source": "geolux",
-            "event_id": "evt-123",
-            "proposal": {
+        from api.schemas import GeoluxProposalRequest
+        body = GeoluxProposalRequest(
+            event_id="evt-123",
+            proposal={
                 "action_type": "cleanup_stuck",
                 "target": "launchpad-test",
                 "failure_class": "pods_crashlooping",
                 "confidence": 0.85,
                 "reasoning": "GeoLux detected CrashLoopBackOff pattern",
             },
-        }
+        )
         result = receive_geolux_proposal(body, db=mock_db)
         assert result["status"] == "queued_for_approval"
         assert result["pending_id"] is not None
@@ -69,8 +69,11 @@ class TestGeoLuxInbound:
 
     def test_proposal_logged_to_audit(self, mock_db):
         from api.routers.integration import receive_geolux_proposal
-        body = {"source": "geolux", "event_id": "evt-456",
-                "proposal": {"action_type": "cleanup_stuck", "target": "launchpad-test", "confidence": 0.7}}
+        from api.schemas import GeoluxProposalRequest
+        body = GeoluxProposalRequest(
+            event_id="evt-456",
+            proposal={"action_type": "cleanup_stuck", "target": "launchpad-test", "confidence": 0.7},
+        )
         receive_geolux_proposal(body, db=mock_db)
 
         from db.models import AuditLog
@@ -81,8 +84,11 @@ class TestGeoLuxInbound:
 
     def test_proposal_requires_target(self, mock_db):
         from api.routers.integration import receive_geolux_proposal
+        from api.schemas import GeoluxProposalRequest
         from fastapi import HTTPException
-        body = {"source": "geolux", "proposal": {"action_type": "cleanup_stuck", "confidence": 0.5}}
+        body = GeoluxProposalRequest(
+            proposal={"action_type": "cleanup_stuck", "confidence": 0.5},
+        )
         with pytest.raises(HTTPException) as exc:
             receive_geolux_proposal(body, db=mock_db)
         assert exc.value.status_code == 422
