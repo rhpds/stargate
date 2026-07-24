@@ -281,6 +281,17 @@ export interface LLMFeedbackRequest {
   notes?: string;
 }
 
+export interface RecommendationFeedbackRequest {
+  namespace: string;
+  cluster: string;
+  failure_class: string;
+  correct_classification?: boolean;
+  corrected_class?: string;
+  false_positive?: boolean;
+  dismiss_note?: string;
+  notes?: string;
+}
+
 export interface RemediationResponse {
   failure_class: string;
   lab_code: string;
