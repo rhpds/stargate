@@ -53,14 +53,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 const navItems = [
   { to: '/', label: 'Health', end: true },
-  { to: '/pipeline', label: 'Pipeline' },
   { to: '/failures', label: 'Failures' },
   { to: '/remediation', label: 'Remediation' },
-  { to: '/llm', label: 'LLM' },
-  { to: '/trends', label: 'Trends' },
-  { to: '/provisioning', label: 'Provisioning' },
-  { to: '/capacity', label: 'Capacity' },
-  { to: '/summit', label: 'Summit' },
 ];
 
 export default function App() {

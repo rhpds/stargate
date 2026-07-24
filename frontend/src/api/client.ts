@@ -37,6 +37,7 @@ import type {
   LLMGroundTruth,
   LLMAccuracy,
   LLMFeedbackRequest,
+  RecommendationFeedbackRequest,
   DataMapping,
   LabsPipelineData,
   SecurityData,
@@ -225,6 +226,11 @@ export const api = {
     }),
   submitLLMFeedback: (body: LLMFeedbackRequest) =>
     request<{ id: number; status: string }>('/admin/llm/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  submitRecommendationFeedback: (body: RecommendationFeedbackRequest) =>
+    request<{ status: string }>('/admin/remediation/feedback', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

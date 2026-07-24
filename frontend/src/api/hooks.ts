@@ -238,6 +238,12 @@ export function useLLMFeedback() {
   });
 }
 
+export function useRecommendationFeedback() {
+  return useMutation({
+    mutationFn: (body: import('./types').RecommendationFeedbackRequest) => api.submitRecommendationFeedback(body),
+  });
+}
+
 export function useLLMDrift() {
   return useQuery({ queryKey: ['llm-drift'], queryFn: api.getLLMDrift, refetchInterval: 60_000 });
 }
