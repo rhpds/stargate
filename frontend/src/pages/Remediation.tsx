@@ -11,6 +11,7 @@ import {
 import { useTimeRange } from '../components/TimeRangeContext';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
+import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
 import SearchBar from '../components/SearchBar';
 import type {
   ApprovalQueueData,
@@ -277,7 +278,7 @@ export default function Remediation() {
 
   const [search, setSearch] = useState('');
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -435,6 +436,8 @@ export default function Remediation() {
                         )}
                       </div>
 
+                      <IssueFeedbackPanel namespace={r.namespace} cluster={r.cluster} failure_class={r.failure_class} />
+
                       {r.sample_message && (
                         <div>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Sample Error</div>
@@ -464,11 +467,14 @@ export default function Remediation() {
                               { failure_class: r.failure_class, lab_code: r.namespace, cluster: r.cluster, context_type: isInfraNamespace ? 'error' : 'lab' },
                               {
                                 onSuccess: (data: any) => {
-                                  setAiAnalysis(data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
+                                  setAiAnalysis({
+                                    text: data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2),
+                                    llmMetricId: data?.llm_metric_id,
+                                  });
                                   setAiLoading(false);
                                 },
                                 onError: (err: any) => {
-                                  setAiAnalysis(`Analysis failed: ${err.message}`);
+                                  setAiAnalysis({ text: `Analysis failed: ${err.message}` });
                                   setAiLoading(false);
                                 },
                               },
@@ -506,7 +512,8 @@ export default function Remediation() {
 
                       {aiAnalysis && (
                         <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
-                          <FormattedAnalysis text={aiAnalysis} />
+                          <FormattedAnalysis text={aiAnalysis.text} />
+                          <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
                         </div>
                       )}
 
