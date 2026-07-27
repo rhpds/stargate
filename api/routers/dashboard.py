@@ -3931,6 +3931,7 @@ def _run_diagnostic_commands(
 
     Returns formatted output string for the LLM evidence bundle.
     Only executes commands that pass the safety check.
+    Selects the per-cluster kubeconfig if available, falls back to executor.
     """
     import subprocess
     from api.routers._shared import EXECUTOR_KUBECONFIG
@@ -3940,6 +3941,14 @@ def _run_diagnostic_commands(
     if not namespace:
         return ""
 
+    # Pick the right kubeconfig for the target cluster
+    kubeconfig = EXECUTOR_KUBECONFIG
+    if cluster:
+        secrets_dir = os.path.dirname(EXECUTOR_KUBECONFIG)
+        cluster_kc = os.path.join(secrets_dir, f"kubeconfig-{cluster}")
+        if os.path.exists(cluster_kc):
+            kubeconfig = cluster_kc
+
     results = []
     executed = 0
 
@@ -3948,7 +3957,6 @@ def _run_diagnostic_commands(
             break
 
         cmd = raw_cmd.replace("{namespace}", namespace).replace("{cluster}", cluster or "")
-        # Skip commands with unresolved placeholders
         if "{" in cmd:
             continue
         if not _is_safe_command(cmd):
@@ -3960,7 +3968,7 @@ def _run_diagnostic_commands(
                 capture_output=True,
                 text=True,
                 timeout=timeout_per_cmd,
-                env={**os.environ, "KUBECONFIG": EXECUTOR_KUBECONFIG},
+                env={**os.environ, "KUBECONFIG": kubeconfig},
             )
             output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
             # Truncate long output to avoid blowing up the prompt
