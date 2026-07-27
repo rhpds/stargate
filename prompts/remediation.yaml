@@ -1,7 +1,7 @@
 id: remediation
 version: "2.0"
 description: Context-aware remediation analysis for labs, clusters, pools, and errors
-model: llama-scout-17b
+model: qwen3-14b
 max_tokens: 2400
 temperature: 0.2
 system: >
