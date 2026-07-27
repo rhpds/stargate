@@ -539,7 +539,7 @@ export default function Remediation() {
 
                       {aiAnalysis && (
                         <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
-                          <FormattedAnalysis text={aiAnalysis.text} />
+                          <FormattedAnalysis text={aiAnalysis.text} namespace={r.namespace} cluster={r.cluster} />
                           <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
                         </div>
                       )}
