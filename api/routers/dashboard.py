@@ -4052,6 +4052,21 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
     ctx["related"] = "\n".join(related_lines) if related_lines else "No related failure data."
     ctx["remediations"] = "\n".join(remediation_lines)
 
+    # --- AgnosticV constraints (all context types with a lab/namespace) ---
+    # Sandbox namespaces follow the pattern sandbox-XXXXX-<catalog-item>.
+    # Extract the catalog item name to look up AgnosticV specs.
+    agnosticv_lookup = lab_code
+    if lab_code and re.match(r'^sandbox-[a-z0-9]{5}-', lab_code):
+        agnosticv_lookup = re.sub(r'^sandbox-[a-z0-9]{5}-', '', lab_code)
+    constraints = _load_agnosticv_constraints(agnosticv_lookup) if agnosticv_lookup else None
+    if not constraints and lab_code != agnosticv_lookup:
+        constraints = _load_agnosticv_constraints(lab_code)
+    if constraints:
+        constraint_lines = [f"AgnosticV spec for {agnosticv_lookup}:"]
+        for k, v in list(constraints.items())[:15]:
+            constraint_lines.append(f"  {k}: {v}")
+        ctx["constraints"] = "\n".join(constraint_lines)
+
     # --- Context-specific evidence ---
 
     if context_type == "lab":
@@ -4071,15 +4086,6 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
         # Demolition results
         demo_sessions = demolition.get("sessions", []) if isinstance(demolition, dict) else []
         lab_demo = [s for s in demo_sessions if lab_code.lower() in s.get("name", "").lower()] if demo_sessions else []
-
-        # Constraints
-        constraints = _load_agnosticv_constraints(lab_code)
-        constraint_lines = []
-        if constraints:
-            constraint_lines.append(f"Declared constraints for {lab_code}:")
-            for k, v in list(constraints.items())[:10]:
-                constraint_lines.append(f"  {k}: {v}")
-        ctx["constraints"] = "\n".join(constraint_lines) if constraint_lines else ""
 
         # Sessions from labagator cache
         lab_sessions = [s for s in _fetch_labagator_sessions() if s.get("lab_code") == lab_code]
