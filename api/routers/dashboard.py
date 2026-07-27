@@ -3924,8 +3924,8 @@ def _run_diagnostic_commands(
     catalog_commands: List[str],
     namespace: str,
     cluster: str,
-    max_commands: int = 4,
-    timeout_per_cmd: int = 15,
+    max_commands: int = 3,
+    timeout_per_cmd: int = 8,
 ) -> str:
     """Run read-only catalog commands against the real cluster.
 
@@ -3964,8 +3964,8 @@ def _run_diagnostic_commands(
             )
             output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
             # Truncate long output to avoid blowing up the prompt
-            if len(output) > 3000:
-                output = output[:3000] + "\n... (truncated)"
+            if len(output) > 2000:
+                output = output[:2000] + "\n... (truncated)"
             results.append(f"$ {cmd}\n{output}")
             executed += 1
         except subprocess.TimeoutExpired:
