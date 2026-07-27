@@ -3920,18 +3920,26 @@ def _is_safe_command(cmd: str) -> bool:
     return True
 
 
+_BASELINE_DIAGNOSTICS = [
+    "oc get pods -n {namespace} -o wide",
+    "oc get events -n {namespace} --sort-by=.lastTimestamp",
+    "oc get svc -n {namespace}",
+    "oc get pvc -n {namespace}",
+]
+
+
 def _run_diagnostic_commands(
     catalog_commands: List[str],
     namespace: str,
     cluster: str,
-    max_commands: int = 3,
+    max_commands: int = 6,
     timeout_per_cmd: int = 8,
 ) -> str:
-    """Run read-only catalog commands against the real cluster.
+    """Run read-only diagnostic commands against the real cluster.
 
-    Returns formatted output string for the LLM evidence bundle.
-    Only executes commands that pass the safety check.
-    Selects the per-cluster kubeconfig if available, falls back to executor.
+    Runs a baseline set of commands (pods, events, services, PVCs) for every
+    namespace, then appends any additional catalog-specific commands. All
+    commands must pass the safety allowlist. Read-only only — no mutations.
     """
     import subprocess
     from api.routers._shared import EXECUTOR_KUBECONFIG
@@ -3941,7 +3949,6 @@ def _run_diagnostic_commands(
     if not namespace:
         return ""
 
-    # Pick the right kubeconfig for the target cluster
     kubeconfig = EXECUTOR_KUBECONFIG
     if cluster:
         secrets_dir = os.path.dirname(EXECUTOR_KUBECONFIG)
@@ -3949,10 +3956,16 @@ def _run_diagnostic_commands(
         if os.path.exists(cluster_kc):
             kubeconfig = cluster_kc
 
+    # Baseline + catalog commands, deduplicated, baseline first
+    all_cmds = list(_BASELINE_DIAGNOSTICS)
+    for c in catalog_commands:
+        if c not in all_cmds:
+            all_cmds.append(c)
+
     results = []
     executed = 0
 
-    for raw_cmd in catalog_commands:
+    for raw_cmd in all_cmds:
         if executed >= max_commands:
             break
 
@@ -3971,7 +3984,6 @@ def _run_diagnostic_commands(
                 env={**os.environ, "KUBECONFIG": kubeconfig},
             )
             output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
-            # Truncate long output to avoid blowing up the prompt
             if len(output) > 2000:
                 output = output[:2000] + "\n... (truncated)"
             results.append(f"$ {cmd}\n{output}")
