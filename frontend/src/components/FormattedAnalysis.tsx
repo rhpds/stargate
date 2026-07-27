@@ -7,8 +7,6 @@ interface Props {
   cluster?: string;
 }
 
-const OC_CMD_RE = /^oc\s+(get|describe|logs|status|version|api-resources)\s+/;
-
 function RunButton({ cmd, namespace, cluster }: { cmd: string; namespace: string; cluster: string }) {
   const [result, setResult] = useState<{ output: string; exit_code: number; loading?: boolean } | null>(null);
 
@@ -40,9 +38,9 @@ function RunButton({ cmd, namespace, cluster }: { cmd: string; namespace: string
 
 function extractOcCommand(text: string): string | null {
   const trimmed = text.trim();
-  if (OC_CMD_RE.test(trimmed)) return trimmed;
-  const match = trimmed.match(/(?:Run |Command: |run )(oc\s+(?:get|describe|logs|status)\s+[^\s].*?)(?:\s+to\s|\s+for\s|\.$|$)/i);
-  if (match?.[1]) return match[1].replace(/\.$/, '').trim();
+  // Match oc command anywhere in the line, stop at natural boundaries
+  const match = trimmed.match(/(?:^|Run |Command: |run )(oc\s+(?:get|describe|logs|status|version|api-resources)\s+[^\s](?:[^\s]*(?:\s+(?!to\s|for\s|and\s|if\s|should\s|will\s|that\s|which\s|the\s|this\s|is\s|are\s|was\s|has\s|have\s|can\s|may\s|must\s|could\s|would\s|after\s|before\s|then\s|when\s|where\s)[^\s]+)*))/i);
+  if (match?.[1]) return match[1].replace(/[.,;:!?)]+$/, '').trim();
   return null;
 }
 
@@ -107,7 +105,7 @@ export default function FormattedAnalysis({ text, namespace, cluster }: Props) {
 
     // Inline oc command (not in a code block but on its own line)
     const inlineCmd = extractOcCommand(trimmed);
-    if (inlineCmd && namespace && cluster && trimmed === inlineCmd) {
+    if (inlineCmd && namespace && cluster) {
       elements.push(<RunButton key={i} cmd={inlineCmd} namespace={namespace} cluster={cluster} />);
       continue;
     }
@@ -117,7 +115,7 @@ export default function FormattedAnalysis({ text, namespace, cluster }: Props) {
       const indent = line.search(/\S/);
       const bulletText = trimmed.replace(/^[-*•]\s*/, '');
       const bulletCmd = extractOcCommand(bulletText);
-      if (bulletCmd && namespace && cluster && bulletText.startsWith('oc ')) {
+      if (bulletCmd && namespace && cluster) {
         elements.push(
           <div key={i} style={{ paddingLeft: `${Math.max(indent * 4, 12)}px` }}>
             <RunButton cmd={bulletCmd} namespace={namespace} cluster={cluster} />
