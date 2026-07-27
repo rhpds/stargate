@@ -147,12 +147,15 @@ def call_llm(
             "finish_reason": None, "error": "Circuit open — LLM temporarily unavailable",
         }
 
-    body = json.dumps({
+    payload: Dict = {
         "model": LLM_MODEL,
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
-    }).encode()
+    }
+    if "qwen" in LLM_MODEL.lower():
+        payload["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+    body = json.dumps(payload).encode()
 
     ssl_ctx = ssl.create_default_context()
     if not SSL_VERIFY:
