@@ -3836,6 +3836,11 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     # Build evidence context based on what we're analyzing
     evidence_context = _build_evidence_context(context_type, lab_code, cluster, pool_name, failure_class, db)
 
+    # Run read-only diagnostic commands from catalog against the real cluster
+    live_diagnostics = _run_diagnostic_commands(commands, lab_code, cluster)
+    if live_diagnostics:
+        evidence_context["live_diagnostics"] = live_diagnostics
+
     # Build LLM prompt with full evidence
     prompt = _build_remediation_prompt(context_type, evidence_context, commands)
 
@@ -3891,6 +3896,85 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
         "evidence_summary": evidence_context.get("summary", ""),
         "quality_outcome": quality_outcome,
     }
+
+
+# ---------------------------------------------------------------------------
+# Read-only diagnostic command runner
+# ---------------------------------------------------------------------------
+
+_SAFE_OC_VERBS = frozenset({"get", "describe", "logs", "status", "whoami", "version", "api-resources"})
+_BLOCKED_FLAGS = frozenset({"--force", "--grace-period=0", "-f", "--filename", "--dry-run=none"})
+
+
+def _is_safe_command(cmd: str) -> bool:
+    """Only allow read-only oc commands. Rejects anything that could mutate."""
+    parts = cmd.strip().split()
+    if not parts or parts[0] != "oc":
+        return False
+    verb = parts[1] if len(parts) > 1 else ""
+    if verb not in _SAFE_OC_VERBS:
+        return False
+    for flag in _BLOCKED_FLAGS:
+        if flag in parts:
+            return False
+    return True
+
+
+def _run_diagnostic_commands(
+    catalog_commands: List[str],
+    namespace: str,
+    cluster: str,
+    max_commands: int = 4,
+    timeout_per_cmd: int = 15,
+) -> str:
+    """Run read-only catalog commands against the real cluster.
+
+    Returns formatted output string for the LLM evidence bundle.
+    Only executes commands that pass the safety check.
+    """
+    import subprocess
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+
+    if not EXECUTOR_KUBECONFIG or not os.path.exists(EXECUTOR_KUBECONFIG):
+        return ""
+    if not namespace:
+        return ""
+
+    results = []
+    executed = 0
+
+    for raw_cmd in catalog_commands:
+        if executed >= max_commands:
+            break
+
+        cmd = raw_cmd.replace("{namespace}", namespace).replace("{cluster}", cluster or "")
+        # Skip commands with unresolved placeholders
+        if "{" in cmd:
+            continue
+        if not _is_safe_command(cmd):
+            continue
+
+        try:
+            r = subprocess.run(
+                cmd.split(),
+                capture_output=True,
+                text=True,
+                timeout=timeout_per_cmd,
+                env={**os.environ, "KUBECONFIG": EXECUTOR_KUBECONFIG},
+            )
+            output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
+            # Truncate long output to avoid blowing up the prompt
+            if len(output) > 3000:
+                output = output[:3000] + "\n... (truncated)"
+            results.append(f"$ {cmd}\n{output}")
+            executed += 1
+        except subprocess.TimeoutExpired:
+            results.append(f"$ {cmd}\nERROR: command timed out after {timeout_per_cmd}s")
+            executed += 1
+        except Exception as e:
+            logger.warning(f"Diagnostic command failed: {cmd} — {e}")
+
+    return "\n\n".join(results)
 
 
 # ---------------------------------------------------------------------------
@@ -4114,8 +4198,10 @@ def _build_remediation_prompt(context_type: str, evidence: Dict, catalog_command
     if evidence.get("remediations"):
         sections.append(f"## Prior Remediation Attempts\n\n{evidence['remediations']}")
 
-    if catalog_commands:
-        sections.append(f"## Available Diagnostic Commands\n\n{chr(10).join(catalog_commands[:8])}")
+    if evidence.get("live_diagnostics"):
+        sections.append(f"## Live Cluster Diagnostics (read-only)\n\nThe following commands were executed against the real cluster. Analyze this output to diagnose the issue.\n\n{evidence['live_diagnostics']}")
+    elif catalog_commands:
+        sections.append(f"## Available Diagnostic Commands (not yet executed)\n\n{chr(10).join(catalog_commands[:8])}")
 
     if evidence.get("constraints"):
         sections.append(f"## Declared Constraints\n\n{evidence['constraints']}")
