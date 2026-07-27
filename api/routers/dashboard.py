@@ -4368,6 +4368,61 @@ def verify_audit_chain(chain: list, _auth=Depends(require_admin)):
 # Remediation playbook — step-by-step for dashboard consumption
 # ---------------------------------------------------------------------------
 
+@router.post("/admin/diagnostics/run")
+@limiter.limit("30/minute")
+def run_diagnostic_command(request: Request, req: dict, _auth=Depends(require_admin)):
+    """Execute a single read-only diagnostic command against a cluster.
+
+    Strictly read-only: only oc get/describe/logs/status allowed.
+    Uses per-cluster kubeconfig when available.
+    """
+    import subprocess
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+
+    cmd = req.get("command", "").strip()
+    namespace = req.get("namespace", "")
+    cluster = req.get("cluster", "")
+
+    if not cmd:
+        raise HTTPException(status_code=400, detail="command is required")
+    if not namespace:
+        raise HTTPException(status_code=400, detail="namespace is required")
+
+    resolved = cmd.replace("{namespace}", namespace).replace("{cluster}", cluster or "")
+    if "{" in resolved:
+        raise HTTPException(status_code=400, detail="Command has unresolved placeholders")
+    if not _is_safe_command(resolved):
+        raise HTTPException(status_code=403, detail="Command rejected — only read-only oc commands allowed")
+
+    kubeconfig = EXECUTOR_KUBECONFIG
+    if cluster:
+        secrets_dir = os.path.dirname(EXECUTOR_KUBECONFIG)
+        cluster_kc = os.path.join(secrets_dir, f"kubeconfig-{cluster}")
+        if os.path.exists(cluster_kc):
+            kubeconfig = cluster_kc
+
+    if not kubeconfig or not os.path.exists(kubeconfig):
+        raise HTTPException(status_code=503, detail="No kubeconfig available for this cluster")
+
+    try:
+        r = subprocess.run(
+            resolved.split(),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env={**os.environ, "KUBECONFIG": kubeconfig},
+        )
+        return {
+            "command": resolved,
+            "output": r.stdout.strip() if r.returncode == 0 else r.stderr.strip(),
+            "exit_code": r.returncode,
+            "cluster": cluster,
+            "namespace": namespace,
+        }
+    except subprocess.TimeoutExpired:
+        return {"command": resolved, "output": "Command timed out after 15s", "exit_code": -1, "cluster": cluster, "namespace": namespace}
+
+
 @router.post("/remediation/playbook")
 def run_remediation_playbook(req: "PlaybookRunRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Run a single remediation playbook: investigate → diagnose → fix → verify.

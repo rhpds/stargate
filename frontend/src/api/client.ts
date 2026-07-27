@@ -240,6 +240,13 @@ export const api = {
   approveAction: (id: number) => request<{ id: number; status: string }>(`/admin/approval-queue/${id}/approve`, { method: 'POST' }),
   rejectAction: (id: number) => request<{ id: number; status: string }>(`/admin/approval-queue/${id}/reject`, { method: 'POST' }),
 
+  // Diagnostics
+  runDiagnostic: (body: { command: string; namespace: string; cluster: string }) =>
+    request<{ command: string; output: string; exit_code: number }>('/admin/diagnostics/run', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   // Remediation execution
   previewRemediation: (body: { namespace: string; failure_class: string; cluster: string; action_type?: string }) =>
     request<any>('/admin/remediation/preview', { method: 'POST', body: JSON.stringify(body) }),

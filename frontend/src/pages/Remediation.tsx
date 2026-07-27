@@ -285,6 +285,7 @@ export default function Remediation() {
   const [remediateConfirm, setRemediateConfirm] = useState(false);
   const [remediateResult, setRemediateResult] = useState<any>(null);
   const [remediateLoading, setRemediateLoading] = useState(false);
+  const [cmdOutputs, setCmdOutputs] = useState<Record<string, { output: string; exit_code: number; loading?: boolean }>>({});
 
   const isLoading =
     approvalQueue.isLoading || remediationConfigs.isLoading || remediationActivity.isLoading;
@@ -384,6 +385,7 @@ export default function Remediation() {
                         setPreview(null);
                         setRemediateConfirm(false);
                         setRemediateResult(null);
+                        setCmdOutputs({});
                       }
                     }}
                   >
@@ -446,11 +448,36 @@ export default function Remediation() {
                       )}
 
                       {r.catalog_commands && r.catalog_commands.length > 0 && (
-                        <div>
+                        <div onClick={(e) => e.stopPropagation()}>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Catalog Commands</div>
-                          {r.catalog_commands.map((cmd: string, ci: number) => (
-                            <div key={ci} className="text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
-                          ))}
+                          {r.catalog_commands.map((cmd: string, ci: number) => {
+                            const cmdKey = `${i}-${ci}`;
+                            const result = cmdOutputs[cmdKey];
+                            return (
+                              <div key={ci} className="mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 font-mono">{cmd}</div>
+                                  <button
+                                    className="bg-[#333] hover:bg-[#444] text-white text-xs px-3 py-1.5 rounded transition disabled:opacity-50 shrink-0"
+                                    disabled={result?.loading}
+                                    onClick={() => {
+                                      setCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: '', exit_code: 0, loading: true } }));
+                                      api.runDiagnostic({ command: cmd, namespace: r.namespace, cluster: r.cluster })
+                                        .then((data) => setCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: data.output, exit_code: data.exit_code } })))
+                                        .catch((err) => setCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: `Error: ${err.message}`, exit_code: -1 } })));
+                                    }}
+                                  >
+                                    {result?.loading ? 'Running...' : result ? 'Re-run' : 'Run'}
+                                  </button>
+                                </div>
+                                {result && !result.loading && (
+                                  <pre className={`mt-1 text-xs rounded px-3 py-2 font-mono overflow-x-auto max-h-64 overflow-y-auto ${
+                                    result.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
+                                  }`}>{result.output || '(no output)'}</pre>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
