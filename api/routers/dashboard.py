@@ -4124,45 +4124,47 @@ def _build_remediation_prompt(context_type: str, evidence: Dict, catalog_command
     if context_type == "lab":
         task = (
             "## Task\n"
-            "This is a Summit 2026 lab. Using ALL evidence above (current state, history, related failures, prior remediations), provide:\n"
-            "1. Current readiness assessment (ready/at-risk/blocked) with specific evidence citations\n"
-            "2. Is this a NEW issue or RECURRING? Reference the historical pattern\n"
-            "3. If prior remediations were attempted, explain why they failed and what to try differently\n"
-            "4. Prioritized remediation steps (most impactful first)\n"
-            "5. What to verify after each remediation step\n"
-            "6. If this is systemic (blast radius > 1 lab), recommend cluster-level action"
+            "Diagnose this lab and produce an executable remediation plan.\n\n"
+            "1. **Diagnosis**: What is broken and why? Quote the specific failure messages, counts, and trend from the evidence. No generic statements.\n"
+            "2. **Root cause**: Is this a lab-level config issue, a cluster-level resource issue, or a platform-level systemic issue? Cite the blast radius data.\n"
+            "3. **Fix** (ordered by impact):\n"
+            "   - For each step: the exact `oc` command using the real namespace/cluster from the evidence\n"
+            "   - What the output should look like if the fix worked\n"
+            "   - What to do if it didn't work\n"
+            "4. **If evidence is insufficient**: State exactly what additional commands to run and what to look for in the output."
         )
     elif context_type == "cluster":
         task = (
             "## Task\n"
-            "This cluster hosts Summit 2026 labs. Using ALL evidence above, provide:\n"
-            "1. Root cause analysis — cite specific metrics (CPU%, VM density, failure classes)\n"
-            "2. Is this trending worse? Reference the historical pattern\n"
-            "3. Impact scope — how many labs are affected? Is it systemic?\n"
-            "4. Specific remediation steps (with oc commands) ordered by impact\n"
-            "5. Capacity recommendations based on current load vs Summit demand\n"
-            "6. If prior remediations failed, explain what to try differently"
+            "Diagnose this cluster and produce an executable remediation plan.\n\n"
+            "1. **Diagnosis**: What is failing and at what rate? Quote CPU%, VM counts, failure class counts from the evidence.\n"
+            "2. **Scope**: How many labs are affected? Is this isolated or systemic? Cite the numbers.\n"
+            "3. **Fix** (ordered by impact):\n"
+            "   - For each step: the exact `oc` command with the real cluster/namespace\n"
+            "   - Expected output if the fix worked\n"
+            "4. **Capacity**: Based on the current load numbers, is the cluster over-committed? What's the headroom?"
         )
     elif context_type == "pool":
         task = (
             "## Task\n"
-            "This resource pool serves Summit 2026 labs. Using ALL evidence above, provide:\n"
-            "1. Pool readiness assessment with specific capacity numbers\n"
-            "2. Provisioning failure analysis — what's blocking new instances?\n"
-            "3. Steps to increase capacity or fix provisioning (with oc commands)\n"
-            "4. If this pool is chronically exhausted, recommend architectural changes\n"
-            "5. Monitoring recommendations to prevent future exhaustion"
+            "Diagnose this resource pool and produce an executable remediation plan.\n\n"
+            "1. **Diagnosis**: What is the current capacity vs demand? Quote the available/ready/min numbers.\n"
+            "2. **Root cause**: Why are provisions failing? Cite the failure rate and error patterns.\n"
+            "3. **Fix**: Exact `oc` commands to increase capacity or unblock provisioning.\n"
+            "4. **Prevention**: What monitoring threshold would catch this before it impacts labs?"
         )
     elif context_type == "error":
         task = (
             "## Task\n"
-            "This failure class is occurring across Summit 2026 environments. Using ALL evidence above, provide:\n"
-            "1. Root cause analysis — cite the failure messages and criteria that failed\n"
-            "2. Is this isolated to specific clusters/labs or systemic? Reference blast radius\n"
-            "3. Is this new or recurring? Reference evaluation history\n"
-            "4. Step-by-step remediation with specific oc commands\n"
-            "5. If prior remediations were tried and failed, explain the likely reason and alternative approach\n"
-            "6. Prevention strategy to avoid recurrence"
+            "Diagnose this failure class and produce an executable remediation plan.\n\n"
+            "1. **Diagnosis**: What is the actual error? Quote the sample messages from the evidence verbatim. Explain what they mean operationally.\n"
+            "2. **Scope**: {how many} occurrences across {which clusters} and {how many labs}. Is this isolated or systemic? Cite the blast radius.\n"
+            "3. **Root cause**: Based on the error messages and criteria failures, what is the most likely underlying cause? Be specific — name the component, resource, or config that is failing.\n"
+            "4. **Fix** (ordered by blast radius):\n"
+            "   - For each step: the exact `oc` command using the real namespaces and clusters from the evidence\n"
+            "   - What to look for in the output to confirm the diagnosis\n"
+            "   - The fix command and how to verify it worked\n"
+            "5. **If prior remediations failed**: Why did they fail? What specifically to try differently?"
         )
 
     sections.append(task)
