@@ -316,12 +316,12 @@ export default function ProofDashboard() {
                         <p className="text-[#6A6E73] text-sm">Loading history...</p>
                       )}
 
-                      {expandedHistory.isError && (
+                      {expandedHistory.isError && !entry.cycle_results?.length && (
                         <p className="text-[#6A6E73] text-sm">No cycles run yet. Click "Run Proof" to inject a failure and test remediation.</p>
                       )}
 
-                      {expandedHistory.data && (() => {
-                        const cycleResults = expandedHistory.data.cycle_results ?? expandedHistory.data.history ?? expandedHistory.data.cycles ?? [];
+                      {(() => {
+                        const cycleResults = entry.cycle_results ?? expandedHistory.data?.cycle_results ?? expandedHistory.data?.history ?? [];
                         const lastCycle = cycleResults.length > 0 ? cycleResults[cycleResults.length - 1] : null;
 
                         if (!lastCycle) {
