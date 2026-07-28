@@ -254,23 +254,34 @@ def continue_proof_cycle(
         remediate_commands.extend(reinject_commands)
     remediate_commands.append({"command": "--- pods before remediation ---", "output": before_remediate["output"] or "(no pods)", "exit_code": 0, "duration_ms": 0})
 
-    # Remediate by deleting the injected resources directly
-    # This is proof-specific — we know exactly what we injected
-    remediate_success = True
-    for resource in expected_resources:
-        kind, name = resource.split("/", 1) if "/" in resource else ("deployment", resource)
-        trace = _oc(["delete", kind, name, "-n", namespace, "--ignore-not-found", "--wait=true", "--timeout=30s"], kubeconfig)
-        remediate_commands.append(trace)
-        if trace["exit_code"] != 0 and "not found" not in trace["output"].lower():
-            remediate_success = False
-
-    result["steps"]["remediate"] = {
-        "status": "success" if remediate_success else "failed",
-        "executed": True,
-        "commands": remediate_commands,
-        "action": f"delete injected {failure_class} resources",
-    }
-    tracker.record_remediation(failure_class, f"proof_{failure_class}", remediate_success, {"resources_deleted": expected_resources})
+    # Run the ACTUAL catalog remediation action — not a fake fix
+    # This honestly tests whether the catalog's prescribed action works
+    try:
+        from engine.oc_executor import execute_oc_action
+        exec_result = execute_oc_action(failure_class, namespace, kubeconfig, {})
+        exec_commands = exec_result.get("commands", [])
+        if isinstance(exec_commands, list):
+            remediate_commands.extend(exec_commands)
+        remediate_success = exec_result.get("success", False)
+        catalog_action = exec_result.get("action_type", failure_class)
+        result["steps"]["remediate"] = {
+            "status": "success" if remediate_success else "failed",
+            "executed": True,
+            "commands": remediate_commands,
+            "action": catalog_action,
+            "note": "Ran the actual catalog remediation action — not a synthetic fix.",
+        }
+    except Exception as e:
+        remediate_commands.append({"command": f"execute_oc_action({failure_class})", "output": str(e), "exit_code": 1, "duration_ms": 0})
+        remediate_success = False
+        result["steps"]["remediate"] = {
+            "status": "failed",
+            "executed": True,
+            "commands": remediate_commands,
+            "error": str(e),
+            "note": "Catalog action execution failed.",
+        }
+    tracker.record_remediation(failure_class, f"proof_{failure_class}", remediate_success, result["steps"]["remediate"])
 
     # 2. Verify — check if the failure is gone (BEFORE cleanup)
     remediated_ok = result["steps"]["remediate"].get("status") == "success"
