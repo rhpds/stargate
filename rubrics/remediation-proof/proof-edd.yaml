@@ -1,0 +1,17 @@
+id: proof-edd
+version: "1.0"
+prompt_type: proof
+dimension: edd
+criteria:
+  - name: failure_class_matches_injection
+    check_type: section_present
+    target: "failure_class.*match|correct.*classification|expected.*class"
+    required: true
+  - name: target_is_test_namespace
+    check_type: section_present
+    target: "stargate-test|test.*namespace"
+    required: true
+  - name: evidence_chain_complete
+    check_type: section_present
+    target: "before.*state|after.*state|evidence.*chain"
+    required: true
