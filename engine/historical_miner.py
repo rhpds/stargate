@@ -280,10 +280,66 @@ def _determine_resolution_cause(namespace: str, cluster: str, eval_id: int, db) 
         result["action"] = geolux_action.action_type
         return result
 
-    # 5. Default: self-resolved (failure cleared with no tracked intervention)
+    # 5. Check OCP audit logs for human actions on this namespace
+    human_action = _check_audit_logs_for_human_action(namespace)
+    if human_action:
+        result["cause"] = "human_remediated"
+        result["resolved_by"] = human_action.get("user")
+        result["action"] = f"{human_action.get('verb')} {human_action.get('resource')}/{human_action.get('name')}"
+        result["audit_evidence"] = human_action
+        return result
+
+    # 6. Default: self-resolved (failure cleared with no tracked intervention)
     result["cause"] = "self_resolved"
-    result["action"] = "Failure cleared — no StarGate/Deepfield/GeoLux action tracked"
+    result["action"] = "Failure cleared — no intervention detected"
     return result
+
+
+def _check_audit_logs_for_human_action(namespace: str, lookback_lines: int = 5000) -> Optional[Dict]:
+    """Query OCP audit logs for non-system-user write actions on a namespace.
+
+    Only called on resolution — not continuous scanning.
+    Returns the most recent human action or None.
+    """
+    import subprocess as _sp
+    try:
+        r = _sp.run(
+            ["oc", "adm", "node-logs", "--role=master", "--path=openshift-apiserver/audit.log"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            return None
+
+        # Parse recent lines looking for human write actions on this namespace
+        lines = r.stdout.strip().split("\n")
+        # Check last N lines (most recent)
+        for line in lines[-lookback_lines:]:
+            if "{" in line:
+                line = line[line.index("{"):]
+            try:
+                data = json.loads(line)
+                ns = data.get("objectRef", {}).get("namespace", "")
+                if ns != namespace:
+                    continue
+                verb = data.get("verb", "")
+                if verb not in ("delete", "patch", "update", "create"):
+                    continue
+                user = data.get("user", {}).get("username", "")
+                if user.startswith("system:"):
+                    continue
+                # Found a human write action on this namespace
+                return {
+                    "user": user,
+                    "verb": verb,
+                    "resource": data.get("objectRef", {}).get("resource", ""),
+                    "name": data.get("objectRef", {}).get("name", ""),
+                    "timestamp": data.get("requestReceivedTimestamp", ""),
+                }
+            except (json.JSONDecodeError, KeyError):
+                continue
+    except Exception as e:
+        logger.debug("Audit log check failed: %s", e)
+    return None
 
 
 def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
