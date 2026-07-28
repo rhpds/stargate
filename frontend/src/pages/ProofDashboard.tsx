@@ -275,7 +275,7 @@ export default function ProofDashboard() {
                       )}
 
                       {expandedHistory.isError && (
-                        <p className="text-[#C9190B] text-sm">Failed to load history.</p>
+                        <p className="text-[#6A6E73] text-sm">No cycles run yet. Click "Run Proof" to inject a failure and test remediation.</p>
                       )}
 
                       {expandedHistory.data && (() => {
