@@ -73,16 +73,50 @@ def run_proof_cycle(
         result["error"] = str(e)
         return result
 
-    # 3. Wait for detection
+    # 3. Wait for detection — check cluster events directly + DB
     detected = False
     detected_class = None
     detection_source = None
+    detect_commands = []
     poll_attempts = 0
-    if db:
-        from db.models import EvaluationRecord
-        start = time.time()
-        while time.time() - start < DETECTION_TIMEOUT:
-            poll_attempts += 1
+    import re, yaml
+    failure_patterns = {}
+    fc_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "failure-classes", "k8s-events.yaml")
+    if os.path.exists(fc_file):
+        with open(fc_file) as f:
+            fc_data = yaml.safe_load(f) or {}
+        for cls_name, cls_info in fc_data.get("classes", {}).items():
+            failure_patterns[cls_name] = cls_info.get("pattern", "")
+
+    start_time = time.time()
+    while time.time() - start_time < DETECTION_TIMEOUT:
+        poll_attempts += 1
+        # Direct cluster check — look for failure events
+        import subprocess
+        env = {**os.environ}
+        if kubeconfig:
+            env["KUBECONFIG"] = kubeconfig
+        t0 = time.time()
+        r = subprocess.run(
+            ["oc", "get", "events", "-n", namespace, "--sort-by=.lastTimestamp"],
+            capture_output=True, text=True, timeout=10, env=env,
+        )
+        detect_commands.append({
+            "command": f"oc get events -n {namespace} --sort-by=.lastTimestamp",
+            "output": r.stdout.strip()[:1500] if r.stdout else r.stderr.strip()[:500],
+            "exit_code": r.returncode,
+            "duration_ms": int((time.time() - t0) * 1000),
+        })
+        if r.returncode == 0 and r.stdout:
+            pattern = failure_patterns.get(failure_class, "")
+            if pattern and re.search(pattern, r.stdout, re.IGNORECASE):
+                detected = True
+                detected_class = failure_class
+                detection_source = "cluster_events"
+                break
+        # Also check DB
+        if db:
+            from db.models import EvaluationRecord, PendingAction
             recent = db.query(EvaluationRecord).filter(
                 EvaluationRecord.lab_code == namespace,
                 EvaluationRecord.outcome == "fail",
@@ -90,25 +124,13 @@ def run_proof_cycle(
             if recent and recent.failure_class:
                 detected = True
                 detected_class = recent.failure_class
-                detection_source = "stargate"
+                detection_source = "stargate_db"
                 break
-            # Also check Deepfield incidents via PendingAction
-            from db.models import PendingAction
-            deepfield_inc = db.query(PendingAction).filter(
-                PendingAction.target == namespace,
-                PendingAction.proposed_by == "deepfield",
-                PendingAction.status == "pending",
-            ).order_by(PendingAction.id.desc()).first()
-            if deepfield_inc:
-                detected = True
-                detected_class = (deepfield_inc.parameters or {}).get("failure_class", "unknown")
-                detection_source = "deepfield"
-                break
-            time.sleep(DETECTION_POLL_INTERVAL)
+        time.sleep(DETECTION_POLL_INTERVAL)
 
     result["steps"]["detect"] = {
         "status": "detected" if detected else "timeout",
-        "commands": [],  # detection is DB polling, no oc commands
+        "commands": detect_commands[-3:],
         "poll_attempts": poll_attempts,
         "detected": detected,
         "detected_class": detected_class,
