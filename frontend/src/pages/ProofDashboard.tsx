@@ -239,7 +239,7 @@ export default function ProofDashboard() {
   const matrix = useQuery({
     queryKey: ['proof-matrix'],
     queryFn: () => api.getProofMatrix(),
-    refetchInterval: expandedRow ? false : 10_000,
+    refetchInterval: 5_000,
   });
 
   const expandedHistory = useQuery({
