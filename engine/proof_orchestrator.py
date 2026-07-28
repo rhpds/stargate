@@ -51,15 +51,25 @@ def run_proof_cycle(
 
     # 2. Inject failure
     try:
+        inject_started = datetime.now(timezone.utc).isoformat()
         injection = inject_failure(failure_class, namespace, kubeconfig)
+        inject_completed = datetime.now(timezone.utc).isoformat()
         if "error" in injection:
             result["steps"]["inject"] = injection
             result["error"] = injection["error"]
             return result
         tracker.record_injection(failure_class, injection)
-        result["steps"]["inject"] = {"success": True, **injection}
+        result["steps"]["inject"] = {
+            "status": "success",
+            "commands": injection.get("commands", []),
+            "started_at": inject_started,
+            "completed_at": inject_completed,
+            "failure_class": injection.get("failure_class"),
+            "injected_resources": injection.get("injected_resources", []),
+            "namespace": injection.get("namespace"),
+        }
     except Exception as e:
-        result["steps"]["inject"] = {"success": False, "error": str(e)}
+        result["steps"]["inject"] = {"status": "failed", "commands": [], "error": str(e)}
         result["error"] = str(e)
         return result
 
@@ -67,10 +77,12 @@ def run_proof_cycle(
     detected = False
     detected_class = None
     detection_source = None
+    poll_attempts = 0
     if db:
         from db.models import EvaluationRecord
         start = time.time()
         while time.time() - start < DETECTION_TIMEOUT:
+            poll_attempts += 1
             recent = db.query(EvaluationRecord).filter(
                 EvaluationRecord.lab_code == namespace,
                 EvaluationRecord.outcome == "fail",
@@ -95,6 +107,9 @@ def run_proof_cycle(
             time.sleep(DETECTION_POLL_INTERVAL)
 
     result["steps"]["detect"] = {
+        "status": "detected" if detected else "timeout",
+        "commands": [],  # detection is DB polling, no oc commands
+        "poll_attempts": poll_attempts,
         "detected": detected,
         "detected_class": detected_class,
         "source": detection_source,
@@ -153,29 +168,50 @@ def run_proof_cycle(
         env = {**os.environ}
         if kubeconfig:
             env["KUBECONFIG"] = kubeconfig
+        verify_cmd_str = f"oc get pods -n {namespace} -o wide"
+        verify_start = time.time()
         r = subprocess.run(
             ["oc", "get", "pods", "-n", namespace, "-o", "wide"],
             capture_output=True, text=True, timeout=15, env=env
         )
+        verify_duration_ms = int((time.time() - verify_start) * 1000)
         pods_output = r.stdout.strip()
         has_crashloop = "CrashLoopBackOff" in pods_output
         has_err = "Error" in pods_output or "ImagePullBackOff" in pods_output
         clean = not has_crashloop and not has_err
 
-        result["steps"]["verify"] = {"clean": clean, "pods": pods_output[:500]}
+        verify_command_trace = {
+            "command": verify_cmd_str,
+            "output": pods_output[:500],
+            "exit_code": r.returncode,
+            "duration_ms": verify_duration_ms,
+        }
+        result["steps"]["verify"] = {
+            "status": "clean" if clean else "failed",
+            "commands": [verify_command_trace],
+            "clean": clean,
+            "pods": pods_output[:500],
+        }
         tracker.record_verification(failure_class, clean, {"pods": pods_output[:500]})
     else:
-        result["steps"]["verify"] = {"skipped": True, "reason": "remediation not executed or failed"}
+        result["steps"]["verify"] = {"status": "skipped", "commands": [], "skipped": True, "reason": "remediation not executed or failed"}
 
     # 6. Cleanup
     try:
         cleanup = cleanup_all(namespace, kubeconfig)
-        result["steps"]["cleanup"] = cleanup
+        result["steps"]["cleanup"] = {
+            "status": "success",
+            "commands": cleanup.get("commands", []),
+            "deleted": cleanup.get("deleted", []),
+            "namespace": cleanup.get("namespace"),
+        }
     except Exception as e:
-        result["steps"]["cleanup"] = {"error": str(e)}
+        result["steps"]["cleanup"] = {"status": "failed", "commands": [], "error": str(e)}
 
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
     result["success"] = result["steps"].get("verify", {}).get("clean", False)
     result["proof_status"] = tracker.get_status(failure_class)
+
+    tracker.record_cycle_result(failure_class, result)
 
     return result

@@ -1488,3 +1488,16 @@ def get_proof_matrix(_auth=Depends(require_admin_read)):
         "matrix": tracker.get_matrix(),
         "summary": tracker.get_summary(),
     }
+
+
+@router.get("/admin/proof/history/{failure_class}")
+def get_proof_history(failure_class: str, _auth=Depends(require_admin_read)):
+    """Get full cycle history with command-level detail for a specific failure class."""
+    from engine.proof_tracker import ProofTracker
+    from fastapi import HTTPException
+    tracker = ProofTracker()
+    matrix = tracker.get_matrix()
+    fc_data = matrix.get("failure_classes", {}).get(failure_class)
+    if not fc_data:
+        raise HTTPException(status_code=404, detail=f"No proof data for {failure_class}")
+    return fc_data
