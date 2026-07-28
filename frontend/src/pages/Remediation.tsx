@@ -81,6 +81,108 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
+function RCADetail({ rca, namespace, cluster }: { rca: any; namespace: string; cluster: string }) {
+  if (!rca) return null;
+
+  let parsed: any = null;
+  if (typeof rca === 'string') {
+    try { parsed = JSON.parse(rca); } catch { /* not JSON, treat as prose */ }
+  } else if (typeof rca === 'object') {
+    parsed = rca;
+  }
+
+  if (!parsed) {
+    return (
+      <div>
+        <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Analysis</div>
+        <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3">
+          <FormattedAnalysis text={String(rca)} namespace={namespace} cluster={cluster} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {parsed.root_cause && (
+        <div>
+          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Root Cause</div>
+          <div className="text-sm text-white bg-[#151515] border border-[#2e2e2e] rounded px-3 py-2">{parsed.root_cause}</div>
+        </div>
+      )}
+      {parsed.evidence_chain && parsed.evidence_chain.length > 0 && (
+        <div>
+          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Evidence</div>
+          <div className="bg-[#151515] border border-[#2e2e2e] rounded px-3 py-2 space-y-1">
+            {parsed.evidence_chain.map((e: string, i: number) => (
+              <div key={i} className="text-xs text-[#C9C9C9] flex gap-2">
+                <span className="text-[#6A6E73] shrink-0">{i + 1}.</span>
+                <span>{e}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {parsed.affected_resources && parsed.affected_resources.length > 0 && (
+        <div>
+          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Affected Resources</div>
+          <div className="flex flex-wrap gap-1">
+            {parsed.affected_resources.map((r: string, i: number) => (
+              <span key={i} className="text-xs bg-[#2a2a2a] text-[#C9C9C9] px-2 py-0.5 rounded font-mono">{r}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {parsed.remediation && (
+        <div>
+          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">
+            Remediation
+            {parsed.remediation.priority && (
+              <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                parsed.remediation.priority === 'immediate' ? 'bg-[#C9190B]' : 'bg-[#F0AB00] text-black'
+              } text-white normal-case`}>{parsed.remediation.priority}</span>
+            )}
+            {parsed.remediation.risk && (
+              <span className={`ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                parsed.remediation.risk === 'low' ? 'bg-[#3E8635]' :
+                parsed.remediation.risk === 'medium' ? 'bg-[#F0AB00] text-black' : 'bg-[#C9190B]'
+              } text-white normal-case`}>{parsed.remediation.risk} risk</span>
+            )}
+          </div>
+          {parsed.remediation.steps && (
+            <div className="bg-[#151515] border border-[#2e2e2e] rounded px-3 py-2 space-y-1 mb-1">
+              {parsed.remediation.steps.map((s: string, i: number) => (
+                <div key={i} className="text-xs text-[#C9C9C9] flex gap-2">
+                  <span className="text-[#6A6E73] shrink-0">{i + 1}.</span>
+                  <span>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {parsed.remediation.commands && parsed.remediation.commands.length > 0 && (
+            <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+              {parsed.remediation.commands.map((cmd: string, i: number) => (
+                <div key={i} className="text-xs text-[#4EC9B0] bg-[#0d0d0d] border border-[#333] rounded px-3 py-1.5 font-mono">{cmd}</div>
+              ))}
+            </div>
+          )}
+          {parsed.remediation.note && (
+            <div className="text-xs text-[#8A8D90] mt-1 italic">{parsed.remediation.note}</div>
+          )}
+        </div>
+      )}
+      {parsed.evidence_gaps && parsed.evidence_gaps.length > 0 && (
+        <div>
+          <div className="text-xs text-[#F0AB00] uppercase tracking-wider font-bold mb-1">Evidence Gaps</div>
+          {parsed.evidence_gaps.map((g: string, i: number) => (
+            <div key={i} className="text-xs text-[#F0AB00]/80">- {g}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ApprovalQueue({
   pending,
   onApprove,
@@ -150,45 +252,24 @@ function ApprovalQueue({
                 onClick={() => onApprove(item.id)}
                 className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
                 style={{ backgroundColor: '#3E8635' }}
+                title="Mark as acknowledged — no action will be executed"
               >
-                Approve
+                Acknowledge
               </button>
               <button
                 onClick={() => onReject(item.id)}
                 className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
                 style={{ backgroundColor: '#C9190B' }}
+                title="Dismiss this finding"
               >
-                Reject
+                Dismiss
               </button>
             </div>
           </div>
 
           {isExpanded && (
             <div className="mt-3 border-t border-[#333] pt-3 space-y-3">
-              {params.rca_output && (
-                <div>
-                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Root Cause Analysis</div>
-                  <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3">
-                    <FormattedAnalysis text={params.rca_output} namespace={item.target} cluster={params.cluster || ''} />
-                  </div>
-                </div>
-              )}
-              {params.remediation_options && params.remediation_options.length > 0 && (
-                <div>
-                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Proposed Actions</div>
-                  {params.remediation_options.map((opt: any, oi: number) => (
-                    <div key={oi} className="text-xs bg-[#151515] rounded px-3 py-2 mb-1 flex items-center gap-2">
-                      <span className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
-                        opt.risk === 'low' ? 'bg-[#3E8635] text-white' :
-                        opt.risk === 'medium' ? 'bg-[#F0AB00] text-black' :
-                        'bg-[#C9190B] text-white'
-                      }`}>{opt.risk}</span>
-                      <span className="text-white">{opt.action}</span>
-                      {opt.command && <code className="text-[#4EC9B0] bg-[#0d0d0d] px-1 rounded text-[11px]">{opt.command}</code>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <RCADetail rca={params.rca_output} namespace={item.target} cluster={params.cluster || ''} />
               {params.correlated_signals && params.correlated_signals.length > 0 && (
                 <div>
                   <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Correlated Signals ({params.correlated_signals.length})</div>
@@ -202,14 +283,9 @@ function ApprovalQueue({
                   </div>
                 </div>
               )}
-              {(params.reasoning || params.suggested_commands) && (
-                <div>
-                  {params.reasoning && <div className="text-xs text-[#C9C9C9] mb-1">{params.reasoning}</div>}
-                  {params.suggested_commands?.map((cmd: string, ci: number) => (
-                    <div key={ci} className="text-xs text-[#4EC9B0] bg-[#0d0d0d] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
-                  ))}
-                </div>
-              )}
+              <div className="text-[10px] text-[#555] border-t border-[#2e2e2e] pt-2 mt-2">
+                Acknowledge = mark as reviewed (no action executed). Dismiss = false positive / not actionable.
+              </div>
             </div>
           )}
         </div>
