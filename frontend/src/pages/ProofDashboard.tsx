@@ -246,6 +246,7 @@ export default function ProofDashboard() {
     queryKey: ['proof-history', expandedRow],
     queryFn: () => api.getProofHistory(expandedRow!),
     enabled: !!expandedRow,
+    refetchInterval: expandedRow ? 5_000 : false,
   });
 
   const [runError, setRunError] = useState<string | null>(null);

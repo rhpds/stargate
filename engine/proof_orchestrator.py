@@ -101,6 +101,11 @@ def run_proof_cycle(
             "failure_class": injection.get("failure_class"),
             "injected_resources": injection.get("injected_resources", []),
         }
+        result["steps"]["detect"] = {"status": "running", "commands": [], "message": "Polling cluster events..."}
+        result["steps"]["remediate"] = {"status": "waiting", "commands": [], "message": "Waiting for detection."}
+        result["steps"]["verify"] = {"status": "waiting", "commands": [], "message": "Waiting for remediation."}
+        result["steps"]["cleanup"] = {"status": "waiting", "commands": [], "message": "Waiting for verification."}
+        tracker.record_cycle_result(failure_class, result)
     except Exception as e:
         result["steps"]["inject"] = {"status": "failed", "commands": [], "error": str(e)}
         return result
@@ -135,6 +140,7 @@ def run_proof_cycle(
         "source": detection_source,
         "correct": detected_class == failure_class if detected else False,
     }
+    tracker.record_cycle_result(failure_class, result)
     if detected:
         tracker.record_detection(failure_class, detected_class, detection_source)
 
