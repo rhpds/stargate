@@ -1,0 +1,195 @@
+id: proof-pipeline
+version: "1.0"
+description: >
+  Cross-system proof pipeline rubric matrix.
+  Tracks each failure class through detection → governance → proof → trust
+  across Deepfield, GeoLux, and StarGate with TDD/EDD/CDD/BDD gates at each stage.
+
+stages:
+  # Stage 1: Detection (Deepfield)
+  - id: detect
+    system: deepfield
+    description: Real-time failure detection via K8s watch streams and signal correlation
+    gate: detected
+    dimensions:
+      tdd:
+        criteria:
+          - Signal collected from cluster watch stream
+          - Signal normalized with severity and confidence
+          - Nanoagent pipeline processed (20+ agents)
+        required: true
+      edd:
+        criteria:
+          - Pod status or K8s event matches failure pattern
+          - Correlation engine grouped related signals (minimum 2)
+          - Cluster identity preserved (uuid5, not random)
+        required: true
+      cdd:
+        criteria:
+          - Signal matches a known failure_class pattern from k8s-events.yaml
+          - Severity assigned correctly (critical/high/medium/low)
+          - Namespace and cluster_name are real (not "unknown")
+        required: true
+      bdd:
+        criteria:
+          - Failure appears in StarGate's Issues tab within detection timeout
+          - Deepfield incident pushed to StarGate approval queue (if critical/high)
+          - No false positives (detected class matches injected class)
+        required: false
+
+  # Stage 2: Hypothesis (GeoLux)
+  - id: hypothesize
+    system: geolux
+    description: Generate falsifiable hypotheses from evidence, stability-gated
+    gate: hypothesized
+    dimensions:
+      tdd:
+        criteria:
+          - Hypothesis engine received evidence bundle
+          - LLM call completed with stability score
+          - Structured hypothesis generated with conditions and predictions
+        required: true
+      edd:
+        criteria:
+          - Evidence bundle includes cross-system data (StarGate + Deepfield)
+          - Hypothesis references specific resources from evidence
+          - Stability score above threshold (0.7)
+        required: true
+      cdd:
+        criteria:
+          - Hypothesis has action_type and parameters
+          - Confidence is float 0-1
+          - Conditions are falsifiable (can be validated against evidence)
+        required: true
+      bdd:
+        criteria:
+          - Unstable hypothesis is flagged, not trusted
+          - Duplicate hypothesis for same cluster+failure_class is suppressed
+          - Hypothesis published to Kafka topic
+        required: false
+
+  # Stage 3: Classification (GeoLux)
+  - id: classify
+    system: geolux
+    description: Deterministic constraint classification via typed assertions
+    gate: classified
+    dimensions:
+      tdd:
+        criteria:
+          - Constraint assertions evaluated against evidence
+          - All assertion types handled (threshold, boolean, range, pattern, composite)
+          - Classification result stored with evidence chain
+        required: true
+      edd:
+        criteria:
+          - Classification cites specific constraint failures
+          - Semantic assertions (LLM-assisted) flagged with stability score
+          - Unstable semantic evaluation → inconclusive, not trusted
+        required: true
+      cdd:
+        criteria:
+          - Classification maps to known failure_class
+          - Severity matches constraint definition
+          - Evidence chain is complete (assertion → result → outcome)
+        required: true
+      bdd:
+        criteria:
+          - Classification published to Kafka
+          - Matches or refines Deepfield's initial classification
+        required: false
+
+  # Stage 4: MPC Recommendation (GeoLux)
+  - id: recommend
+    system: geolux
+    description: Model Predictive Control recommends action with prediction trace
+    gate: recommended
+    dimensions:
+      tdd:
+        criteria:
+          - MPC cycle completed with prediction horizon
+          - Candidate actions generated from state + objective
+          - Selected action has optimization score
+        required: true
+      edd:
+        criteria:
+          - Predictions reference actual cluster state metrics
+          - Horizon auto-adjusted based on stability scores
+          - Suspended if sustained instability detected
+        required: true
+      cdd:
+        criteria:
+          - Recommended action has action_type and parameters
+          - Prediction trace stored for audit
+          - Geometric stability profile recorded
+        required: true
+      bdd:
+        criteria:
+          - Action forwarded to StarGate via /integration/geolux-mpc-action
+          - No action recommended when MPC is suspended
+          - Audit trail created for every cycle
+        required: true
+
+  # Stage 5: Proof (StarGate)
+  - id: prove
+    system: stargate
+    description: Inject failure, run catalog/MPC action, verify result
+    gate: proven
+    dimensions:
+      tdd:
+        criteria:
+          - Failure injected in stargate-test namespace only
+          - Detection confirmed (pod status or cluster events)
+          - Actual catalog/MPC action executed (not a fake fix)
+          - Verification ran before cleanup
+        required: true
+      edd:
+        criteria:
+          - Before/after pod snapshots at inject, remediate, and verify
+          - Command traces recorded for every oc call
+          - Verify result is honest (failure still present = FAILED, not hidden)
+        required: true
+      cdd:
+        criteria:
+          - Proof cycle stored on persistent volume (survives restarts)
+          - Gate progression tracked (UNTESTED → DETECTED → VERIFIED → PROVEN)
+          - 3 consecutive passes required for PROVEN status
+        required: true
+      bdd:
+        criteria:
+          - HITL approval required in manual mode before remediation
+          - Proof visible in the Proof Dashboard with step-by-step timeline
+          - Failed proof is a finding about the catalog, not a system bug
+          - Only stargate-test namespace is modified (namespace guard enforced)
+        required: true
+
+  # Stage 6: Trust (Catalog Promotion)
+  - id: trust
+    system: stargate
+    description: Proven action promoted to catalog for auto-execution
+    gate: trusted
+    dimensions:
+      tdd:
+        criteria:
+          - Action achieved PROVEN status (3 consecutive successful cycles)
+          - Gate promoted from manual → low_risk_auto → full_auto
+          - Catalog entry created with action_type, commands, risk level
+        required: true
+      edd:
+        criteria:
+          - Proof receipts stored with full evidence chain
+          - Each cycle's command traces preserved for audit
+          - xDD rubric evaluation recorded per cycle
+        required: true
+      cdd:
+        criteria:
+          - Catalog entry matches the proven action exactly
+          - Risk level matches observed blast radius
+          - Namespace restrictions preserved from proof
+        required: true
+      bdd:
+        criteria:
+          - Auto-execution only in namespaces with matching lab config
+          - Rate limits enforced per lab
+          - Confidence gate still applies
+          - Human can override and revert to manual at any time
+        required: true
