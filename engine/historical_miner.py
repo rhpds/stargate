@@ -339,10 +339,103 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
     except Exception as e:
         logger.warning("Failed to save shadow state: %s", e)
 
+    # Also track Deepfield incidents
+    incident_result = track_incident_resolution(db, state)
+    state["incident_log"] = incident_result.get("incident_log", [])
+
+    # Re-save with incident data
+    try:
+        SHADOW_STATE_FILE.write_text(json.dumps(state, indent=2))
+    except Exception:
+        pass
+
     return {
         "status": "ok",
         "new_failures_processed": len(fed),
         "resolved_this_cycle": resolved_count,
         "total_shadow_log": len(shadow_log),
         "last_id": last_id,
+        "incidents_tracked": incident_result.get("total", 0),
+        "incidents_resolved": incident_result.get("resolved", 0),
+    }
+
+
+def track_incident_resolution(db, state: Dict = None) -> Dict:
+    """Track Deepfield incident resolution — no AI calls needed.
+
+    Deepfield incidents arrive pre-enriched with RCA + remediation options.
+    We just check if the underlying failures have resolved.
+    """
+    from db.models import PendingAction, EvaluationRecord
+
+    incident_log = (state or {}).get("incident_log", [])
+    seen_ids = {e.get("incident_id") for e in incident_log}
+
+    # Get Deepfield incidents
+    incidents = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "deepfield",
+    ).order_by(PendingAction.id.desc()).limit(50).all()
+
+    for inc in incidents:
+        inc_id = inc.source_event_id or str(inc.id)
+        if inc_id in seen_ids:
+            continue
+
+        params = inc.parameters or {}
+        entry = {
+            "incident_id": inc_id,
+            "action_type": inc.action_type,
+            "namespace": inc.target,
+            "cluster": params.get("cluster", ""),
+            "failure_class": params.get("failure_class", ""),
+            "severity": params.get("severity", ""),
+            "confidence": inc.confidence,
+            "has_rca": bool(params.get("rca_output")),
+            "remediation_options": len(params.get("remediation_options", [])),
+            "signal_count": params.get("signal_count", 0),
+            "status": inc.status,
+            "proposed_at": inc.proposed_at.isoformat() if inc.proposed_at else None,
+            "resolved": None,
+            "resolved_at": None,
+        }
+
+        # Check if the underlying failure resolved
+        ns = inc.target
+        fc = params.get("failure_class")
+        if ns and fc:
+            has_pass = db.query(EvaluationRecord.id).filter(
+                EvaluationRecord.lab_code == ns,
+                EvaluationRecord.outcome == "pass",
+            ).order_by(EvaluationRecord.id.desc()).first()
+            if has_pass:
+                entry["resolved"] = True
+                entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+
+        incident_log.append(entry)
+
+    # Check resolution for previously unresolved incidents
+    resolved_count = 0
+    for entry in incident_log:
+        if entry.get("resolved") is not None:
+            if entry["resolved"]:
+                resolved_count += 1
+            continue
+        ns = entry.get("namespace")
+        if ns:
+            has_pass = db.query(EvaluationRecord.id).filter(
+                EvaluationRecord.lab_code == ns,
+                EvaluationRecord.outcome == "pass",
+            ).order_by(EvaluationRecord.id.desc()).first()
+            if has_pass:
+                entry["resolved"] = True
+                entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                resolved_count += 1
+
+    incident_log = incident_log[-100:]
+
+    return {
+        "incident_log": incident_log,
+        "total": len(incident_log),
+        "resolved": resolved_count,
+        "unresolved": len(incident_log) - resolved_count,
     }
