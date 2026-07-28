@@ -10,7 +10,7 @@ import logging
 import re
 from typing import Any, Dict, List
 
-from engine.rollback import _run_oc
+from engine.rollback import _run_oc, _run_oc_traced
 
 logger = logging.getLogger("stargate.oc_executor")
 
@@ -95,17 +95,30 @@ def execute_oc_action(
                     if entry_classes & set(failure_classes):
                         from engine.investigation_runner import InvestigationRunner
                         runner = InvestigationRunner()
-                        return runner.run(
+                        inv_result = runner.run(
                             entry=entry.model_dump(),
                             namespace=namespace,
                             kubeconfig=kubeconfig,
                             params=params,
                         )
+                        # Ensure investigation results include proof-compatible command traces
+                        if "commands" not in inv_result:
+                            inv_result["commands"] = [
+                                {
+                                    "command": s.get("command", ""),
+                                    "output": s.get("output", "")[:2000],
+                                    "exit_code": s.get("exit_code", 0),
+                                    "duration_ms": s.get("duration_ms", 0),
+                                }
+                                for s in inv_result.get("steps", [])
+                            ]
+                        return inv_result
     except Exception:
         logger.debug("Investigation routing check failed, falling back to commands", exc_info=True)
 
     commands_planned = map_action_to_commands(action_type, namespace, params)
     commands_executed = []
+    command_traces = []
     errors = []
 
     dep = params.get("deployment", "app")
@@ -121,20 +134,22 @@ def execute_oc_action(
 
         try:
             if "create deployment" in cmd_str:
-                result = _run_oc([
+                result, trace = _run_oc_traced([
                     "create", "deployment", dep,
                     f"--image={image}",
                     "-n", namespace,
                 ], kubeconfig)
+                command_traces.append(trace)
                 commands_executed.append({"command": cmd_str, "result": result, "success": "created" in result.lower() or "already exists" in result.lower()})
 
             elif "scale" in cmd_str:
                 replicas = str(params.get("replicas", 3))
-                result = _run_oc([
+                result, trace = _run_oc_traced([
                     "scale", f"deployment/{dep}",
                     f"--replicas={replicas}",
                     "-n", namespace,
                 ], kubeconfig)
+                command_traces.append(trace)
                 commands_executed.append({"command": cmd_str, "result": result, "success": "scaled" in result.lower() or result == ""})
 
             elif "delete pod" in cmd_str:
@@ -145,20 +160,24 @@ def execute_oc_action(
                             pod = p
                             break
                 _validate_k8s_name(pod, "pod")
-                result = _run_oc(["delete", "pod", pod, "-n", namespace, "--ignore-not-found"], kubeconfig)
+                result, trace = _run_oc_traced(["delete", "pod", pod, "-n", namespace, "--ignore-not-found"], kubeconfig)
+                command_traces.append(trace)
                 commands_executed.append({"command": cmd_str, "result": result, "success": True})
 
             elif "rollout restart" in cmd_str:
-                result = _run_oc(["rollout", "restart", f"deployment/{dep}", "-n", namespace], kubeconfig)
+                result, trace = _run_oc_traced(["rollout", "restart", f"deployment/{dep}", "-n", namespace], kubeconfig)
+                command_traces.append(trace)
                 commands_executed.append({"command": cmd_str, "result": result, "success": "restarted" in result.lower() or result == ""})
 
             else:
                 logger.warning(f"Unrecognized command pattern, skipping: {cmd_str}")
                 commands_executed.append({"command": cmd_str, "result": "skipped: unrecognized command pattern", "success": False})
+                command_traces.append({"command": cmd_str, "output": "skipped: unrecognized command pattern", "exit_code": 1, "duration_ms": 0})
 
         except Exception as e:
             errors.append({"command": cmd_str, "error": str(e)})
             commands_executed.append({"command": cmd_str, "result": str(e), "success": False})
+            command_traces.append({"command": cmd_str, "output": str(e), "exit_code": 1, "duration_ms": 0})
 
     success = len(errors) == 0 and all(c.get("success", False) for c in commands_executed)
 
@@ -170,5 +189,6 @@ def execute_oc_action(
         "namespace": namespace,
         "commands_planned": commands_planned,
         "commands_executed": commands_executed,
+        "commands": command_traces,
         "errors": errors,
     }

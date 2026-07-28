@@ -9,9 +9,10 @@ Runs sequential kubectl commands where each step can:
 import json
 import logging
 import re
+import time
 from typing import Any, Dict
 
-from engine.rollback import _run_oc
+from engine.rollback import _run_oc, _run_oc_traced
 
 logger = logging.getLogger("stargate.investigation")
 
@@ -33,6 +34,7 @@ class InvestigationRunner:
         """
         context: Dict[str, Any] = {"namespace": namespace, **params}
         results = []
+        command_traces = []
 
         for i, step in enumerate(entry.get("steps", [])):
             # Check condition
@@ -47,10 +49,15 @@ class InvestigationRunner:
 
             cmd = self._substitute(cmd_template, context)
 
+            exit_code = 0
+            duration_ms = 0
             try:
-                output = _run_oc(cmd.split(), kubeconfig)
+                output, trace = _run_oc_traced(cmd.split(), kubeconfig)
+                exit_code = trace["exit_code"]
+                duration_ms = trace["duration_ms"]
             except Exception as e:
                 output = f"Error: {e}"
+                exit_code = 1
                 logger.warning("Investigation step %d failed: %s", i, e)
 
             if extract_expr and store_as:
@@ -63,11 +70,19 @@ class InvestigationRunner:
                 "step": i,
                 "command": cmd,
                 "output": output[:2000],
+                "exit_code": exit_code,
+                "duration_ms": duration_ms,
                 "stored_as": store_as,
+            })
+            command_traces.append({
+                "command": cmd,
+                "output": output[:2000],
+                "exit_code": exit_code,
+                "duration_ms": duration_ms,
             })
 
         report = self._format_output(entry.get("output_template", ""), context)
-        return {"steps": results, "report": report, "context": context}
+        return {"steps": results, "report": report, "context": context, "commands": command_traces}
 
     def _check_condition(self, condition: str, context: dict) -> bool:
         """Evaluate a condition against the current context.
