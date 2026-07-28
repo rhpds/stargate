@@ -1,7 +1,9 @@
 """Proof orchestrator — two-phase inject/detect then remediate/verify.
 
 Phase 1 (run_proof_cycle): inject → detect → create HITL pending → stop
-Phase 2 (continue_proof_cycle): remediate → verify → cleanup → record
+Phase 2 (continue_proof_cycle): remediate → verify → cleanup
+
+Results are merged — the UI always sees one complete 5-step cycle.
 
 SAFETY: Only operates on STARGATE_TEST_NAMESPACE.
 """
@@ -24,7 +26,23 @@ DETECTION_TIMEOUT = 120
 DETECTION_POLL_INTERVAL = 10
 
 
-def _load_failure_patterns() -> Dict[str, str]:
+def _oc(args, kubeconfig=""):
+    """Run an oc command and return trace dict."""
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
+    cmd_str = "oc " + " ".join(args)
+    t0 = time.time()
+    r = subprocess.run(["oc"] + args, capture_output=True, text=True, timeout=30, env=env)
+    return {
+        "command": cmd_str,
+        "output": (r.stdout.strip() if r.returncode == 0 else r.stderr.strip())[:2000],
+        "exit_code": r.returncode,
+        "duration_ms": int((time.time() - t0) * 1000),
+    }
+
+
+def _load_failure_patterns():
     import yaml
     patterns = {}
     fc_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "failure-classes", "k8s-events.yaml")
@@ -36,125 +54,91 @@ def _load_failure_patterns() -> Dict[str, str]:
     return patterns
 
 
-def _run_detect(namespace: str, kubeconfig: str, failure_class: str, failure_patterns: Dict[str, str], db=None) -> Dict:
-    """Poll cluster events and DB for the injected failure."""
-    detected = False
-    detected_class = None
-    detection_source = None
-    detect_commands = []
-    poll_attempts = 0
-
-    start_time = time.time()
-    while time.time() - start_time < DETECTION_TIMEOUT:
-        poll_attempts += 1
-        env = {**os.environ}
-        if kubeconfig:
-            env["KUBECONFIG"] = kubeconfig
-        t0 = time.time()
-        r = subprocess.run(
-            ["oc", "get", "events", "-n", namespace, "--sort-by=.lastTimestamp"],
-            capture_output=True, text=True, timeout=10, env=env,
-        )
-        detect_commands.append({
-            "command": f"oc get events -n {namespace} --sort-by=.lastTimestamp",
-            "output": r.stdout.strip()[:1500] if r.stdout else r.stderr.strip()[:500],
-            "exit_code": r.returncode,
-            "duration_ms": int((time.time() - t0) * 1000),
-        })
-        if r.returncode == 0 and r.stdout:
-            pattern = failure_patterns.get(failure_class, "")
-            if pattern and re.search(pattern, r.stdout, re.IGNORECASE):
-                detected = True
-                detected_class = failure_class
-                detection_source = "cluster_events"
-                break
-        if db:
-            from db.models import EvaluationRecord
-            recent = db.query(EvaluationRecord).filter(
-                EvaluationRecord.lab_code == namespace,
-                EvaluationRecord.outcome == "fail",
-            ).order_by(EvaluationRecord.id.desc()).first()
-            if recent and recent.failure_class:
-                detected = True
-                detected_class = recent.failure_class
-                detection_source = "stargate_db"
-                break
-        time.sleep(DETECTION_POLL_INTERVAL)
-
-    return {
-        "status": "detected" if detected else "timeout",
-        "commands": detect_commands[-3:],
-        "poll_attempts": poll_attempts,
-        "detected": detected,
-        "detected_class": detected_class,
-        "source": detection_source,
-        "correct": detected_class == failure_class if detected else False,
-    }
-
-
 def run_proof_cycle(
     failure_class: str,
     kubeconfig: str = "",
     mode: str = "manual",
     db=None,
 ) -> Dict:
-    """Phase 1: inject → detect → create HITL pending action → stop.
+    """Phase 1: inject → detect → create HITL pending → stop.
 
-    Does NOT remediate or cleanup. The injected failure stays live
-    until the user approves via continue_proof_cycle.
+    The injected failure stays live until approve triggers Phase 2.
     """
     namespace = ALLOWED_NAMESPACE
     tracker = ProofTracker()
+    now = datetime.now(timezone.utc).isoformat()
     result = {
         "failure_class": failure_class,
         "namespace": namespace,
         "mode": mode,
-        "phase": "inject_detect",
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": now,
         "steps": {},
         "success": False,
         "awaiting_approval": False,
     }
 
-    # 1. Capture baseline
-    try:
-        capture_state(namespace, kubeconfig)
-        result["steps"]["baseline"] = {"captured": True}
-    except Exception as e:
-        result["steps"]["baseline"] = {"captured": False, "error": str(e)}
+    # 1. Baseline — snapshot current state
+    baseline_cmd = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+    result["steps"]["inject"] = {"status": "pending", "commands": []}
 
     # 2. Inject failure
     try:
-        inject_started = datetime.now(timezone.utc).isoformat()
         injection = inject_failure(failure_class, namespace, kubeconfig)
-        inject_completed = datetime.now(timezone.utc).isoformat()
         if "error" in injection:
             result["steps"]["inject"] = {"status": "failed", "commands": [], **injection}
-            result["error"] = injection["error"]
             return result
         tracker.record_injection(failure_class, injection)
+
+        # Also capture pod state right after injection
+        after_inject = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+
         result["steps"]["inject"] = {
             "status": "success",
-            "commands": injection.get("commands", []),
-            "started_at": inject_started,
-            "completed_at": inject_completed,
+            "commands": injection.get("commands", []) + [
+                {"command": "--- before injection ---", "output": baseline_cmd["output"] or "(empty namespace)", "exit_code": 0, "duration_ms": 0},
+                {"command": "--- after injection ---", "output": after_inject["output"] or "(no pods yet)", "exit_code": 0, "duration_ms": 0},
+            ],
             "failure_class": injection.get("failure_class"),
             "injected_resources": injection.get("injected_resources", []),
-            "namespace": injection.get("namespace"),
         }
     except Exception as e:
         result["steps"]["inject"] = {"status": "failed", "commands": [], "error": str(e)}
-        result["error"] = str(e)
         return result
 
-    # 3. Detect
+    # 3. Detect — poll cluster events for the failure pattern
+    detect_commands = []
+    detected = False
+    detected_class = None
+    detection_source = None
+    poll_attempts = 0
     failure_patterns = _load_failure_patterns()
-    detect_result = _run_detect(namespace, kubeconfig, failure_class, failure_patterns, db)
-    result["steps"]["detect"] = detect_result
-    if detect_result["detected"]:
-        tracker.record_detection(failure_class, detect_result["detected_class"] or "", detect_result["source"] or "")
 
-    # 4. Create HITL pending action (in manual mode)
+    start_time = time.time()
+    while time.time() - start_time < DETECTION_TIMEOUT:
+        poll_attempts += 1
+        trace = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp"], kubeconfig)
+        detect_commands.append(trace)
+        if trace["exit_code"] == 0 and trace["output"]:
+            pattern = failure_patterns.get(failure_class, "")
+            if pattern and re.search(pattern, trace["output"], re.IGNORECASE):
+                detected = True
+                detected_class = failure_class
+                detection_source = "cluster_events"
+                break
+        time.sleep(DETECTION_POLL_INTERVAL)
+
+    result["steps"]["detect"] = {
+        "status": "detected" if detected else "timeout",
+        "commands": detect_commands[-2:],
+        "poll_attempts": poll_attempts,
+        "detected_class": detected_class,
+        "source": detection_source,
+        "correct": detected_class == failure_class if detected else False,
+    }
+    if detected:
+        tracker.record_detection(failure_class, detected_class, detection_source)
+
+    # 4. HITL gate — create pending action and stop
     if mode == "manual" and db:
         from db.models import PendingAction
         pending = PendingAction(
@@ -163,9 +147,7 @@ def run_proof_cycle(
             parameters={
                 "source": "proof_orchestrator",
                 "failure_class": failure_class,
-                "mode": mode,
-                "detected_class": detect_result.get("detected_class"),
-                "phase": "awaiting_approval",
+                "detected_class": detected_class,
             },
             confidence=0.95,
             proposed_by="proof_system",
@@ -178,18 +160,18 @@ def run_proof_cycle(
         result["steps"]["remediate"] = {
             "status": "awaiting_hitl_approval",
             "pending_id": pending.id,
-            "message": "Approve to proceed with remediation, verify, and cleanup.",
+            "message": "Approve to run remediation → verify → cleanup.",
         }
+        result["steps"]["verify"] = {"status": "waiting", "commands": [], "message": "Runs after remediation is approved."}
+        result["steps"]["cleanup"] = {"status": "waiting", "commands": [], "message": "Runs after verification."}
         result["awaiting_approval"] = True
         result["pending_id"] = pending.id
     elif mode != "manual":
-        # Auto mode — run phase 2 immediately
         phase2 = continue_proof_cycle(failure_class, kubeconfig, db)
         result["steps"]["remediate"] = phase2["steps"].get("remediate", {})
         result["steps"]["verify"] = phase2["steps"].get("verify", {})
         result["steps"]["cleanup"] = phase2["steps"].get("cleanup", {})
         result["success"] = phase2.get("success", False)
-        result["proof_status"] = phase2.get("proof_status")
 
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
     tracker.record_cycle_result(failure_class, result)
@@ -201,65 +183,76 @@ def continue_proof_cycle(
     kubeconfig: str = "",
     db=None,
 ) -> Dict:
-    """Phase 2: remediate → verify → cleanup. Called after HITL approval."""
+    """Phase 2: remediate → verify → cleanup. Merges with Phase 1 result."""
     namespace = ALLOWED_NAMESPACE
     tracker = ProofTracker()
-    result = {
+
+    # Load Phase 1 result so we can merge
+    fc_data = tracker._data.get("failure_classes", {}).get(failure_class, {})
+    phase1_results = fc_data.get("cycle_results", [])
+    phase1 = phase1_results[-1] if phase1_results else {}
+
+    result = dict(phase1) if phase1 else {
         "failure_class": failure_class,
         "namespace": namespace,
-        "phase": "remediate_verify",
         "started_at": datetime.now(timezone.utc).isoformat(),
         "steps": {},
-        "success": False,
     }
+    result["mode"] = phase1.get("mode", "manual")
 
-    # 1. Remediate
+    # Snapshot state before remediation
+    before_remediate = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+
+    # 1. Remediate — run the catalog action
+    remediate_commands = [
+        {"command": "--- pods before remediation ---", "output": before_remediate["output"] or "(no pods)", "exit_code": 0, "duration_ms": 0},
+    ]
     try:
         from engine.oc_executor import execute_oc_action
         exec_result = execute_oc_action(failure_class, namespace, kubeconfig, {})
+        exec_commands = exec_result.get("commands", [])
+        if isinstance(exec_commands, list):
+            remediate_commands.extend(exec_commands)
+        elif exec_result.get("command"):
+            remediate_commands.append({"command": str(exec_result["command"]), "output": str(exec_result.get("result", "")), "exit_code": 0 if exec_result.get("success") else 1, "duration_ms": 0})
         result["steps"]["remediate"] = {
             "status": "success" if exec_result.get("success") else "failed",
             "executed": True,
-            "commands": exec_result.get("commands", []),
-            **{k: v for k, v in exec_result.items() if k != "commands"},
+            "commands": remediate_commands,
+            "action": exec_result.get("action_type", failure_class),
         }
         tracker.record_remediation(failure_class, f"proof_{failure_class}", exec_result.get("success", False), exec_result)
     except Exception as e:
-        result["steps"]["remediate"] = {"status": "failed", "executed": True, "error": str(e), "commands": []}
+        remediate_commands.append({"command": "execute_oc_action", "output": str(e), "exit_code": 1, "duration_ms": 0})
+        result["steps"]["remediate"] = {"status": "failed", "executed": True, "commands": remediate_commands, "error": str(e)}
         tracker.record_remediation(failure_class, f"proof_{failure_class}", False, {"error": str(e)})
 
-    # 2. Verify
+    # 2. Verify — check if the failure is gone (BEFORE cleanup)
     remediated_ok = result["steps"]["remediate"].get("status") == "success"
     if remediated_ok:
         time.sleep(10)
-        env = {**os.environ}
-        if kubeconfig:
-            env["KUBECONFIG"] = kubeconfig
-        verify_start = time.time()
-        r = subprocess.run(
-            ["oc", "get", "pods", "-n", namespace, "-o", "wide"],
-            capture_output=True, text=True, timeout=15, env=env,
-        )
-        pods_output = r.stdout.strip()
+        verify_pods = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+        verify_events = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "--field-selector=type=Warning"], kubeconfig)
+
+        pods_output = verify_pods["output"]
         has_crashloop = "CrashLoopBackOff" in pods_output
         has_err = "Error" in pods_output or "ImagePullBackOff" in pods_output
-        clean = not has_crashloop and not has_err
+        has_pending = "Pending" in pods_output
+        clean = not has_crashloop and not has_err and not has_pending
 
         result["steps"]["verify"] = {
             "status": "clean" if clean else "failed",
-            "commands": [{
-                "command": f"oc get pods -n {namespace} -o wide",
-                "output": pods_output[:500],
-                "exit_code": r.returncode,
-                "duration_ms": int((time.time() - verify_start) * 1000),
-            }],
+            "commands": [
+                {"command": "--- pods after remediation ---", "output": pods_output or "(no pods)", "exit_code": 0, "duration_ms": 0},
+                verify_events,
+            ],
             "clean": clean,
         }
         tracker.record_verification(failure_class, clean, {"pods": pods_output[:500]})
     else:
         result["steps"]["verify"] = {"status": "skipped", "commands": [], "reason": "remediation failed"}
 
-    # 3. Cleanup
+    # 3. Cleanup — remove all proof resources
     try:
         cleanup = cleanup_all(namespace, kubeconfig)
         result["steps"]["cleanup"] = {
@@ -274,5 +267,6 @@ def continue_proof_cycle(
     result["success"] = result["steps"].get("verify", {}).get("clean", False)
     result["proof_status"] = tracker.get_status(failure_class)
 
+    # Replace the Phase 1 result with the merged result
     tracker.record_cycle_result(failure_class, result)
     return result
