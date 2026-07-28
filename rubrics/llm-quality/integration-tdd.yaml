@@ -1,0 +1,33 @@
+id: integration-tdd
+version: "1.0"
+prompt_type: integration
+dimension: tdd
+criteria:
+  - name: has_incident_id
+    check_type: section_present
+    target: "incident_id|incident"
+    required: true
+  - name: has_namespace
+    check_type: section_present
+    target: "namespace"
+    required: true
+  - name: has_failure_class
+    check_type: section_present
+    target: "failure_class|failure class"
+    required: true
+  - name: has_rca_output
+    check_type: section_present
+    target: "rca|root cause|analysis"
+    required: true
+  - name: has_evidence
+    check_type: section_present
+    target: "evidence|signal|finding"
+    required: true
+  - name: has_remediation
+    check_type: section_present
+    target: "remediation|fix|action"
+    required: true
+  - name: minimum_length
+    check_type: min_length
+    target: "100"
+    required: true

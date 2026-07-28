@@ -18,6 +18,7 @@ class Event:
     stage_id: Optional[str] = None
     lab_code: Optional[str] = None
     cluster_name: Optional[str] = None
+    namespace: Optional[str] = None
     outcome: Optional[str] = None
     failure_class: Optional[str] = None
     message: Optional[str] = None
@@ -40,6 +41,7 @@ class Event:
             "stage_id": self.stage_id,
             "lab_code": self.lab_code,
             "cluster_name": self.cluster_name,
+            "namespace": self.namespace,
             "outcome": self.outcome,
             "failure_class": self.failure_class,
             "message": self.message,

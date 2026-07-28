@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import repository
 from engine.models import Run, RunStatus
-from api.schemas import ExternalEvidenceRequest, FeedbackRequest
+from api.schemas import DeepfieldIncidentRequest, ExternalEvidenceRequest, FeedbackRequest
 from api.routers._shared import _event_bus, require_admin
 
 router = APIRouter()
@@ -169,6 +169,93 @@ def receive_geolux_proposal(body: "GeoluxProposalRequest", db: Session = Depends
         "action_type": action_type,
         "target": target,
         "confidence": confidence,
+        "status": "queued_for_approval",
+    }
+
+
+@router.post("/integration/deepfield-incident", status_code=201)
+def receive_deepfield_incident(body: "DeepfieldIncidentRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Receive an enriched incident from Deepfield's correlation + RCA pipeline.
+
+    Deepfield sends correlated findings with root cause analysis,
+    confidence scores, and remediation options. These are queued as
+    PendingActions for human review — NO auto-remediation.
+    """
+    from api.schemas import DeepfieldIncidentRequest  # noqa: F811
+    from db.models import PendingAction, AuditLog
+
+    if not body.incident_id:
+        raise HTTPException(status_code=422, detail="incident_id is required")
+    if not body.namespace:
+        raise HTTPException(status_code=422, detail="namespace is required")
+
+    # Idempotency — check for duplicate incident_id
+    existing = db.query(PendingAction).filter(
+        PendingAction.source_event_id == body.incident_id,
+        PendingAction.proposed_by == "deepfield",
+    ).first()
+    if existing:
+        return {
+            "pending_id": existing.id,
+            "action_type": existing.action_type,
+            "target": existing.target,
+            "confidence": body.confidence,
+            "status": "already_queued",
+        }
+
+    action_type = f"deepfield_{body.failure_class or 'investigation'}"
+
+    pending = PendingAction(
+        action_type=action_type,
+        target=body.namespace,
+        parameters={
+            "source": "deepfield",
+            "incident_id": body.incident_id,
+            "cluster": body.cluster,
+            "lab_code": body.lab_code,
+            "failure_class": body.failure_class,
+            "severity": body.severity,
+            "rca_output": body.rca_output,
+            "correlated_signals": body.correlated_signals[:10],
+            "remediation_options": body.remediation_options,
+            "evidence_chain": body.evidence_chain[:10],
+            "signal_count": body.signal_count,
+        },
+        confidence=body.confidence,
+        proposed_by="deepfield",
+        source_event_id=body.incident_id,
+        status="pending",
+        proposed_at=datetime.now(timezone.utc),
+    )
+    db.add(pending)
+
+    audit = AuditLog(
+        action_type=action_type,
+        target=body.namespace,
+        parameters={
+            "source": "deepfield",
+            "incident_id": body.incident_id,
+            "confidence": body.confidence,
+            "failure_class": body.failure_class,
+        },
+        proposed_by="deepfield",
+        status="proposed",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+    db.commit()
+
+    import logging
+    logging.getLogger("stargate").info(
+        "Deepfield incident received: %s on %s (confidence %.2f, %d signals)",
+        body.failure_class, body.namespace, body.confidence, body.signal_count,
+    )
+
+    return {
+        "pending_id": pending.id,
+        "action_type": action_type,
+        "target": body.namespace,
+        "confidence": body.confidence,
         "status": "queued_for_approval",
     }
 
