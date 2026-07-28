@@ -291,4 +291,12 @@ export const api = {
   getSandboxTrends: (hours = 24) => request<{ timeline: any[] }>(`/dashboard/sandbox-trends?hours=${hours}`),
   getMTTR: (hours = 168) => request<any>(`/dashboard/mttr?hours=${hours}`),
   getSummitReport: () => request<any>('/dashboard/summit-report'),
+
+  // Proof Dashboard
+  getProofMatrix: () => request<any>('/admin/proof/matrix'),
+  getProofHistory: (failureClass: string) => request<any>(`/admin/proof/history/${encodeURIComponent(failureClass)}`),
+  runProof: (failureClass: string, mode: string) => request<any>('/admin/proof/run', {
+    method: 'POST',
+    body: JSON.stringify({ failure_class: failureClass, mode }),
+  }),
 };
