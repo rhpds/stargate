@@ -414,6 +414,7 @@ export default function Remediation() {
     refetchInterval: 30_000,
   });
 
+  const [activeTab, setActiveTab] = useState<'issues' | 'incidents' | 'history'>('issues');
   const [search, setSearch] = useState('');
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
@@ -469,7 +470,7 @@ export default function Remediation() {
           <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Red Hat Display' }}>
             Remediation
           </h1>
-          <p className="text-[#6A6E73]">Approval queue, execution history, playbook catalog</p>
+          <p className="text-[#6A6E73]">Investigate issues, review incidents, track remediation</p>
         </div>
         <SearchBar placeholder="Search namespace, failure class..." value={search} onChange={setSearch} className="w-72" />
       </div>
@@ -478,13 +479,42 @@ export default function Remediation() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Recommendations" value={recommendations.data?.total ?? 0} />
         <MetricCard label="Ecosystem Issues" value={recommendations.data?.ecosystem_count ?? 0} />
-        <MetricCard label="Pending Approval" value={totalPending} />
+        <MetricCard label="Incidents" value={totalPending} />
         <MetricCard label="Executed Actions" value={recentExecuted} />
       </div>
 
-      {/* Auto-generated Recommendations */}
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-[#333]">
+        {([
+          { key: 'issues' as const, label: 'Issues', count: recommendations.data?.total ?? 0 },
+          { key: 'incidents' as const, label: 'Incidents', count: totalPending },
+          { key: 'history' as const, label: 'History', count: recentExecuted },
+        ]).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium transition border-b-2 -mb-px ${
+              activeTab === tab.key
+                ? 'text-white border-[#EE0000]'
+                : 'text-[#6A6E73] border-transparent hover:text-white hover:border-[#555]'
+            }`}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                activeTab === tab.key ? 'bg-[#EE0000] text-white' : 'bg-[#333] text-[#8A8D90]'
+              }`}>{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Issues tab */}
+      {activeTab === 'issues' && (
       <section>
-        <SectionHeader>Recommendations (Last Hour)</SectionHeader>
+        <div className="mb-3">
+          <p className="text-sm text-[#8A8D90]">Active failures detected by StarGate's scanner across your clusters. Click a row to investigate — run diagnostic commands and get AI analysis.</p>
+        </div>
         <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
           {(() => {
             const allRecs = recommendations.data?.recommendations ?? [];
@@ -919,30 +949,40 @@ export default function Remediation() {
           })()}
         </div>
       </section>
+      )}
 
-      {/* Approval Queue */}
-      <section>
-        <SectionHeader>Approval Queue</SectionHeader>
+      {/* Incidents tab */}
+      {activeTab === 'incidents' && (
+      <section className="space-y-6">
+        <div className="mb-3">
+          <p className="text-sm text-[#8A8D90]">Enriched incidents from Deepfield's real-time correlation engine. Each incident groups related signals, runs root cause analysis, and suggests remediation. Acknowledge to mark as reviewed. Dismiss if it's a false positive. No actions are executed automatically.</p>
+        </div>
         <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
           <ApprovalQueue pending={pending} onApprove={handleApprove} onReject={handleReject} />
         </div>
       </section>
+      )}
 
-      {/* Execution History */}
-      <section>
-        <SectionHeader>Execution History</SectionHeader>
-        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
-          <ActivityTable activity={activity} />
+      {/* History tab */}
+      {activeTab === 'history' && (
+      <section className="space-y-6">
+        <div className="mb-3">
+          <p className="text-sm text-[#8A8D90]">Record of all remediation actions — what was proposed, acknowledged, dismissed, or executed. Lab configs control which namespaces allow automated remediation and at what rate.</p>
+        </div>
+        <div>
+          <SectionHeader>Execution History</SectionHeader>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
+            <ActivityTable activity={activity} />
+          </div>
+        </div>
+        <div>
+          <SectionHeader>Lab Remediation Configs</SectionHeader>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
+            <ConfigTable configs={configs} />
+          </div>
         </div>
       </section>
-
-      {/* Playbook Catalog (Remediation Configs) */}
-      <section>
-        <SectionHeader>Lab Remediation Configs</SectionHeader>
-        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
-          <ConfigTable configs={configs} />
-        </div>
-      </section>
+      )}
     </div>
   );
 }
