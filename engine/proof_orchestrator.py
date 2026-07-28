@@ -175,6 +175,10 @@ def run_proof_cycle(
         "scheduling_failed":       [("get", "pods", "Pending"), ("get", "events", "FailedScheduling|Unschedulable")],
         "quota_exceeded":          [("get", "events", "forbidden.*quota|exceeded quota"), ("get", "pods", "Pending")],
         "claim_misbound":          [("get", "pvc", "Pending|Lost"), ("get", "events", "ClaimMisbound|FailedBinding")],
+        "backoff_limit_exceeded":  [("get", "events", "BackoffLimitExceeded"), ("get", "pods", "Error")],
+        "image_pull_secret_missing": [("get", "pods", "ImagePullBackOff|ErrImagePull"), ("get", "events", "pull.*secret|FailedToRetrieve")],
+        "deprecated_api":          [("get", "pods", "Running")],
+        "pvc_binding_failed":      [("get", "pvc", "Pending"), ("get", "events", "FailedBinding|ProvisioningFailed")],
     }
 
     checks = detect_checks.get(failure_class, [("get", "pods", "")])
