@@ -330,6 +330,338 @@ def inject_deprecated_api(namespace: str, kubeconfig: str = "") -> Dict:
     }
 
 
+def inject_sync_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create a deployment and scale to trigger controller reconciliation events.
+
+    Catalog action: inspect sync/reconcile events
+    Reality: Controller activity generates events — detection relies on
+    SyncFailed or ReconcileFailed events appearing in the namespace.
+
+    Honest outcome: Detection may timeout if the cluster doesn't emit
+    these specific event types — that's an honest result showing this
+    failure class is hard to synthetically reproduce.
+    """
+    _validate_namespace(namespace)
+    name = "proof-sync-fail"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
+        "--", "sleep", "3600"
+    ], kubeconfig))
+    commands.append(_run_oc(["scale", "deployment", name, "--replicas=2", "-n", namespace], kubeconfig))
+    return {
+        "failure_class": "sync_failed",
+        "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_sync_failed",
+        "why": "Controller reconciliation triggered — detection relies on SyncFailed/ReconcileFailed events.",
+    }
+
+
+def inject_pod_pending(namespace: str, kubeconfig: str = "") -> Dict:
+    """Deploy with enormous CPU request (100 cores) that no node can satisfy.
+
+    Catalog action: inspect pending pods
+    Reality: No node has 100 CPU cores available — pod stays Pending
+    with FailedScheduling events forever.
+
+    Honest outcome: Pod remains Pending — must reduce CPU request or
+    add capacity.
+    """
+    _validate_namespace(namespace)
+    name = "proof-pending"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
+        "--", "sleep", "3600"
+    ], kubeconfig))
+    patch = json.dumps({
+        "spec": {"template": {"spec": {"containers": [{"name": "ubi-minimal", "resources": {
+            "requests": {"cpu": "100"}
+        }}]}}}
+    })
+    commands.append(_run_oc(["patch", "deployment", name, "-n", namespace, "-p", patch, "--type=strategic"], kubeconfig))
+    return {
+        "failure_class": "pod_pending",
+        "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_pod_pending",
+        "why": "CPU request is 100 cores — no node can satisfy this. Must reduce request or add capacity.",
+    }
+
+
+def inject_volume_mount_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """Deploy with a volume referencing a non-existent secret.
+
+    Catalog action: inspect volume mount failures
+    Reality: Secret doesn't exist — pod stuck in ContainerCreating with
+    FailedMount events.
+
+    Honest outcome: Must create the secret or remove the volume mount.
+    """
+    _validate_namespace(namespace)
+    name = "proof-volmount"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    deploy = {
+        "apiVersion": "apps/v1", "kind": "Deployment",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {"replicas": 1, "selector": {"matchLabels": {"app": name}},
+            "template": {"metadata": {"labels": {"app": name}},
+                "spec": {"containers": [{"name": "app", "image": "registry.access.redhat.com/ubi9/ubi-minimal:latest",
+                    "command": ["sleep", "3600"],
+                    "volumeMounts": [{"name": "secret-vol", "mountPath": "/secret"}]}],
+                    "volumes": [{"name": "secret-vol", "secret": {"secretName": "nonexistent-secret-proof"}}]}}}
+    }
+    commands.append(_apply_manifest(deploy, namespace, kubeconfig))
+    return {
+        "failure_class": "volume_mount_failed",
+        "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_volume_mount_failed",
+        "why": "Secret 'nonexistent-secret-proof' doesn't exist — must create it or remove the volume mount.",
+    }
+
+
+def inject_invalid_configuration(namespace: str, kubeconfig: str = "") -> Dict:
+    """Deploy a pod that references a non-existent configmap as envFrom.
+
+    Catalog action: inspect invalid configuration
+    Reality: ConfigMap doesn't exist — pod stuck in CreateContainerConfigError.
+
+    Honest outcome: Must create the configmap or remove the envFrom reference.
+    """
+    _validate_namespace(namespace)
+    name = "proof-invalid-config"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    deploy = {
+        "apiVersion": "apps/v1", "kind": "Deployment",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {"replicas": 1, "selector": {"matchLabels": {"app": name}},
+            "template": {"metadata": {"labels": {"app": name}},
+                "spec": {"containers": [{"name": "app", "image": "registry.access.redhat.com/ubi9/ubi-minimal:latest",
+                    "command": ["sleep", "3600"],
+                    "envFrom": [{"configMapRef": {"name": "nonexistent-config-proof"}}]}]}}}
+    }
+    commands.append(_apply_manifest(deploy, namespace, kubeconfig))
+    return {
+        "failure_class": "invalid_configuration",
+        "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_invalid_configuration",
+        "why": "ConfigMap 'nonexistent-config-proof' doesn't exist — must create it or remove the envFrom reference.",
+    }
+
+
+def inject_datasource_unrecognized(namespace: str, kubeconfig: str = "") -> Dict:
+    """Deploy with an annotation marking an unrecognized datasource.
+
+    Catalog action: inspect unrecognized datasource
+    Reality: CDI DataVolume with invalid source would fail — we simulate
+    this with an annotation since CDI may not be installed.
+
+    Honest outcome: Must fix the datasource reference or install CDI.
+    """
+    _validate_namespace(namespace)
+    name = "proof-datasource"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
+        "--", "sleep", "3600"
+    ], kubeconfig))
+    commands.append(_run_oc(["annotate", "deployment", name, "cdi.kubevirt.io/unrecognizedDataSource=true", "-n", namespace], kubeconfig))
+    return {
+        "failure_class": "datasource_unrecognized",
+        "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_datasource_unrecognized",
+        "why": "Unrecognized datasource annotation — must fix datasource reference or install CDI.",
+    }
+
+
+def inject_volume_attach_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create a PVC with a specific volumeName that doesn't exist, then
+    create a pod that tries to use it.
+
+    Catalog action: inspect volume attach failures
+    Reality: PV doesn't exist — PVC stays Pending and pod can't start,
+    generating FailedAttachVolume events.
+
+    Honest outcome: Must create the PV or rebind the PVC.
+    """
+    _validate_namespace(namespace)
+    name = "proof-volattach"
+    pvc_name = f"{name}-pvc"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc(["delete", "pvc", pvc_name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    pvc = {
+        "apiVersion": "v1", "kind": "PersistentVolumeClaim",
+        "metadata": {"name": pvc_name, "namespace": namespace},
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {"requests": {"storage": "1Gi"}},
+            "volumeName": "nonexistent-pv-attach-proof",
+            "storageClassName": "",
+        }
+    }
+    commands.append(_apply_manifest(pvc, namespace, kubeconfig))
+    deploy = {
+        "apiVersion": "apps/v1", "kind": "Deployment",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {"replicas": 1, "selector": {"matchLabels": {"app": name}},
+            "template": {"metadata": {"labels": {"app": name}},
+                "spec": {"containers": [{"name": "app", "image": "registry.access.redhat.com/ubi9/ubi-minimal:latest",
+                    "command": ["sleep", "3600"],
+                    "volumeMounts": [{"name": "data", "mountPath": "/data"}]}],
+                    "volumes": [{"name": "data", "persistentVolumeClaim": {"claimName": pvc_name}}]}}}
+    }
+    commands.append(_apply_manifest(deploy, namespace, kubeconfig))
+    return {
+        "failure_class": "volume_attach_failed",
+        "injected_resources": [f"pvc/{pvc_name}", f"deployment/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_volume_attach_failed",
+        "why": "PV 'nonexistent-pv-attach-proof' doesn't exist — PVC stays Pending and pod can't mount volume.",
+    }
+
+
+def inject_volume_resize_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create a small PVC then try to resize it beyond capacity.
+
+    Catalog action: inspect volume resize failures
+    Reality: Resizing to 1000Ti likely exceeds capacity or the storage
+    class doesn't support expansion — generates VolumeResizeFailed events.
+
+    Honest outcome: Must use a supported size or enable volume expansion
+    on the storage class.
+    """
+    _validate_namespace(namespace)
+    name = "proof-volresize"
+    pvc_name = f"{name}-pvc"
+    commands = []
+    commands.append(_run_oc(["delete", "pvc", pvc_name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    pvc = {
+        "apiVersion": "v1", "kind": "PersistentVolumeClaim",
+        "metadata": {"name": pvc_name, "namespace": namespace},
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {"requests": {"storage": "1Gi"}},
+            "storageClassName": "ocs-storagecluster-ceph-rbd",
+        }
+    }
+    commands.append(_apply_manifest(pvc, namespace, kubeconfig))
+    patch = json.dumps({"spec": {"resources": {"requests": {"storage": "1000Ti"}}}})
+    commands.append(_run_oc(["patch", "pvc", pvc_name, "-n", namespace, "-p", patch], kubeconfig))
+    return {
+        "failure_class": "volume_resize_failed",
+        "injected_resources": [f"pvc/{pvc_name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_volume_resize_failed",
+        "why": "Resize to 1000Ti exceeds capacity — must use a supported size or enable expansion.",
+    }
+
+
+def inject_resolution_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create a Subscription referencing a non-existent operator.
+
+    Catalog action: inspect resolution failures
+    Reality: Operator doesn't exist in the catalog — Subscription stays
+    in ResolutionFailed state.
+
+    Honest outcome: Must fix the operator name or ensure the catalog source
+    contains the operator.
+    """
+    _validate_namespace(namespace)
+    name = "proof-resolution"
+    commands = []
+    commands.append(_run_oc(["delete", "subscription", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    sub = {
+        "apiVersion": "operators.coreos.com/v1alpha1", "kind": "Subscription",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {
+            "channel": "stable",
+            "name": "nonexistent-operator-proof",
+            "source": "redhat-operators",
+            "sourceNamespace": "openshift-marketplace",
+        }
+    }
+    commands.append(_apply_manifest(sub, namespace, kubeconfig))
+    return {
+        "failure_class": "resolution_failed",
+        "injected_resources": [f"subscription/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_resolution_failed",
+        "why": "Operator 'nonexistent-operator-proof' doesn't exist — must fix operator name or catalog source.",
+    }
+
+
+def inject_hpa_metric_failure(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create a deployment with no CPU requests, then create an HPA targeting it.
+
+    Catalog action: inspect HPA metric failures
+    Reality: HPA can't compute CPU utilization percentage without a CPU
+    request — generates FailedGetResourceMetric events.
+
+    Honest outcome: Must add CPU requests to the deployment or change
+    the HPA metric type.
+    """
+    _validate_namespace(namespace)
+    name = "proof-hpa"
+    commands = []
+    commands.append(_run_oc(["delete", "hpa", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
+        "--", "sleep", "3600"
+    ], kubeconfig))
+    hpa = {
+        "apiVersion": "autoscaling/v2", "kind": "HorizontalPodAutoscaler",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {
+            "scaleTargetRef": {"apiVersion": "apps/v1", "kind": "Deployment", "name": name},
+            "minReplicas": 1, "maxReplicas": 3,
+            "metrics": [{"type": "Resource", "resource": {
+                "name": "cpu", "target": {"type": "Utilization", "averageUtilization": 50}
+            }}]
+        }
+    }
+    commands.append(_apply_manifest(hpa, namespace, kubeconfig))
+    return {
+        "failure_class": "hpa_metric_failure",
+        "injected_resources": [f"deployment/{name}", f"hpa/{name}"],
+        "namespace": namespace,
+        "commands": commands,
+        "proof_type": "investigation",
+        "catalog_action": "inspect_hpa_metric_failure",
+        "why": "No CPU request on deployment — HPA can't compute utilization. Must add CPU requests.",
+    }
+
+
 def inject_pvc_binding_failed(namespace: str, kubeconfig: str = "") -> Dict:
     """PVC requesting non-existent storage class."""
     _validate_namespace(namespace)
@@ -363,6 +695,15 @@ INJECTORS = {
     "image_pull_secret_missing": inject_image_pull_secret_missing,
     "deprecated_api": inject_deprecated_api,
     "pvc_binding_failed": inject_pvc_binding_failed,
+    "sync_failed": inject_sync_failed,
+    "pod_pending": inject_pod_pending,
+    "volume_mount_failed": inject_volume_mount_failed,
+    "invalid_configuration": inject_invalid_configuration,
+    "datasource_unrecognized": inject_datasource_unrecognized,
+    "volume_attach_failed": inject_volume_attach_failed,
+    "volume_resize_failed": inject_volume_resize_failed,
+    "resolution_failed": inject_resolution_failed,
+    "hpa_metric_failure": inject_hpa_metric_failure,
 }
 
 
@@ -378,7 +719,12 @@ def cleanup_all(namespace: str, kubeconfig: str = "") -> Dict:
     _validate_namespace(namespace)
     commands = []
     deleted = []
-    for name in ["proof-crashloop", "proof-readiness", "proof-imagepull", "proof-oom", "proof-quota-exceed", "proof-unschedulable", "proof-no-secret", "proof-deprecated"]:
+    for name in [
+        "proof-crashloop", "proof-readiness", "proof-imagepull", "proof-oom",
+        "proof-quota-exceed", "proof-unschedulable", "proof-no-secret", "proof-deprecated",
+        "proof-sync-fail", "proof-pending", "proof-volmount", "proof-invalid-config",
+        "proof-datasource", "proof-volattach", "proof-volresize", "proof-hpa",
+    ]:
         trace = _run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig)
         commands.append(trace)
         if "deleted" in trace["output"].lower():
@@ -390,9 +736,25 @@ def cleanup_all(namespace: str, kubeconfig: str = "") -> Dict:
         if "deleted" in trace["output"].lower():
             deleted.append(f"job/{name}")
     # PVCs, quotas, configmaps
-    for name, kind in [("proof-misbound-pvc", "pvc"), ("proof-pvc-nobind", "pvc"), ("proof-quota", "resourcequota"), ("proof-crashloop-ready", "configmap")]:
+    for name, kind in [
+        ("proof-misbound-pvc", "pvc"), ("proof-pvc-nobind", "pvc"),
+        ("proof-volattach-pvc", "pvc"), ("proof-volresize-pvc", "pvc"),
+        ("proof-quota", "resourcequota"), ("proof-crashloop-ready", "configmap"),
+    ]:
         trace = _run_oc(["delete", kind, name, "-n", namespace, "--ignore-not-found"], kubeconfig)
         commands.append(trace)
         if "deleted" in trace["output"].lower():
             deleted.append(f"{kind}/{name}")
+    # HPAs
+    for name in ["proof-hpa"]:
+        trace = _run_oc(["delete", "hpa", name, "-n", namespace, "--ignore-not-found"], kubeconfig)
+        commands.append(trace)
+        if "deleted" in trace["output"].lower():
+            deleted.append(f"hpa/{name}")
+    # Subscriptions
+    for name in ["proof-resolution"]:
+        trace = _run_oc(["delete", "subscription", name, "-n", namespace, "--ignore-not-found"], kubeconfig)
+        commands.append(trace)
+        if "deleted" in trace["output"].lower():
+            deleted.append(f"subscription/{name}")
     return {"namespace": namespace, "deleted": deleted, "commands": commands}
