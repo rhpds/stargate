@@ -1,0 +1,25 @@
+id: proof-tdd
+version: "1.0"
+prompt_type: proof
+dimension: tdd
+criteria:
+  - name: has_injection_evidence
+    check_type: section_present
+    target: "injected|created|deployed|failure.*inject"
+    required: true
+  - name: has_detection_evidence
+    check_type: section_present
+    target: "detected|classified|failure_class|scanner"
+    required: true
+  - name: has_remediation_evidence
+    check_type: section_present
+    target: "remediated|executed|action|command"
+    required: true
+  - name: has_verification_evidence
+    check_type: section_present
+    target: "verified|clean|resolved|passed"
+    required: true
+  - name: has_rollback_evidence
+    check_type: section_present
+    target: "rollback|restore|snapshot|capture"
+    required: false
