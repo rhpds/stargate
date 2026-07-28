@@ -52,6 +52,9 @@ function MetricCard({ label, value }: { label: string; value: string | number })
 }
 
 function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<string, any>; queryClient: any; failureClass: string }) {
+  const [continuing, setContinuing] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
+
   return (
     <div className="space-y-2">
       {STEP_ORDER.map((stepName) => {
@@ -122,34 +125,50 @@ function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<stri
               )}
               {step?.pending_id && (
                 <div className="mt-2 space-y-2">
-                  <div className="text-xs text-[#F0AB00]">HITL approval required — approve to run remediation + verify + cleanup</div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const fc = failureClass;
-                        api.approveAction(step.pending_id).then(() =>
-                          api.continueProof(fc).then(() =>
-                            queryClient.invalidateQueries({ queryKey: ['proof-matrix'] })
-                          )
-                        );
-                      }}
-                    >
-                      Approve + Continue
-                    </button>
-                    <button
-                      className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded font-medium transition"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        api.rejectAction(step.pending_id).then(() => {
-                          queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
-                        });
-                      }}
-                    >
-                      Reject
-                    </button>
-                  </div>
+                  {continuing ? (
+                    <div className="text-xs text-[#4ade80] font-medium animate-pulse">Running remediation → verify → cleanup... this may take 30+ seconds</div>
+                  ) : (
+                    <>
+                      <div className="text-xs text-[#F0AB00]">HITL approval required — approve to run remediation + verify + cleanup</div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition disabled:opacity-50"
+                          disabled={continuing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContinuing(true);
+                            setContinueError(null);
+                            api.approveAction(step.pending_id)
+                              .then(() => api.continueProof(failureClass))
+                              .then(() => {
+                                setContinuing(false);
+                                queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                              })
+                              .catch((err: any) => {
+                                setContinuing(false);
+                                setContinueError(err.message || 'Failed');
+                              });
+                          }}
+                        >
+                          Approve + Continue
+                        </button>
+                        <button
+                          className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded font-medium transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            api.rejectAction(step.pending_id).then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                            });
+                          }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {continueError && (
+                    <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2">{continueError}</div>
+                  )}
                 </div>
               )}
               {step?.error && (
