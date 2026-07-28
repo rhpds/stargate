@@ -1,0 +1,17 @@
+id: proof-bdd
+version: "1.0"
+prompt_type: proof
+dimension: bdd
+criteria:
+  - name: no_resources_outside_test_ns
+    check_type: section_present
+    target: "stargate-test|test.*namespace|scoped|isolated"
+    required: true
+  - name: hitl_gate_respected
+    check_type: section_present
+    target: "approval|pending|human|HITL|manual"
+    required: false
+  - name: namespace_clean_after_cycle
+    check_type: section_present
+    target: "clean|no.*resources|cleanup|removed"
+    required: true

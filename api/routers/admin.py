@@ -1451,3 +1451,40 @@ def execute_remediation(request: Request, body: "RemediationExecuteRequest", db:
         "cluster": cluster,
         **result,
     }
+
+
+# ---------------------------------------------------------------------------
+# Synthetic remediation proof system
+# ---------------------------------------------------------------------------
+
+@router.post("/admin/proof/run")
+def run_proof(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Run a proof cycle for a specific failure class in the test namespace."""
+    from engine.proof_orchestrator import run_proof_cycle
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+
+    failure_class = req.get("failure_class", "")
+    mode = req.get("mode", "manual")
+
+    if not failure_class:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="failure_class is required")
+
+    result = run_proof_cycle(
+        failure_class=failure_class,
+        kubeconfig=EXECUTOR_KUBECONFIG,
+        mode=mode,
+        db=db,
+    )
+    return result
+
+
+@router.get("/admin/proof/matrix")
+def get_proof_matrix(_auth=Depends(require_admin_read)):
+    """Get the current proof matrix — all failure classes and their gate status."""
+    from engine.proof_tracker import ProofTracker
+    tracker = ProofTracker()
+    return {
+        "matrix": tracker.get_matrix(),
+        "summary": tracker.get_summary(),
+    }

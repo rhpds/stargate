@@ -1,0 +1,17 @@
+id: proof-cdd
+version: "1.0"
+prompt_type: proof
+dimension: cdd
+criteria:
+  - name: injection_created_k8s_event
+    check_type: section_present
+    target: "event|k8s.*event|Warning|Normal"
+    required: true
+  - name: detection_within_timeout
+    check_type: section_present
+    target: "timeout|detected.*within|detection.*time"
+    required: false
+  - name: remediation_matches_catalog
+    check_type: section_present
+    target: "catalog|catalog.*entry|catalog.*action"
+    required: true
