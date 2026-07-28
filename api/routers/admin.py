@@ -1459,24 +1459,40 @@ def execute_remediation(request: Request, body: "RemediationExecuteRequest", db:
 
 @router.post("/admin/proof/run")
 def run_proof(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
-    """Run a proof cycle for a specific failure class in the test namespace."""
+    """Start a proof cycle asynchronously. Returns immediately, poll /admin/proof/matrix for results."""
+    import threading
     from engine.proof_orchestrator import run_proof_cycle
     from api.routers._shared import EXECUTOR_KUBECONFIG
+    from engine.proof_tracker import ProofTracker
 
     failure_class = req.get("failure_class", "")
     mode = req.get("mode", "manual")
 
     if not failure_class:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="failure_class is required")
 
-    result = run_proof_cycle(
-        failure_class=failure_class,
-        kubeconfig=EXECUTOR_KUBECONFIG,
-        mode=mode,
-        db=db,
-    )
-    return result
+    tracker = ProofTracker()
+    tracker.record_injection(failure_class, {"status": "running", "message": "Proof cycle started"})
+
+    def _run_in_background():
+        try:
+            from db.database import get_db as _get_db
+            bg_db = next(_get_db())
+            run_proof_cycle(failure_class=failure_class, kubeconfig=EXECUTOR_KUBECONFIG, mode=mode, db=bg_db)
+            bg_db.close()
+        except Exception as e:
+            import logging
+            logging.getLogger("stargate").error("Proof cycle failed: %s", e)
+            tracker = ProofTracker()
+            fc = tracker._get_fc(failure_class)
+            fc["status"] = "FAILED"
+            fc["history"].append({"event": "error", "error": str(e)})
+            tracker._save()
+
+    thread = threading.Thread(target=_run_in_background, daemon=True)
+    thread.start()
+
+    return {"status": "started", "failure_class": failure_class, "message": "Proof cycle running — poll the matrix for updates."}
 
 
 @router.get("/admin/proof/matrix")
