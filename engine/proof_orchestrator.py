@@ -22,8 +22,8 @@ from engine.rollback import capture_state
 
 logger = logging.getLogger("stargate.proof_orchestrator")
 
-DETECTION_TIMEOUT = 120
-DETECTION_POLL_INTERVAL = 10
+DETECTION_TIMEOUT = 60
+DETECTION_POLL_INTERVAL = 5
 
 
 def _oc(args, kubeconfig=""):
