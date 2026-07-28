@@ -292,6 +292,9 @@ export const api = {
   getMTTR: (hours = 168) => request<any>(`/dashboard/mttr?hours=${hours}`),
   getSummitReport: () => request<any>('/dashboard/summit-report'),
 
+  // Pipeline Rubric Matrix
+  getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
+
   // Proof Dashboard
   getProofMatrix: () => request<any>('/admin/proof/matrix'),
   getProofHistory: (failureClass: string) => request<any>(`/admin/proof/history/${encodeURIComponent(failureClass)}`),
