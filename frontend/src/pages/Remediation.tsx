@@ -94,66 +94,127 @@ function ApprovalQueue({
     return <p className="text-[#6A6E73] text-sm">No pending actions in the queue.</p>;
   }
 
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   return (
     <div className="space-y-3">
-      {pending.map((item) => (
+      {pending.map((item) => {
+        const params = (item as any).parameters || {};
+        const isExpanded = expandedId === item.id;
+        return (
         <div
           key={item.id}
-          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 flex items-start justify-between gap-4"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4"
         >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-white text-sm font-medium">{item.action_type}</span>
-              <span
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor:
-                    item.confidence >= 0.8
-                      ? '#3E8635'
-                      : item.confidence >= 0.5
-                      ? '#F0AB00'
-                      : '#C9190B',
-                  color: '#fff',
-                }}
-              >
-                {Math.round(item.confidence * 100)}% confidence
-              </span>
-              {(item as any).proposed_by && (item as any).proposed_by !== 'stargate' && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#4394E5] text-white">
-                  {(item as any).proposed_by}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-[10px]">{isExpanded ? '▼' : '▶'}</span>
+                <span className="text-white text-sm font-medium">{params.failure_class || item.action_type}</span>
+                <span
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                  style={{
+                    backgroundColor:
+                      item.confidence >= 0.8 ? '#3E8635' : item.confidence >= 0.5 ? '#F0AB00' : '#C9190B',
+                    color: '#fff',
+                  }}
+                >
+                  {Math.round(item.confidence * 100)}%
                 </span>
+                {params.severity && (
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                    params.severity === 'critical' ? 'bg-[#C9190B]' :
+                    params.severity === 'high' ? 'bg-[#F0AB00] text-black' :
+                    'bg-[#333]'
+                  } text-white`}>
+                    {params.severity}
+                  </span>
+                )}
+                {(item as any).proposed_by && (item as any).proposed_by !== 'stargate' && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#4394E5] text-white">
+                    {(item as any).proposed_by}
+                  </span>
+                )}
+                {params.signal_count > 0 && (
+                  <span className="text-[10px] text-[#6A6E73]">{params.signal_count} signals</span>
+                )}
+              </div>
+              <div className="text-xs text-[#6A6E73]">
+                <span className="text-white">{item.target}</span>
+                {params.cluster && <span> on <span className="text-white">{params.cluster}</span></span>}
+                <span className="ml-2">{relativeTime(item.proposed_at)}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => onApprove(item.id)}
+                className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
+                style={{ backgroundColor: '#3E8635' }}
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => onReject(item.id)}
+                className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
+                style={{ backgroundColor: '#C9190B' }}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+
+          {isExpanded && (
+            <div className="mt-3 border-t border-[#333] pt-3 space-y-3">
+              {params.rca_output && (
+                <div>
+                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Root Cause Analysis</div>
+                  <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3">
+                    <FormattedAnalysis text={params.rca_output} namespace={item.target} cluster={params.cluster || ''} />
+                  </div>
+                </div>
+              )}
+              {params.remediation_options && params.remediation_options.length > 0 && (
+                <div>
+                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Proposed Actions</div>
+                  {params.remediation_options.map((opt: any, oi: number) => (
+                    <div key={oi} className="text-xs bg-[#151515] rounded px-3 py-2 mb-1 flex items-center gap-2">
+                      <span className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
+                        opt.risk === 'low' ? 'bg-[#3E8635] text-white' :
+                        opt.risk === 'medium' ? 'bg-[#F0AB00] text-black' :
+                        'bg-[#C9190B] text-white'
+                      }`}>{opt.risk}</span>
+                      <span className="text-white">{opt.action}</span>
+                      {opt.command && <code className="text-[#4EC9B0] bg-[#0d0d0d] px-1 rounded text-[11px]">{opt.command}</code>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {params.correlated_signals && params.correlated_signals.length > 0 && (
+                <div>
+                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Correlated Signals ({params.correlated_signals.length})</div>
+                  <div className="max-h-32 overflow-y-auto">
+                    {params.correlated_signals.slice(0, 10).map((sig: any, si: number) => (
+                      <div key={si} className="text-xs text-[#8A8D90] py-0.5">
+                        <span className={`font-semibold ${sig.severity === 'critical' ? 'text-[#C9190B]' : sig.severity === 'high' ? 'text-[#F0AB00]' : 'text-[#6A6E73]'}`}>{sig.severity}</span>
+                        {' '}{sig.type || sig.signal_type} — {sig.resource || sig.namespace}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(params.reasoning || params.suggested_commands) && (
+                <div>
+                  {params.reasoning && <div className="text-xs text-[#C9C9C9] mb-1">{params.reasoning}</div>}
+                  {params.suggested_commands?.map((cmd: string, ci: number) => (
+                    <div key={ci} className="text-xs text-[#4EC9B0] bg-[#0d0d0d] rounded px-3 py-1.5 mb-1 font-mono">{cmd}</div>
+                  ))}
+                </div>
               )}
             </div>
-            <div className="text-xs text-[#6A6E73] mb-1">
-              Target: <span className="text-white">{item.target}</span>
-            </div>
-            {(item as any).parameters?.reasoning && (
-              <div className="text-xs text-[#8888aa] mb-1 truncate" title={(item as any).parameters.reasoning}>
-                {(item as any).parameters.reasoning}
-              </div>
-            )}
-            <div className="text-xs text-[#6A6E73]">
-              Proposed: {relativeTime(item.proposed_at)}
-            </div>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => onApprove(item.id)}
-              className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
-              style={{ backgroundColor: '#3E8635' }}
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => onReject(item.id)}
-              className="px-3 py-1.5 rounded text-xs font-semibold text-white transition hover:opacity-80"
-              style={{ backgroundColor: '#C9190B' }}
-            >
-              Reject
-            </button>
-          </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
