@@ -735,7 +735,7 @@ export default function Remediation() {
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-[#6A6E73]">Execution Target:</span>
                             <span className={`font-bold ${preview.execution_target === 'production' ? 'text-[#C9190B]' : preview.execution_target === 'test' ? 'text-[#F0AB00]' : 'text-[#6A6E73]'}`}>
-                              {preview.execution_target || 'mock'}
+                              {preview.execution_target || 'standard'}
                             </span>
                           </div>
 
