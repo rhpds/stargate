@@ -1,0 +1,17 @@
+id: integration-edd
+version: "1.0"
+prompt_type: integration
+dimension: edd
+criteria:
+  - name: rca_cites_evidence
+    check_type: section_present
+    target: "signal|event|pod|namespace|cluster"
+    required: true
+  - name: no_fabricated_resources
+    check_type: section_present
+    target: "oc |kubectl |namespace|pod"
+    required: false
+  - name: confidence_stated
+    check_type: section_present
+    target: "confidence|certainty|likely|probable"
+    required: false

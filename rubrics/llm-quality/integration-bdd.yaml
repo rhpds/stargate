@@ -1,0 +1,17 @@
+id: integration-bdd
+version: "1.0"
+prompt_type: integration
+dimension: bdd
+criteria:
+  - name: actionable_steps
+    check_type: section_present
+    target: "step|action|fix|remediat|investigate"
+    required: true
+  - name: no_auto_execution
+    check_type: section_absent
+    target: "auto.?execut|auto.?remediat|automatically applied"
+    required: true
+  - name: approval_required
+    check_type: section_present
+    target: "approval|review|pending|queue"
+    required: false
