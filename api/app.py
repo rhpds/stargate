@@ -163,6 +163,25 @@ def on_startup():
     tc.start()
     tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
     tb.start()
+    tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
+    tsh.start()
+
+
+def _shadow_mode_loop():
+    """Run shadow mode every 5 minutes — track failures + incidents, no execution."""
+    import time as _ts
+    _ts.sleep(60)  # Wait for startup
+    while True:
+        try:
+            from db.database import get_db
+            db = next(get_db())
+            from engine.historical_miner import run_shadow_cycle
+            run_shadow_cycle(db, max_failures=20)
+            db.close()
+        except Exception as e:
+            import logging
+            logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
+        _ts.sleep(300)
 
 
 def _babylon_collection_loop():
