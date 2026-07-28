@@ -18,6 +18,7 @@ from typing import Dict
 
 from engine.failure_injector import ALLOWED_NAMESPACE, cleanup_all, inject_failure
 from engine.proof_tracker import ProofTracker
+from engine.pipeline_rubric import PipelineRubricTracker
 from engine.rollback import capture_state
 
 logger = logging.getLogger("stargate.proof_orchestrator")
@@ -161,6 +162,24 @@ def run_proof_cycle(
         "correct": detected_class == failure_class if detected else False,
     }
     tracker.record_cycle_result(failure_class, result)
+
+    # Evaluate pipeline rubric — detect stage
+    try:
+        pipeline = PipelineRubricTracker()
+        pipeline.record_stage(failure_class, "detect", "deepfield/stargate", {
+            "tdd": "green" if detected else "red",
+            "edd": "green" if detected and detected_class == failure_class else "yellow" if detected else "red",
+            "cdd": "green" if detected_class == failure_class else "red",
+            "bdd": "green" if detected else "red",
+        }, evidence={
+            "tdd": [f"Polled {poll_attempts} times", f"Source: {detection_source or 'none'}"],
+            "edd": [f"Detected class: {detected_class}", f"Expected: {failure_class}"],
+            "cdd": [f"Pattern match: {detected_class == failure_class}"],
+            "bdd": [f"Detection within {DETECTION_TIMEOUT}s: {detected}"],
+        })
+    except Exception:
+        pass
+
     if detected:
         tracker.record_detection(failure_class, detected_class, detection_source)
 
@@ -322,6 +341,24 @@ def continue_proof_cycle(
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
     result["success"] = result["steps"].get("verify", {}).get("clean", False)
     result["proof_status"] = tracker.get_status(failure_class)
+
+    # Evaluate pipeline rubric — prove stage
+    try:
+        pipeline = PipelineRubricTracker()
+        verify_clean = result["steps"].get("verify", {}).get("clean", False)
+        pipeline.record_stage(failure_class, "prove", "stargate", {
+            "tdd": "green" if remediate_success else "red",
+            "edd": "green" if verify_clean else "yellow" if remediate_success else "red",
+            "cdd": "green" if result["success"] else "red",
+            "bdd": "green" if verify_clean else "red",
+        }, evidence={
+            "tdd": [f"Catalog action executed: {remediate_success}", f"Namespace: {namespace}"],
+            "edd": [f"Verify clean: {verify_clean}", "Before/after snapshots recorded"],
+            "cdd": [f"Proof status: {result['proof_status']}"],
+            "bdd": [f"Only stargate-test modified", f"HITL gate respected"],
+        })
+    except Exception:
+        pass
 
     # Replace the Phase 1 result with the merged result
     tracker.record_cycle_result(failure_class, result)

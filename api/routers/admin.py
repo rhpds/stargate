@@ -1535,3 +1535,41 @@ def get_proof_history(failure_class: str, _auth=Depends(require_admin_read)):
     if not fc_data:
         raise HTTPException(status_code=404, detail=f"No proof data for {failure_class}")
     return fc_data
+
+
+@router.get("/admin/pipeline/matrix")
+def get_pipeline_matrix(_auth=Depends(require_admin_read)):
+    """Get the cross-system proof pipeline rubric matrix.
+
+    Tracks each failure class through detect→hypothesize→classify→recommend→prove→trust
+    across Deepfield, GeoLux, and StarGate with TDD/EDD/CDD/BDD at each stage.
+    """
+    from engine.pipeline_rubric import PipelineRubricTracker
+    tracker = PipelineRubricTracker()
+    return {
+        "matrix": tracker.get_matrix(),
+        "overview": tracker.get_overview(),
+    }
+
+
+@router.get("/admin/pipeline/summary/{failure_class}")
+def get_pipeline_summary(failure_class: str, _auth=Depends(require_admin_read)):
+    """Get pipeline rubric summary for a specific failure class."""
+    from engine.pipeline_rubric import PipelineRubricTracker
+    tracker = PipelineRubricTracker()
+    return tracker.get_fc_summary(failure_class)
+
+
+@router.post("/admin/pipeline/evaluate")
+def evaluate_pipeline_stage(req: dict, _auth=Depends(require_admin)):
+    """Record a stage evaluation in the pipeline rubric matrix."""
+    from engine.pipeline_rubric import PipelineRubricTracker
+    tracker = PipelineRubricTracker()
+    tracker.record_stage(
+        failure_class=req.get("failure_class", ""),
+        stage=req.get("stage", ""),
+        system=req.get("system", ""),
+        dimensions=req.get("dimensions", {}),
+        evidence=req.get("evidence"),
+    )
+    return {"status": "recorded"}
