@@ -203,6 +203,89 @@ def feed_patterns_to_geolux(patterns: Dict, max_feed: int = 5) -> List[Dict]:
 SHADOW_STATE_FILE = _PERSISTENT_DIR / "shadow-state.json" if _PERSISTENT_DIR.is_dir() else Path(__file__).parent.parent / "test-receipts" / "shadow-state.json"
 
 
+def _determine_resolution_cause(namespace: str, cluster: str, eval_id: int, db) -> Dict:
+    """Determine HOW a failure was resolved.
+
+    Checks:
+    1. Was the namespace deleted? (sandbox lifecycle recycled)
+    2. Was there a StarGate remediation action on this namespace?
+    3. Was there a Deepfield incident that was acknowledged?
+    4. Otherwise: self_resolved (failure cleared on its own)
+
+    Does NOT query OCP audit logs (requires cluster-admin).
+    Uses StarGate's own DB which tracks all actions through the system.
+    """
+    from db.models import AuditLog, PendingAction
+
+    result = {
+        "cause": "self_resolved",
+        "resolved_by": None,
+        "action": None,
+    }
+
+    # 1. Check if namespace was deleted (sandbox recycled)
+    # If no recent evaluations exist at all for this namespace, it's likely gone
+    from db.models import EvaluationRecord
+    from sqlalchemy import func
+    recent_count = db.query(func.count(EvaluationRecord.id)).filter(
+        EvaluationRecord.lab_code == namespace,
+    ).scalar() or 0
+
+    latest_eval = db.query(func.max(EvaluationRecord.evaluated_at)).filter(
+        EvaluationRecord.lab_code == namespace,
+    ).scalar()
+
+    if latest_eval:
+        age_hours = (datetime.now(timezone.utc) - latest_eval.replace(tzinfo=timezone.utc if latest_eval.tzinfo is None else latest_eval.tzinfo)).total_seconds() / 3600
+        if age_hours > 24:
+            result["cause"] = "namespace_recycled"
+            result["action"] = f"No evaluations for {int(age_hours)}h — namespace likely deleted"
+            return result
+
+    # 2. Check if StarGate executed a remediation on this namespace
+    stargate_action = db.query(AuditLog).filter(
+        AuditLog.target == namespace,
+        AuditLog.status == "executed",
+    ).order_by(AuditLog.id.desc()).first()
+
+    if stargate_action:
+        result["cause"] = "stargate_remediated"
+        result["resolved_by"] = stargate_action.proposed_by or "stargate"
+        result["action"] = stargate_action.action_type
+        return result
+
+    # 3. Check if a Deepfield incident was acknowledged
+    deepfield_action = db.query(PendingAction).filter(
+        PendingAction.target == namespace,
+        PendingAction.proposed_by == "deepfield",
+        PendingAction.status.in_(["approved", "dismissed"]),
+    ).order_by(PendingAction.id.desc()).first()
+
+    if deepfield_action:
+        result["cause"] = "incident_acknowledged"
+        result["resolved_by"] = deepfield_action.reviewed_by or "unknown"
+        result["action"] = f"{deepfield_action.action_type} — {deepfield_action.status}"
+        return result
+
+    # 4. Check if a GeoLux proposal was acted on
+    geolux_action = db.query(PendingAction).filter(
+        PendingAction.target == namespace,
+        PendingAction.proposed_by == "geolux",
+        PendingAction.status.in_(["approved", "executed"]),
+    ).order_by(PendingAction.id.desc()).first()
+
+    if geolux_action:
+        result["cause"] = "geolux_remediated"
+        result["resolved_by"] = geolux_action.reviewed_by or "geolux"
+        result["action"] = geolux_action.action_type
+        return result
+
+    # 5. Default: self-resolved (failure cleared with no tracked intervention)
+    result["cause"] = "self_resolved"
+    result["action"] = "Failure cleared — no StarGate/Deepfield/GeoLux action tracked"
+    return result
+
+
 def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
     """Poll recent failures and feed to GeoLux. Track resolution.
 
@@ -324,6 +407,9 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
         if has_pass:
             entry["resolved"] = True
             entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+            entry["resolution_cause"] = _determine_resolution_cause(
+                ns, entry.get("cluster", ""), entry.get("eval_id", 0), db
+            )
             resolved_count += 1
 
     # Trim shadow log to last 200 entries
@@ -410,6 +496,7 @@ def track_incident_resolution(db, state: Dict = None) -> Dict:
             if has_pass:
                 entry["resolved"] = True
                 entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                entry["resolution_cause"] = _determine_resolution_cause(ns, params.get("cluster", ""), 0, db)
 
         incident_log.append(entry)
 
@@ -429,6 +516,7 @@ def track_incident_resolution(db, state: Dict = None) -> Dict:
             if has_pass:
                 entry["resolved"] = True
                 entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                entry["resolution_cause"] = _determine_resolution_cause(ns, entry.get("cluster", ""), 0, db)
                 resolved_count += 1
 
     incident_log = incident_log[-100:]
