@@ -51,7 +51,7 @@ function MetricCard({ label, value }: { label: string; value: string | number })
   );
 }
 
-function StepPipeline({ steps, queryClient }: { steps: Record<string, any>; queryClient: any }) {
+function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<string, any>; queryClient: any; failureClass: string }) {
   return (
     <div className="space-y-2">
       {STEP_ORDER.map((stepName) => {
@@ -128,7 +128,7 @@ function StepPipeline({ steps, queryClient }: { steps: Record<string, any>; quer
                       className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const fc = step.failure_class || (steps as any)?.inject?.failure_class || '';
+                        const fc = failureClass;
                         api.approveAction(step.pending_id).then(() =>
                           api.continueProof(fc).then(() =>
                             queryClient.invalidateQueries({ queryKey: ['proof-matrix'] })
@@ -365,7 +365,7 @@ export default function ProofDashboard() {
                             {/* Step pipeline */}
                             <div>
                               <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                              <StepPipeline steps={steps} queryClient={queryClient} />
+                              <StepPipeline steps={steps} queryClient={queryClient} failureClass={fc} />
                             </div>
 
                             {/* Previous cycles summary */}
@@ -400,7 +400,7 @@ export default function ProofDashboard() {
                       {!expandedHistory.data && !expandedHistory.isLoading && entry.last_cycle && (
                         <div>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                          <StepPipeline steps={entry.last_cycle.steps || entry.last_cycle} queryClient={queryClient} />
+                          <StepPipeline steps={entry.last_cycle.steps || entry.last_cycle} queryClient={queryClient} failureClass={fc} />
                         </div>
                       )}
                     </div>
