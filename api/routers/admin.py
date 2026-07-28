@@ -1626,3 +1626,26 @@ def get_shadow_status(_auth=Depends(require_admin_read)):
         }
     except Exception:
         return {"status": "error"}
+
+
+@router.get("/admin/shadow/incidents")
+def get_shadow_incidents(_auth=Depends(require_admin_read)):
+    """Get Deepfield incident resolution tracking."""
+    from engine.historical_miner import SHADOW_STATE_FILE
+    if not SHADOW_STATE_FILE.exists():
+        return {"status": "not_started", "incident_log": []}
+    try:
+        import json
+        state = json.loads(SHADOW_STATE_FILE.read_text())
+        log = state.get("incident_log", [])
+        resolved = sum(1 for e in log if e.get("resolved"))
+        with_rca = sum(1 for e in log if e.get("has_rca"))
+        return {
+            "total": len(log),
+            "resolved": resolved,
+            "unresolved": len(log) - resolved,
+            "with_rca": with_rca,
+            "incidents": log[-20:],
+        }
+    except Exception:
+        return {"status": "error"}
