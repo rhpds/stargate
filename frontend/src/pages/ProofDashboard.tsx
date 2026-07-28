@@ -38,6 +38,52 @@ function relativeTime(iso: string | null | undefined): string {
   return `${days}d ago`;
 }
 
+const PIPELINE_STAGES = ['detect', 'hypothesize', 'classify', 'recommend', 'prove', 'trust'] as const;
+
+const STAGE_SYSTEMS: Record<string, string> = {
+  detect: 'Deepfield',
+  hypothesize: 'GeoLux',
+  classify: 'GeoLux',
+  recommend: 'GeoLux',
+  prove: 'StarGate',
+  trust: 'StarGate',
+};
+
+function dimensionColor(dims: Record<string, string> | undefined): string {
+  if (!dims) return '#333';
+  const vals = Object.values(dims);
+  if (vals.length === 0) return '#333';
+  const greens = vals.filter(v => v === 'green').length;
+  if (greens === vals.length) return '#3E8635';
+  if (greens > 0) return '#F0AB00';
+  // Check if there's any evidence at all (not all 'red' with no_evidence marker)
+  const hasEvidence = vals.some(v => v !== 'gray');
+  if (!hasEvidence) return '#333';
+  return '#C9190B';
+}
+
+function DimensionTooltip({ dims }: { dims: Record<string, string> | undefined }) {
+  if (!dims) return null;
+  const dimColors: Record<string, string> = {
+    green: '#3E8635',
+    yellow: '#F0AB00',
+    red: '#C9190B',
+    gray: '#555',
+  };
+  return (
+    <div className="absolute z-50 bg-[#1a1a1a] border border-[#444] rounded px-2 py-1.5 shadow-lg -translate-x-1/2 left-1/2 top-full mt-1 whitespace-nowrap">
+      <div className="flex items-center gap-2">
+        {Object.entries(dims).map(([key, val]) => (
+          <div key={key} className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: dimColors[val] || '#555' }} />
+            <span className="text-[10px] text-[#8A8D90] uppercase">{key}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ---- sub-components ---- */
 
 function MetricCard({ label, value }: { label: string; value: string | number }) {
@@ -230,6 +276,128 @@ function ProofTimeline({ steps, queryClient, failureClass }: { steps: Record<str
   );
 }
 
+function PipelineRubricCell({ stage }: { stage: { status: string; system: string | null; dimensions: Record<string, string> } | undefined }) {
+  const [showDims, setShowDims] = useState(false);
+  const color = dimensionColor(stage?.dimensions);
+
+  return (
+    <div
+      className="relative flex flex-col items-center cursor-pointer"
+      onMouseEnter={() => setShowDims(true)}
+      onMouseLeave={() => setShowDims(false)}
+      onClick={() => setShowDims(prev => !prev)}
+    >
+      <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: color }} />
+      {stage?.system && (
+        <span className="text-[9px] text-[#555] mt-0.5 truncate max-w-[70px] text-center">{stage.system}</span>
+      )}
+      {showDims && stage?.dimensions && <DimensionTooltip dims={stage.dimensions} />}
+    </div>
+  );
+}
+
+function PipelineRubricMatrix() {
+  const pipelineQuery = useQuery({
+    queryKey: ['pipeline-matrix'],
+    queryFn: () => api.getPipelineMatrix(),
+    refetchInterval: 10_000,
+  });
+
+  if (pipelineQuery.isLoading) {
+    return (
+      <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+        <p className="text-[#6A6E73] text-sm">Loading pipeline matrix...</p>
+      </div>
+    );
+  }
+
+  if (pipelineQuery.isError) {
+    return (
+      <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+        <p className="text-[#C9190B] text-sm">Failed to load pipeline matrix.</p>
+      </div>
+    );
+  }
+
+  const failureClasses = pipelineQuery.data?.matrix?.failure_classes ?? {};
+  const fcNames = Object.keys(failureClasses);
+
+  if (fcNames.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+      <div className="mb-3">
+        <h2 className="text-lg font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>
+          Pipeline Rubric Matrix
+        </h2>
+        <p className="text-xs text-[#6A6E73] mt-0.5">
+          Track each failure class through the cross-system proof pipeline.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[#2e2e2e]">
+              <th className="text-left text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 pr-4 min-w-[160px]">
+                Failure Class
+              </th>
+              {PIPELINE_STAGES.map(stage => (
+                <th key={stage} className="text-center pb-2 px-2 min-w-[80px]">
+                  <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold">{stage}</div>
+                  <div className="text-[9px] text-[#555] mt-0.5">{STAGE_SYSTEMS[stage]}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {fcNames.map(fc => {
+              const fcData = failureClasses[fc];
+              const stages = fcData?.stages ?? {};
+              return (
+                <tr key={fc} className="border-b border-[#1a1a1a] hover:bg-[#2a2a2a] transition">
+                  <td className="py-2 pr-4">
+                    <span className="text-sm text-white font-medium truncate block max-w-[200px]" title={fc}>
+                      {fc}
+                    </span>
+                    {fcData?.current_stage && (
+                      <span className="text-[9px] text-[#6A6E73]">at {fcData.current_stage}</span>
+                    )}
+                  </td>
+                  {PIPELINE_STAGES.map(stage => (
+                    <td key={stage} className="py-2 px-2">
+                      <PipelineRubricCell stage={stages[stage]} />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#2e2e2e]">
+        <span className="text-[10px] text-[#6A6E73] uppercase tracking-wider">Legend:</span>
+        {[
+          { color: '#3E8635', label: 'All passed' },
+          { color: '#F0AB00', label: 'Partial' },
+          { color: '#C9190B', label: 'Failed' },
+          { color: '#333', label: 'Not started' },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="text-[10px] text-[#8A8D90]">{item.label}</span>
+          </div>
+        ))}
+        <span className="text-[10px] text-[#555] ml-2">Hover for TDD/EDD/CDD/BDD detail</span>
+      </div>
+    </div>
+  );
+}
+
 /* ---- main page ---- */
 
 export default function ProofDashboard() {
@@ -324,6 +492,9 @@ export default function ProofDashboard() {
           )}
         </div>
       )}
+
+      {/* Pipeline Rubric Matrix */}
+      <PipelineRubricMatrix />
 
       {/* Proof Matrix table */}
       <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
