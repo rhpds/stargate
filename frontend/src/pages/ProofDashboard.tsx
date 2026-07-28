@@ -148,12 +148,18 @@ export default function ProofDashboard() {
     },
   });
 
-  const entries: any[] = matrix.data?.matrix ?? matrix.data?.entries ?? [];
+  const KNOWN_INJECTORS = ['pods_crashlooping', 'readiness_probe_failed', 'image_pull_backoff', 'claim_misbound', 'oom_killed', 'quota_exceeded', 'scheduling_failed'];
+  const fcMap = matrix.data?.matrix?.failure_classes ?? {};
+  const fromApi = Object.entries(fcMap).map(([name, data]: [string, any]) => ({ name, ...data }));
+  const existingNames = new Set(fromApi.map((e: any) => e.name));
+  const defaults = KNOWN_INJECTORS.filter(n => !existingNames.has(n)).map(n => ({ name: n, status: 'UNTESTED', cycles_completed: 0, consecutive_passes: 0, gate: 'manual', last_run: null }));
+  const entries: any[] = [...fromApi, ...defaults];
+  const summary = matrix.data?.summary ?? {};
 
-  const totalClasses = entries.length;
-  const provenCount = entries.filter((e: any) => e.status === 'PROVEN').length;
-  const verifiedCount = entries.filter((e: any) => e.status === 'VERIFIED').length;
-  const untestedCount = entries.filter((e: any) => e.status === 'UNTESTED' || !e.status).length;
+  const totalClasses = summary.total ?? entries.length;
+  const provenCount = summary.proven ?? entries.filter((e: any) => e.status === 'PROVEN').length;
+  const verifiedCount = summary.verified ?? entries.filter((e: any) => e.status === 'VERIFIED').length;
+  const untestedCount = summary.untested ?? entries.filter((e: any) => e.status === 'UNTESTED' || !e.status).length;
 
   if (matrix.isLoading) {
     return (
@@ -235,8 +241,8 @@ export default function ProofDashboard() {
                         {status}
                       </span>
                     </span>
-                    <span className="text-sm text-white text-right">{entry.cycles ?? 0}</span>
-                    <span className="text-sm text-white text-right">{entry.consecutive ?? 0}</span>
+                    <span className="text-sm text-white text-right">{entry.cycles_completed ?? entry.cycles ?? 0}</span>
+                    <span className="text-sm text-white text-right">{entry.consecutive_passes ?? entry.consecutive ?? 0}</span>
                     <span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${GATE_COLORS[entry.gate] || GATE_COLORS.manual}`}>
                         {entry.gate ? entry.gate.replace(/_/g, ' ') : 'manual'}
@@ -273,8 +279,8 @@ export default function ProofDashboard() {
                       )}
 
                       {expandedHistory.data && (() => {
-                        const history = expandedHistory.data.history ?? expandedHistory.data.cycles ?? [];
-                        const lastCycle = history.length > 0 ? history[history.length - 1] : null;
+                        const cycleResults = expandedHistory.data.cycle_results ?? expandedHistory.data.history ?? expandedHistory.data.cycles ?? [];
+                        const lastCycle = cycleResults.length > 0 ? cycleResults[cycleResults.length - 1] : null;
 
                         if (!lastCycle) {
                           return <p className="text-[#6A6E73] text-sm">No cycles recorded yet.</p>;
@@ -321,13 +327,13 @@ export default function ProofDashboard() {
                             </div>
 
                             {/* Previous cycles summary */}
-                            {history.length > 1 && (
+                            {cycleResults.length > 1 && (
                               <div>
                                 <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">
-                                  Previous Cycles ({history.length - 1})
+                                  Previous Cycles ({cycleResults.length - 1})
                                 </div>
                                 <div className="flex flex-wrap gap-1">
-                                  {history.slice(0, -1).reverse().map((cycle: any, ci: number) => {
+                                  {cycleResults.slice(0, -1).reverse().map((cycle: any, ci: number) => {
                                     const passed = cycle.result === 'PASS' || cycle.result === 'PROVEN';
                                     return (
                                       <span
