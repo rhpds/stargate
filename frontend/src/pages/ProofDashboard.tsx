@@ -53,8 +53,8 @@ function MetricCard({ label, value }: { label: string; value: string | number })
 
 function StepPipeline({ steps }: { steps: Record<string, any> }) {
   return (
-    <div className="flex items-start gap-1 overflow-x-auto pb-2">
-      {STEP_ORDER.map((stepName, idx) => {
+    <div className="space-y-2">
+      {STEP_ORDER.map((stepName) => {
         const step = steps?.[stepName];
         const status = step?.status || (step?.success === true ? 'success' : step?.success === false ? 'failed' : null);
         const success = status === 'success' || status === 'clean' || status === 'detected';
@@ -78,8 +78,8 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
               : 'border-[#C9190B]';
 
         return (
-          <div key={stepName} className="flex items-start">
-            <div className={`bg-[#1a1a1a] border ${borderColor} rounded-lg p-3 min-w-[180px]`}>
+          <div key={stepName}>
+            <div className={`bg-[#1a1a1a] border ${borderColor} rounded-lg p-3`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shrink-0`} />
                 <span className="text-sm text-white font-medium capitalize">{stepName}</span>
@@ -129,11 +129,6 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
                 </div>
               )}
             </div>
-            {idx < STEP_ORDER.length - 1 && (
-              <div className="flex items-center self-center px-1 text-[#555] text-lg select-none mt-3">
-                &rarr;
-              </div>
-            )}
           </div>
         );
       })}
@@ -172,12 +167,12 @@ export default function ProofDashboard() {
   const existingNames = new Set(fromApi.map((e: any) => e.name));
   const defaults = KNOWN_INJECTORS.filter(n => !existingNames.has(n)).map(n => ({ name: n, status: 'UNTESTED', cycles_completed: 0, consecutive_passes: 0, gate: 'manual', last_run: null }));
   const entries: any[] = [...fromApi, ...defaults];
-  const summary = matrix.data?.summary ?? {};
+  void matrix.data?.summary;
 
-  const totalClasses = summary.total ?? entries.length;
-  const provenCount = summary.proven ?? entries.filter((e: any) => e.status === 'PROVEN').length;
-  const verifiedCount = summary.verified ?? entries.filter((e: any) => e.status === 'VERIFIED').length;
-  const untestedCount = summary.untested ?? entries.filter((e: any) => e.status === 'UNTESTED' || !e.status).length;
+  const totalClasses = entries.length;
+  const provenCount = entries.filter((e: any) => e.status === 'PROVEN').length;
+  const verifiedCount = entries.filter((e: any) => e.status === 'VERIFIED').length;
+  const untestedCount = entries.filter((e: any) => e.status === 'UNTESTED' || !e.status).length;
 
   if (matrix.isLoading) {
     return (
