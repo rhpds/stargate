@@ -13,7 +13,8 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger("stargate.proof_tracker")
 
-PROOF_FILE = Path(__file__).parent.parent / "test-receipts" / "proof-matrix.json"
+_PERSISTENT_DIR = Path("/opt/app-root/src/scan-history")
+PROOF_FILE = _PERSISTENT_DIR / "proof-matrix.json" if _PERSISTENT_DIR.is_dir() else Path(__file__).parent.parent / "test-receipts" / "proof-matrix.json"
 PROVEN_THRESHOLD = 3  # consecutive successful cycles to reach PROVEN
 
 
