@@ -113,6 +113,7 @@ def run_proof_cycle(
     """
     namespace = ALLOWED_NAMESPACE
     tracker = ProofTracker()
+    pipeline = PipelineRubricTracker()
     now = datetime.now(timezone.utc).isoformat()
     result = {
         "failure_class": failure_class,
@@ -211,7 +212,6 @@ def run_proof_cycle(
 
     # Evaluate pipeline rubric — detect stage
     try:
-        pipeline = PipelineRubricTracker()
         logger.info("Recording detect stage in pipeline rubric for %s", failure_class)
         pipeline.record_stage(failure_class, "detect", "deepfield/stargate", {
             "tdd": "green" if detected else "red",
@@ -234,7 +234,6 @@ def run_proof_cycle(
     geolux_result = _call_geolux(failure_class, namespace, detected_class, detect_commands, kubeconfig)
     result["geolux"] = geolux_result
     try:
-        pipeline = PipelineRubricTracker()
         if geolux_result.get("hypothesis"):
             pipeline.record_stage(failure_class, "hypothesize", "geolux", {
                 "tdd": "green" if geolux_result["hypothesis"].get("processed") else "red",
@@ -288,7 +287,7 @@ def run_proof_cycle(
         result["awaiting_approval"] = True
         result["pending_id"] = pending.id
     elif mode != "manual":
-        phase2 = continue_proof_cycle(failure_class, kubeconfig, db)
+        phase2 = continue_proof_cycle(failure_class, kubeconfig, db, pipeline=pipeline)
         result["steps"]["remediate"] = phase2["steps"].get("remediate", {})
         result["steps"]["verify"] = phase2["steps"].get("verify", {})
         result["steps"]["cleanup"] = phase2["steps"].get("cleanup", {})
@@ -303,6 +302,7 @@ def continue_proof_cycle(
     failure_class: str,
     kubeconfig: str = "",
     db=None,
+    pipeline=None,
 ) -> Dict:
     """Phase 2: remediate → verify → cleanup. Merges with Phase 1 result."""
     namespace = ALLOWED_NAMESPACE
@@ -420,7 +420,8 @@ def continue_proof_cycle(
 
     # Evaluate pipeline rubric — prove stage
     try:
-        pipeline = PipelineRubricTracker()
+        if not pipeline:
+            pipeline = PipelineRubricTracker()
         verify_clean = result["steps"].get("verify", {}).get("clean", False)
         pipeline.record_stage(failure_class, "prove", "stargate", {
             "tdd": "green" if remediate_success else "red",
