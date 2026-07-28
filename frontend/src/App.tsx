@@ -15,6 +15,7 @@ import CatalogItemDetail from './pages/CatalogItemDetail';
 import TrendsPage from './pages/TrendsPage';
 import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
+import ProofDashboard from './pages/ProofDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ const navItems = [
   { to: '/', label: 'Health', end: true },
   { to: '/failures', label: 'Failures' },
   { to: '/remediation', label: 'Remediation' },
+  { to: '/proof', label: 'Proof' },
 ];
 
 export default function App() {
@@ -110,6 +112,7 @@ export default function App() {
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
                 <Route path="/summit" element={<SummitReport />} />
+                <Route path="/proof" element={<ProofDashboard />} />
               </Routes>
             </main>
             <footer style={{ backgroundColor: 'var(--brand-dark)' }} className="border-t border-[#333] text-[#6A6E73] text-sm py-5">

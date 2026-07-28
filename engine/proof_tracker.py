@@ -101,6 +101,15 @@ class ProofTracker:
         })
         self._save()
 
+    def record_cycle_result(self, failure_class: str, result: Dict):
+        """Store a complete proof cycle result with command-level detail."""
+        fc = self._get_fc(failure_class)
+        # Keep last 5 full results to avoid unbounded growth
+        if "cycle_results" not in fc:
+            fc["cycle_results"] = []
+        fc["cycle_results"] = fc["cycle_results"][-4:] + [result]
+        self._save()
+
     def get_matrix(self) -> Dict:
         return self._data
 
