@@ -1,9 +1,13 @@
-"""Historical failure pattern miner — extracts actionable patterns from
-StarGate's evaluation database for GeoLux hypothesis generation.
+"""Historical failure pattern miner + shadow mode.
 
-RESOURCE SAFETY: Uses aggregation queries only, never loads full records.
-Processes in batches with configurable limits. Results cached to avoid
-re-mining the same data.
+Mining: extracts systemic failure patterns from the evaluation DB
+using aggregation queries only (no full record loads).
+
+Shadow mode: polls for recent failures and feeds them to GeoLux
+for hypothesis generation. Logs what GeoLux WOULD recommend
+without executing. Tracks whether failures self-resolve.
+
+RESOURCE SAFETY: Aggregation only, batched, cached, rate-limited.
 """
 
 import json
@@ -190,3 +194,155 @@ def feed_patterns_to_geolux(patterns: Dict, max_feed: int = 5) -> List[Dict]:
             logger.warning("Failed to feed pattern to GeoLux: %s — %s", key, e)
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# Shadow Mode — ongoing failure tracking without execution
+# ---------------------------------------------------------------------------
+
+SHADOW_STATE_FILE = _PERSISTENT_DIR / "shadow-state.json" if _PERSISTENT_DIR.is_dir() else Path(__file__).parent.parent / "test-receipts" / "shadow-state.json"
+
+
+def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
+    """Poll recent failures and feed to GeoLux. Track resolution.
+
+    Reads the last processed evaluation ID from shadow state,
+    fetches new failures since then, sends to GeoLux, and
+    checks whether previously seen failures have resolved.
+
+    Does NOT execute any remediation — shadow only.
+    """
+    import urllib.request
+    from db.models import EvaluationRecord
+    from sqlalchemy import func
+
+    # Load shadow state
+    state = {}
+    if SHADOW_STATE_FILE.exists():
+        try:
+            state = json.loads(SHADOW_STATE_FILE.read_text())
+        except Exception:
+            pass
+
+    last_id = state.get("last_processed_id", 0)
+    shadow_log = state.get("shadow_log", [])
+
+    # Get new failures since last check (batch, not full scan)
+    new_failures = db.query(
+        EvaluationRecord.id,
+        EvaluationRecord.failure_class,
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+        EvaluationRecord.message,
+    ).filter(
+        EvaluationRecord.id > last_id,
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+    ).order_by(EvaluationRecord.id).limit(max_failures).all()
+
+    if not new_failures:
+        return {"status": "no_new_failures", "last_id": last_id, "shadow_log_size": len(shadow_log)}
+
+    geolux_url = os.environ.get("STARGATE_GEOLUX_URL", "")
+    api_key = os.environ.get("STARGATE_GEOLUX_API_KEY", os.environ.get("STARGATE_ADMIN_API_KEY", ""))
+
+    fed = []
+    seen_keys = set()
+    for eval_id, fc, lab_code, cluster, message in new_failures:
+        # Dedupe by namespace+failure_class in this batch
+        key = f"{lab_code}:{fc}"
+        if key in seen_keys:
+            last_id = max(last_id, eval_id)
+            continue
+        seen_keys.add(key)
+
+        catalog_item = _extract_catalog_item(lab_code or "")
+        entry = {
+            "eval_id": eval_id,
+            "failure_class": fc,
+            "namespace": lab_code,
+            "catalog_item": catalog_item,
+            "cluster": cluster,
+            "detected_at": datetime.now(timezone.utc).isoformat(),
+            "geolux_recommendation": None,
+            "resolved": None,
+            "resolved_at": None,
+        }
+
+        # Feed to GeoLux (shadow — log only, no execution)
+        if geolux_url:
+            try:
+                payload = {
+                    "source": "stargate",
+                    "event_type": "stargate_evaluation_failed",
+                    "event_id": f"shadow-{eval_id}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "payload": {
+                        "run_id": f"shadow-{lab_code}",
+                        "stage_id": "shadow-monitor",
+                        "lab_code": lab_code or "",
+                        "cluster": f"shadow-{cluster}-{eval_id}",
+                        "namespace": lab_code or "",
+                        "outcome": "fail",
+                        "failure_class": fc,
+                        "message": (message or "")[:500],
+                    },
+                }
+                headers = {"Content-Type": "application/json"}
+                if api_key:
+                    headers["X-API-Key"] = api_key
+                endpoint = f"{geolux_url.rstrip('/')}/integration/events"
+                req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers)
+                resp = urllib.request.urlopen(req, timeout=15)
+                result = json.loads(resp.read().decode())
+                entry["geolux_recommendation"] = {
+                    "classification": result.get("classification_result"),
+                    "hypotheses": result.get("hypotheses_generated", 0),
+                }
+            except Exception as e:
+                entry["geolux_recommendation"] = {"error": str(e)}
+
+        shadow_log.append(entry)
+        fed.append(entry)
+        last_id = max(last_id, eval_id)
+
+    # Check resolution of previous shadow entries (last 50)
+    resolved_count = 0
+    for entry in shadow_log[-50:]:
+        if entry.get("resolved") is not None:
+            continue
+        ns = entry.get("namespace")
+        fc = entry.get("failure_class")
+        if not ns or not fc:
+            continue
+        # Check if a passing evaluation exists after the failure
+        has_pass = db.query(EvaluationRecord.id).filter(
+            EvaluationRecord.lab_code == ns,
+            EvaluationRecord.outcome == "pass",
+            EvaluationRecord.id > entry.get("eval_id", 0),
+        ).first()
+        if has_pass:
+            entry["resolved"] = True
+            entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
+            resolved_count += 1
+
+    # Trim shadow log to last 200 entries
+    shadow_log = shadow_log[-200:]
+
+    # Save state
+    state["last_processed_id"] = last_id
+    state["shadow_log"] = shadow_log
+    state["last_run"] = datetime.now(timezone.utc).isoformat()
+    try:
+        SHADOW_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SHADOW_STATE_FILE.write_text(json.dumps(state, indent=2))
+    except Exception as e:
+        logger.warning("Failed to save shadow state: %s", e)
+
+    return {
+        "status": "ok",
+        "new_failures_processed": len(fed),
+        "resolved_this_cycle": resolved_count,
+        "total_shadow_log": len(shadow_log),
+        "last_id": last_id,
+    }

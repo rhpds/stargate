@@ -1594,3 +1594,35 @@ def feed_mining_to_geolux(req: dict = None, db: Session = Depends(get_db), _auth
     patterns = mine_and_cache(db)
     results = feed_patterns_to_geolux(patterns, max_feed=max_feed)
     return {"fed": len(results), "results": results}
+
+
+@router.post("/admin/shadow/run")
+def run_shadow_cycle(db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Run one shadow mode cycle — feed recent failures to GeoLux, track resolution."""
+    from engine.historical_miner import run_shadow_cycle as _run_shadow
+    return _run_shadow(db)
+
+
+@router.get("/admin/shadow/status")
+def get_shadow_status(_auth=Depends(require_admin_read)):
+    """Get shadow mode status and recent log."""
+    from engine.historical_miner import SHADOW_STATE_FILE
+    if not SHADOW_STATE_FILE.exists():
+        return {"status": "not_started", "shadow_log": []}
+    try:
+        import json
+        state = json.loads(SHADOW_STATE_FILE.read_text())
+        log = state.get("shadow_log", [])
+        resolved = sum(1 for e in log if e.get("resolved"))
+        unresolved = sum(1 for e in log if e.get("resolved") is False or e.get("resolved") is None)
+        return {
+            "status": "running" if state.get("last_run") else "not_started",
+            "last_run": state.get("last_run"),
+            "last_processed_id": state.get("last_processed_id", 0),
+            "total_entries": len(log),
+            "resolved": resolved,
+            "unresolved": unresolved,
+            "recent": log[-10:],
+        }
+    except Exception:
+        return {"status": "error"}
