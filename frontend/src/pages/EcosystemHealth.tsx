@@ -189,7 +189,7 @@ export default function EcosystemHealth() {
         <MetricCard label="Failures" value={activeFailures} onClick={() => navigate('/failures')} />
         <MetricCard label="Pass Rate" value={pct(labHealthy, labTotal)} onClick={() => navigate('/pipeline')} />
         <MetricCard label="Pools" value={`${poolTotal - poolExhausted - poolLow}/${poolTotal}`} onClick={() => navigate('/capacity')} />
-        <MetricCard label="Provisioning" value={provTotal > 0 ? `${provFailed} failed` : '--'} onClick={() => navigate('/provisioning')} />
+        <MetricCard label="Provisioning" value={provTotal > 0 ? `${provFailed} failed` : provFailed > 0 ? `${provFailed} failed` : 'All healthy'} onClick={() => navigate('/provisioning')} />
         <MetricCard label="Avg Recovery" value={mttrValue} onClick={() => navigate('/trends')} />
       </div>
 
