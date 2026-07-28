@@ -51,7 +51,7 @@ function MetricCard({ label, value }: { label: string; value: string | number })
   );
 }
 
-function StepPipeline({ steps }: { steps: Record<string, any> }) {
+function StepPipeline({ steps, queryClient }: { steps: Record<string, any>; queryClient: any }) {
   return (
     <div className="space-y-2">
       {STEP_ORDER.map((stepName) => {
@@ -121,7 +121,31 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
                 <div className="text-xs text-[#C9C9C9] mt-1">Detected: <span className="text-white font-medium">{step.detected_class}</span> via {step.source}</div>
               )}
               {step?.pending_id && (
-                <div className="text-xs text-[#F0AB00] mt-1">HITL approval required (pending #{step.pending_id})</div>
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-xs text-[#F0AB00]">HITL approval required (pending #{step.pending_id})</span>
+                  <button
+                    className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-3 py-1 rounded font-medium transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      api.approveAction(step.pending_id).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                      });
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-3 py-1 rounded font-medium transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      api.rejectAction(step.pending_id).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                      });
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
               )}
               {step?.error && (
                 <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2 font-mono mt-1">
@@ -336,7 +360,7 @@ export default function ProofDashboard() {
                             {/* Step pipeline */}
                             <div>
                               <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                              <StepPipeline steps={steps} />
+                              <StepPipeline steps={steps} queryClient={queryClient} />
                             </div>
 
                             {/* Previous cycles summary */}
@@ -371,7 +395,7 @@ export default function ProofDashboard() {
                       {!expandedHistory.data && !expandedHistory.isLoading && entry.last_cycle && (
                         <div>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                          <StepPipeline steps={entry.last_cycle.steps || entry.last_cycle} />
+                          <StepPipeline steps={entry.last_cycle.steps || entry.last_cycle} queryClient={queryClient} />
                         </div>
                       )}
                     </div>
