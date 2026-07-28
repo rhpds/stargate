@@ -56,20 +56,26 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
     <div className="flex items-start gap-1 overflow-x-auto pb-2">
       {STEP_ORDER.map((stepName, idx) => {
         const step = steps?.[stepName];
-        const success = step?.success === true;
-        const notRun = !step || step.success === undefined || step.success === null;
+        const status = step?.status || (step?.success === true ? 'success' : step?.success === false ? 'failed' : null);
+        const success = status === 'success' || status === 'clean' || status === 'detected';
+        const warning = status === 'timeout' || status === 'skipped' || status === 'awaiting_hitl_approval';
+        const notRun = !step || !status;
 
         const dotColor = notRun
           ? 'bg-[#555]'
           : success
             ? 'bg-[#3E8635]'
-            : 'bg-[#C9190B]';
+            : warning
+              ? 'bg-[#F0AB00]'
+              : 'bg-[#C9190B]';
 
         const borderColor = notRun
           ? 'border-[#2e2e2e]'
           : success
             ? 'border-[#3E8635]'
-            : 'border-[#C9190B]';
+            : warning
+              ? 'border-[#F0AB00]'
+              : 'border-[#C9190B]';
 
         return (
           <div key={stepName} className="flex items-start">
@@ -78,8 +84,8 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
                 <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shrink-0`} />
                 <span className="text-sm text-white font-medium capitalize">{stepName}</span>
                 {!notRun && (
-                  <span className={`text-xs font-bold ml-auto ${success ? 'text-[#3E8635]' : 'text-[#C9190B]'}`}>
-                    {success ? 'OK' : 'FAIL'}
+                  <span className={`text-xs font-bold ml-auto ${success ? 'text-[#3E8635]' : warning ? 'text-[#F0AB00]' : 'text-[#C9190B]'}`}>
+                    {status}
                   </span>
                 )}
               </div>
@@ -105,6 +111,18 @@ function StepPipeline({ steps }: { steps: Record<string, any> }) {
                 </div>
               )}
 
+              {step?.message && (
+                <div className="text-xs text-[#8A8D90] mt-1">{step.message}</div>
+              )}
+              {step?.reason && (
+                <div className="text-xs text-[#8A8D90] mt-1">{step.reason}</div>
+              )}
+              {step?.detected_class && (
+                <div className="text-xs text-[#C9C9C9] mt-1">Detected: <span className="text-white font-medium">{step.detected_class}</span> via {step.source}</div>
+              )}
+              {step?.pending_id && (
+                <div className="text-xs text-[#F0AB00] mt-1">HITL approval required (pending #{step.pending_id})</div>
+              )}
               {step?.error && (
                 <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2 font-mono mt-1">
                   {step.error}
