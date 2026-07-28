@@ -121,30 +121,35 @@ function StepPipeline({ steps, queryClient }: { steps: Record<string, any>; quer
                 <div className="text-xs text-[#C9C9C9] mt-1">Detected: <span className="text-white font-medium">{step.detected_class}</span> via {step.source}</div>
               )}
               {step?.pending_id && (
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs text-[#F0AB00]">HITL approval required (pending #{step.pending_id})</span>
-                  <button
-                    className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-3 py-1 rounded font-medium transition"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      api.approveAction(step.pending_id).then(() => {
-                        queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
-                      });
-                    }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-3 py-1 rounded font-medium transition"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      api.rejectAction(step.pending_id).then(() => {
-                        queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
-                      });
-                    }}
-                  >
-                    Reject
-                  </button>
+                <div className="mt-2 space-y-2">
+                  <div className="text-xs text-[#F0AB00]">HITL approval required — approve to run remediation + verify + cleanup</div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const fc = step.failure_class || (steps as any)?.inject?.failure_class || '';
+                        api.approveAction(step.pending_id).then(() =>
+                          api.continueProof(fc).then(() =>
+                            queryClient.invalidateQueries({ queryKey: ['proof-matrix'] })
+                          )
+                        );
+                      }}
+                    >
+                      Approve + Continue
+                    </button>
+                    <button
+                      className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded font-medium transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        api.rejectAction(step.pending_id).then(() => {
+                          queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                        });
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </div>
                 </div>
               )}
               {step?.error && (
