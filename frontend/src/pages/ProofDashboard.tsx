@@ -51,18 +51,31 @@ function MetricCard({ label, value }: { label: string; value: string | number })
   );
 }
 
-function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<string, any>; queryClient: any; failureClass: string }) {
+function ProofTimeline({ steps, queryClient, failureClass }: { steps: Record<string, any>; queryClient: any; failureClass: string }) {
   const [continuing, setContinuing] = useState(false);
   const [continueError, setContinueError] = useState<string | null>(null);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+
+  const toggleStep = (name: string) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   return (
-    <div className="space-y-2">
-      {STEP_ORDER.map((stepName) => {
+    <div className="space-y-0">
+      {STEP_ORDER.map((stepName, idx) => {
         const step = steps?.[stepName];
         const status = step?.status || (step?.success === true ? 'success' : step?.success === false ? 'failed' : null);
         const success = status === 'success' || status === 'clean' || status === 'detected';
-        const warning = status === 'timeout' || status === 'skipped' || status === 'awaiting_hitl_approval';
+        const warning = status === 'timeout' || status === 'skipped' || status === 'awaiting_hitl_approval' || status === 'waiting';
         const notRun = !step || !status;
+        const isLast = idx === STEP_ORDER.length - 1;
+        const cmds: any[] = step?.commands || [];
+        const isStepExpanded = expandedSteps.has(stepName);
 
         const dotColor = notRun
           ? 'bg-[#555]'
@@ -72,39 +85,125 @@ function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<stri
               ? 'bg-[#F0AB00]'
               : 'bg-[#C9190B]';
 
-        const borderColor = notRun
-          ? 'border-[#2e2e2e]'
+        const statusColor = notRun
+          ? 'text-[#555]'
           : success
-            ? 'border-[#3E8635]'
+            ? 'text-[#3E8635]'
             : warning
-              ? 'border-[#F0AB00]'
-              : 'border-[#C9190B]';
+              ? 'text-[#F0AB00]'
+              : 'text-[#C9190B]';
+
+        const lineColor = notRun
+          ? 'bg-[#333]'
+          : success
+            ? 'bg-[#3E8635]'
+            : warning
+              ? 'bg-[#F0AB00]'
+              : 'bg-[#C9190B]';
 
         return (
-          <div key={stepName}>
-            <div className={`bg-[#1a1a1a] border ${borderColor} rounded-lg p-3`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shrink-0`} />
+          <div key={stepName} className="flex gap-3">
+            {/* Timeline line + dot */}
+            <div className="flex flex-col items-center w-4 shrink-0">
+              <div className={`w-3 h-3 rounded-full ${dotColor} shrink-0 mt-1`} />
+              {!isLast && (
+                <div className={`w-0.5 flex-1 ${notRun ? 'border-l border-dashed border-[#333]' : lineColor}`} />
+              )}
+            </div>
+            {/* Content */}
+            <div className="flex-1 pb-4">
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-white font-medium capitalize">{stepName}</span>
                 {!notRun && (
-                  <span className={`text-xs font-bold ml-auto ${success ? 'text-[#3E8635]' : warning ? 'text-[#F0AB00]' : 'text-[#C9190B]'}`}>
-                    {status}
-                  </span>
+                  <span className={`text-xs font-bold ${statusColor}`}>{status}</span>
                 )}
               </div>
 
               {step?.duration_ms != null && (
-                <div className="text-[10px] text-[#6A6E73] mb-2">{step.duration_ms}ms</div>
+                <div className="text-[10px] text-[#6A6E73] mt-0.5">{step.duration_ms}ms</div>
               )}
 
-              {step?.commands && step.commands.length > 0 && (
-                <div className="space-y-2">
-                  {step.commands.map((cmd: any, ci: number) => (
+              {/* Context messages */}
+              {step?.detected_class && (
+                <div className="text-xs text-[#C9C9C9] mt-1">Detected: <span className="text-white font-medium">{step.detected_class}</span> via {step.source}</div>
+              )}
+              {step?.message && (
+                <div className="text-xs text-[#8A8D90] mt-1">{step.message}</div>
+              )}
+              {step?.reason && (
+                <div className="text-xs text-[#8A8D90] mt-1">{step.reason}</div>
+              )}
+
+              {/* Waiting step hint */}
+              {notRun && idx > 0 && (() => {
+                const prevName = STEP_ORDER[idx - 1] as string;
+                const prevStep = steps?.[prevName];
+                const prevStatus = prevStep?.status || (prevStep?.success === true ? 'success' : prevStep?.success === false ? 'failed' : null);
+                const prevPending = prevStep?.pending_id;
+                if (prevPending) return <div className="text-xs text-[#555] mt-1">Runs after {prevName} is approved.</div>;
+                if (!prevStatus) return <div className="text-xs text-[#555] mt-1">Runs after {prevName}.</div>;
+                return null;
+              })()}
+
+              {/* HITL buttons */}
+              {step?.pending_id && !continuing && (
+                <div className="mt-2 space-y-2">
+                  <div className="text-xs text-[#F0AB00]">HITL approval required — approve to run remediation + verify + cleanup</div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition disabled:opacity-50"
+                      disabled={continuing}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContinuing(true);
+                        setContinueError(null);
+                        api.approveAction(step.pending_id)
+                          .then(() => api.continueProof(failureClass))
+                          .then(() => {
+                            setContinuing(false);
+                            queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                          })
+                          .catch((err: any) => {
+                            setContinuing(false);
+                            setContinueError(err.message || 'Failed');
+                          });
+                      }}
+                    >
+                      Approve + Continue
+                    </button>
+                    <button
+                      className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded font-medium transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        api.rejectAction(step.pending_id).then(() => {
+                          queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+                        });
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+              {continuing && stepName === 'remediate' && (
+                <div className="text-xs text-[#4ade80] font-medium animate-pulse mt-2">Running remediation &rarr; verify &rarr; cleanup...</div>
+              )}
+
+              {/* Command toggle */}
+              {cmds.length > 0 && (
+                <button onClick={() => toggleStep(stepName)} className="text-xs text-[#6A6E73] hover:text-white mt-1 flex items-center gap-1">
+                  <span>{isStepExpanded ? '▼' : '▶'}</span>
+                  {isStepExpanded ? 'Hide' : 'Show'} commands ({cmds.length})
+                </button>
+              )}
+              {isStepExpanded && cmds.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {cmds.map((cmd: any, ci: number) => (
                     <div key={ci}>
-                      <div className="text-[11px] text-[#C9C9C9] font-mono bg-[#0d0d0d] rounded px-2 py-1 mb-1 truncate" title={cmd.command}>
+                      <div className="text-[11px] text-[#C9C9C9] font-mono bg-[#0d0d0d] rounded px-2 py-1 truncate" title={cmd.command}>
                         {cmd.command}
                       </div>
-                      {(cmd.output !== undefined && cmd.output !== null) && (
+                      {cmd.output != null && (
                         <pre className={`text-xs rounded px-3 py-2 font-mono overflow-x-auto max-h-40 overflow-y-auto ${
                           cmd.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
                         }`}>{cmd.output || '(no output)'}</pre>
@@ -114,62 +213,9 @@ function StepPipeline({ steps, queryClient, failureClass }: { steps: Record<stri
                 </div>
               )}
 
-              {step?.message && (
-                <div className="text-xs text-[#8A8D90] mt-1">{step.message}</div>
-              )}
-              {step?.reason && (
-                <div className="text-xs text-[#8A8D90] mt-1">{step.reason}</div>
-              )}
-              {step?.detected_class && (
-                <div className="text-xs text-[#C9C9C9] mt-1">Detected: <span className="text-white font-medium">{step.detected_class}</span> via {step.source}</div>
-              )}
-              {step?.pending_id && (
-                <div className="mt-2 space-y-2">
-                  {continuing ? (
-                    <div className="text-xs text-[#4ade80] font-medium animate-pulse">Running remediation → verify → cleanup... this may take 30+ seconds</div>
-                  ) : (
-                    <>
-                      <div className="text-xs text-[#F0AB00]">HITL approval required — approve to run remediation + verify + cleanup</div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-xs px-4 py-1.5 rounded font-medium transition disabled:opacity-50"
-                          disabled={continuing}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setContinuing(true);
-                            setContinueError(null);
-                            api.approveAction(step.pending_id)
-                              .then(() => api.continueProof(failureClass))
-                              .then(() => {
-                                setContinuing(false);
-                                queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
-                              })
-                              .catch((err: any) => {
-                                setContinuing(false);
-                                setContinueError(err.message || 'Failed');
-                              });
-                          }}
-                        >
-                          Approve + Continue
-                        </button>
-                        <button
-                          className="bg-[#C9190B] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded font-medium transition"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            api.rejectAction(step.pending_id).then(() => {
-                              queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
-                            });
-                          }}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {continueError && (
-                    <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2">{continueError}</div>
-                  )}
-                </div>
+              {/* Errors */}
+              {continueError && stepName === 'remediate' && (
+                <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2 mt-1">{continueError}</div>
               )}
               {step?.error && (
                 <div className="text-xs text-[#f87171] bg-[#1f0d0d] border border-[#3a1a1a] rounded px-3 py-2 font-mono mt-1">
@@ -193,7 +239,7 @@ export default function ProofDashboard() {
   const matrix = useQuery({
     queryKey: ['proof-matrix'],
     queryFn: () => api.getProofMatrix(),
-    refetchInterval: 10_000,
+    refetchInterval: expandedRow ? false : 10_000,
   });
 
   const expandedHistory = useQuery({
@@ -384,7 +430,7 @@ export default function ProofDashboard() {
                             {/* Step pipeline */}
                             <div>
                               <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                              <StepPipeline steps={steps} queryClient={queryClient} failureClass={fc} />
+                              <ProofTimeline steps={steps} queryClient={queryClient} failureClass={fc} />
                             </div>
 
                             {/* Previous cycles summary */}
@@ -419,7 +465,7 @@ export default function ProofDashboard() {
                       {!expandedHistory.data && !expandedHistory.isLoading && entry.last_cycle && (
                         <div>
                           <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
-                          <StepPipeline steps={entry.last_cycle.steps || entry.last_cycle} queryClient={queryClient} failureClass={fc} />
+                          <ProofTimeline steps={entry.last_cycle.steps || entry.last_cycle} queryClient={queryClient} failureClass={fc} />
                         </div>
                       )}
                     </div>

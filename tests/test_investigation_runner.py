@@ -8,6 +8,11 @@ import pytest
 from engine.investigation_runner import InvestigationRunner
 
 
+def _traced(output):
+    """Wrap a string as a _run_oc_traced return value: (output, trace_dict)."""
+    return (output, {"command": "", "output": output[:2000], "exit_code": 0, "duration_ms": 0})
+
+
 @pytest.fixture
 def runner():
     return InvestigationRunner()
@@ -219,19 +224,19 @@ class TestFormatOutput:
 class TestRunFullChain:
     """Integration tests for the full run() method with mocked _run_oc."""
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_steps_execute_in_order(self, mock_run_oc, runner):
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_steps_execute_in_order(self, mock_run_oc_traced, runner):
         pods_json = json.dumps({
             "items": [
                 {"metadata": {"name": "pod-a"}, "status": {"phase": "Failed"}},
                 {"metadata": {"name": "pod-b"}, "status": {"phase": "Running"}},
             ]
         })
-        mock_run_oc.side_effect = [
-            pods_json,
-            "Name: pod-a\nState: CrashLoopBackOff\nRestarts: 5",
-            "Error: something crashed",
-            "LAST SEEN   TYPE   REASON   MESSAGE",
+        mock_run_oc_traced.side_effect = [
+            _traced(pods_json),
+            _traced("Name: pod-a\nState: CrashLoopBackOff\nRestarts: 5"),
+            _traced("Error: something crashed"),
+            _traced("LAST SEEN   TYPE   REASON   MESSAGE"),
         ]
 
         entry = {
@@ -259,14 +264,14 @@ class TestRunFullChain:
         assert result["steps"][2]["command"] == "oc logs pod-a -n test-ns --previous --tail=50"
         assert result["context"]["failed_pods"] == ["pod-a"]
         assert "CrashLoopBackOff" in result["context"]["pod_description"]
-        assert mock_run_oc.call_count == 4
+        assert mock_run_oc_traced.call_count == 4
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_condition_skips_step(self, mock_run_oc, runner):
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_condition_skips_step(self, mock_run_oc_traced, runner):
         pods_json = json.dumps({"items": []})
-        mock_run_oc.side_effect = [
-            pods_json,
-            "LAST SEEN   TYPE   REASON   MESSAGE",
+        mock_run_oc_traced.side_effect = [
+            _traced(pods_json),
+            _traced("LAST SEEN   TYPE   REASON   MESSAGE"),
         ]
 
         entry = {
@@ -290,13 +295,13 @@ class TestRunFullChain:
         assert result["steps"][0]["stored_as"] == "failed_pods"
         assert result["steps"][1]["stored_as"] == "pod_events"
         assert "pod_description" not in result["context"]
-        assert mock_run_oc.call_count == 2
+        assert mock_run_oc_traced.call_count == 2
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_context_accumulates(self, mock_run_oc, runner):
-        mock_run_oc.side_effect = [
-            "svc-a svc-b",
-            "ep-1 ep-2",
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_context_accumulates(self, mock_run_oc_traced, runner):
+        mock_run_oc_traced.side_effect = [
+            _traced("svc-a svc-b"),
+            _traced("ep-1 ep-2"),
         ]
 
         entry = {
@@ -314,9 +319,9 @@ class TestRunFullChain:
         assert result["context"]["services"] == "svc-a svc-b"
         assert result["context"]["endpoints"] == "ep-1 ep-2"
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_params_available_in_context(self, mock_run_oc, runner):
-        mock_run_oc.return_value = "OK"
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_params_available_in_context(self, mock_run_oc_traced, runner):
+        mock_run_oc_traced.return_value = _traced("OK")
 
         entry = {
             "steps": [
@@ -329,9 +334,9 @@ class TestRunFullChain:
 
         assert result["steps"][0]["command"] == "oc describe svc my-svc -n test-ns"
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_step_failure_captured(self, mock_run_oc, runner):
-        mock_run_oc.side_effect = Exception("connection refused")
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_step_failure_captured(self, mock_run_oc_traced, runner):
+        mock_run_oc_traced.side_effect = Exception("connection refused")
 
         entry = {
             "steps": [
@@ -346,9 +351,9 @@ class TestRunFullChain:
         assert "Error: connection refused" in result["steps"][0]["output"]
         assert "Error: connection refused" in result["context"]["pods"]
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_output_template_rendered(self, mock_run_oc, runner):
-        mock_run_oc.side_effect = ["pod-a pod-b", "event-1 event-2"]
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_output_template_rendered(self, mock_run_oc_traced, runner):
+        mock_run_oc_traced.side_effect = [_traced("pod-a pod-b"), _traced("event-1 event-2")]
 
         entry = {
             "steps": [
@@ -364,12 +369,12 @@ class TestRunFullChain:
         assert "Pods: pod-a pod-b" in result["report"]
         assert "Events: event-1 event-2" in result["report"]
 
-    @patch("engine.investigation_runner._run_oc")
-    def test_chained_contains_condition(self, mock_run_oc, runner):
+    @patch("engine.investigation_runner._run_oc_traced")
+    def test_chained_contains_condition(self, mock_run_oc_traced, runner):
         """Verify that a contains condition on a previous step's output works."""
-        mock_run_oc.side_effect = [
-            "Status: Running normally, no issues",
-            "LAST SEEN   TYPE   REASON   MESSAGE",
+        mock_run_oc_traced.side_effect = [
+            _traced("Status: Running normally, no issues"),
+            _traced("LAST SEEN   TYPE   REASON   MESSAGE"),
         ]
 
         entry = {
