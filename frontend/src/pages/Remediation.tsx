@@ -86,7 +86,8 @@ function RCADetail({ rca, namespace, cluster }: { rca: any; namespace: string; c
 
   let parsed: any = null;
   if (typeof rca === 'string') {
-    try { parsed = JSON.parse(rca); } catch { /* not JSON, treat as prose */ }
+    let cleaned = rca.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    try { parsed = JSON.parse(cleaned); } catch { /* not JSON, treat as prose */ }
   } else if (typeof rca === 'object') {
     parsed = rca;
   }
