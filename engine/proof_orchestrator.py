@@ -55,6 +55,52 @@ def _load_failure_patterns():
     return patterns
 
 
+def _call_geolux(failure_class: str, namespace: str, detected_class: str,
+                  detect_commands: list, kubeconfig: str) -> Dict:
+    """Send evidence to GeoLux for hypothesis generation + classification."""
+    import json
+    geolux_url = os.environ.get("STARGATE_GEOLUX_URL", "")
+    if not geolux_url:
+        return {"skipped": True, "reason": "STARGATE_GEOLUX_URL not set"}
+
+    api_key = os.environ.get("STARGATE_GEOLUX_API_KEY", os.environ.get("STARGATE_ADMIN_API_KEY", ""))
+    event_output = ""
+    for cmd in detect_commands:
+        if cmd.get("output"):
+            event_output = cmd["output"][:1000]
+
+    payload = {
+        "source": "stargate",
+        "event_type": "stargate_evaluation_failed",
+        "event_id": f"proof-{failure_class}-{int(time.time())}",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "payload": {
+            "run_id": f"proof-{failure_class}",
+            "stage_id": "proof-detect",
+            "lab_code": namespace,
+            "cluster": "infra01",
+            "namespace": namespace,
+            "outcome": "fail",
+            "failure_class": detected_class or failure_class,
+            "message": event_output[:500],
+        }
+    }
+
+    try:
+        import urllib.request
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["X-API-Key"] = api_key
+        endpoint = f"{geolux_url.rstrip('/')}/integration/events"
+        req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers)
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read().decode())
+        return {"hypothesis": result, "status": "success"}
+    except Exception as e:
+        logger.warning("GeoLux call failed: %s", e)
+        return {"hypothesis": None, "status": "failed", "error": str(e)}
+
+
 def run_proof_cycle(
     failure_class: str,
     kubeconfig: str = "",
@@ -182,6 +228,35 @@ def run_proof_cycle(
 
     if detected:
         tracker.record_detection(failure_class, detected_class, detection_source)
+
+    # 3b. Call GeoLux for hypothesis + classification + recommendation
+    geolux_result = _call_geolux(failure_class, namespace, detected_class, detect_commands, kubeconfig)
+    result["geolux"] = geolux_result
+    try:
+        pipeline = PipelineRubricTracker()
+        if geolux_result.get("hypothesis"):
+            pipeline.record_stage(failure_class, "hypothesize", "geolux", {
+                "tdd": "green" if geolux_result["hypothesis"].get("processed") else "red",
+                "edd": "green" if geolux_result["hypothesis"].get("classification_result") else "yellow",
+                "cdd": "green" if geolux_result["hypothesis"].get("hypotheses_generated", 0) > 0 else "yellow",
+                "bdd": "green" if not geolux_result["hypothesis"].get("error") else "red",
+            }, evidence={
+                "tdd": [f"Event processed: {geolux_result['hypothesis'].get('processed')}"],
+                "edd": [f"Classification: {geolux_result['hypothesis'].get('classification_result')}"],
+                "cdd": [f"Hypotheses generated: {geolux_result['hypothesis'].get('hypotheses_generated', 0)}"],
+                "bdd": [f"Error: {geolux_result['hypothesis'].get('error', 'none')}"],
+            })
+            if geolux_result["hypothesis"].get("classification_result"):
+                pipeline.record_stage(failure_class, "classify", "geolux", {
+                    "tdd": "green",
+                    "edd": "green" if geolux_result["hypothesis"]["classification_result"] == failure_class else "yellow",
+                    "cdd": "green",
+                    "bdd": "green",
+                }, evidence={
+                    "edd": [f"Classified as: {geolux_result['hypothesis']['classification_result']}"],
+                })
+    except Exception as e:
+        logger.debug("Pipeline rubric GeoLux evaluation failed: %s", e)
 
     # 4. HITL gate — create pending action and stop
     if mode == "manual" and db:
