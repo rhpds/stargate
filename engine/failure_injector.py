@@ -268,6 +268,89 @@ def inject_scheduling_failed(namespace: str, kubeconfig: str = "") -> Dict:
     }
 
 
+def inject_backoff_limit_exceeded(namespace: str, kubeconfig: str = "") -> Dict:
+    """Job that fails and exceeds backoff limit."""
+    _validate_namespace(namespace)
+    name = "proof-backoff-job"
+    commands = []
+    commands.append(_run_oc(["delete", "job", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    job = {
+        "apiVersion": "batch/v1", "kind": "Job",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {"backoffLimit": 1, "template": {"spec": {
+            "restartPolicy": "Never",
+            "containers": [{"name": "fail", "image": "registry.access.redhat.com/ubi9/ubi-minimal:latest", "command": ["/bin/false"]}]
+        }}}
+    }
+    commands.append(_apply_manifest(job, namespace, kubeconfig))
+    return {
+        "failure_class": "backoff_limit_exceeded", "injected_resources": [f"job/{name}"],
+        "namespace": namespace, "commands": commands,
+        "proof_type": "investigation", "catalog_action": "inspect_backoff_limit_exceeded",
+        "why": "Job runs /bin/false — must fix the job spec.",
+    }
+
+
+def inject_image_pull_secret_missing(namespace: str, kubeconfig: str = "") -> Dict:
+    """Deploy with image from registry requiring auth, no pull secret."""
+    _validate_namespace(namespace)
+    name = "proof-no-secret"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.redhat.io/ubi9/ubi-minimal:latest"
+    ], kubeconfig))
+    return {
+        "failure_class": "image_pull_secret_missing", "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace, "commands": commands,
+        "proof_type": "investigation", "catalog_action": "inspect_image_pull_secret_missing",
+        "why": "registry.redhat.io requires auth — must create pull secret.",
+    }
+
+
+def inject_deprecated_api(namespace: str, kubeconfig: str = "") -> Dict:
+    """Create resource with deprecated annotation."""
+    _validate_namespace(namespace)
+    name = "proof-deprecated"
+    commands = []
+    commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    commands.append(_run_oc([
+        "create", "deployment", name, "-n", namespace,
+        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
+        "--", "sleep", "3600"
+    ], kubeconfig))
+    patch = json.dumps({"metadata": {"annotations": {"deprecated-annotation-proof": "true"}}})
+    commands.append(_run_oc(["annotate", "deployment", name, "-n", namespace, "deprecated-annotation-proof=true"], kubeconfig))
+    return {
+        "failure_class": "deprecated_api", "injected_resources": [f"deployment/{name}"],
+        "namespace": namespace, "commands": commands,
+        "proof_type": "investigation", "catalog_action": "inspect_deprecated_api",
+        "why": "Deprecated annotation — must update to current API.",
+    }
+
+
+def inject_pvc_binding_failed(namespace: str, kubeconfig: str = "") -> Dict:
+    """PVC requesting non-existent storage class."""
+    _validate_namespace(namespace)
+    name = "proof-pvc-nobind"
+    commands = []
+    commands.append(_run_oc(["delete", "pvc", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
+    pvc = {
+        "apiVersion": "v1", "kind": "PersistentVolumeClaim",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}},
+                 "storageClassName": "nonexistent-storage-class-proof"}
+    }
+    commands.append(_apply_manifest(pvc, namespace, kubeconfig))
+    return {
+        "failure_class": "pvc_binding_failed", "injected_resources": [f"pvc/{name}"],
+        "namespace": namespace, "commands": commands,
+        "proof_type": "investigation", "catalog_action": "inspect_pvc_binding_failed",
+        "why": "Storage class doesn't exist — must create it or use a valid one.",
+    }
+
+
 INJECTORS = {
     "pods_crashlooping": inject_pods_crashlooping,
     "readiness_probe_failed": inject_readiness_probe_failed,
@@ -276,6 +359,10 @@ INJECTORS = {
     "oom_killed": inject_oom_killed,
     "quota_exceeded": inject_quota_exceeded,
     "scheduling_failed": inject_scheduling_failed,
+    "backoff_limit_exceeded": inject_backoff_limit_exceeded,
+    "image_pull_secret_missing": inject_image_pull_secret_missing,
+    "deprecated_api": inject_deprecated_api,
+    "pvc_binding_failed": inject_pvc_binding_failed,
 }
 
 
@@ -291,12 +378,19 @@ def cleanup_all(namespace: str, kubeconfig: str = "") -> Dict:
     _validate_namespace(namespace)
     commands = []
     deleted = []
-    for name in ["proof-crashloop", "proof-readiness", "proof-imagepull", "proof-oom", "proof-quota-exceed", "proof-unschedulable"]:
+    for name in ["proof-crashloop", "proof-readiness", "proof-imagepull", "proof-oom", "proof-quota-exceed", "proof-unschedulable", "proof-no-secret", "proof-deprecated"]:
         trace = _run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig)
         commands.append(trace)
         if "deleted" in trace["output"].lower():
             deleted.append(f"deployment/{name}")
-    for name, kind in [("proof-misbound-pvc", "pvc"), ("proof-quota", "resourcequota"), ("proof-crashloop-ready", "configmap")]:
+    # Jobs
+    for name in ["proof-backoff-job"]:
+        trace = _run_oc(["delete", "job", name, "-n", namespace, "--ignore-not-found"], kubeconfig)
+        commands.append(trace)
+        if "deleted" in trace["output"].lower():
+            deleted.append(f"job/{name}")
+    # PVCs, quotas, configmaps
+    for name, kind in [("proof-misbound-pvc", "pvc"), ("proof-pvc-nobind", "pvc"), ("proof-quota", "resourcequota"), ("proof-crashloop-ready", "configmap")]:
         trace = _run_oc(["delete", kind, name, "-n", namespace, "--ignore-not-found"], kubeconfig)
         commands.append(trace)
         if "deleted" in trace["output"].lower():
