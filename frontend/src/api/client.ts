@@ -299,4 +299,8 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ failure_class: failureClass, mode }),
   }),
+  continueProof: (failureClass: string) => request<any>('/admin/proof/continue', {
+    method: 'POST',
+    body: JSON.stringify({ failure_class: failureClass }),
+  }),
 };
