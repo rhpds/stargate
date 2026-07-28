@@ -188,8 +188,13 @@ class DeepFieldConsumer(EventConsumer):
                     "stage_id": event.stage_id,
                     "lab_code": event.lab_code,
                     "cluster": event.cluster_name,
+                    "namespace": event.namespace or event.metadata.get("namespace", ""),
                     "outcome": event.outcome,
                     "failure_class": event.failure_class,
+                    "message": event.message,
+                    "priority": event.priority,
+                    "systemic": event.systemic,
+                    "blast_radius": event.blast_radius,
                 },
             }
 

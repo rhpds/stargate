@@ -1,0 +1,17 @@
+id: integration-cdd
+version: "1.0"
+prompt_type: integration
+dimension: cdd
+criteria:
+  - name: failure_class_present
+    check_type: section_present
+    target: "failure_class|failure class|readiness_probe|claim_misbound|sync_failed"
+    required: true
+  - name: severity_present
+    check_type: section_present
+    target: "critical|high|medium|low|severity"
+    required: true
+  - name: minimum_length
+    check_type: min_length
+    target: "50"
+    required: true
