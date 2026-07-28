@@ -179,6 +179,15 @@ def run_proof_cycle(
         "image_pull_secret_missing": [("get", "pods", "ImagePullBackOff|ErrImagePull"), ("get", "events", "pull.*secret|FailedToRetrieve")],
         "deprecated_api":          [("get", "pods", "Running")],
         "pvc_binding_failed":      [("get", "pvc", "Pending"), ("get", "events", "FailedBinding|ProvisioningFailed")],
+        "sync_failed":             [("get", "events", "SyncFailed|ReconcileFailed")],
+        "pod_pending":             [("get", "pods", "Pending")],
+        "volume_mount_failed":     [("get", "pods", "ContainerCreating"), ("get", "events", "FailedMount|MountVolume")],
+        "invalid_configuration":   [("get", "events", "InvalidConfiguration|invalid.*config"), ("get", "pods", "CreateContainerConfigError")],
+        "datasource_unrecognized": [("get", "events", "UnrecognizedDataSourceKind"), ("get", "pods", "Running")],
+        "volume_attach_failed":    [("get", "events", "FailedAttachVolume|AttachVolume"), ("get", "pods", "ContainerCreating")],
+        "volume_resize_failed":    [("get", "events", "VolumeResizeFailed|failed to resize"), ("get", "pvc", "FileSystemResizePending")],
+        "resolution_failed":       [("get", "events", "ResolutionFailed"), ("get", "pods", "")],
+        "hpa_metric_failure":      [("get", "events", "FailedGetResourceMetric|missing request"), ("get", "hpa", "")],
     }
 
     checks = detect_checks.get(failure_class, [("get", "pods", "")])
@@ -191,6 +200,8 @@ def run_proof_cycle(
                 args = ["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "--field-selector=type=Warning"]
             elif check_resource == "pvc":
                 args = ["get", "pvc", "-n", namespace]
+            elif check_resource == "hpa":
+                args = ["get", "hpa", "-n", namespace]
             else:
                 args = ["get", "pods", "-n", namespace, "-o", "wide"]
             trace = _oc(args, kubeconfig)
