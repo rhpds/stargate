@@ -248,10 +248,15 @@ export default function ProofDashboard() {
     enabled: !!expandedRow,
   });
 
+  const [runError, setRunError] = useState<string | null>(null);
   const runProof = useMutation({
     mutationFn: (failureClass: string) => api.runProof(failureClass, 'manual'),
     onSuccess: () => {
+      setRunError(null);
       queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+    },
+    onError: (err: any) => {
+      setRunError(err.message || 'Failed to run proof');
     },
   });
 
@@ -309,6 +314,15 @@ export default function ProofDashboard() {
         <MetricCard label="Verified" value={verifiedCount} />
         <MetricCard label="Untested" value={untestedCount} />
       </div>
+
+      {runError && (
+        <div className="bg-[#1f0d0d] border border-[#3a1a1a] rounded-lg p-3 text-sm text-[#f87171]">
+          {runError}
+          {runError.includes('expired') && (
+            <button onClick={() => window.location.reload()} className="ml-2 underline text-white">Refresh</button>
+          )}
+        </div>
+      )}
 
       {/* Proof Matrix table */}
       <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
