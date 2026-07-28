@@ -1573,3 +1573,24 @@ def evaluate_pipeline_stage(req: dict, _auth=Depends(require_admin)):
         evidence=req.get("evidence"),
     )
     return {"status": "recorded"}
+
+
+@router.get("/admin/mining/patterns")
+def get_mining_patterns(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
+    """Mine historical failure patterns from the evaluation database.
+
+    Uses aggregation queries only — no full record loads.
+    Results cached for 6 hours to avoid re-mining.
+    """
+    from engine.historical_miner import mine_and_cache
+    return mine_and_cache(db)
+
+
+@router.post("/admin/mining/feed-geolux")
+def feed_mining_to_geolux(req: dict = None, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Feed top mined patterns to GeoLux as evidence for hypothesis generation."""
+    from engine.historical_miner import mine_and_cache, feed_patterns_to_geolux
+    max_feed = (req or {}).get("max_feed", 5)
+    patterns = mine_and_cache(db)
+    results = feed_patterns_to_geolux(patterns, max_feed=max_feed)
+    return {"fed": len(results), "results": results}
