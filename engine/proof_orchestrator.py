@@ -93,7 +93,7 @@ def _call_geolux(failure_class: str, namespace: str, detected_class: str,
             headers["X-API-Key"] = api_key
         endpoint = f"{geolux_url.rstrip('/')}/integration/events"
         req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers)
-        resp = urllib.request.urlopen(req, timeout=10)
+        resp = urllib.request.urlopen(req, timeout=30)
         result = json.loads(resp.read().decode())
         return {"hypothesis": result, "status": "success"}
     except Exception as e:
@@ -212,6 +212,7 @@ def run_proof_cycle(
     # Evaluate pipeline rubric — detect stage
     try:
         pipeline = PipelineRubricTracker()
+        logger.info("Recording detect stage in pipeline rubric for %s", failure_class)
         pipeline.record_stage(failure_class, "detect", "deepfield/stargate", {
             "tdd": "green" if detected else "red",
             "edd": "green" if detected and detected_class == failure_class else "yellow" if detected else "red",
@@ -223,8 +224,8 @@ def run_proof_cycle(
             "cdd": [f"Pattern match: {detected_class == failure_class}"],
             "bdd": [f"Detection within {DETECTION_TIMEOUT}s: {detected}"],
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Pipeline rubric detect evaluation failed: %s", e)
 
     if detected:
         tracker.record_detection(failure_class, detected_class, detection_source)
@@ -256,7 +257,7 @@ def run_proof_cycle(
                     "edd": [f"Classified as: {geolux_result['hypothesis']['classification_result']}"],
                 })
     except Exception as e:
-        logger.debug("Pipeline rubric GeoLux evaluation failed: %s", e)
+        logger.warning("Pipeline rubric GeoLux evaluation failed: %s", e)
 
     # 4. HITL gate — create pending action and stop
     if mode == "manual" and db:
