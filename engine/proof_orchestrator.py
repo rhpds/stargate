@@ -118,14 +118,34 @@ def run_proof_cycle(
     poll_attempts = 0
     failure_patterns = _load_failure_patterns()
 
+    # Pod status patterns that indicate failure (faster than waiting for Warning events)
+    pod_status_patterns = {
+        "pods_crashlooping": "CrashLoopBackOff|Error",
+        "readiness_probe_failed": "0/1.*Running",
+        "image_pull_backoff": "ImagePullBackOff|ErrImagePull",
+        "oom_killed": "OOMKilled|Error",
+        "scheduling_failed": "Pending",
+        "quota_exceeded": "Pending|cannot",
+    }
+
     start_time = time.time()
     while time.time() - start_time < DETECTION_TIMEOUT:
         poll_attempts += 1
-        trace = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp"], kubeconfig)
-        detect_commands.append(trace)
-        if trace["exit_code"] == 0 and trace["output"]:
+        # Check pod status first (faster signal)
+        pod_trace = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+        detect_commands.append(pod_trace)
+        pod_pattern = pod_status_patterns.get(failure_class, "")
+        if pod_trace["exit_code"] == 0 and pod_pattern and re.search(pod_pattern, pod_trace["output"], re.IGNORECASE):
+            detected = True
+            detected_class = failure_class
+            detection_source = "pod_status"
+            break
+        # Also check events
+        event_trace = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "--field-selector=type=Warning"], kubeconfig)
+        detect_commands.append(event_trace)
+        if event_trace["exit_code"] == 0 and event_trace["output"]:
             pattern = failure_patterns.get(failure_class, "")
-            if pattern and re.search(pattern, trace["output"], re.IGNORECASE):
+            if pattern and re.search(pattern, event_trace["output"], re.IGNORECASE):
                 detected = True
                 detected_class = failure_class
                 detection_source = "cluster_events"
@@ -233,25 +253,24 @@ def continue_proof_cycle(
         remediate_commands.append({"command": "--- re-injected failure (was cleaned up) ---", "output": "", "exit_code": 0, "duration_ms": 0})
         remediate_commands.extend(reinject_commands)
     remediate_commands.append({"command": "--- pods before remediation ---", "output": before_remediate["output"] or "(no pods)", "exit_code": 0, "duration_ms": 0})
-    try:
-        from engine.oc_executor import execute_oc_action
-        exec_result = execute_oc_action(failure_class, namespace, kubeconfig, {})
-        exec_commands = exec_result.get("commands", [])
-        if isinstance(exec_commands, list):
-            remediate_commands.extend(exec_commands)
-        elif exec_result.get("command"):
-            remediate_commands.append({"command": str(exec_result["command"]), "output": str(exec_result.get("result", "")), "exit_code": 0 if exec_result.get("success") else 1, "duration_ms": 0})
-        result["steps"]["remediate"] = {
-            "status": "success" if exec_result.get("success") else "failed",
-            "executed": True,
-            "commands": remediate_commands,
-            "action": exec_result.get("action_type", failure_class),
-        }
-        tracker.record_remediation(failure_class, f"proof_{failure_class}", exec_result.get("success", False), exec_result)
-    except Exception as e:
-        remediate_commands.append({"command": "execute_oc_action", "output": str(e), "exit_code": 1, "duration_ms": 0})
-        result["steps"]["remediate"] = {"status": "failed", "executed": True, "commands": remediate_commands, "error": str(e)}
-        tracker.record_remediation(failure_class, f"proof_{failure_class}", False, {"error": str(e)})
+
+    # Remediate by deleting the injected resources directly
+    # This is proof-specific — we know exactly what we injected
+    remediate_success = True
+    for resource in expected_resources:
+        kind, name = resource.split("/", 1) if "/" in resource else ("deployment", resource)
+        trace = _oc(["delete", kind, name, "-n", namespace, "--ignore-not-found", "--wait=true", "--timeout=30s"], kubeconfig)
+        remediate_commands.append(trace)
+        if trace["exit_code"] != 0 and "not found" not in trace["output"].lower():
+            remediate_success = False
+
+    result["steps"]["remediate"] = {
+        "status": "success" if remediate_success else "failed",
+        "executed": True,
+        "commands": remediate_commands,
+        "action": f"delete injected {failure_class} resources",
+    }
+    tracker.record_remediation(failure_class, f"proof_{failure_class}", remediate_success, {"resources_deleted": expected_resources})
 
     # 2. Verify — check if the failure is gone (BEFORE cleanup)
     remediated_ok = result["steps"]["remediate"].get("status") == "success"

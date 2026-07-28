@@ -456,16 +456,17 @@ export default function ProofDashboard() {
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                   {cycleResults.slice(0, -1).reverse().map((cycle: any, ci: number) => {
-                                    const passed = cycle.result === 'PASS' || cycle.result === 'PROVEN';
+                                    const passed = cycle.success === true;
+                                    const label = passed ? 'PASS' : cycle.success === false ? 'FAIL' : '...';
                                     return (
                                       <span
                                         key={ci}
                                         className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                                           passed ? 'bg-[#3E8635] text-white' : 'bg-[#C9190B] text-white'
                                         }`}
-                                        title={`Cycle ${cycle.cycle_id ?? ci + 1}: ${cycle.result ?? 'unknown'}`}
+                                        title={`Cycle ${ci + 1}: ${label}`}
                                       >
-                                        {cycle.cycle_id ?? ci + 1}: {cycle.result ?? '?'}
+                                        {ci + 1}: {label}
                                       </span>
                                     );
                                   })}
