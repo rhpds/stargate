@@ -94,6 +94,107 @@ def submit_feedback(run_id: str, req: FeedbackRequest, db: Session = Depends(get
     }
 
 
+@router.post("/integration/geolux-mpc-action", status_code=201)
+def receive_geolux_mpc_action(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Receive an MPC-recommended action from GeoLux and route it through the proof system.
+
+    GeoLux's MPC controller recommends actions based on hypothesis generation,
+    constraint classification, and geometric stability. This endpoint feeds
+    those recommendations into StarGate's proof system to test whether they
+    actually work before promoting them to the catalog.
+
+    Flow: GeoLux MPC → this endpoint → proof system → if proven → catalog entry
+    """
+    import threading
+    from engine.proof_orchestrator import run_proof_cycle
+    from engine.proof_tracker import ProofTracker
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+    from db.models import PendingAction, AuditLog
+
+    action = req.get("recommended_action", {})
+    action_type = action.get("action_type", "")
+    cluster_id = req.get("cluster_id", "")
+    failure_class = action.get("parameters", {}).get("failure_class", action_type)
+    cycle_id = req.get("cycle_id", "")
+    confidence = action.get("score", 0.5)
+
+    if not action_type or action_type == "no_action":
+        return {"status": "skipped", "reason": "no_action recommended"}
+
+    # Log the MPC recommendation
+    audit = AuditLog(
+        action_type=f"geolux_mpc_{action_type}",
+        target=cluster_id,
+        parameters={
+            "source": "geolux_mpc",
+            "cycle_id": cycle_id,
+            "recommended_action": action,
+            "confidence": confidence,
+        },
+        proposed_by="geolux",
+        status="received",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+    db.commit()
+
+    import logging
+    logging.getLogger("stargate").info(
+        "GeoLux MPC action received: %s (cycle %s, confidence %.2f)",
+        action_type, cycle_id, confidence,
+    )
+
+    # If we have a matching injector, route through the proof system
+    from engine.failure_injector import INJECTORS
+    if failure_class in INJECTORS:
+        tracker = ProofTracker()
+        tracker.record_injection(failure_class, {"source": "geolux_mpc", "cycle_id": cycle_id, "action": action})
+
+        def _run_proof():
+            try:
+                from db.database import get_db as _get_db
+                bg_db = next(_get_db())
+                run_proof_cycle(failure_class=failure_class, kubeconfig=EXECUTOR_KUBECONFIG, mode="manual", db=bg_db)
+                bg_db.close()
+            except Exception as e:
+                logging.getLogger("stargate").error("GeoLux MPC proof cycle failed: %s", e)
+
+        thread = threading.Thread(target=_run_proof, daemon=True)
+        thread.start()
+
+        return {
+            "status": "proof_cycle_started",
+            "failure_class": failure_class,
+            "action_type": action_type,
+            "message": "MPC recommendation routed to proof system for validation.",
+        }
+
+    # No matching injector — queue as a proposal for human review
+    pending = PendingAction(
+        action_type=f"geolux_mpc_{action_type}",
+        target=cluster_id,
+        parameters={
+            "source": "geolux_mpc",
+            "cycle_id": cycle_id,
+            "recommended_action": action,
+        },
+        confidence=confidence,
+        proposed_by="geolux",
+        source_event_id=cycle_id,
+        status="pending",
+        proposed_at=datetime.now(timezone.utc),
+    )
+    db.add(pending)
+    db.commit()
+
+    return {
+        "status": "queued_for_approval",
+        "pending_id": pending.id,
+        "action_type": action_type,
+        "message": "No matching proof injector — queued for human review.",
+    }
+
+
 @router.post("/integration/geolux-proposal", status_code=201)
 def receive_geolux_proposal(body: "GeoluxProposalRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Receive a remediation proposal from GeoLux.
