@@ -274,10 +274,14 @@ class GeoLuxConsumer(EventConsumer):
 
             endpoint = f"{self.url.rstrip('/')}/integration/events"
             data = json.dumps(payload).encode("utf-8")
+            api_key = os.environ.get("STARGATE_GEOLUX_API_KEY", os.environ.get("STARGATE_ADMIN_API_KEY", ""))
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["X-API-Key"] = api_key
             req = urllib.request.Request(
                 endpoint,
                 data=data,
-                headers={"Content-Type": "application/json"},
+                headers=headers,
             )
             for attempt in range(3):
                 try:
