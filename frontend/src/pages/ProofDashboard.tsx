@@ -392,7 +392,7 @@ function PipelineRubricMatrix() {
             <span className="text-[10px] text-[#8A8D90]">{item.label}</span>
           </div>
         ))}
-        <span className="text-[10px] text-[#555] ml-2">Hover for TDD/EDD/CDD/BDD detail</span>
+        <span className="text-[10px] text-[#555] ml-2">Hover for TDD/EDD/CDD/BDD detail — TDD = Structural completeness | EDD = Evidence citations | CDD = Contract conformance | BDD = Behavioral outcomes</span>
       </div>
     </div>
   );
@@ -429,7 +429,14 @@ export default function ProofDashboard() {
     },
   });
 
-  const KNOWN_INJECTORS = ['pods_crashlooping', 'readiness_probe_failed', 'image_pull_backoff', 'claim_misbound', 'oom_killed', 'quota_exceeded', 'scheduling_failed'];
+  const KNOWN_INJECTORS = [
+    'pods_crashlooping', 'readiness_probe_failed', 'image_pull_backoff', 'claim_misbound',
+    'oom_killed', 'quota_exceeded', 'scheduling_failed', 'backoff_limit_exceeded',
+    'image_pull_secret_missing', 'deprecated_api', 'pvc_binding_failed',
+    'sync_failed', 'pod_pending', 'volume_mount_failed', 'invalid_configuration',
+    'datasource_unrecognized', 'volume_attach_failed', 'volume_resize_failed',
+    'resolution_failed', 'hpa_metric_failure',
+  ];
   const fcMap = matrix.data?.matrix?.failure_classes ?? {};
   const fromApi = Object.entries(fcMap).map(([name, data]: [string, any]) => ({ name, ...data }));
   const existingNames = new Set(fromApi.map((e: any) => e.name));

@@ -5,6 +5,7 @@ import { useOverview, useRemediation } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
+import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
 import SearchBar from '../components/SearchBar';
 import type { OverviewData } from '../api/types';
 
@@ -42,7 +43,7 @@ export default function FailureClasses() {
     const sel = searchParams.get('selected');
     if (sel) setSelectedClass(sel);
   }, [searchParams]);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [remediateConfirm, setRemediateConfirm] = useState(false);
   const [remediateResult, setRemediateResult] = useState<any>(null);
@@ -214,11 +215,14 @@ export default function FailureClasses() {
                                 { failure_class: selectedClass!, lab_code: ns.namespace, cluster: ns.cluster, context_type: 'lab' },
                                 {
                                   onSuccess: (data: any) => {
-                                    setAiAnalysis(data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2));
+                                    setAiAnalysis({
+                                      text: data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2),
+                                      llmMetricId: data?.llm_metric_id,
+                                    });
                                     setAiLoading(false);
                                   },
                                   onError: (err: any) => {
-                                    setAiAnalysis(`Analysis failed: ${err.message}`);
+                                    setAiAnalysis({ text: `Analysis failed: ${err.message}` });
                                     setAiLoading(false);
                                   },
                                 },
@@ -229,9 +233,12 @@ export default function FailureClasses() {
                           </button>
                           {aiAnalysis && (
                             <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
-                              <FormattedAnalysis text={aiAnalysis} />
+                              <FormattedAnalysis text={aiAnalysis.text} namespace={ns.namespace} cluster={ns.cluster} />
+                              <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
                             </div>
                           )}
+
+                          <IssueFeedbackPanel namespace={ns.namespace} cluster={ns.cluster} failure_class={selectedClass!} />
 
                           {/* Remediate button — after analysis */}
                           {aiAnalysis && ns.is_ecosystem && (

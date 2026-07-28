@@ -113,6 +113,13 @@ export default function App() {
                 <Route path="/capacity" element={<CapacityPage />} />
                 <Route path="/summit" element={<SummitReport />} />
                 <Route path="/proof" element={<ProofDashboard />} />
+                <Route path="*" element={
+                  <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">
+                    <h1 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: 'Red Hat Display' }}>Page not found</h1>
+                    <p className="text-[#6A6E73] mb-6">The page you're looking for doesn't exist.</p>
+                    <a href="/" className="px-4 py-2 rounded text-sm font-medium text-white" style={{ backgroundColor: '#EE0000' }}>Return to Health</a>
+                  </div>
+                } />
               </Routes>
             </main>
             <footer style={{ backgroundColor: 'var(--brand-dark)' }} className="border-t border-[#333] text-[#6A6E73] text-sm py-5">
