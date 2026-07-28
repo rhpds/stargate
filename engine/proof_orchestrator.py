@@ -200,13 +200,33 @@ def continue_proof_cycle(
     }
     result["mode"] = phase1.get("mode", "manual")
 
-    # Snapshot state before remediation
+    # Re-inject if the failure is no longer present (pod restart or timeout killed it)
+    before_check = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
+    fc_data = tracker._data.get("failure_classes", {}).get(failure_class, {})
+    expected_resources = []
+    for cr in fc_data.get("cycle_results", []):
+        res = cr.get("steps", {}).get("inject", {}).get("injected_resources", [])
+        if res:
+            expected_resources = res
+            break
+
+    needs_reinject = not before_check["output"] or all(
+        r.split("/")[-1] not in before_check["output"] for r in expected_resources
+    )
+    reinject_commands = []
+    if needs_reinject:
+        reinject = inject_failure(failure_class, namespace, kubeconfig)
+        reinject_commands = reinject.get("commands", [])
+        time.sleep(5)
+
     before_remediate = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
 
     # 1. Remediate — run the catalog action
-    remediate_commands = [
-        {"command": "--- pods before remediation ---", "output": before_remediate["output"] or "(no pods)", "exit_code": 0, "duration_ms": 0},
-    ]
+    remediate_commands = []
+    if reinject_commands:
+        remediate_commands.append({"command": "--- re-injected failure (was cleaned up) ---", "output": "", "exit_code": 0, "duration_ms": 0})
+        remediate_commands.extend(reinject_commands)
+    remediate_commands.append({"command": "--- pods before remediation ---", "output": before_remediate["output"] or "(no pods)", "exit_code": 0, "duration_ms": 0})
     try:
         from engine.oc_executor import execute_oc_action
         exec_result = execute_oc_action(failure_class, namespace, kubeconfig, {})
