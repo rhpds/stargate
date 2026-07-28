@@ -166,30 +166,40 @@ def run_proof_cycle(
     poll_attempts = 0
     failure_patterns = _load_failure_patterns()
 
-    # Pod status patterns that indicate failure (faster than waiting for Warning events)
-    pod_status_patterns = {
-        "pods_crashlooping": "CrashLoopBackOff|Error",
-        "readiness_probe_failed": "0/1.*Running",
-        "image_pull_backoff": "ImagePullBackOff|ErrImagePull",
-        "oom_killed": "OOMKilled|Error",
-        "scheduling_failed": "Pending",
-        "quota_exceeded": "Pending|cannot",
+    # Detection checks — each failure class has specific resource + status patterns
+    detect_checks = {
+        "pods_crashlooping":       [("get", "pods", "CrashLoopBackOff|Error")],
+        "readiness_probe_failed":  [("get", "pods", "0/1.*Running")],
+        "image_pull_backoff":      [("get", "pods", "ImagePullBackOff|ErrImagePull")],
+        "oom_killed":              [("get", "pods", "CrashLoopBackOff|OOMKilled|Error")],
+        "scheduling_failed":       [("get", "pods", "Pending"), ("get", "events", "FailedScheduling|Unschedulable")],
+        "quota_exceeded":          [("get", "events", "forbidden.*quota|exceeded quota"), ("get", "pods", "Pending")],
+        "claim_misbound":          [("get", "pvc", "Pending|Lost"), ("get", "events", "ClaimMisbound|FailedBinding")],
     }
+
+    checks = detect_checks.get(failure_class, [("get", "pods", "")])
 
     start_time = time.time()
     while time.time() - start_time < DETECTION_TIMEOUT:
         poll_attempts += 1
-        # Check pod status first (faster signal)
-        pod_trace = _oc(["get", "pods", "-n", namespace, "-o", "wide"], kubeconfig)
-        detect_commands.append(pod_trace)
-        pod_pattern = pod_status_patterns.get(failure_class, "")
-        if pod_trace["exit_code"] == 0 and pod_pattern and re.search(pod_pattern, pod_trace["output"], re.IGNORECASE):
-            detected = True
-            detected_class = failure_class
-            detection_source = "pod_status"
+        for check_verb, check_resource, check_pattern in checks:
+            if check_resource == "events":
+                args = ["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "--field-selector=type=Warning"]
+            elif check_resource == "pvc":
+                args = ["get", "pvc", "-n", namespace]
+            else:
+                args = ["get", "pods", "-n", namespace, "-o", "wide"]
+            trace = _oc(args, kubeconfig)
+            detect_commands.append(trace)
+            if trace["exit_code"] == 0 and check_pattern and re.search(check_pattern, trace["output"], re.IGNORECASE):
+                detected = True
+                detected_class = failure_class
+                detection_source = f"{check_resource}_status"
+                break
+        if detected:
             break
-        # Also check events
-        event_trace = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp", "--field-selector=type=Warning"], kubeconfig)
+        # Also check event patterns from failure-classes YAML
+        event_trace = _oc(["get", "events", "-n", namespace, "--sort-by=.lastTimestamp"], kubeconfig)
         detect_commands.append(event_trace)
         if event_trace["exit_code"] == 0 and event_trace["output"]:
             pattern = failure_patterns.get(failure_class, "")
