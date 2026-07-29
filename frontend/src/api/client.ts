@@ -292,6 +292,9 @@ export const api = {
   getMTTR: (hours = 168) => request<any>(`/dashboard/mttr?hours=${hours}`),
   getSummitReport: () => request<any>('/dashboard/summit-report'),
 
+  // Shadow tracking
+  getShadowStatus: () => request<any>('/admin/shadow/status'),
+
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
 

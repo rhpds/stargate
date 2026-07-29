@@ -398,6 +398,43 @@ function ConfigTable({ configs }: { configs: LabRemediationConfig[] }) {
   );
 }
 
+function ShadowStatusBar() {
+  const shadow = useQuery({
+    queryKey: ['shadow-status'],
+    queryFn: () => api.getShadowStatus(),
+    refetchInterval: 30_000,
+  });
+
+  if (shadow.isLoading || shadow.isError || !shadow.data) return null;
+
+  const s = shadow.data;
+  const active = s.active ?? s.enabled ?? false;
+
+  return (
+    <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+      <span className="text-[#6A6E73] font-bold uppercase text-xs tracking-wider">Shadow Mode</span>
+      <span className={`font-semibold ${active ? 'text-[#3E8635]' : 'text-[#6A6E73]'}`}>
+        {active ? 'Active' : 'Inactive'}
+      </span>
+      {s.failures_tracked != null && (
+        <span className="text-[#C9C9C9]">
+          Failures Tracked: <span className="font-bold text-white">{s.failures_tracked}</span>
+          {' | Resolved: '}<span className="font-bold text-white">{s.failures_resolved ?? 0}</span>
+        </span>
+      )}
+      {s.incidents_tracked != null && (
+        <span className="text-[#C9C9C9]">
+          Incidents Tracked: <span className="font-bold text-white">{s.incidents_tracked}</span>
+          {' | Resolved: '}<span className="font-bold text-white">{s.incidents_resolved ?? 0}</span>
+        </span>
+      )}
+      {s.last_run && (
+        <span className="text-[#6A6E73]">Last Run: {relativeTime(s.last_run)}</span>
+      )}
+    </div>
+  );
+}
+
 /* ---- main page ---- */
 
 export default function Remediation() {
@@ -559,7 +596,7 @@ export default function Remediation() {
                   >
                     <span className="text-sm text-white font-medium truncate">
                       {r.namespace}
-                      {r.is_ecosystem && <span className="ml-1 text-[10px] text-[#EE0000] font-bold uppercase">eco</span>}
+                      {r.is_ecosystem && <span className="ml-1 text-[10px] text-[#EE0000] font-bold uppercase" title="Ecosystem — long-running platform workload, not a transient sandbox">eco</span>}
                     </span>
                     <span className="text-xs text-[#8A8D90]">{r.cluster}</span>
                     <span className="text-xs text-white truncate" title={r.failure_class}>{r.failure_class}</span>
@@ -958,7 +995,17 @@ export default function Remediation() {
           <p className="text-sm text-[#8A8D90]">Enriched incidents from Deepfield's real-time correlation engine. Each incident groups related signals, runs root cause analysis, and suggests remediation. Acknowledge to mark as reviewed. Dismiss if it's a false positive. No actions are executed automatically.</p>
         </div>
         <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-          <ApprovalQueue pending={pending} onApprove={handleApprove} onReject={handleReject} />
+          <ApprovalQueue pending={search
+            ? pending.filter((item) => {
+                const q = search.toLowerCase();
+                const params = (item as any).parameters || {};
+                return (
+                  (item.target || '').toLowerCase().includes(q) ||
+                  (item.action_type || '').toLowerCase().includes(q) ||
+                  (params.failure_class || '').toLowerCase().includes(q)
+                );
+              })
+            : pending} onApprove={handleApprove} onReject={handleReject} />
         </div>
       </section>
       )}
@@ -969,10 +1016,19 @@ export default function Remediation() {
         <div className="mb-3">
           <p className="text-sm text-[#8A8D90]">Record of all remediation actions — what was proposed, acknowledged, dismissed, or executed. Lab configs control which namespaces allow automated remediation and at what rate.</p>
         </div>
+        <ShadowStatusBar />
         <div>
           <SectionHeader>Execution History</SectionHeader>
           <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 overflow-x-auto">
-            <ActivityTable activity={activity} />
+            <ActivityTable activity={search
+              ? activity.filter((act) => {
+                  const q = search.toLowerCase();
+                  return (
+                    (act.action_type || '').toLowerCase().includes(q) ||
+                    (act.target || '').toLowerCase().includes(q)
+                  );
+                })
+              : activity} />
           </div>
         </div>
         <div>
