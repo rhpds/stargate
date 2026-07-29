@@ -732,7 +732,10 @@ def set_dry_run(req: dict):
 def get_approval_queue(db: Session = Depends(get_db)):
     """Get pending actions awaiting approval."""
     from db.models import PendingAction
-    pending = db.query(PendingAction).filter(PendingAction.status == "pending").order_by(PendingAction.id.desc()).all()
+    pending = db.query(PendingAction).filter(
+        PendingAction.status == "pending",
+        PendingAction.target != "stargate-test",
+    ).order_by(PendingAction.id.desc()).all()
     return {
         "pending": [
             {
