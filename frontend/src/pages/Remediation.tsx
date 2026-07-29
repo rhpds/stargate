@@ -408,7 +408,7 @@ function ShadowStatusBar() {
   if (shadow.isLoading || shadow.isError || !shadow.data) return null;
 
   const s = shadow.data;
-  const active = s.active ?? s.enabled ?? false;
+  const active = s.status === 'running' || s.active || s.enabled || !!s.last_run;
 
   return (
     <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
@@ -416,18 +416,10 @@ function ShadowStatusBar() {
       <span className={`font-semibold ${active ? 'text-[#3E8635]' : 'text-[#6A6E73]'}`}>
         {active ? 'Active' : 'Inactive'}
       </span>
-      {s.failures_tracked != null && (
-        <span className="text-[#C9C9C9]">
-          Failures Tracked: <span className="font-bold text-white">{s.failures_tracked}</span>
-          {' | Resolved: '}<span className="font-bold text-white">{s.failures_resolved ?? 0}</span>
-        </span>
-      )}
-      {s.incidents_tracked != null && (
-        <span className="text-[#C9C9C9]">
-          Incidents Tracked: <span className="font-bold text-white">{s.incidents_tracked}</span>
-          {' | Resolved: '}<span className="font-bold text-white">{s.incidents_resolved ?? 0}</span>
-        </span>
-      )}
+      <span className="text-[#C9C9C9]">
+        Failures: <span className="font-bold text-white">{s.total_entries ?? s.failures_tracked ?? 0}</span>
+        {' | Resolved: '}<span className="font-bold text-white">{s.resolved ?? s.failures_resolved ?? 0}</span>
+      </span>
       {s.last_run && (
         <span className="text-[#6A6E73]">Last Run: {relativeTime(s.last_run)}</span>
       )}
