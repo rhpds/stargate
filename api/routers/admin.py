@@ -779,18 +779,21 @@ def approve_action(action_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/admin/approval-queue/{action_id}/reject", dependencies=[Depends(require_admin)])
-def reject_action(action_id: int, db: Session = Depends(get_db)):
-    """Reject a pending action."""
+def reject_action(action_id: int, req: dict = None, db: Session = Depends(get_db)):
+    """Reject/dismiss a pending action with optional reason."""
     from db.models import PendingAction
     action = db.query(PendingAction).filter(PendingAction.id == action_id).first()
     if not action:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Action not found")
-    action.status = "rejected"
+    reason = (req or {}).get("reason", "dismissed")
+    action.status = "dismissed"
     action.reviewed_at = datetime.now(timezone.utc)
     action.reviewed_by = "admin"
+    if action.parameters is None:
+        action.parameters = {}
+    action.parameters["dismiss_reason"] = reason
     db.commit()
-    return {"id": action.id, "status": "rejected"}
+    return {"id": action.id, "status": "dismissed", "reason": reason}
 
 
 @router.get("/admin/audit", dependencies=[Depends(require_admin_read)])
