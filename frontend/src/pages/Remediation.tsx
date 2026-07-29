@@ -449,7 +449,7 @@ export default function Remediation() {
   });
   const correlatedData = correlated.data;
 
-  const [activeTab, setActiveTab] = useState<'issues' | 'correlated' | 'incidents' | 'history'>('issues');
+  const [activeTab, setActiveTab] = useState<'correlated' | 'issues' | 'incidents' | 'history'>('correlated');
   const [search, setSearch] = useState('');
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
@@ -525,8 +525,8 @@ export default function Remediation() {
       {/* Sub-tabs */}
       <div className="flex gap-1 border-b border-[#333]">
         {([
-          { key: 'issues' as const, label: 'Issues', count: recommendations.data?.total ?? 0 },
           { key: 'correlated' as const, label: 'Correlated', count: correlatedData?.total ?? 0 },
+          { key: 'issues' as const, label: 'Issues', count: recommendations.data?.total ?? 0 },
           { key: 'incidents' as const, label: 'Incidents', count: totalPending },
           { key: 'history' as const, label: 'History', count: recentExecuted },
         ]).map((tab) => (
