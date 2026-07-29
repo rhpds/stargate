@@ -1536,6 +1536,47 @@
   forbidden_when:
   - namespace == openshift-*
 
+- id: investigate_stuck_teardown
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == teardown_stuck
+  commands:
+  - oc get anarchysubjects -n babylon-anarchy-events -o wide
+  - oc get namespaces | grep sandbox
+  forbidden_when: []
+
+- id: investigate_resource_leak
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: cluster
+  requires_approval: false
+  allowed_when:
+  - failure_class == resource_leak_pv
+  commands:
+  - oc get pv -o wide | grep Released
+  - oc get pv -o json
+  forbidden_when: []
+
+- id: investigate_operator_health
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: cluster
+  requires_approval: false
+  allowed_when:
+  - failure_class == operator_unhealthy
+  - failure_class == operator_degraded
+  commands:
+  - oc get pods -n openshift-cnv -o wide
+  - oc get csv -A | grep -v Succeeded
+  - oc get clusteroperator
+  forbidden_when: []
+
 - id: investigate_crashloop
   risk: low
   mode: recommend_only

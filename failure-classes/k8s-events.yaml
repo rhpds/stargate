@@ -198,3 +198,38 @@ classes:
       - Check if resource requests exceed available node capacity
       - Verify node affinity and taints/tolerations
       - "oc describe pod {pod} -n {namespace} | grep -A10 Events"
+
+  teardown_stuck:
+    pattern: "(destroy.*failed|destroying.*stuck|teardown.*timeout|AnarchySubject.*destroy)"
+    severity: high
+    remediation:
+      - Check AnarchySubject state in babylon-anarchy-events namespace
+      - "oc get anarchysubject -n babylon-anarchy-events | grep destroying"
+      - Verify the namespace still exists
+      - Request manual destroy via Anarchy
+
+  resource_leak_pv:
+    pattern: "(orphaned.*pv|Released.*pv|bound.*deleted.*namespace|claimRef.*missing)"
+    severity: medium
+    remediation:
+      - Check PV status and claimRef
+      - "oc get pv | grep Released"
+      - Verify the referenced namespace no longer exists
+      - Delete orphaned PVs after confirmation
+
+  operator_unhealthy:
+    pattern: "(operator.*CrashLoopBackOff|operator.*not.*ready|CSV.*failed|ClusterServiceVersion.*failed)"
+    severity: critical
+    remediation:
+      - Check operator pod status
+      - "oc get pods -n openshift-cnv"
+      - "oc get csv -n openshift-cnv"
+      - Review operator logs for the failure reason
+
+  operator_degraded:
+    pattern: "(operator.*degraded|Degraded.*True|Available.*False)"
+    severity: high
+    remediation:
+      - Check operator conditions
+      - "oc get clusteroperator"
+      - Review degraded reason in operator status

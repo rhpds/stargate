@@ -303,6 +303,9 @@ export const api = {
     return request<any>(`/admin/correlated-view${qs ? `?${qs}` : ''}`);
   },
 
+  // Lifecycle Matrix
+  getLifecycleMatrix: () => request<any>('/admin/lifecycle-matrix'),
+
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
 

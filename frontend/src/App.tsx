@@ -16,6 +16,7 @@ import TrendsPage from './pages/TrendsPage';
 import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
+import LifecycleMatrix from './pages/LifecycleMatrix';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,7 @@ const navItems = [
   { to: '/', label: 'Health', end: true },
   { to: '/failures', label: 'Failures' },
   { to: '/remediation', label: 'Remediation' },
+  { to: '/lifecycle', label: 'Lifecycle' },
   { to: '/proof', label: 'Proof' },
 ];
 
@@ -112,6 +114,7 @@ export default function App() {
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
                 <Route path="/summit" element={<SummitReport />} />
+                <Route path="/lifecycle" element={<LifecycleMatrix />} />
                 <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="*" element={
                   <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">
