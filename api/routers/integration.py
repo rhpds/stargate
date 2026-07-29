@@ -304,6 +304,22 @@ def receive_deepfield_incident(body: "DeepfieldIncidentRequest", db: Session = D
             "status": "already_queued",
         }
 
+    # Dedup — don't create if same namespace + failure_class already pending
+    same_pending = db.query(PendingAction).filter(
+        PendingAction.target == body.namespace,
+        PendingAction.proposed_by == "deepfield",
+        PendingAction.status == "pending",
+        PendingAction.action_type == f"deepfield_{body.failure_class or 'investigation'}",
+    ).first()
+    if same_pending:
+        return {
+            "pending_id": same_pending.id,
+            "action_type": same_pending.action_type,
+            "target": same_pending.target,
+            "confidence": body.confidence,
+            "status": "already_pending_for_this_failure",
+        }
+
     action_type = f"deepfield_{body.failure_class or 'investigation'}"
 
     pending = PendingAction(
