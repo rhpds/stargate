@@ -1662,3 +1662,134 @@ def get_resolution_profiles(_auth=Depends(require_admin_read)):
     """Get resolution profiles from shadow mode data."""
     from engine.resolution_classifier import build_resolution_profiles
     return build_resolution_profiles()
+
+
+@router.get("/admin/correlated-view")
+def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
+    """Cross-correlated view — failures enriched with Deepfield RCA, shadow status, proof status."""
+    from db.models import PendingAction, EvaluationRecord
+    from sqlalchemy import func
+    from datetime import timedelta
+    from engine.proof_tracker import ProofTracker
+    from engine.historical_miner import SHADOW_STATE_FILE
+
+    # Get recent failures (same as recommendations endpoint)
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+
+    # Aggregate failures by namespace + failure_class
+    failures = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class,
+        func.count().label('count'),
+        func.max(EvaluationRecord.evaluated_at).label('last_seen'),
+    ).filter(
+        EvaluationRecord.outcome == 'fail',
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.evaluated_at > one_hour_ago,
+    )
+    if cluster:
+        failures = failures.filter(EvaluationRecord.cluster_name == cluster)
+
+    failures = failures.group_by(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class,
+    ).order_by(func.count().desc()).limit(limit).all()
+
+    # Load Deepfield incidents for matching
+    deepfield_incidents = db.query(PendingAction).filter(
+        PendingAction.proposed_by == 'deepfield',
+    ).all()
+    # Index by namespace for fast lookup
+    incidents_by_ns = {}
+    for inc in deepfield_incidents:
+        ns = inc.target
+        if ns not in incidents_by_ns:
+            incidents_by_ns[ns] = []
+        incidents_by_ns[ns].append(inc)
+
+    # Load proof status
+    proof_tracker = ProofTracker()
+    proof_data = proof_tracker.get_matrix().get('failure_classes', {})
+
+    # Load shadow data
+    shadow_data = {}
+    if SHADOW_STATE_FILE.exists():
+        try:
+            state = json.loads(SHADOW_STATE_FILE.read_text())
+            for entry in state.get('shadow_log', []):
+                key = f"{entry.get('namespace')}:{entry.get('failure_class')}"
+                shadow_data[key] = entry
+            for entry in state.get('incident_log', []):
+                key = f"{entry.get('namespace')}:{entry.get('failure_class')}"
+                shadow_data[key] = entry
+        except Exception:
+            pass
+
+    # Build correlated results
+    results = []
+    for lab_code, cluster_name, failure_class, count, last_seen in failures:
+        entry = {
+            "namespace": lab_code,
+            "cluster": cluster_name,
+            "failure_class": failure_class,
+            "count": count,
+            "last_seen": last_seen.isoformat() if last_seen else None,
+        }
+
+        # Match Deepfield incident
+        matching_incidents = incidents_by_ns.get(lab_code, [])
+        # Find best match by failure_class
+        incident_match = None
+        for inc in matching_incidents:
+            inc_fc = (inc.parameters or {}).get('failure_class', '')
+            if inc_fc and failure_class and inc_fc in failure_class:
+                incident_match = inc
+                break
+        if not incident_match and matching_incidents:
+            incident_match = matching_incidents[0]  # fallback to any incident on this namespace
+
+        if incident_match:
+            params = incident_match.parameters or {}
+            entry["deepfield"] = {
+                "status": incident_match.status,
+                "confidence": incident_match.confidence,
+                "has_rca": bool(params.get('rca_output')),
+                "signal_count": params.get('signal_count', 0),
+                "severity": params.get('severity'),
+                "action_type": incident_match.action_type,
+                "proposed_at": incident_match.proposed_at.isoformat() if incident_match.proposed_at else None,
+            }
+        else:
+            entry["deepfield"] = None
+
+        # Proof status for this failure class
+        proof_fc = proof_data.get(failure_class, {})
+        if proof_fc:
+            entry["proof"] = {
+                "status": proof_fc.get('status', 'UNTESTED'),
+                "cycles": proof_fc.get('cycles_completed', 0),
+                "gate": proof_fc.get('gate', 'manual'),
+            }
+        else:
+            entry["proof"] = {"status": "UNTESTED", "cycles": 0, "gate": "manual"}
+
+        # Shadow tracking
+        shadow_key = f"{lab_code}:{failure_class}"
+        shadow_entry = shadow_data.get(shadow_key)
+        if shadow_entry:
+            entry["shadow"] = {
+                "tracked": True,
+                "resolved": shadow_entry.get('resolved'),
+                "resolution_cause": shadow_entry.get('resolution_cause', {}).get('cause') if isinstance(shadow_entry.get('resolution_cause'), dict) else None,
+            }
+        else:
+            entry["shadow"] = {"tracked": False}
+
+        results.append(entry)
+
+    return {
+        "total": len(results),
+        "correlated": results,
+    }
