@@ -1652,3 +1652,10 @@ def get_shadow_incidents(_auth=Depends(require_admin_read)):
         }
     except Exception:
         return {"status": "error"}
+
+
+@router.get("/admin/resolution/profiles")
+def get_resolution_profiles(_auth=Depends(require_admin_read)):
+    """Get resolution profiles from shadow mode data."""
+    from engine.resolution_classifier import build_resolution_profiles
+    return build_resolution_profiles()

@@ -1536,6 +1536,115 @@
   forbidden_when:
   - namespace == openshift-*
 
+- id: investigate_crashloop
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pods_crashlooping
+  commands:
+  - oc logs {pod} -n {namespace} --tail=50 --previous
+  - oc describe pod {pod} -n {namespace}
+  - oc get deployment -n {namespace} -o yaml
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_image_pull
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == image_pull_backoff
+  commands:
+  - oc describe pod {pod} -n {namespace}
+  - oc get events -n {namespace} --field-selector=reason=Failed
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_scheduling
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == scheduling_failed
+  commands:
+  - oc describe pod {pod} -n {namespace}
+  - oc get nodes -o wide
+  - oc adm top nodes
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_backoff_limit
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == backoff_limit_exceeded
+  commands:
+  - oc logs job/{job} -n {namespace}
+  - oc describe job/{job} -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_pull_secret
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == image_pull_secret_missing
+  commands:
+  - oc get secrets -n {namespace} -o name
+  - oc get serviceaccount default -n {namespace} -o yaml
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_pod_pending
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == pod_pending
+  commands:
+  - oc describe pod {pod} -n {namespace}
+  - oc get resourcequota -n {namespace}
+  - oc adm top nodes
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_invalid_config
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == invalid_configuration
+  commands:
+  - oc describe pod {pod} -n {namespace}
+  - oc get events -n {namespace} --field-selector=type=Warning
+  - oc get configmaps -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
+- id: investigate_volume_attach
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == volume_attach_failed
+  commands:
+  - oc get pvc -n {namespace}
+  - oc get pv
+  - oc describe pod {pod} -n {namespace}
+  forbidden_when:
+  - namespace == openshift-*
 - id: add_unit_tests
   risk: low
   mode: recommend_only
