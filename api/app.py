@@ -168,7 +168,8 @@ def on_startup():
 
 
 def _shadow_mode_loop():
-    """Run shadow mode every 5 minutes — track failures + incidents, no execution."""
+    """Run shadow mode every 5 minutes — track failures + incidents, no execution.
+    Also auto-resolves incidents when underlying failures clear."""
     import time as _ts
     _ts.sleep(60)  # Wait for startup
     while True:
@@ -177,11 +178,61 @@ def _shadow_mode_loop():
             db = next(get_db())
             from engine.historical_miner import run_shadow_cycle
             run_shadow_cycle(db, max_failures=20)
+            _auto_resolve_incidents(db)
             db.close()
         except Exception as e:
             import logging
             logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
         _ts.sleep(300)
+
+
+def _auto_resolve_incidents(db):
+    """Auto-resolve Deepfield incidents when the underlying failure is no longer present."""
+    from db.models import PendingAction, EvaluationRecord
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func
+
+    pending = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "deepfield",
+        PendingAction.status == "pending",
+    ).all()
+
+    resolved_count = 0
+    for inc in pending:
+        ns = inc.target
+        fc = (inc.parameters or {}).get("failure_class", "")
+        if not ns:
+            continue
+
+        # Check: has this namespace had a passing evaluation recently?
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        recent_pass = db.query(EvaluationRecord.id).filter(
+            EvaluationRecord.lab_code == ns,
+            EvaluationRecord.outcome == "pass",
+            EvaluationRecord.evaluated_at > one_hour_ago,
+        ).first()
+
+        # Check: has the failure class stopped appearing?
+        recent_fail = db.query(EvaluationRecord.id).filter(
+            EvaluationRecord.lab_code == ns,
+            EvaluationRecord.failure_class == fc,
+            EvaluationRecord.outcome == "fail",
+            EvaluationRecord.evaluated_at > one_hour_ago,
+        ).first()
+
+        if recent_pass and not recent_fail:
+            inc.status = "auto_resolved"
+            inc.reviewed_at = datetime.now(timezone.utc)
+            inc.reviewed_by = "shadow_mode"
+            if inc.parameters is None:
+                inc.parameters = {}
+            inc.parameters["dismiss_reason"] = "auto_resolved — failure no longer present"
+            resolved_count += 1
+
+    if resolved_count > 0:
+        db.commit()
+        import logging
+        logging.getLogger("stargate").info("Auto-resolved %d Deepfield incidents", resolved_count)
 
 
 def _babylon_collection_loop():
