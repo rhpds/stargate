@@ -442,8 +442,14 @@ export default function Remediation() {
     queryFn: () => api.getRemediationRecommendations(20, cluster || undefined),
     refetchInterval: 30_000,
   });
+  const correlated = useQuery({
+    queryKey: ['correlated-view', cluster],
+    queryFn: () => api.getCorrelatedView(cluster || undefined),
+    refetchInterval: 30_000,
+  });
+  const correlatedData = correlated.data;
 
-  const [activeTab, setActiveTab] = useState<'issues' | 'incidents' | 'history'>('issues');
+  const [activeTab, setActiveTab] = useState<'issues' | 'correlated' | 'incidents' | 'history'>('issues');
   const [search, setSearch] = useState('');
   const [expandedRec, setExpandedRec] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
@@ -454,6 +460,10 @@ export default function Remediation() {
   const [remediateResult, setRemediateResult] = useState<any>(null);
   const [remediateLoading, setRemediateLoading] = useState(false);
   const [cmdOutputs, setCmdOutputs] = useState<Record<string, { output: string; exit_code: number; loading?: boolean }>>({});
+  const [expandedCorr, setExpandedCorr] = useState<number | null>(null);
+  const [corrAiAnalysis, setCorrAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
+  const [corrAiLoading, setCorrAiLoading] = useState(false);
+  const [corrCmdOutputs, setCorrCmdOutputs] = useState<Record<string, { output: string; exit_code: number; loading?: boolean }>>({});
 
   const isLoading =
     approvalQueue.isLoading || remediationConfigs.isLoading || remediationActivity.isLoading;
@@ -516,6 +526,7 @@ export default function Remediation() {
       <div className="flex gap-1 border-b border-[#333]">
         {([
           { key: 'issues' as const, label: 'Issues', count: recommendations.data?.total ?? 0 },
+          { key: 'correlated' as const, label: 'Correlated', count: correlatedData?.total ?? 0 },
           { key: 'incidents' as const, label: 'Incidents', count: totalPending },
           { key: 'history' as const, label: 'History', count: recentExecuted },
         ]).map((tab) => (
@@ -967,6 +978,239 @@ export default function Remediation() {
                               )}
                             </div>
                           )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+          })()}
+        </div>
+      </section>
+      )}
+
+      {/* Correlated tab */}
+      {activeTab === 'correlated' && (
+      <section>
+        <div className="mb-3">
+          <p className="text-sm text-[#8A8D90]">Cross-correlated view — each failure enriched with Deepfield correlation, GeoLux governance, shadow tracking, and proof testing results across all three systems.</p>
+        </div>
+        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+          {(() => {
+            const allCorr: any[] = correlatedData?.correlated ?? [];
+            const filteredCorr = search
+              ? allCorr.filter((c: any) =>
+                  (c.namespace || '').toLowerCase().includes(search.toLowerCase()) ||
+                  (c.failure_class || '').toLowerCase().includes(search.toLowerCase()) ||
+                  (c.cluster || '').toLowerCase().includes(search.toLowerCase())
+                )
+              : allCorr;
+            if (filteredCorr.length === 0) return (
+              <p className="text-[#6A6E73] text-sm">{correlated.isLoading ? 'Loading...' : search ? 'No matches.' : 'No correlated failures found.'}</p>
+            );
+            return (
+            <div className="space-y-0.5">
+              <div className="grid grid-cols-[1fr_120px_150px_80px_100px_1fr] gap-3 text-xs text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e]">
+                <span>Namespace</span>
+                <span>Cluster</span>
+                <span>Failure Class</span>
+                <span className="text-right">Count</span>
+                <span>Last Seen</span>
+                <span>Enrichment</span>
+              </div>
+              {filteredCorr.map((c: any, i: number) => (
+                <div key={i}>
+                  <div
+                    className={`grid grid-cols-[1fr_120px_150px_80px_100px_1fr] gap-3 items-center py-1.5 rounded cursor-pointer transition ${
+                      expandedCorr === i ? 'bg-[#2e2e2e]' : 'hover:bg-[#2a2a2a]'
+                    }`}
+                    onClick={() => {
+                      if (expandedCorr === i) {
+                        setExpandedCorr(null);
+                      } else {
+                        setExpandedCorr(i);
+                        setCorrAiAnalysis(null);
+                        setCorrCmdOutputs({});
+                      }
+                    }}
+                  >
+                    <span className="text-sm text-white font-medium truncate">{c.namespace}</span>
+                    <span className="text-xs text-[#8A8D90]">{c.cluster}</span>
+                    <span className="text-xs text-white truncate" title={c.failure_class}>{c.failure_class}</span>
+                    <span className="text-sm text-white text-right font-bold">{c.count}</span>
+                    <span className="text-xs text-[#8A8D90]">{relativeTime(c.last_seen)}</span>
+                    <span className="flex flex-wrap gap-1 items-center">
+                      {c.deepfield && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#4394E5] text-white">
+                          Deepfield {c.deepfield.signal_count}sig {Math.round(c.deepfield.confidence * 100)}%
+                        </span>
+                      )}
+                      {c.proof && c.proof.status !== 'UNTESTED' && (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded text-white ${
+                          c.proof.status === 'VERIFIED' || c.proof.status === 'PASS' ? 'bg-[#3E8635]' :
+                          c.proof.status === 'FAIL' ? 'bg-[#C9190B]' : 'bg-[#F0AB00]'
+                        }`}>
+                          Proof {c.proof.status}
+                        </span>
+                      )}
+                      {c.shadow?.tracked && !c.shadow.resolved && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#333] text-[#8A8D90]">
+                          Shadow tracking
+                        </span>
+                      )}
+                      {c.shadow?.resolved && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#3E8635] text-white">
+                          Resolved{c.shadow.resolution_cause ? `: ${c.shadow.resolution_cause}` : ''}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  {expandedCorr === i && (
+                    <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 mb-2 mx-1 space-y-3">
+                      {/* Failure metadata grid */}
+                      <div className="grid grid-cols-[140px_1fr] gap-2 text-sm">
+                        <span className="text-[#6A6E73]">Namespace</span>
+                        <span className="text-white font-medium">{c.namespace}</span>
+                        <span className="text-[#6A6E73]">Cluster</span>
+                        <span className="text-white">{c.cluster}</span>
+                        <span className="text-[#6A6E73]">Failure Class</span>
+                        <span className="text-white font-medium">{c.failure_class}</span>
+                        <span className="text-[#6A6E73]">Occurrences</span>
+                        <span className="text-white font-bold">{c.count}</span>
+                        <span className="text-[#6A6E73]">Last Seen</span>
+                        <span className="text-white">{relativeTime(c.last_seen)}</span>
+                      </div>
+
+                      {/* Deepfield RCA */}
+                      {c.deepfield && c.deepfield.has_rca && (
+                        <div>
+                          <div className="text-xs text-[#4394E5] uppercase tracking-wider font-bold mb-1">Deepfield RCA Available</div>
+                          <div className="bg-[#151515] border border-[#4394E5]/30 rounded p-3 space-y-1">
+                            <div className="grid grid-cols-[120px_1fr] gap-1 text-sm">
+                              <span className="text-[#6A6E73]">Status</span>
+                              <span className="text-white">{c.deepfield.status}</span>
+                              <span className="text-[#6A6E73]">Confidence</span>
+                              <span className="text-white font-bold">{Math.round(c.deepfield.confidence * 100)}%</span>
+                              <span className="text-[#6A6E73]">Signals</span>
+                              <span className="text-white">{c.deepfield.signal_count}</span>
+                              <span className="text-[#6A6E73]">Severity</span>
+                              <span className={`font-bold ${
+                                c.deepfield.severity === 'critical' ? 'text-[#C9190B]' :
+                                c.deepfield.severity === 'high' ? 'text-[#F0AB00]' :
+                                c.deepfield.severity === 'medium' ? 'text-[#6A6E73]' : 'text-[#555]'
+                              }`}>{c.deepfield.severity}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Proof status */}
+                      {c.proof && c.proof.status !== 'UNTESTED' && (
+                        <div>
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Proof Testing</div>
+                          <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3">
+                            <div className="text-sm text-white">
+                              Tested {c.proof.cycles} cycle{c.proof.cycles !== 1 ? 's' : ''} — <span className={`font-bold ${
+                                c.proof.status === 'VERIFIED' || c.proof.status === 'PASS' ? 'text-[#3E8635]' :
+                                c.proof.status === 'FAIL' ? 'text-[#C9190B]' : 'text-[#F0AB00]'
+                              }`}>{c.proof.status}</span>
+                            </div>
+                            <div className="text-xs text-[#6A6E73] mt-1">Gate: {c.proof.gate}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shadow tracking */}
+                      {c.shadow?.tracked && (
+                        <div>
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Shadow Tracking</div>
+                          <div className="bg-[#151515] border border-[#2e2e2e] rounded p-3">
+                            <div className="text-sm text-white">
+                              Tracking — <span className={`font-bold ${c.shadow.resolved ? 'text-[#3E8635]' : 'text-[#F0AB00]'}`}>
+                                {c.shadow.resolved ? 'Resolved' : 'Unresolved'}
+                              </span>
+                            </div>
+                            {c.shadow.resolved && c.shadow.resolution_cause && (
+                              <div className="text-xs text-[#8A8D90] mt-1">Cause: {c.shadow.resolution_cause}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Catalog commands */}
+                      {c.catalog_commands && c.catalog_commands.length > 0 && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Catalog Commands</div>
+                          {c.catalog_commands.map((cmd: string, ci: number) => {
+                            const cmdKey = `corr-${i}-${ci}`;
+                            const result = corrCmdOutputs[cmdKey];
+                            return (
+                              <div key={ci} className="mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 text-xs text-[#C9C9C9] bg-[#151515] rounded px-3 py-1.5 font-mono">{cmd}</div>
+                                  <button
+                                    className="bg-[#333] hover:bg-[#444] text-white text-xs px-3 py-1.5 rounded transition disabled:opacity-50 shrink-0"
+                                    disabled={result?.loading}
+                                    onClick={() => {
+                                      setCorrCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: '', exit_code: 0, loading: true } }));
+                                      api.runDiagnostic({ command: cmd, namespace: c.namespace, cluster: c.cluster })
+                                        .then((data) => setCorrCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: data.output, exit_code: data.exit_code } })))
+                                        .catch((err) => setCorrCmdOutputs(prev => ({ ...prev, [cmdKey]: { output: `Error: ${err.message}`, exit_code: -1 } })));
+                                    }}
+                                  >
+                                    {result?.loading ? 'Running...' : result ? 'Re-run' : 'Run'}
+                                  </button>
+                                </div>
+                                {result && !result.loading && (
+                                  <pre className={`mt-1 text-xs rounded px-3 py-2 font-mono overflow-x-auto max-h-64 overflow-y-auto ${
+                                    result.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
+                                  }`}>{result.output || '(no output)'}</pre>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* AI Analysis button */}
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          className="bg-[#EE0000] hover:bg-[#A30000] text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+                          disabled={corrAiLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCorrAiLoading(true);
+                            setCorrAiAnalysis(null);
+                            const isInfraNamespace = /^(openshift-|kube-|default$|cnv-|redhat-|rhacs-|aap-|open-cluster)/.test(c.namespace);
+                            remediation.mutate(
+                              { failure_class: c.failure_class, lab_code: c.namespace, cluster: c.cluster, context_type: isInfraNamespace ? 'error' : 'lab' },
+                              {
+                                onSuccess: (data: any) => {
+                                  setCorrAiAnalysis({
+                                    text: data?.llm_analysis || data?.analysis || data?.remediation || JSON.stringify(data, null, 2),
+                                    llmMetricId: data?.llm_metric_id,
+                                  });
+                                  setCorrAiLoading(false);
+                                },
+                                onError: (err: any) => {
+                                  setCorrAiAnalysis({ text: `Analysis failed: ${err.message}` });
+                                  setCorrAiLoading(false);
+                                },
+                              },
+                            );
+                          }}
+                        >
+                          {corrAiLoading ? 'Analyzing...' : 'Get AI Analysis'}
+                        </button>
+                      </div>
+
+                      {corrAiAnalysis && (
+                        <div className="bg-[#151515] border border-[#2e2e2e] rounded p-4">
+                          <FormattedAnalysis text={corrAiAnalysis.text} namespace={c.namespace} cluster={c.cluster} />
+                          <AiAnalysisFeedback llmMetricId={corrAiAnalysis.llmMetricId} />
                         </div>
                       )}
                     </div>
