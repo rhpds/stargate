@@ -295,6 +295,14 @@ export const api = {
   // Shadow tracking
   getShadowStatus: () => request<any>('/admin/shadow/status'),
 
+  // Correlated view
+  getCorrelatedView: (cluster?: string) => {
+    const params = new URLSearchParams();
+    if (cluster) params.set('cluster', cluster);
+    const qs = params.toString();
+    return request<any>(`/admin/correlated-view${qs ? `?${qs}` : ''}`);
+  },
+
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
 
