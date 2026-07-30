@@ -1139,6 +1139,7 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
     from sqlalchemy import func
     from datetime import timedelta
 
+    from api.constants import WARNING_CLASSES as _REC_WARN
     cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
     query = db.query(
         EvaluationRecord.lab_code,
@@ -1150,6 +1151,7 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
     ).filter(
         EvaluationRecord.outcome == "fail",
         EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(_REC_WARN),
         EvaluationRecord.lab_code.isnot(None),
         EvaluationRecord.evaluated_at >= cutoff,
     )
@@ -1698,7 +1700,8 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
     # Get recent failures (same as recommendations endpoint)
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-    # Aggregate failures by namespace + failure_class
+    # Aggregate failures by namespace + failure_class (exclude warning-level noise)
+    from api.constants import WARNING_CLASSES as _CORR_WARN
     failures = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
@@ -1708,6 +1711,7 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
     ).filter(
         EvaluationRecord.outcome == 'fail',
         EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(_CORR_WARN),
         EvaluationRecord.evaluated_at > one_hour_ago,
     )
     if cluster:
@@ -1855,8 +1859,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     }
 
     # Low-severity classes excluded from overall health calculation
-    WARNING_CLASSES = {"deprecated_api", "guest_agent_not_connected", "health_check_failed",
-                       "datasource_unrecognized"}
+    from api.constants import WARNING_CLASSES
 
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
