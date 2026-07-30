@@ -259,6 +259,7 @@ class ClusterWorker:
                 is_lab_ns = (
                     ns.startswith("sandbox-")
                     or ns.startswith("showroom-")
+                    or ns.startswith("ocp4-cluster-")
                     or (ns.startswith("user-") and "showroom" in pod)
                 )
                 if is_lab_ns:
