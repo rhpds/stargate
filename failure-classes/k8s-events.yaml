@@ -40,7 +40,7 @@ classes:
 
   readiness_probe_failed:
     pattern: "(Readiness probe failed|Liveness probe failed|Startup probe failed|Unhealthy.*probe|Unhealthy.*Readiness|Unhealthy.*Liveness)"
-    severity: medium
+    severity: low
     remediation:
       - Check application startup time vs probe initialDelaySeconds
       - Verify the health endpoint is responding
