@@ -169,7 +169,8 @@ def on_startup():
 
 def _shadow_mode_loop():
     """Run shadow mode every 5 minutes — track failures + incidents, no execution.
-    Also auto-resolves incidents when underlying failures clear."""
+    Also auto-resolves incidents when underlying failures clear.
+    Also creates evaluation records for monitoring gap detections."""
     import time as _ts
     _ts.sleep(60)  # Wait for startup
     while True:
@@ -179,11 +180,67 @@ def _shadow_mode_loop():
             from engine.historical_miner import run_shadow_cycle
             run_shadow_cycle(db, max_failures=20)
             _auto_resolve_incidents(db)
+            _record_gap_detections(db)
             db.close()
         except Exception as e:
             import logging
             logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
         _ts.sleep(300)
+
+
+def _record_gap_detections(db):
+    """Create EvaluationRecords for monitoring gap detections found by babylon worker."""
+    from api.routers._shared import _load_latest_babylon
+    from db.models import EvaluationRecord
+    from datetime import datetime, timezone
+    import uuid
+
+    babylon = _load_latest_babylon()
+    recorded = 0
+    now = datetime.now(timezone.utc)
+    run_id = f"gap-{now.strftime('%Y%m%d-%H%M%S')}"
+
+    # Stuck teardowns
+    stuck = babylon.get("stuck_teardowns", {}).get("stuck", [])
+    for s in stuck:
+        ns = s.get("namespace", s.get("anarchy_subject", ""))
+        if not ns:
+            continue
+        ev = EvaluationRecord(
+            run_id=run_id,
+            stage_id="cluster-health",
+            lab_code=ns,
+            cluster_name=s.get("cluster", ""),
+            outcome="fail",
+            failure_class="teardown_stuck",
+            message=f"AnarchySubject {s.get('anarchy_subject', '')} stuck in {s.get('state', '')} for {s.get('age_hours', 0)}h",
+            evaluated_at=now,
+        )
+        db.add(ev)
+        recorded += 1
+
+    # Resource leaks
+    leaks = babylon.get("resource_leaks", {}).get("orphaned_pvs", [])
+    for lk in leaks:
+        ns = lk.get("bound_to_namespace", "")
+        if not ns:
+            continue
+        ev = EvaluationRecord(
+            run_id=run_id,
+            stage_id="cluster-health",
+            lab_code=ns,
+            cluster_name="",
+            outcome="fail",
+            failure_class="resource_leak_pv",
+            message=f"Orphaned PV {lk.get('pv_name', '')} ({lk.get('capacity', '?')}) bound to deleted namespace",
+            evaluated_at=now,
+        )
+        db.add(ev)
+        recorded += 1
+
+    if recorded > 0:
+        db.commit()
+        logging.getLogger("stargate").info("Gap detections: %d evaluation records created", recorded)
 
 
 def _auto_resolve_incidents(db):

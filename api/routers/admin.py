@@ -1823,246 +1823,239 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
 
 @router.get("/admin/lifecycle-matrix")
 def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
-    """Unified lifecycle matrix — provision → deploy → readiness → active → teardown → cleanup.
+    """Namespace lifecycle matrix built from scanner evaluation records.
 
-    Returns three views: by_lab, by_instance, by_cluster.
-    Each entity has a stages dict with {status, detail} per lifecycle stage.
+    Groups namespaces by health status using actual evaluation data.
+    Returns three views: by_namespace, by_lab (demo_id grouping), by_cluster.
     """
     from db.models import EvaluationRecord
     from sqlalchemy import func
-    from api.routers._shared import EXECUTOR_KUBECONFIG
 
-    STAGES = ["provision", "deploy", "readiness", "active", "teardown", "cleanup"]
+    STAGES = ["health", "pods", "storage", "network", "workload", "overall"]
 
-    # --- data sources ---
-    babylon = _load_latest_babylon()
-    instance_mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+    # Failure classes mapped to lifecycle stages
+    STAGE_MAP = {
+        "pods_crashlooping": "pods", "readiness_probe_failed": "pods",
+        "oom_killed": "pods", "pod_pending": "pods", "backoff_limit_exceeded": "pods",
+        "image_pull_backoff": "pods", "image_pull_secret_missing": "pods",
+        "claim_misbound": "storage", "volume_attach_failed": "storage",
+        "volume_mount_failed": "storage", "pvc_binding_failed": "storage",
+        "resource_leak_pv": "storage",
+        "scheduling_failed": "workload", "quota_exceeded": "workload",
+        "invalid_configuration": "workload", "hpa_max_replicas": "workload",
+        "resolution_failed": "workload", "sync_failed": "workload",
+        "datasource_unrecognized": "workload",
+        "dns_resolution_failed": "network", "route_not_admitted": "network",
+        "certificate_error": "network",
+        "node_pressure": "health", "operator_unhealthy": "health",
+        "operator_degraded": "health", "teardown_stuck": "health",
+        "health_check_failed": "health", "deprecated_api": "health",
+        "vm_migration_backoff": "workload",
+        "guest_agent_not_connected": "workload",
+    }
 
-    # Recent failures by namespace (last hour)
+    # Low-severity classes excluded from overall health calculation
+    WARNING_CLASSES = {"deprecated_api", "guest_agent_not_connected", "health_check_failed",
+                       "datasource_unrecognized"}
+
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
-    fail_rows = db.query(
+
+    # All recent evaluations grouped by namespace + cluster
+    rows = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
+        EvaluationRecord.outcome,
         EvaluationRecord.failure_class,
         func.count().label("cnt"),
     ).filter(
-        EvaluationRecord.outcome == "fail",
-        EvaluationRecord.failure_class.isnot(None),
         EvaluationRecord.evaluated_at > one_hour_ago,
+        EvaluationRecord.lab_code.isnot(None),
     ).group_by(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
+        EvaluationRecord.outcome,
         EvaluationRecord.failure_class,
     ).all()
 
-    failures_by_ns: Dict[str, List[Dict]] = {}
-    for lab_code, cluster_name, fc, cnt in fail_rows:
-        failures_by_ns.setdefault(lab_code, []).append({
-            "failure_class": fc, "count": cnt, "cluster": cluster_name,
+    # Build per-namespace data
+    ns_data: Dict[str, Dict] = {}
+    for lab_code, cluster, outcome, fc, cnt in rows:
+        if lab_code not in ns_data:
+            ns_data[lab_code] = {
+                "cluster": cluster or "", "pass": 0, "fail": 0, "real_fail": 0, "total": 0,
+                "failure_classes": {}, "stage_failures": {s: 0 for s in STAGES},
+            }
+        d = ns_data[lab_code]
+        d["total"] += cnt
+        if outcome == "pass":
+            d["pass"] += cnt
+        elif outcome == "fail":
+            d["fail"] += cnt
+            is_warning = fc in WARNING_CLASSES if fc else False
+            if not is_warning:
+                d["real_fail"] += cnt
+            if fc and not is_warning:
+                d["failure_classes"][fc] = d["failure_classes"].get(fc, 0) + cnt
+                stage = STAGE_MAP.get(fc, "workload")
+                d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
+
+    # Build namespace rows
+    by_namespace = []
+    for ns, d in sorted(ns_data.items(), key=lambda x: x[1]["real_fail"], reverse=True):
+        effective_total = d["pass"] + d["real_fail"]
+        health_pct = round(d["pass"] / max(effective_total, 1) * 100, 1)
+        stages = {}
+        for s in STAGES:
+            if s == "overall":
+                continue
+            fc_count = d["stage_failures"].get(s, 0)
+            if fc_count == 0:
+                stages[s] = {"status": "green", "detail": "no failures"}
+            else:
+                fcs = [fc for fc, _ in d["failure_classes"].items() if STAGE_MAP.get(fc) == s]
+                stages[s] = {"status": "red", "detail": f"{fc_count} ({', '.join(fcs[:2])})"}
+
+        # Overall derived from stages — green only if all stages green
+        stage_statuses = [v["status"] for k, v in stages.items()]
+        red_count = stage_statuses.count("red")
+        if red_count == 0:
+            stages["overall"] = {"status": "green", "detail": "all clear"}
+        elif red_count == 1:
+            stages["overall"] = {"status": "yellow", "detail": f"1 category failing"}
+        else:
+            stages["overall"] = {"status": "red", "detail": f"{red_count} categories failing"}
+
+        top_fc = max(d["failure_classes"], key=d["failure_classes"].get) if d["failure_classes"] else None
+        by_namespace.append({
+            "namespace": ns,
+            "cluster": d["cluster"],
+            "pass": d["pass"],
+            "fail": d["fail"],
+            "total": d["total"],
+            "health_pct": health_pct,
+            "top_failure": top_fc,
+            "stages": stages,
         })
 
-    # Latest eval outcomes per namespace per stage
-    DEPLOY_STAGES = {"namespace-ready", "deployment-ready", "storage-clone-ready"}
-    READINESS_STAGES = {"route-ready", "showroom-healthy", "smoke-test-ready", "vm-runtime-ready", "model-endpoint-ready"}
-
-    eval_rows = db.query(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.stage_id,
-        EvaluationRecord.outcome,
-    ).filter(
-        EvaluationRecord.evaluated_at > one_hour_ago,
-        EvaluationRecord.stage_id.isnot(None),
-    ).all()
-
-    evals_by_ns: Dict[str, Dict[str, List[str]]] = {}
-    for lab_code, stage_id, outcome in eval_rows:
-        evals_by_ns.setdefault(lab_code, {}).setdefault(stage_id, []).append(outcome)
-
-    # Stuck teardowns
-    stuck_set: set = set()
-    try:
-        from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
-        stuck_result = detect_stuck_teardowns(kubeconfig=EXECUTOR_KUBECONFIG)
-        for s in stuck_result.get("stuck", []):
-            stuck_set.add(s.get("namespace", s.get("anarchy_subject", "")))
-    except Exception:
-        pass
-
-    # Resource leaks
-    leak_ns: set = set()
-    try:
-        from collectors.cleanup.collect_leaks import detect_resource_leaks
-        leak_result = detect_resource_leaks(kubeconfig=EXECUTOR_KUBECONFIG)
-        for lk in leak_result.get("orphaned_pvs", []):
-            leak_ns.add(lk.get("bound_to_namespace", ""))
-    except Exception:
-        pass
-
-    # --- helpers ---
-    def _eval_gate(ns: str, stage_set: set) -> Dict:
-        ns_evals = evals_by_ns.get(ns, {})
-        relevant = {s: outcomes for s, outcomes in ns_evals.items() if s in stage_set}
-        if not relevant:
-            return {"status": "gray", "detail": "no data"}
-        total = len(relevant)
-        passed = sum(1 for outcomes in relevant.values() if any(o == "pass" for o in outcomes))
-        failed = sum(1 for outcomes in relevant.values() if any(o == "fail" for o in outcomes))
-        if failed > 0:
-            return {"status": "red", "detail": f"{failed}/{total} stages failing"}
-        if passed == total:
-            return {"status": "green", "detail": f"{passed}/{total} pass"}
-        return {"status": "yellow", "detail": f"{passed}/{total} pass"}
-
-    def _instance_stages(inst: Dict, lab_code: str) -> Dict[str, Dict]:
-        state = inst.get("state", "unknown")
-        ns = inst.get("namespace", inst.get("anarchy_name", lab_code))
-
-        # Provision
-        if state == "started":
-            prov = {"status": "green", "detail": "started"}
-        elif state in ("provisioning", "provision-pending", "starting", "stopping"):
-            prov = {"status": "yellow", "detail": state}
-        elif "failed" in state or "error" in state:
-            prov = {"status": "red", "detail": state}
-        else:
-            prov = {"status": "gray", "detail": state}
-
-        # Deploy + Readiness
-        deploy = _eval_gate(lab_code, DEPLOY_STAGES)
-        readiness = _eval_gate(lab_code, READINESS_STAGES)
-
-        # Active
-        ns_failures = failures_by_ns.get(lab_code, [])
-        if not ns_failures:
-            active = {"status": "green", "detail": "no failures"}
-        else:
-            total_fc = sum(f["count"] for f in ns_failures)
-            top = ns_failures[0]["failure_class"] if ns_failures else ""
-            active = {"status": "red", "detail": f"{total_fc} failures ({top})"}
-
-        # Teardown
-        if state in ("destroying", "destroy-pending"):
-            if ns in stuck_set:
-                teardown = {"status": "red", "detail": "stuck > 2h"}
-            else:
-                teardown = {"status": "yellow", "detail": "destroying"}
-        elif "destroy" in state and ("failed" in state or "error" in state):
-            teardown = {"status": "red", "detail": state}
-        elif state == "stopped":
-            teardown = {"status": "green", "detail": "stopped"}
-        else:
-            teardown = {"status": "gray", "detail": "n/a"}
-
-        # Cleanup
-        if ns in leak_ns:
-            cleanup = {"status": "red", "detail": "orphaned PVs"}
-        else:
-            cleanup = {"status": "green", "detail": "clean"}
-
-        return {
-            "provision": prov, "deploy": deploy, "readiness": readiness,
-            "active": active, "teardown": teardown, "cleanup": cleanup,
-        }
-
-    def _aggregate_stages(all_stages: List[Dict[str, Dict]]) -> Dict[str, Dict]:
-        agg = {}
-        for stage in STAGES:
-            statuses = [s.get(stage, {}).get("status", "gray") for s in all_stages]
-            reds = statuses.count("red")
-            yellows = statuses.count("yellow")
-            greens = statuses.count("green")
-            total = len(statuses)
-            if reds > 0:
-                agg[stage] = {"status": "red", "detail": f"{reds}/{total} red"}
-            elif yellows > 0:
-                agg[stage] = {"status": "yellow", "detail": f"{yellows}/{total} yellow"}
-            elif greens > 0:
-                agg[stage] = {"status": "green", "detail": f"{greens}/{total} green"}
-            else:
-                agg[stage] = {"status": "gray", "detail": "no data"}
-        return agg
-
-    # --- build views ---
-    by_instance = []
-    by_lab_map: Dict[str, Dict] = {}
-    by_cluster_map: Dict[str, Dict] = {}
-
-    for lab_code, instances in instance_mapping.items():
-        lab_stages_list = []
-        for inst in instances:
-            stages = _instance_stages(inst, lab_code)
-            ns = inst.get("namespace", inst.get("anarchy_name", lab_code))
-            cluster = inst.get("cluster_name", inst.get("cluster", ""))
-            by_instance.append({
-                "namespace": ns,
-                "lab_code": lab_code,
-                "cluster": cluster,
-                "anarchy_state": inst.get("state", "unknown"),
-                "stages": stages,
-            })
-            lab_stages_list.append(stages)
-
-            # Cluster accumulation
-            if cluster:
-                if cluster not in by_cluster_map:
-                    by_cluster_map[cluster] = {"labs": set(), "instances": 0, "all_stages": []}
-                by_cluster_map[cluster]["labs"].add(lab_code)
-                by_cluster_map[cluster]["instances"] += 1
-                by_cluster_map[cluster]["all_stages"].append(stages)
-
-        if lab_stages_list:
-            by_lab_map[lab_code] = {
-                "instances_total": len(instances),
-                "instances_started": sum(1 for i in instances if i.get("state") == "started"),
-                "all_stages": lab_stages_list,
-            }
+    # Build lab grouping (by demo_id prefix)
+    lab_map: Dict[str, Dict] = {}
+    for entry in by_namespace:
+        ns = entry["namespace"]
+        parts = ns.split("-")
+        lab_key = "-".join(parts[:2]) if len(parts) >= 2 else ns
+        if lab_key not in lab_map:
+            lab_map[lab_key] = {"namespaces": 0, "pass": 0, "fail": 0, "total": 0,
+                                "clusters": set(), "stage_failures": {s: 0 for s in STAGES},
+                                "failure_classes": {}}
+        m = lab_map[lab_key]
+        m["namespaces"] += 1
+        m["pass"] += entry["pass"]
+        m["fail"] += entry["fail"]
+        m["total"] += entry["total"]
+        m["clusters"].add(entry["cluster"])
+        for fc, cnt in ns_data[ns]["failure_classes"].items():
+            m["failure_classes"][fc] = m["failure_classes"].get(fc, 0) + cnt
+            stage = STAGE_MAP.get(fc, "workload")
+            m["stage_failures"][stage] += cnt
 
     by_lab = []
-    for lab_code, data in sorted(by_lab_map.items()):
+    for lab, m in sorted(lab_map.items(), key=lambda x: x[1]["fail"], reverse=True):
+        stages = {}
+        for s in STAGES:
+            if s == "overall":
+                continue
+            fc_count = m["stage_failures"].get(s, 0)
+            if fc_count == 0:
+                stages[s] = {"status": "green", "detail": "ok"}
+            else:
+                stages[s] = {"status": "red", "detail": str(fc_count)}
+        red_count = sum(1 for v in stages.values() if v["status"] == "red")
+        if red_count == 0:
+            stages["overall"] = {"status": "green", "detail": "all clear"}
+        elif red_count == 1:
+            stages["overall"] = {"status": "yellow", "detail": "1 failing"}
+        else:
+            stages["overall"] = {"status": "red", "detail": f"{red_count} failing"}
+
         by_lab.append({
-            "lab_code": lab_code,
-            "instances_total": data["instances_total"],
-            "instances_started": data["instances_started"],
-            "stages": _aggregate_stages(data["all_stages"]),
+            "lab_code": lab,
+            "namespaces": m["namespaces"],
+            "clusters": sorted(m["clusters"] - {""}),
+            "fail": m["fail"],
+            "total": m["total"],
+            "stages": stages,
         })
+
+    # Build cluster view
+    cluster_map: Dict[str, Dict] = {}
+    for entry in by_namespace:
+        c = entry["cluster"] or "unknown"
+        if c not in cluster_map:
+            cluster_map[c] = {"namespaces": 0, "pass": 0, "fail": 0, "total": 0,
+                              "stage_failures": {s: 0 for s in STAGES},
+                              "failure_classes": {}}
+        cm = cluster_map[c]
+        cm["namespaces"] += 1
+        cm["pass"] += entry["pass"]
+        cm["fail"] += entry["fail"]
+        cm["total"] += entry["total"]
+        for fc, cnt in ns_data[entry["namespace"]]["failure_classes"].items():
+            cm["failure_classes"][fc] = cm["failure_classes"].get(fc, 0) + cnt
+            stage = STAGE_MAP.get(fc, "workload")
+            cm["stage_failures"][stage] += cnt
 
     by_cluster = []
-    for cluster, data in sorted(by_cluster_map.items()):
+    for c, cm in sorted(cluster_map.items(), key=lambda x: x[1]["fail"], reverse=True):
+        stages = {}
+        for s in STAGES:
+            if s == "overall":
+                continue
+            fc_count = cm["stage_failures"].get(s, 0)
+            if fc_count == 0:
+                stages[s] = {"status": "green", "detail": "ok"}
+            else:
+                top_fcs = sorted(
+                    [(fc, cnt) for fc, cnt in cm["failure_classes"].items() if STAGE_MAP.get(fc) == s],
+                    key=lambda x: -x[1],
+                )
+                stages[s] = {"status": "red", "detail": f"{fc_count} ({top_fcs[0][0]})" if top_fcs else str(fc_count)}
+        red_count = sum(1 for v in stages.values() if v["status"] == "red")
+        if red_count == 0:
+            stages["overall"] = {"status": "green", "detail": "all clear"}
+        elif red_count == 1:
+            stages["overall"] = {"status": "yellow", "detail": "1 failing"}
+        else:
+            stages["overall"] = {"status": "red", "detail": f"{red_count} failing"}
+
         by_cluster.append({
-            "cluster": cluster,
-            "labs_total": len(data["labs"]),
-            "instances_total": data["instances"],
-            "stages": _aggregate_stages(data["all_stages"]),
+            "cluster": c,
+            "namespaces": cm["namespaces"],
+            "fail": cm["fail"],
+            "total": cm["total"],
+            "top_failure": max(cm["failure_classes"], key=cm["failure_classes"].get) if cm["failure_classes"] else None,
+            "stages": stages,
         })
 
-    stage_totals: Dict[str, Dict[str, int]] = {s: {"green": 0, "yellow": 0, "red": 0, "gray": 0} for s in STAGES}
-    for inst in by_instance:
+    # Summary
+    stage_totals: Dict[str, Dict[str, int]] = {s: {"green": 0, "yellow": 0, "red": 0} for s in STAGES}
+    for entry in by_namespace:
         for s in STAGES:
-            st = inst["stages"].get(s, {}).get("status", "gray")
+            st = entry["stages"].get(s, {}).get("status", "green")
             stage_totals[s][st] = stage_totals[s].get(st, 0) + 1
-
-    summary_stages = {}
-    for s in STAGES:
-        t = stage_totals[s]
-        if t["red"] > 0:
-            summary_stages[s] = "red"
-        elif t["yellow"] > 0:
-            summary_stages[s] = "yellow"
-        elif t["green"] > 0:
-            summary_stages[s] = "green"
-        else:
-            summary_stages[s] = "gray"
 
     return {
         "stages": STAGES,
+        "by_namespace": by_namespace[:500],
         "by_lab": by_lab,
-        "by_instance": by_instance[:500],
         "by_cluster": by_cluster,
         "summary": {
+            "total_namespaces": len(by_namespace),
             "total_labs": len(by_lab),
-            "total_instances": len(by_instance),
             "total_clusters": len(by_cluster),
-            "stages_health": summary_stages,
+            "stages_health": {
+                s: "red" if t["red"] > 0 else "yellow" if t["yellow"] > 0 else "green"
+                for s, t in stage_totals.items()
+            },
             "stage_counts": stage_totals,
         },
     }
