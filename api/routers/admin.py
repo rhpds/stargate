@@ -730,25 +730,36 @@ def set_dry_run(req: dict):
 
 @router.get("/admin/approval-queue", dependencies=[Depends(require_admin_read)])
 def get_approval_queue(db: Session = Depends(get_db)):
-    """Get pending actions awaiting approval."""
+    """Get pending and recently resolved actions."""
     from db.models import PendingAction
+
     pending = db.query(PendingAction).filter(
         PendingAction.status == "pending",
         PendingAction.target != "stargate-test",
     ).order_by(PendingAction.id.desc()).all()
+
+    recently_resolved = db.query(PendingAction).filter(
+        PendingAction.status == "auto_resolved",
+        PendingAction.target != "stargate-test",
+    ).order_by(PendingAction.id.desc()).limit(20).all()
+
+    def _serialize(p):
+        return {
+            "id": p.id,
+            "action_type": p.action_type,
+            "target": p.target,
+            "confidence": p.confidence,
+            "proposed_by": getattr(p, 'proposed_by', None) or "stargate",
+            "proposed_at": p.proposed_at.isoformat() if p.proposed_at else None,
+            "status": p.status,
+            "reviewed_at": p.reviewed_at.isoformat() if getattr(p, 'reviewed_at', None) else None,
+            "dismiss_reason": (p.parameters or {}).get("dismiss_reason"),
+            "parameters": p.parameters,
+        }
+
     return {
-        "pending": [
-            {
-                "id": p.id,
-                "action_type": p.action_type,
-                "target": p.target,
-                "confidence": p.confidence,
-                "proposed_by": getattr(p, 'proposed_by', None) or "stargate",
-                "proposed_at": p.proposed_at.isoformat() if p.proposed_at else None,
-                "parameters": p.parameters,
-            }
-            for p in pending
-        ]
+        "pending": [_serialize(p) for p in pending],
+        "resolved": [_serialize(p) for p in recently_resolved],
     }
 
 

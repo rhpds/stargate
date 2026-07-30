@@ -488,6 +488,7 @@ export default function Remediation() {
 
   const queueData = approvalQueue.data as ApprovalQueueData;
   const pending = queueData.pending ?? [];
+  const resolved = (queueData as any).resolved ?? [];
   const configs = (remediationConfigs.data as { configs: LabRemediationConfig[] })?.configs ?? [];
   const activity = (remediationActivity.data as { activity: RemediationActivity[] })?.activity ?? [];
 
@@ -1228,7 +1229,7 @@ export default function Remediation() {
       {activeTab === 'incidents' && (
       <section className="space-y-6">
         <div className="mb-3">
-          <p className="text-sm text-[#8A8D90]">Enriched incidents from Deepfield's real-time correlation engine. Each incident groups related signals, runs root cause analysis, and suggests remediation. Acknowledge to mark as reviewed. Dismiss if it's a false positive. No actions are executed automatically.</p>
+          <p className="text-sm text-[#8A8D90]">Enriched incidents from Deepfield's real-time correlation engine. Each incident groups related signals, runs root cause analysis, and suggests remediation. Auto-resolved incidents are namespaces that were recycled or failures that cleared.</p>
         </div>
         <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
           <ApprovalQueue pending={search
@@ -1243,6 +1244,30 @@ export default function Remediation() {
               })
             : pending} onApprove={handleApprove} onReject={handleReject} />
         </div>
+        {resolved.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-[#ccc] mb-2">Recently Auto-Resolved ({resolved.length})</h3>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-2">
+            {resolved.map((r: any) => {
+              const params = r.parameters || {};
+              return (
+                <div key={r.id} className="flex items-center justify-between py-2 border-b border-[#2e2e2e] last:border-0">
+                  <div>
+                    <span className="text-sm text-[#ccc] font-mono">{r.target}</span>
+                    <span className="ml-2 text-xs text-[#6A6E73]">{params.failure_class || r.action_type}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#3E8635]/20 text-[#3E8635]">
+                      {r.dismiss_reason || 'auto-resolved'}
+                    </span>
+                    <span className="text-[10px] text-[#555]">{r.reviewed_at ? relativeTime(r.reviewed_at) : ''}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        )}
       </section>
       )}
 
