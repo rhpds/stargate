@@ -1825,6 +1825,109 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
     }
 
 
+@router.get("/admin/namespace-detail/{namespace}")
+def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
+    """Per-namespace detail — issues, incidents, shadow status for drawer view."""
+    from db.models import EvaluationRecord, PendingAction
+    from sqlalchemy import func
+    from api.constants import WARNING_CLASSES
+
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+
+    # Issues: recent failure classes for this namespace
+    issue_rows = db.query(
+        EvaluationRecord.failure_class,
+        EvaluationRecord.cluster_name,
+        func.count().label("count"),
+        func.max(EvaluationRecord.evaluated_at).label("last_seen"),
+        func.max(EvaluationRecord.message).label("sample_message"),
+    ).filter(
+        EvaluationRecord.lab_code == namespace,
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.evaluated_at > one_hour_ago,
+    ).group_by(
+        EvaluationRecord.failure_class, EvaluationRecord.cluster_name,
+    ).order_by(func.count().desc()).all()
+
+    issues = []
+    for fc, cluster, count, last_seen, msg in issue_rows:
+        issues.append({
+            "failure_class": fc,
+            "cluster": cluster,
+            "count": count,
+            "severity": "warning" if fc in WARNING_CLASSES else "high",
+            "last_seen": last_seen.isoformat() if last_seen else None,
+            "message": (msg or "")[:200],
+        })
+
+    # Incidents: Deepfield incidents for this namespace
+    incidents = db.query(PendingAction).filter(
+        PendingAction.target == namespace,
+    ).order_by(PendingAction.id.desc()).limit(10).all()
+
+    incident_list = []
+    for inc in incidents:
+        params = inc.parameters or {}
+        rca = params.get("rca_output", "")
+        if isinstance(rca, str) and rca.startswith("{"):
+            try:
+                rca = json.loads(rca.strip().strip("`").strip())
+            except Exception:
+                pass
+        incident_list.append({
+            "id": inc.id,
+            "action_type": inc.action_type,
+            "status": inc.status,
+            "confidence": inc.confidence,
+            "proposed_by": getattr(inc, "proposed_by", None) or "stargate",
+            "proposed_at": inc.proposed_at.isoformat() if inc.proposed_at else None,
+            "failure_class": params.get("failure_class"),
+            "severity": params.get("severity"),
+            "rca_summary": rca.get("root_cause", rca) if isinstance(rca, dict) else (rca[:200] if isinstance(rca, str) else None),
+            "signal_count": params.get("signal_count", 0),
+            "cluster": params.get("cluster"),
+        })
+
+    # Shadow status
+    from engine.historical_miner import SHADOW_STATE_FILE
+    shadow_entries = []
+    if SHADOW_STATE_FILE.exists():
+        try:
+            state = json.loads(SHADOW_STATE_FILE.read_text())
+            for entry in state.get("shadow_log", []) + state.get("incident_log", []):
+                if entry.get("namespace") == namespace:
+                    shadow_entries.append({
+                        "failure_class": entry.get("failure_class"),
+                        "tracked_at": entry.get("tracked_at"),
+                        "resolved": entry.get("resolved"),
+                        "resolution_cause": entry.get("resolution_cause", {}).get("cause") if isinstance(entry.get("resolution_cause"), dict) else None,
+                    })
+        except Exception:
+            pass
+
+    # Eval summary
+    total_evals = db.query(func.count(EvaluationRecord.id)).filter(
+        EvaluationRecord.lab_code == namespace,
+        EvaluationRecord.evaluated_at > one_hour_ago,
+    ).scalar()
+    pass_evals = db.query(func.count(EvaluationRecord.id)).filter(
+        EvaluationRecord.lab_code == namespace,
+        EvaluationRecord.outcome == "pass",
+        EvaluationRecord.evaluated_at > one_hour_ago,
+    ).scalar()
+
+    return {
+        "namespace": namespace,
+        "total_evals": total_evals,
+        "pass_evals": pass_evals,
+        "health_pct": round(pass_evals / max(total_evals, 1) * 100, 1),
+        "issues": issues,
+        "incidents": incident_list,
+        "shadow": shadow_entries,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
