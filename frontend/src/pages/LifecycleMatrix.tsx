@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 
-const STAGES = ['provision', 'deploy', 'readiness', 'active', 'teardown', 'cleanup'] as const;
+const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
 
 const STAGE_LABELS: Record<string, string> = {
-  provision: 'Provision',
-  deploy: 'Deploy',
-  readiness: 'Readiness',
-  active: 'Active',
-  teardown: 'Teardown',
-  cleanup: 'Cleanup',
+  health: 'Health',
+  pods: 'Pods',
+  storage: 'Storage',
+  network: 'Network',
+  workload: 'Workload',
+  overall: 'Overall',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   gray: '#555',
 };
 
-type Tab = 'lab' | 'instance' | 'cluster';
+type Tab = 'namespace' | 'lab' | 'cluster';
 
 function StatusDot({ status, detail }: { status: string; detail: string }) {
   const [hover, setHover] = useState(false);
@@ -47,7 +47,7 @@ function SummaryBar({ stages_health, stage_counts }: { stages_health: Record<str
       {STAGES.map(s => {
         const status = stages_health[s] || 'gray';
         const counts = stage_counts?.[s] || {};
-        const total = (counts.green || 0) + (counts.yellow || 0) + (counts.red || 0) + (counts.gray || 0);
+        const total = (counts.green || 0) + (counts.yellow || 0) + (counts.red || 0);
         const greenPct = total ? Math.round(((counts.green || 0) / total) * 100) : 0;
         return (
           <div key={s} className="rounded-lg p-3" style={{ backgroundColor: '#1e1e1e', border: `1px solid ${STATUS_COLORS[status]}40` }}>
@@ -66,6 +66,45 @@ function SummaryBar({ stages_health, stage_counts }: { stages_health: Record<str
   );
 }
 
+function NamespaceTable({ data, search }: { data: any[]; search: string }) {
+  const filtered = data.filter(r =>
+    !search || r.namespace?.toLowerCase().includes(search.toLowerCase()) || r.cluster?.toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-[#333]">
+          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
+          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
+          {STAGES.map(s => (
+            <th key={s} className="text-center px-3 py-2 text-[#8A8D90] font-medium text-xs uppercase">{STAGE_LABELS[s]}</th>
+          ))}
+          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filtered.slice(0, 200).map((r, i) => (
+          <tr key={`${r.namespace}-${i}`} className="border-b border-[#222] hover:bg-[#1e1e1e]">
+            <td className="px-3 py-2 text-[#ccc] font-mono text-xs">{r.namespace}</td>
+            <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
+            {STAGES.map(s => {
+              const st = r.stages?.[s] || { status: 'green', detail: '' };
+              return <StatusDot key={s} status={st.status} detail={st.detail} />;
+            })}
+            <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
+          </tr>
+        ))}
+        {filtered.length > 200 && (
+          <tr><td colSpan={9} className="px-3 py-2 text-center text-[#6A6E73] text-xs">Showing 200 of {filtered.length}</td></tr>
+        )}
+        {filtered.length === 0 && (
+          <tr><td colSpan={9} className="px-3 py-8 text-center text-[#6A6E73]">No namespaces found</td></tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
 function LabTable({ data, search }: { data: any[]; search: string }) {
   const filtered = data.filter(r =>
     !search || r.lab_code?.toLowerCase().includes(search.toLowerCase())
@@ -75,7 +114,7 @@ function LabTable({ data, search }: { data: any[]; search: string }) {
       <thead>
         <tr className="border-b border-[#333]">
           <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Lab</th>
-          <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">Instances</th>
+          <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">NS</th>
           {STAGES.map(s => (
             <th key={s} className="text-center px-3 py-2 text-[#8A8D90] font-medium text-xs uppercase">{STAGE_LABELS[s]}</th>
           ))}
@@ -85,71 +124,20 @@ function LabTable({ data, search }: { data: any[]; search: string }) {
         {filtered.map(r => (
           <tr key={r.lab_code} className="border-b border-[#222] hover:bg-[#1e1e1e]">
             <td className="px-3 py-2">
-              <a href={`/lab/${r.lab_code}`} className="text-[#4394E5] hover:underline text-sm">{r.lab_code}</a>
+              <span className="text-[#4394E5] text-sm">{r.lab_code}</span>
+              {r.clusters?.length > 0 && (
+                <span className="ml-2 text-[10px] text-[#6A6E73]">{r.clusters.join(', ')}</span>
+              )}
             </td>
-            <td className="px-3 py-2 text-center text-[#ccc]">
-              <span className="text-[#3E8635]">{r.instances_started}</span>
-              <span className="text-[#6A6E73]">/{r.instances_total}</span>
-            </td>
+            <td className="px-3 py-2 text-center text-[#ccc] text-xs">{r.namespaces}</td>
             {STAGES.map(s => {
-              const st = r.stages?.[s] || { status: 'gray', detail: '' };
+              const st = r.stages?.[s] || { status: 'green', detail: '' };
               return <StatusDot key={s} status={st.status} detail={st.detail} />;
             })}
           </tr>
         ))}
         {filtered.length === 0 && (
           <tr><td colSpan={8} className="px-3 py-8 text-center text-[#6A6E73]">No labs found</td></tr>
-        )}
-      </tbody>
-    </table>
-  );
-}
-
-function InstanceTable({ data, search }: { data: any[]; search: string }) {
-  const filtered = data.filter(r =>
-    !search || r.namespace?.toLowerCase().includes(search.toLowerCase()) || r.lab_code?.toLowerCase().includes(search.toLowerCase())
-  );
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-[#333]">
-          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
-          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Lab</th>
-          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
-          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">State</th>
-          {STAGES.map(s => (
-            <th key={s} className="text-center px-3 py-2 text-[#8A8D90] font-medium text-xs uppercase">{STAGE_LABELS[s]}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {filtered.slice(0, 200).map((r, i) => (
-          <tr key={`${r.namespace}-${i}`} className="border-b border-[#222] hover:bg-[#1e1e1e]">
-            <td className="px-3 py-2 text-[#ccc] font-mono text-xs">{r.namespace}</td>
-            <td className="px-3 py-2">
-              <a href={`/lab/${r.lab_code}`} className="text-[#4394E5] hover:underline text-xs">{r.lab_code}</a>
-            </td>
-            <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
-            <td className="px-3 py-2 text-xs">
-              <span className={`px-1.5 py-0.5 rounded text-xs ${
-                r.anarchy_state === 'started' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
-                r.anarchy_state?.includes('failed') || r.anarchy_state?.includes('error') ? 'bg-[#C9190B]/20 text-[#C9190B]' :
-                'bg-[#F0AB00]/20 text-[#F0AB00]'
-              }`}>
-                {r.anarchy_state}
-              </span>
-            </td>
-            {STAGES.map(s => {
-              const st = r.stages?.[s] || { status: 'gray', detail: '' };
-              return <StatusDot key={s} status={st.status} detail={st.detail} />;
-            })}
-          </tr>
-        ))}
-        {filtered.length > 200 && (
-          <tr><td colSpan={10} className="px-3 py-2 text-center text-[#6A6E73] text-xs">Showing 200 of {filtered.length}</td></tr>
-        )}
-        {filtered.length === 0 && (
-          <tr><td colSpan={10} className="px-3 py-8 text-center text-[#6A6E73]">No instances found</td></tr>
         )}
       </tbody>
     </table>
@@ -165,11 +153,11 @@ function ClusterTable({ data, search }: { data: any[]; search: string }) {
       <thead>
         <tr className="border-b border-[#333]">
           <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
-          <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">Labs</th>
-          <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">Instances</th>
+          <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">Namespaces</th>
           {STAGES.map(s => (
             <th key={s} className="text-center px-3 py-2 text-[#8A8D90] font-medium text-xs uppercase">{STAGE_LABELS[s]}</th>
           ))}
+          <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
         </tr>
       </thead>
       <tbody>
@@ -178,12 +166,12 @@ function ClusterTable({ data, search }: { data: any[]; search: string }) {
             <td className="px-3 py-2">
               <a href={`/cluster/${r.cluster}`} className="text-[#4394E5] hover:underline">{r.cluster}</a>
             </td>
-            <td className="px-3 py-2 text-center text-[#ccc]">{r.labs_total}</td>
-            <td className="px-3 py-2 text-center text-[#ccc]">{r.instances_total}</td>
+            <td className="px-3 py-2 text-center text-[#ccc]">{r.namespaces}</td>
             {STAGES.map(s => {
-              const st = r.stages?.[s] || { status: 'gray', detail: '' };
+              const st = r.stages?.[s] || { status: 'green', detail: '' };
               return <StatusDot key={s} status={st.status} detail={st.detail} />;
             })}
+            <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
           </tr>
         ))}
         {filtered.length === 0 && (
@@ -195,7 +183,7 @@ function ClusterTable({ data, search }: { data: any[]; search: string }) {
 }
 
 export default function LifecycleMatrix() {
-  const [tab, setTab] = useState<Tab>('lab');
+  const [tab, setTab] = useState<Tab>('namespace');
   const [search, setSearch] = useState('');
 
   const { data, isLoading, error } = useQuery({
@@ -205,8 +193,8 @@ export default function LifecycleMatrix() {
   });
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: 'namespace', label: 'By Namespace', count: data?.summary?.total_namespaces },
     { key: 'lab', label: 'By Lab', count: data?.summary?.total_labs },
-    { key: 'instance', label: 'By Instance', count: data?.summary?.total_instances },
     { key: 'cluster', label: 'By Cluster', count: data?.summary?.total_clusters },
   ];
 
@@ -217,7 +205,7 @@ export default function LifecycleMatrix() {
           Lifecycle Matrix
         </h1>
         <p className="text-[#6A6E73] text-sm">
-          End-to-end namespace lifecycle — provision through cleanup — with red/green/yellow health per stage
+          Namespace health by category — health, pods, storage, network, workload — sorted by most failures
         </p>
       </div>
 
@@ -258,8 +246,8 @@ export default function LifecycleMatrix() {
           </div>
 
           <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] overflow-x-auto">
+            {tab === 'namespace' && <NamespaceTable data={data.by_namespace || []} search={search} />}
             {tab === 'lab' && <LabTable data={data.by_lab || []} search={search} />}
-            {tab === 'instance' && <InstanceTable data={data.by_instance || []} search={search} />}
             {tab === 'cluster' && <ClusterTable data={data.by_cluster || []} search={search} />}
           </div>
 
@@ -267,7 +255,6 @@ export default function LifecycleMatrix() {
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#3E8635' }} /> Healthy</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#F0AB00' }} /> Warning</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#C9190B' }} /> Failing</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#555' }} /> No Data</span>
           </div>
         </>
       )}
