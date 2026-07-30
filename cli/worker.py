@@ -256,15 +256,10 @@ class ClusterWorker:
                 key = f"{ns}/{pod}"
                 current_status[key] = status
 
-                is_operator_ns = ns in (
-                    "openshift-cnv", "openshift-storage", "openshift-marketplace",
-                    "openshift-operators", "openshift-nmstate",
-                )
                 is_lab_ns = (
                     ns.startswith("sandbox-")
                     or ns.startswith("showroom-")
                     or (ns.startswith("user-") and "showroom" in pod)
-                    or is_operator_ns
                 )
                 if is_lab_ns:
                     sandbox_ns.add(ns)
