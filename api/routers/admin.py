@@ -1583,10 +1583,16 @@ Keep it to 2-3 sentences max."""
     model = os.environ.get("STARGATE_LLM_MODEL", "llama-scout-17b")
     api_key = os.environ.get("STARGATE_LLM_API_KEY", "")
 
+    verify_failed = verify_status in ("failed", "error") or any(
+        "ErrImagePull" in str(c.get("output", "")) or "CrashLoopBackOff" in str(c.get("output", ""))
+        or "BackOff" in str(c.get("output", "")) or "Error" in str(c.get("output", ""))
+        for c in verify_cmds
+    )
+
     if not llm_url:
-        if status == "FAILED":
-            return {"explanation": f"The catalog action for {failure_class} was executed but verification failed — the failure persisted after remediation. The prescribed fix doesn't address the root cause. A different remediation strategy is needed."}
-        return {"explanation": f"The catalog action for {failure_class} was executed and verification passed — the failure was resolved."}
+        if verify_failed or status == "FAILED":
+            return {"explanation": f"The catalog action for {failure_class} was executed but verification shows the failure persisted — the prescribed fix doesn't address the root cause. The verify output still shows the original error state. A different remediation strategy is needed for this failure class."}
+        return {"explanation": f"The catalog action for {failure_class} was executed and verification confirmed the failure was resolved. The namespace returned to a healthy state after remediation."}
 
     try:
         payload = {
@@ -1608,9 +1614,9 @@ Keep it to 2-3 sentences max."""
         explanation = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
         return {"explanation": explanation, "model": model}
     except Exception as e:
-        if status == "FAILED":
-            return {"explanation": f"The catalog action for {failure_class} was executed but verification failed — the failure persisted. The prescribed fix doesn't address the root cause ({e})."}
-        return {"explanation": f"Proof cycle completed with status {status}. LLM explanation unavailable ({e})."}
+        if verify_failed or status == "FAILED":
+            return {"explanation": f"The catalog action for {failure_class} was executed but verification shows the failure persisted — the prescribed fix doesn't address the root cause. A different remediation strategy is needed."}
+        return {"explanation": f"The catalog action for {failure_class} was executed and verification confirmed the failure was resolved."}
 
 
 @router.post("/admin/proof/continue")
