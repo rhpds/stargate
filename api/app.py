@@ -261,15 +261,17 @@ def _auto_resolve_incidents(db):
         if not ns:
             continue
 
-        # Check: has this namespace had a passing evaluation recently?
         one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        thirty_min_ago = datetime.now(timezone.utc) - timedelta(minutes=30)
+
+        # Check 1: has this namespace had a passing evaluation recently?
         recent_pass = db.query(EvaluationRecord.id).filter(
             EvaluationRecord.lab_code == ns,
             EvaluationRecord.outcome == "pass",
             EvaluationRecord.evaluated_at > one_hour_ago,
         ).first()
 
-        # Check: has the failure class stopped appearing?
+        # Check 2: has the failure class stopped appearing?
         recent_fail = db.query(EvaluationRecord.id).filter(
             EvaluationRecord.lab_code == ns,
             EvaluationRecord.failure_class == fc,
@@ -277,13 +279,26 @@ def _auto_resolve_incidents(db):
             EvaluationRecord.evaluated_at > one_hour_ago,
         ).first()
 
-        if recent_pass and not recent_fail:
+        # Check 3: namespace disappeared (no evals in 30 min = recycled)
+        ns_gone = False
+        if not recent_pass and not recent_fail:
+            latest = db.query(func.max(EvaluationRecord.evaluated_at)).filter(
+                EvaluationRecord.lab_code == ns,
+            ).scalar()
+            if latest:
+                latest_tz = latest.replace(tzinfo=timezone.utc) if latest.tzinfo is None else latest
+                if latest_tz < thirty_min_ago:
+                    ns_gone = True
+
+        should_resolve = (recent_pass and not recent_fail) or ns_gone
+        if should_resolve:
             inc.status = "auto_resolved"
             inc.reviewed_at = datetime.now(timezone.utc)
             inc.reviewed_by = "shadow_mode"
             if inc.parameters is None:
                 inc.parameters = {}
-            inc.parameters["dismiss_reason"] = "auto_resolved — failure no longer present"
+            reason = "namespace_recycled — no longer producing evaluations" if ns_gone else "failure no longer present"
+            inc.parameters["dismiss_reason"] = f"auto_resolved — {reason}"
             resolved_count += 1
 
     if resolved_count > 0:
