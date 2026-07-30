@@ -250,12 +250,14 @@ def create_evaluation(
     criteria_results: Optional[list],
     lab_code: Optional[str] = None,
     cluster_name: Optional[str] = None,
+    sub_class: Optional[str] = None,
 ) -> EvaluationRecord:
     record = EvaluationRecord(
         run_id=run_id,
         stage_id=stage_id,
         outcome=outcome,
         failure_class=failure_class,
+        sub_class=sub_class,
         message=message,
         criteria_results=criteria_results,
         evaluated_at=datetime.now(timezone.utc),

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from engine.models import Rubric, StageOutcome
+from engine.sub_classifier import sub_classify
 
 
 @dataclass
@@ -17,6 +18,7 @@ class EvaluationResult:
     stage_id: str
     outcome: StageOutcome
     failure_class: str | None = None
+    sub_class: str | None = None
     message: str | None = None
     criteria_results: list[CriterionResult] = field(default_factory=list)
     timeout_seconds: int | None = None
@@ -38,10 +40,12 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
             failure_class = _classify_failure(rubric, evidence)
             if not failure_class:
                 failure_class = _classify_entry_failure(criterion.name)
+            sub = sub_classify(failure_class, f"Entry criterion not met: {criterion.name}")
             return EvaluationResult(
                 stage_id=rubric.stage,
                 outcome=StageOutcome.FAIL,
                 failure_class=failure_class,
+                sub_class=sub.get("sub_class"),
                 message=f"Entry criterion not met: {criterion.name}",
                 criteria_results=criteria_results,
                 timeout_seconds=timeout,
@@ -62,10 +66,12 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
     if required_failures:
         failure_class = _classify_failure(rubric, evidence)
         failed_names = ", ".join(c.name for c in required_failures)
+        sub = sub_classify(failure_class, f"Required criteria failed: {failed_names}") if failure_class else {}
         return EvaluationResult(
             stage_id=rubric.stage,
             outcome=StageOutcome.FAIL,
             failure_class=failure_class,
+            sub_class=sub.get("sub_class"),
             message=f"Required criteria failed: {failed_names}",
             criteria_results=criteria_results,
             timeout_seconds=timeout,

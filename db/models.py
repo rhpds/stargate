@@ -87,6 +87,7 @@ class EvaluationRecord(Base):
     stage_id = Column(String(255), nullable=False, index=True)
     outcome = Column(String(50), nullable=False)
     failure_class = Column(String(255), nullable=True, index=True)
+    sub_class = Column(String(255), nullable=True, index=True)
     message = Column(Text, nullable=True)
     criteria_results = Column(JSON, nullable=True)
     evaluated_at = Column(DateTime(timezone=True), nullable=False)
