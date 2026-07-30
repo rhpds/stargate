@@ -250,6 +250,7 @@ def parse_k8s_event(raw: Dict) -> Dict:
     combined = f"{reason} {message}"
 
     from engine.failure_class_loader import classify_by_pattern
+    from engine.sub_classifier import sub_classify
     failure_class, matched = classify_by_pattern(combined, source="k8s_events")
     severity = matched.get("severity", "low")
     remediation = matched.get("remediation", [])
@@ -261,8 +262,13 @@ def parse_k8s_event(raw: Dict) -> Dict:
                 remediation = cls_data["remediation"]
                 break
 
+    sub = sub_classify(failure_class, message)
+
     return {
         "failure_class": failure_class,
+        "sub_class": sub.get("sub_class"),
+        "workload": sub.get("workload"),
+        "auto_fix_confidence": sub.get("auto_fix_confidence"),
         "severity": severity,
         "type": event_type,
         "reason": reason,
@@ -359,6 +365,7 @@ def batch_classify_events(events: List[Dict], db=None) -> Dict:
                     message=parsed["message"][:200],
                     criteria_results=[], lab_code=parsed["namespace"],
                     cluster_name=parsed["cluster"],
+                    sub_class=parsed.get("sub_class"),
                 )
         except Exception as e:
             logger.warning("Failed to persist mined events: %s", e)

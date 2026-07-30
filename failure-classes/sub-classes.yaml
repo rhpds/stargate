@@ -1,0 +1,146 @@
+# Sub-classification rules — applied after primary failure_class match.
+# Pattern matches against the event message. First match wins. null pattern = default fallback.
+
+pods_crashlooping:
+  - sub_class: crashloop_secret_generator
+    pattern: "kubernetes-secret-generator"
+    workload: infrastructure
+    auto_fix_confidence: high
+  - sub_class: crashloop_cdi_importer
+    pattern: "importer.*prime|importer-prime"
+    workload: cdi_clone
+    auto_fix_confidence: medium
+  - sub_class: crashloop_virt_launcher
+    pattern: "virt-launcher"
+    workload: vm
+    auto_fix_confidence: low
+  - sub_class: crashloop_app_pod
+    pattern: null
+    workload: application
+    auto_fix_confidence: low
+
+claim_misbound:
+  - sub_class: claim_misbound_cdi_clone
+    pattern: "prime-.*Two claims"
+    workload: cdi_clone
+    auto_fix_confidence: low
+  - sub_class: claim_misbound_pvc_race
+    pattern: "Two claims are bound"
+    workload: storage
+    auto_fix_confidence: low
+
+scheduling_failed:
+  - sub_class: scheduling_cdi_importer
+    pattern: "Importer pod cannot be scheduled"
+    workload: cdi_clone
+    auto_fix_confidence: medium
+  - sub_class: scheduling_insufficient_resources
+    pattern: "Insufficient cpu|Insufficient memory"
+    workload: compute
+    auto_fix_confidence: low
+  - sub_class: scheduling_node_affinity
+    pattern: "didn't match.*node selector|node.*taint|didn't match Pod's node affinity"
+    workload: placement
+    auto_fix_confidence: low
+
+quota_exceeded:
+  - sub_class: quota_exceeded_vm_launch
+    pattern: "virt-launcher.*sandbox-quota|virt-launcher.*exceeded quota"
+    workload: vm
+    auto_fix_confidence: high
+  - sub_class: quota_exceeded_pods
+    pattern: "exceeded quota"
+    workload: compute
+    auto_fix_confidence: medium
+
+image_pull_secret_missing:
+  - sub_class: pull_secret_search
+    pattern: "search-pull-secret"
+    workload: registry
+    auto_fix_confidence: medium
+  - sub_class: pull_secret_generic
+    pattern: null
+    workload: registry
+    auto_fix_confidence: low
+
+volume_attach_failed:
+  - sub_class: volume_attach_multi
+    pattern: "Multi-Attach error"
+    workload: storage
+    auto_fix_confidence: medium
+  - sub_class: volume_attach_csi
+    pattern: "CSI|csi-driver|AttachVolume"
+    workload: storage
+    auto_fix_confidence: low
+
+volume_mount_failed:
+  - sub_class: volume_mount_not_found
+    pattern: "not found|MountVolume.*failed"
+    workload: storage
+    auto_fix_confidence: low
+
+pvc_binding_failed:
+  - sub_class: pvc_binding_no_pv
+    pattern: "no persistent volumes available"
+    workload: storage
+    auto_fix_confidence: low
+  - sub_class: pvc_binding_storage_class
+    pattern: "storageclass|storage class"
+    workload: storage
+    auto_fix_confidence: low
+
+oom_killed:
+  - sub_class: oom_container_limit
+    pattern: "exit code 137|OOMKilled"
+    workload: compute
+    auto_fix_confidence: medium
+  - sub_class: oom_system
+    pattern: "system OOM|oom_reaper"
+    workload: node
+    auto_fix_confidence: low
+
+backoff_limit_exceeded:
+  - sub_class: backoff_job_failed
+    pattern: "Job has reached the specified backoff limit"
+    workload: batch
+    auto_fix_confidence: medium
+
+sync_failed:
+  - sub_class: sync_ceph_rados
+    pattern: "CephBlockPoolRadosNamespace|rados namespace"
+    workload: storage_operator
+    auto_fix_confidence: low
+  - sub_class: sync_argocd
+    pattern: "argocd|ArgoCD|gitops"
+    workload: gitops
+    auto_fix_confidence: low
+
+image_pull_backoff:
+  - sub_class: image_not_found
+    pattern: "not found|manifest unknown"
+    workload: registry
+    auto_fix_confidence: low
+  - sub_class: image_auth_failed
+    pattern: "unauthorized|authentication required|denied"
+    workload: registry
+    auto_fix_confidence: low
+
+pod_pending:
+  - sub_class: pending_unschedulable
+    pattern: "Unschedulable|nodes are available"
+    workload: compute
+    auto_fix_confidence: low
+  - sub_class: pending_volume_wait
+    pattern: "waiting for.*volume|persistentvolumeclaim"
+    workload: storage
+    auto_fix_confidence: low
+
+resolution_failed:
+  - sub_class: resolution_timeout
+    pattern: "timeout|timed out"
+    workload: remediation
+    auto_fix_confidence: low
+  - sub_class: resolution_permission
+    pattern: "forbidden|permission|unauthorized"
+    workload: rbac
+    auto_fix_confidence: low
