@@ -236,10 +236,10 @@ def _determine_resolution_cause(namespace: str, cluster: str, eval_id: int, db) 
     ).scalar()
 
     if latest_eval:
-        age_hours = (datetime.now(timezone.utc) - latest_eval.replace(tzinfo=timezone.utc if latest_eval.tzinfo is None else latest_eval.tzinfo)).total_seconds() / 3600
-        if age_hours > 24:
+        age_minutes = (datetime.now(timezone.utc) - latest_eval.replace(tzinfo=timezone.utc if latest_eval.tzinfo is None else latest_eval.tzinfo)).total_seconds() / 60
+        if age_minutes > 30:
             result["cause"] = "namespace_recycled"
-            result["action"] = f"No evaluations for {int(age_hours)}h — namespace likely deleted"
+            result["action"] = f"No evaluations for {int(age_minutes)}m — namespace likely deleted/recycled"
             return result
 
     # 2. Check if StarGate executed a remediation on this namespace
@@ -447,6 +447,7 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
 
     # Check resolution of previous shadow entries (last 50)
     resolved_count = 0
+    thirty_min_ago = datetime.now(timezone.utc) - timedelta(minutes=30)
     for entry in shadow_log[-50:]:
         if entry.get("resolved") is not None:
             continue
@@ -454,18 +455,36 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
         fc = entry.get("failure_class")
         if not ns or not fc:
             continue
-        # Check if a passing evaluation exists after the failure
+
+        # Check 1: passing evaluation exists after the failure
         has_pass = db.query(EvaluationRecord.id).filter(
             EvaluationRecord.lab_code == ns,
             EvaluationRecord.outcome == "pass",
             EvaluationRecord.id > entry.get("eval_id", 0),
         ).first()
-        if has_pass:
+
+        # Check 2: namespace disappeared (no evals in last 30 min = recycled)
+        ns_gone = False
+        if not has_pass:
+            latest = db.query(func.max(EvaluationRecord.evaluated_at)).filter(
+                EvaluationRecord.lab_code == ns,
+            ).scalar()
+            if latest and latest.replace(tzinfo=timezone.utc if latest.tzinfo is None else latest.tzinfo) < thirty_min_ago:
+                ns_gone = True
+
+        if has_pass or ns_gone:
             entry["resolved"] = True
             entry["resolved_at"] = datetime.now(timezone.utc).isoformat()
-            entry["resolution_cause"] = _determine_resolution_cause(
-                ns, entry.get("cluster", ""), entry.get("eval_id", 0), db
-            )
+            if ns_gone and not has_pass:
+                entry["resolution_cause"] = {
+                    "cause": "namespace_recycled",
+                    "resolved_by": None,
+                    "action": "Namespace no longer producing evaluations — likely deleted/recycled",
+                }
+            else:
+                entry["resolution_cause"] = _determine_resolution_cause(
+                    ns, entry.get("cluster", ""), entry.get("eval_id", 0), db
+                )
             resolved_count += 1
 
     # Trim shadow log to last 200 entries
