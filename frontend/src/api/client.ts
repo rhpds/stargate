@@ -305,6 +305,7 @@ export const api = {
 
   // Lifecycle Matrix
   getLifecycleMatrix: () => request<any>('/admin/lifecycle-matrix'),
+  getNamespaceDetail: (ns: string) => request<any>(`/admin/namespace-detail/${encodeURIComponent(ns)}`),
 
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
