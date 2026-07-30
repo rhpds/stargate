@@ -1525,6 +1525,94 @@ def get_proof_matrix(_auth=Depends(require_admin_read)):
     }
 
 
+@router.get("/admin/proof/explain/{failure_class}")
+def explain_proof(failure_class: str, _auth=Depends(require_admin_read)):
+    """LLM-generated explanation of why a proof cycle passed or failed."""
+    from engine.proof_tracker import ProofTracker
+    from engine.sub_classifier import get_sub_class_info
+    import os, urllib.request
+
+    tracker = ProofTracker()
+    matrix = tracker.get_matrix()
+    fc_data = matrix.get("failure_classes", {}).get(failure_class, {})
+
+    if not fc_data:
+        return {"explanation": "No proof data available for this failure class. Run a proof cycle first."}
+
+    status = fc_data.get("status", "UNTESTED")
+    cycles = fc_data.get("cycles_completed", 0)
+    gate = fc_data.get("gate", "manual")
+    last_cycle = fc_data.get("last_cycle", {})
+    steps = last_cycle.get("steps", {})
+
+    sub_info = get_sub_class_info(failure_class)
+
+    verify_status = steps.get("verify", {}).get("status", "unknown")
+    verify_cmds = steps.get("verify", {}).get("commands", [])
+    remediate_cmds = steps.get("remediate", {}).get("commands", [])
+
+    verify_output = ""
+    for cmd in verify_cmds[-2:]:
+        verify_output += f"{cmd.get('command','')}\n{cmd.get('output','')[:300]}\n"
+
+    remediate_output = ""
+    for cmd in remediate_cmds[-2:]:
+        remediate_output += f"{cmd.get('command','')}\n{cmd.get('output','')[:200]}\n"
+
+    prompt = f"""You are an SRE reviewing a remediation proof cycle result. Explain in 2-3 sentences what happened and what it means. Be specific and actionable.
+
+Failure class: {failure_class}
+Sub-class: {sub_info.get('sub_class', 'unknown')}
+Workload type: {sub_info.get('workload', 'unknown')}
+Proof status: {status}
+Verify result: {verify_status}
+Gate: {gate}
+Cycles completed: {cycles}
+
+Remediation action output:
+{remediate_output[:400]}
+
+Verification output:
+{verify_output[:400]}
+
+If the proof FAILED, explain why the catalog action didn't fix the root cause and what a better fix would be.
+If it PASSED, explain what worked.
+Keep it to 2-3 sentences max."""
+
+    llm_url = os.environ.get("STARGATE_LLM_URL", "")
+    model = os.environ.get("STARGATE_LLM_MODEL", "llama-scout-17b")
+    api_key = os.environ.get("STARGATE_LLM_API_KEY", "")
+
+    if not llm_url:
+        if status == "FAILED":
+            return {"explanation": f"The catalog action for {failure_class} was executed but verification failed — the failure persisted after remediation. The prescribed fix doesn't address the root cause. A different remediation strategy is needed."}
+        return {"explanation": f"The catalog action for {failure_class} was executed and verification passed — the failure was resolved."}
+
+    try:
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+            "temperature": 0.2,
+        }
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        req_obj = urllib.request.Request(
+            f"{llm_url}/v1/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers=headers,
+        )
+        resp = urllib.request.urlopen(req_obj, timeout=15)
+        result = json.loads(resp.read().decode())
+        explanation = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+        return {"explanation": explanation, "model": model}
+    except Exception as e:
+        if status == "FAILED":
+            return {"explanation": f"The catalog action for {failure_class} was executed but verification failed — the failure persisted. The prescribed fix doesn't address the root cause ({e})."}
+        return {"explanation": f"Proof cycle completed with status {status}. LLM explanation unavailable ({e})."}
+
+
 @router.post("/admin/proof/continue")
 def continue_proof(req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Phase 2: remediate → verify → cleanup after HITL approval."""

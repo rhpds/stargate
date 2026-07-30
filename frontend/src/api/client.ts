@@ -313,6 +313,7 @@ export const api = {
   // Proof Dashboard
   getProofMatrix: () => request<any>('/admin/proof/matrix'),
   getProofHistory: (failureClass: string) => request<any>(`/admin/proof/history/${encodeURIComponent(failureClass)}`),
+  getProofExplanation: (failureClass: string) => request<any>(`/admin/proof/explain/${encodeURIComponent(failureClass)}`),
   runProof: (failureClass: string, mode: string) => request<any>('/admin/proof/run', {
     method: 'POST',
     body: JSON.stringify({ failure_class: failureClass, mode }),
