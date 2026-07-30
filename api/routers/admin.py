@@ -1700,9 +1700,11 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
     # Get recent failures (same as recommendations endpoint)
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-    # Aggregate failures by namespace + failure_class (sandbox/showroom only, exclude warnings)
+    # Aggregate failures by namespace + failure_class (lab namespaces only, exclude warnings)
     from api.constants import WARNING_CLASSES as _CORR_WARN
     from sqlalchemy import or_ as _or
+    _CORR_LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
+    _corr_lab_filter = _or(*[EvaluationRecord.lab_code.like(f"{p}%") for p in _CORR_LAB_PREFIXES])
     failures = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
@@ -1714,11 +1716,7 @@ def get_correlated_view(cluster: str = None, limit: int = 20, db: Session = Depe
         EvaluationRecord.failure_class.isnot(None),
         EvaluationRecord.failure_class.notin_(_CORR_WARN),
         EvaluationRecord.evaluated_at > one_hour_ago,
-        _or(
-            EvaluationRecord.lab_code.like("sandbox-%"),
-            EvaluationRecord.lab_code.like("showroom-%"),
-            EvaluationRecord.lab_code.like("user-%"),
-        ),
+        _corr_lab_filter,
     )
     if cluster:
         failures = failures.filter(EvaluationRecord.cluster_name == cluster)
@@ -1869,7 +1867,9 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
 
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-    # All recent evaluations grouped by namespace + cluster (sandbox/showroom only)
+    # All recent evaluations grouped by namespace + cluster (lab namespaces only)
+    LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
+    _lab_filter = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
     rows = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
@@ -1879,11 +1879,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     ).filter(
         EvaluationRecord.evaluated_at > one_hour_ago,
         EvaluationRecord.lab_code.isnot(None),
-        or_(
-            EvaluationRecord.lab_code.like("sandbox-%"),
-            EvaluationRecord.lab_code.like("showroom-%"),
-            EvaluationRecord.lab_code.like("user-%"),
-        ),
+        _lab_filter,
     ).group_by(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
