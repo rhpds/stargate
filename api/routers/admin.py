@@ -2012,8 +2012,9 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 stage = STAGE_MAP.get(fc, "workload")
                 d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
 
-    # Build namespace rows
+    # Build namespace rows — only namespaces with real failures (green ones are noise)
     by_namespace = []
+    all_ns_stages = []
     for ns, d in sorted(ns_data.items(), key=lambda x: x[1]["real_fail"], reverse=True):
         effective_total = d["pass"] + d["real_fail"]
         health_pct = round(d["pass"] / max(effective_total, 1) * 100, 1)
@@ -2028,7 +2029,6 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 fcs = [fc for fc, _ in d["failure_classes"].items() if STAGE_MAP.get(fc) == s]
                 stages[s] = {"status": "red", "detail": f"{fc_count} ({', '.join(fcs[:2])})"}
 
-        # Overall derived from stages — green only if all stages green
         stage_statuses = [v["status"] for k, v in stages.items()]
         red_count = stage_statuses.count("red")
         if red_count == 0:
@@ -2037,6 +2037,11 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             stages["overall"] = {"status": "yellow", "detail": f"1 category failing"}
         else:
             stages["overall"] = {"status": "red", "detail": f"{red_count} categories failing"}
+
+        all_ns_stages.append(stages)
+
+        if d["real_fail"] == 0:
+            continue
 
         top_fc = max(d["failure_classes"], key=d["failure_classes"].get) if d["failure_classes"] else None
         by_namespace.append({
@@ -2149,11 +2154,12 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "stages": stages,
         })
 
-    # Summary
+    # Summary — counts ALL namespaces (including healthy) for accurate percentages
+    total_ns_count = len(all_ns_stages)
     stage_totals: Dict[str, Dict[str, int]] = {s: {"green": 0, "yellow": 0, "red": 0} for s in STAGES}
-    for entry in by_namespace:
+    for stages in all_ns_stages:
         for s in STAGES:
-            st = entry["stages"].get(s, {}).get("status", "green")
+            st = stages.get(s, {}).get("status", "green")
             stage_totals[s][st] = stage_totals[s].get(st, 0) + 1
 
     return {
@@ -2163,6 +2169,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         "by_cluster": by_cluster,
         "summary": {
             "total_namespaces": len(by_namespace),
+            "total_monitored": total_ns_count,
             "total_labs": len(by_lab),
             "total_clusters": len(by_cluster),
             "stages_health": {

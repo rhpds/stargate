@@ -338,7 +338,7 @@ export default function LifecycleMatrix() {
   });
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: 'namespace', label: 'By Namespace', count: data?.summary?.total_namespaces },
+    { key: 'namespace', label: 'Issues', count: data?.summary?.total_namespaces },
     { key: 'lab', label: 'By Lab', count: data?.summary?.total_labs },
     { key: 'cluster', label: 'By Cluster', count: data?.summary?.total_clusters },
   ];
@@ -350,7 +350,7 @@ export default function LifecycleMatrix() {
           Lifecycle Matrix
         </h1>
         <p className="text-[#6A6E73] text-sm">
-          Namespace health by category — click any row to see issues, incidents, and shadow tracking
+          {data?.summary?.total_monitored ? `${data.summary.total_monitored} namespaces monitored — ` : ''}showing namespaces with active issues
         </p>
       </div>
 
