@@ -1834,9 +1834,10 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
 
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-    # Issues: recent failure classes for this namespace
+    # Issues: recent failure classes + sub_classes for this namespace
     issue_rows = db.query(
         EvaluationRecord.failure_class,
+        EvaluationRecord.sub_class,
         EvaluationRecord.cluster_name,
         func.count().label("count"),
         func.max(EvaluationRecord.evaluated_at).label("last_seen"),
@@ -1847,13 +1848,18 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
         EvaluationRecord.failure_class.isnot(None),
         EvaluationRecord.evaluated_at > one_hour_ago,
     ).group_by(
-        EvaluationRecord.failure_class, EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class, EvaluationRecord.sub_class, EvaluationRecord.cluster_name,
     ).order_by(func.count().desc()).all()
 
+    from engine.sub_classifier import get_sub_class_info
     issues = []
-    for fc, cluster, count, last_seen, msg in issue_rows:
+    for fc, sub, cluster, count, last_seen, msg in issue_rows:
+        sub_info = get_sub_class_info(sub) if sub else {}
         issues.append({
             "failure_class": fc,
+            "sub_class": sub,
+            "workload": sub_info.get("workload"),
+            "auto_fix_confidence": sub_info.get("auto_fix_confidence"),
             "cluster": cluster,
             "count": count,
             "severity": "warning" if fc in WARNING_CLASSES else "high",

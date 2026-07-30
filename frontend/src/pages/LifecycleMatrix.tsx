@@ -126,6 +126,21 @@ function NamespaceDrawer({ namespace, onClose }: { namespace: string; onClose: (
                         </span>
                         <span className="text-[10px] text-[#6A6E73]">{iss.count}× · {relativeTime(iss.last_seen)}</span>
                       </div>
+                      {iss.sub_class && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-[#333] text-[#ccc]">{iss.sub_class}</span>
+                          {iss.workload && <span className="text-[10px] text-[#6A6E73]">{iss.workload}</span>}
+                          {iss.auto_fix_confidence && (
+                            <span className={`text-[10px] px-1 py-0.5 rounded ${
+                              iss.auto_fix_confidence === 'high' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                              iss.auto_fix_confidence === 'medium' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                              'bg-[#555]/20 text-[#8A8D90]'
+                            }`}>
+                              {iss.auto_fix_confidence} fix confidence
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <p className="text-[#8A8D90] text-xs">{iss.message}</p>
                       <span className="text-[10px] text-[#555] mt-1 inline-block">{iss.cluster}</span>
                     </div>
