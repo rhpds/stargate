@@ -2,7 +2,7 @@
 
 import os
 
-WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed"}
+WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed", "readiness_probe_failed", "deprecated_api", "datasource_unrecognized"}
 
 _ECOSYSTEM_DEFAULT = "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-"
 
