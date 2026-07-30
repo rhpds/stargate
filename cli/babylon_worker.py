@@ -362,7 +362,29 @@ def run_collection() -> Dict:
         results["demolition"] = {"error": str(e)}
         print(f"    Demolition error: {e}")
 
-    # Save again with Labagator/Demolition data if they succeeded
+    # Monitoring gap detectors — stuck teardowns + resource leaks
+    kubeconfig = os.environ.get("STARGATE_EXECUTOR_KUBECONFIG", "")
+    print("  Detecting stuck teardowns...")
+    try:
+        from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
+        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=kubeconfig)
+        st = results["stuck_teardowns"]
+        print(f"    {st.get('stuck_count', 0)} stuck (threshold {st.get('threshold_hours', 2)}h)")
+    except Exception as e:
+        results["stuck_teardowns"] = {"error": str(e)}
+        print(f"    Stuck teardown detection failed: {e}")
+
+    print("  Detecting resource leaks...")
+    try:
+        from collectors.cleanup.collect_leaks import detect_resource_leaks
+        results["resource_leaks"] = detect_resource_leaks(kubeconfig=kubeconfig)
+        rl = results["resource_leaks"]
+        print(f"    {rl.get('orphaned_count', 0)} orphaned PVs ({rl.get('orphaned_capacity_gi', 0)} Gi)")
+    except Exception as e:
+        results["resource_leaks"] = {"error": str(e)}
+        print(f"    Resource leak detection failed: {e}")
+
+    # Save again with Labagator/Demolition/monitoring gap data
     _save_results(results)
     return results
 
