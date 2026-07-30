@@ -66,7 +66,147 @@ function SummaryBar({ stages_health, stage_counts }: { stages_health: Record<str
   );
 }
 
-function NamespaceTable({ data, search }: { data: any[]; search: string }) {
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return '--';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 0) return 'just now';
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function NamespaceDrawer({ namespace, onClose }: { namespace: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['namespace-detail', namespace],
+    queryFn: () => api.getNamespaceDetail(namespace),
+    enabled: !!namespace,
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-[480px] h-full bg-[#151515] border-l border-[#333] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-[#151515] border-b border-[#333] px-5 py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-white font-semibold text-sm font-mono">{namespace}</h2>
+            {data && (
+              <p className="text-[#6A6E73] text-xs mt-0.5">
+                {data.health_pct}% healthy · {data.total_evals} evals last hour
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="text-[#6A6E73] hover:text-white text-lg px-2">✕</button>
+        </div>
+
+        {isLoading && <div className="text-[#6A6E73] py-12 text-center text-sm">Loading...</div>}
+
+        {data && (
+          <div className="px-5 py-4 space-y-6">
+            {/* Issues */}
+            <section>
+              <h3 className="text-[#ccc] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.issues?.length ? '#C9190B' : '#3E8635' }} />
+                Issues ({data.issues?.length || 0})
+              </h3>
+              {data.issues?.length > 0 ? (
+                <div className="space-y-2">
+                  {data.issues.map((iss: any, i: number) => (
+                    <div key={i} className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium" style={{ color: iss.severity === 'warning' ? '#F0AB00' : '#C9190B' }}>
+                          {iss.failure_class}
+                        </span>
+                        <span className="text-[10px] text-[#6A6E73]">{iss.count}× · {relativeTime(iss.last_seen)}</span>
+                      </div>
+                      <p className="text-[#8A8D90] text-xs">{iss.message}</p>
+                      <span className="text-[10px] text-[#555] mt-1 inline-block">{iss.cluster}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#3E8635] text-xs">No active issues</p>
+              )}
+            </section>
+
+            {/* Incidents */}
+            <section>
+              <h3 className="text-[#ccc] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.incidents?.length ? '#4394E5' : '#555' }} />
+                Incidents ({data.incidents?.length || 0})
+              </h3>
+              {data.incidents?.length > 0 ? (
+                <div className="space-y-2">
+                  {data.incidents.map((inc: any) => (
+                    <div key={inc.id} className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-[#4394E5]">{inc.failure_class || inc.action_type}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          inc.status === 'pending' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                          inc.status === 'auto_resolved' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                          'bg-[#555]/30 text-[#8A8D90]'
+                        }`}>
+                          {inc.status}
+                        </span>
+                      </div>
+                      {inc.rca_summary && (
+                        <p className="text-[#8A8D90] text-xs mt-1">{typeof inc.rca_summary === 'string' ? inc.rca_summary.slice(0, 150) : ''}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-[#555]">
+                        <span>{inc.proposed_by}</span>
+                        <span>{relativeTime(inc.proposed_at)}</span>
+                        {inc.signal_count > 0 && <span>{inc.signal_count} signals</span>}
+                        {inc.confidence && <span>{Math.round(inc.confidence * 100)}% confidence</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#555] text-xs">No incidents</p>
+              )}
+            </section>
+
+            {/* Shadow Tracking */}
+            <section>
+              <h3 className="text-[#ccc] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.shadow?.length ? '#8A8D90' : '#555' }} />
+                Shadow Tracking ({data.shadow?.length || 0})
+              </h3>
+              {data.shadow?.length > 0 ? (
+                <div className="space-y-1">
+                  {data.shadow.map((sh: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#222]">
+                      <span className="text-xs text-[#ccc]">{sh.failure_class}</span>
+                      <div className="flex items-center gap-2">
+                        {sh.resolved ? (
+                          <span className="text-[10px] text-[#3E8635]">resolved ({sh.resolution_cause})</span>
+                        ) : (
+                          <span className="text-[10px] text-[#F0AB00]">tracking</span>
+                        )}
+                        <span className="text-[10px] text-[#555]">{relativeTime(sh.tracked_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[#555] text-xs">Not tracked in shadow mode</p>
+              )}
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NamespaceTable({ data, search, onSelect }: { data: any[]; search: string; onSelect: (ns: string) => void }) {
   const filtered = data.filter(r =>
     !search || r.namespace?.toLowerCase().includes(search.toLowerCase()) || r.cluster?.toLowerCase().includes(search.toLowerCase())
   );
@@ -84,8 +224,12 @@ function NamespaceTable({ data, search }: { data: any[]; search: string }) {
       </thead>
       <tbody>
         {filtered.slice(0, 200).map((r, i) => (
-          <tr key={`${r.namespace}-${i}`} className="border-b border-[#222] hover:bg-[#1e1e1e]">
-            <td className="px-3 py-2 text-[#ccc] font-mono text-xs">{r.namespace}</td>
+          <tr
+            key={`${r.namespace}-${i}`}
+            className="border-b border-[#222] hover:bg-[#1e1e1e] cursor-pointer"
+            onClick={() => onSelect(r.namespace)}
+          >
+            <td className="px-3 py-2 text-[#4394E5] font-mono text-xs hover:underline">{r.namespace}</td>
             <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
             {STAGES.map(s => {
               const st = r.stages?.[s] || { status: 'green', detail: '' };
@@ -185,6 +329,7 @@ function ClusterTable({ data, search }: { data: any[]; search: string }) {
 export default function LifecycleMatrix() {
   const [tab, setTab] = useState<Tab>('namespace');
   const [search, setSearch] = useState('');
+  const [selectedNs, setSelectedNs] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['lifecycle-matrix'],
@@ -205,7 +350,7 @@ export default function LifecycleMatrix() {
           Lifecycle Matrix
         </h1>
         <p className="text-[#6A6E73] text-sm">
-          Namespace health by category — health, pods, storage, network, workload — sorted by most failures
+          Namespace health by category — click any row to see issues, incidents, and shadow tracking
         </p>
       </div>
 
@@ -246,7 +391,7 @@ export default function LifecycleMatrix() {
           </div>
 
           <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] overflow-x-auto">
-            {tab === 'namespace' && <NamespaceTable data={data.by_namespace || []} search={search} />}
+            {tab === 'namespace' && <NamespaceTable data={data.by_namespace || []} search={search} onSelect={setSelectedNs} />}
             {tab === 'lab' && <LabTable data={data.by_lab || []} search={search} />}
             {tab === 'cluster' && <ClusterTable data={data.by_cluster || []} search={search} />}
           </div>
@@ -258,6 +403,8 @@ export default function LifecycleMatrix() {
           </div>
         </>
       )}
+
+      {selectedNs && <NamespaceDrawer namespace={selectedNs} onClose={() => setSelectedNs(null)} />}
     </div>
   );
 }
