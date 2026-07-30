@@ -276,6 +276,32 @@ function ProofTimeline({ steps, queryClient, failureClass }: { steps: Record<str
   );
 }
 
+function ProofExplanation({ failureClass, result }: { failureClass: string; result: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['proof-explain', failureClass],
+    queryFn: () => api.getProofExplanation(failureClass),
+    enabled: !!failureClass,
+    staleTime: 60000,
+  });
+
+  if (isLoading) return <div className="text-xs text-[#6A6E73] animate-pulse mt-2">Generating explanation...</div>;
+  if (!data?.explanation) return null;
+
+  const borderColor = result === 'PASS' || result === 'PROVEN' ? '#3E8635' : '#C9190B';
+
+  return (
+    <div className="mt-3 rounded-lg p-3" style={{ backgroundColor: `${borderColor}10`, border: `1px solid ${borderColor}30` }}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: borderColor }}>
+          AI Analysis
+        </span>
+        {data.model && <span className="text-[10px] text-[#555]">{data.model}</span>}
+      </div>
+      <p className="text-xs text-[#ccc] leading-relaxed">{data.explanation}</p>
+    </div>
+  );
+}
+
 function PipelineRubricCell({ stage }: { stage: { status: string; system: string | null; dimensions: Record<string, string> } | undefined }) {
   const [showDims, setShowDims] = useState(false);
   const color = dimensionColor(stage?.dimensions);
@@ -624,6 +650,7 @@ export default function ProofDashboard() {
                             <div>
                               <div className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-2">Pipeline</div>
                               <ProofTimeline steps={steps} queryClient={queryClient} failureClass={fc} />
+                              <ProofExplanation failureClass={fc} result={lastCycle.result || status} />
                             </div>
 
                             {/* Previous cycles summary */}
