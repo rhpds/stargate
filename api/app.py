@@ -295,10 +295,10 @@ def _auto_resolve_incidents(db):
             inc.status = "auto_resolved"
             inc.reviewed_at = datetime.now(timezone.utc)
             inc.reviewed_by = "shadow_mode"
-            if inc.parameters is None:
-                inc.parameters = {}
             reason = "namespace_recycled — no longer producing evaluations" if ns_gone else "failure no longer present"
-            inc.parameters["dismiss_reason"] = f"auto_resolved — {reason}"
+            params = dict(inc.parameters or {})
+            params["dismiss_reason"] = f"auto_resolved — {reason}"
+            inc.parameters = params
             resolved_count += 1
 
     if resolved_count > 0:

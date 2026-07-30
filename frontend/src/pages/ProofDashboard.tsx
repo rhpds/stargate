@@ -277,13 +277,15 @@ function ProofTimeline({ steps, queryClient, failureClass }: { steps: Record<str
 }
 
 function ProofExplanation({ failureClass, result }: { failureClass: string; result: string }) {
+  const hasResult = result === 'PASS' || result === 'FAIL' || result === 'PROVEN' || result === 'FAILED';
   const { data, isLoading } = useQuery({
     queryKey: ['proof-explain', failureClass],
     queryFn: () => api.getProofExplanation(failureClass),
-    enabled: !!failureClass,
+    enabled: !!failureClass && hasResult,
     staleTime: 60000,
   });
 
+  if (!hasResult) return null;
   if (isLoading) return <div className="text-xs text-[#6A6E73] animate-pulse mt-2">Generating explanation...</div>;
   if (!data?.explanation) return null;
 
