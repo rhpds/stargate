@@ -2041,7 +2041,10 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
                 for entry in cat:
                     for cond in entry.get("allowed_when", []):
                         if f"failure_class == {top_fc}" in cond:
-                            catalog_commands = entry.get("commands", [])
+                            catalog_commands = [
+                                cmd.replace("{namespace}", namespace).replace("{ns}", namespace)
+                                for cmd in entry.get("commands", [])
+                            ]
                             break
                     if catalog_commands:
                         break
