@@ -1,0 +1,531 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../api/client';
+import FormattedAnalysis from '../components/FormattedAnalysis';
+import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
+
+const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
+const STAGE_LABELS: Record<string, string> = { health: 'Health', pods: 'Pods', storage: 'Storage', network: 'Network', workload: 'Workload', overall: 'Overall' };
+const STATUS_COLORS: Record<string, string> = { green: '#3E8635', yellow: '#F0AB00', red: '#C9190B', gray: '#555' };
+
+type Tab = 'issues' | 'lab' | 'cluster' | 'incidents' | 'activity';
+
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return '--';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 0) return 'just now';
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+/* ---- Summary Bar ---- */
+
+function SummaryBar({ health, counts }: { health: Record<string, string>; counts: Record<string, Record<string, number>> }) {
+  return (
+    <div className="grid grid-cols-6 gap-2 mb-4">
+      {STAGES.map(s => {
+        const status = health[s] || 'gray';
+        const c = counts?.[s] || {};
+        const total = (c.green || 0) + (c.yellow || 0) + (c.red || 0);
+        const pct = total ? Math.round(((c.green || 0) / total) * 100) : 0;
+        return (
+          <div key={s} className="rounded-lg p-2.5" style={{ backgroundColor: '#1e1e1e', border: `1px solid ${STATUS_COLORS[status]}40` }}>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] }} />
+              <span className="text-[10px] font-medium text-[#ccc] uppercase">{STAGE_LABELS[s]}</span>
+            </div>
+            <div className="text-lg font-bold text-white">{pct}%</div>
+            <div className="text-[9px] text-[#6A6E73]">{c.green || 0} ok · {c.red || 0} fail</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---- Status Dot ---- */
+
+function Dot({ status, detail }: { status: string; detail: string }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <td className="px-2 py-2 text-center relative">
+      <div className="inline-block w-3 h-3 rounded-full cursor-default"
+        style={{ backgroundColor: STATUS_COLORS[status] || '#555' }}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} />
+      {hover && detail && (
+        <div className="absolute z-50 bg-[#1a1a1a] border border-[#444] rounded px-2 py-1 shadow-lg text-xs text-[#ccc] whitespace-nowrap -translate-x-1/2 left-1/2 top-full mt-1">{detail}</div>
+      )}
+    </td>
+  );
+}
+
+/* ---- Investigation Panel ---- */
+
+function InvestigationPanel({ namespace, onClose }: { namespace: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['ns-detail', namespace],
+    queryFn: () => api.getNamespaceDetail(namespace),
+    enabled: !!namespace,
+  });
+
+  const [cmdOutputs, setCmdOutputs] = useState<Record<string, { output: string; exit_code: number; loading?: boolean }>>({});
+  const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const runCmd = (cmd: string, key: string) => {
+    if (!data) return;
+    setCmdOutputs(prev => ({ ...prev, [key]: { output: '', exit_code: 0, loading: true } }));
+    api.runDiagnostic({ command: cmd, namespace, cluster: data.cluster })
+      .then(r => setCmdOutputs(prev => ({ ...prev, [key]: { output: r.output, exit_code: r.exit_code } })))
+      .catch(e => setCmdOutputs(prev => ({ ...prev, [key]: { output: `Error: ${e.message}`, exit_code: -1 } })));
+  };
+
+  const runAll = () => {
+    (data?.catalog_commands || []).forEach((cmd: string, i: number) => runCmd(cmd, `cat-${i}`));
+  };
+
+  const getAiAnalysis = () => {
+    if (!data?.issues?.[0]) return;
+    setAiLoading(true);
+    setAiAnalysis(null);
+    const fc = data.issues[0].failure_class;
+    api.getRemediation({ failure_class: fc, lab_code: namespace, cluster: data.cluster, context_type: 'lab' })
+      .then((r: any) => {
+        setAiAnalysis({ text: r?.llm_analysis || r?.analysis || r?.remediation || JSON.stringify(r, null, 2), llmMetricId: r?.llm_metric_id });
+        setAiLoading(false);
+      })
+      .catch(() => setAiLoading(false));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="relative w-[520px] h-full bg-[#151515] border-l border-[#333] overflow-y-auto" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="sticky top-0 bg-[#151515] border-b border-[#333] px-5 py-3 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-white font-semibold text-sm font-mono">{namespace}</h2>
+            {data && (
+              <div className="flex items-center gap-3 mt-0.5">
+                <span className="text-[#6A6E73] text-xs">{data.cluster}</span>
+                <span className="text-[#6A6E73] text-xs">{data.total_evals} evals</span>
+                <span className="text-xs" style={{ color: data.health_pct > 70 ? '#3E8635' : '#C9190B' }}>{data.health_pct}%</span>
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} className="text-[#6A6E73] hover:text-white text-lg px-2">✕</button>
+        </div>
+
+        {isLoading && <div className="text-[#6A6E73] py-12 text-center text-sm">Loading...</div>}
+
+        {data && (
+          <div className="px-5 py-4 space-y-5">
+
+            {/* 1. Issues */}
+            <section>
+              <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Issues ({data.issues?.length || 0})</h3>
+              {data.issues?.length > 0 ? data.issues.map((iss: any, i: number) => (
+                <div key={i} className="bg-[#1e1e1e] rounded p-2.5 border border-[#2e2e2e] mb-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: iss.severity === 'warning' ? '#F0AB00' : '#C9190B' }}>{iss.failure_class}</span>
+                    <span className="text-[10px] text-[#6A6E73]">{iss.count}× · {relativeTime(iss.last_seen)}</span>
+                  </div>
+                  {iss.sub_class && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#333] text-[#ccc]">{iss.sub_class}</span>
+                      {iss.workload && <span className="text-[10px] text-[#6A6E73]">{iss.workload}</span>}
+                      {iss.auto_fix_confidence && (
+                        <span className={`text-[10px] px-1 py-0.5 rounded ${
+                          iss.auto_fix_confidence === 'high' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                          iss.auto_fix_confidence === 'medium' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                          'bg-[#555]/20 text-[#8A8D90]'
+                        }`}>{iss.auto_fix_confidence} fix</span>
+                      )}
+                    </div>
+                  )}
+                  {iss.message && <p className="text-[#8A8D90] text-xs mt-1 font-mono">{iss.message}</p>}
+                </div>
+              )) : <p className="text-[#3E8635] text-xs">No active issues</p>}
+            </section>
+
+            {/* 2. Diagnostics */}
+            {data.catalog_commands?.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider">Diagnostics</h3>
+                  <button onClick={runAll} className="text-[10px] text-[#4394E5] hover:underline">Run All</button>
+                </div>
+                {data.catalog_commands.map((cmd: string, i: number) => {
+                  const key = `cat-${i}`;
+                  const result = cmdOutputs[key];
+                  return (
+                    <div key={i} className="mb-2">
+                      <div className="flex items-center gap-2">
+                        <pre className="flex-1 bg-[#0d0d0d] border border-[#333] rounded px-2 py-1 text-[11px] text-[#4EC9B0] font-mono overflow-x-auto">{cmd}</pre>
+                        <button
+                          className="bg-[#333] hover:bg-[#444] text-white text-[10px] px-2.5 py-1 rounded shrink-0 disabled:opacity-50"
+                          disabled={result?.loading}
+                          onClick={() => runCmd(cmd, key)}
+                        >{result?.loading ? '...' : result ? 'Re-run' : 'Run'}</button>
+                      </div>
+                      {result && !result.loading && (
+                        <pre className={`mt-1 text-[11px] rounded px-2 py-1.5 font-mono overflow-x-auto max-h-48 overflow-y-auto ${
+                          result.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
+                        }`}>{result.output || '(no output)'}</pre>
+                      )}
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
+            {/* 3. AI Analysis */}
+            <section>
+              <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">AI Analysis</h3>
+              {!aiAnalysis && (
+                <button
+                  className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-2 rounded w-full disabled:opacity-50"
+                  disabled={aiLoading || !data.issues?.length}
+                  onClick={getAiAnalysis}
+                >{aiLoading ? 'Analyzing...' : 'Get AI Analysis'}</button>
+              )}
+              {aiAnalysis && (
+                <div className="space-y-2">
+                  <FormattedAnalysis text={aiAnalysis.text} namespace={namespace} cluster={data.cluster} />
+                  <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
+                </div>
+              )}
+            </section>
+
+            {/* 4. Incidents */}
+            {data.incidents?.length > 0 && (
+              <section>
+                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Incidents ({data.incidents.length})</h3>
+                {data.incidents.map((inc: any) => (
+                  <div key={inc.id} className="bg-[#1e1e1e] rounded p-2.5 border border-[#2e2e2e] mb-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#4394E5]">{inc.failure_class || inc.action_type}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                        inc.status === 'pending' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                        inc.status === 'auto_resolved' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                        'bg-[#555]/30 text-[#8A8D90]'
+                      }`}>{inc.status}</span>
+                    </div>
+                    {inc.rca_summary && <p className="text-[#8A8D90] text-xs mt-1">{typeof inc.rca_summary === 'string' ? inc.rca_summary.slice(0, 200) : ''}</p>}
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[#555]">
+                      <span>{inc.proposed_by}</span>
+                      <span>{relativeTime(inc.proposed_at)}</span>
+                      {inc.signal_count > 0 && <span>{inc.signal_count} signals</span>}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {/* 5. Shadow */}
+            {data.shadow?.length > 0 && (
+              <section>
+                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Shadow Tracking</h3>
+                {data.shadow.map((sh: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between py-1 border-b border-[#222]">
+                    <span className="text-xs text-[#ccc]">{sh.failure_class}</span>
+                    {sh.resolved ? (
+                      <span className="text-[10px] text-[#3E8635]">resolved ({sh.resolution_cause})</span>
+                    ) : (
+                      <span className="text-[10px] text-[#F0AB00]">tracking</span>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {/* 6. Feedback */}
+            {data.issues?.length > 0 && (
+              <section>
+                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Notes & Feedback</h3>
+                <IssueFeedbackPanel
+                  namespace={namespace}
+                  cluster={data.cluster}
+                  failure_class={data.issues[0].failure_class}
+                />
+              </section>
+            )}
+
+            {/* 7. Eval History */}
+            {data.eval_history?.length > 0 && (
+              <section>
+                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Recent Evaluations</h3>
+                <div className="space-y-0.5">
+                  {data.eval_history.map((ev: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 py-1 border-b border-[#222] text-xs">
+                      <span className="text-[10px] text-[#555] w-14 shrink-0">{relativeTime(ev.evaluated_at)}</span>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.outcome === 'pass' ? 'bg-[#3E8635]' : 'bg-[#C9190B]'}`} />
+                      <span className="text-[#8A8D90] truncate">{ev.failure_class || ev.outcome}</span>
+                      {ev.sub_class && <span className="text-[10px] text-[#555]">{ev.sub_class}</span>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---- Incidents Tab ---- */
+
+function IncidentsTab({ search }: { search: string }) {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({ queryKey: ['approval-queue'], queryFn: api.getApprovalQueue, refetchInterval: 10_000 });
+  const approve = useMutation({ mutationFn: (id: number) => api.approveAction(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['approval-queue'] }) });
+  const reject = useMutation({ mutationFn: (id: number) => api.rejectAction(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['approval-queue'] }) });
+
+  const pending = (data as any)?.pending ?? [];
+  const resolved = (data as any)?.resolved ?? [];
+  const filtered = search ? pending.filter((p: any) => {
+    const q = search.toLowerCase();
+    return (p.target || '').toLowerCase().includes(q) || (p.action_type || '').toLowerCase().includes(q) || ((p.parameters || {}).failure_class || '').toLowerCase().includes(q);
+  }) : pending;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-[#6A6E73]">{filtered.length} pending incidents from Deepfield</p>
+      {filtered.map((p: any) => {
+        const params = p.parameters || {};
+        return (
+          <div key={p.id} className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <span className="text-sm text-white font-mono">{p.target}</span>
+                <span className="ml-2 text-xs text-[#6A6E73]">{params.failure_class || p.action_type}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => approve.mutate(p.id)} className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-[10px] px-2.5 py-1 rounded">Ack</button>
+                <button onClick={() => reject.mutate(p.id)} className="bg-[#555] hover:bg-[#666] text-white text-[10px] px-2.5 py-1 rounded">Dismiss</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-[#555]">
+              <span>{p.proposed_by}</span>
+              <span>{relativeTime(p.proposed_at)}</span>
+              {params.signal_count > 0 && <span>{params.signal_count} signals</span>}
+              {p.confidence && <span>{Math.round(p.confidence * 100)}%</span>}
+            </div>
+          </div>
+        );
+      })}
+      {resolved.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium text-[#ccc] mb-2">Auto-Resolved ({resolved.length})</h3>
+          {resolved.map((r: any) => (
+            <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-[#222]">
+              <span className="text-xs text-[#8A8D90] font-mono">{r.target}</span>
+              <span className="text-[10px] text-[#3E8635]">{r.dismiss_reason || 'auto-resolved'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- Activity Tab ---- */
+
+function ActivityTab() {
+  const { data: shadowData } = useQuery({ queryKey: ['shadow-status'], queryFn: api.getShadowStatus });
+  const { data: activityData } = useQuery({ queryKey: ['remediation-activity'], queryFn: () => api.getRemediationActivity(30) });
+
+  const shadow = shadowData as any;
+  const activity = (activityData as any)?.activity ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Shadow status */}
+      {shadow && (
+        <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-3 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${shadow.status === 'running' || shadow.last_run ? 'bg-[#3E8635] animate-pulse' : 'bg-[#555]'}`} />
+            <span className="text-xs text-[#ccc]">Shadow Mode</span>
+          </div>
+          <span className="text-[10px] text-[#6A6E73]">{shadow.total_entries || 0} tracked</span>
+          <span className="text-[10px] text-[#6A6E73]">{shadow.resolved_count || 0} resolved</span>
+          <span className="text-[10px] text-[#555]">Last: {relativeTime(shadow.last_run)}</span>
+        </div>
+      )}
+      {/* Activity */}
+      {activity.length > 0 ? activity.map((a: any, i: number) => (
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#222]">
+          <div>
+            <span className="text-xs text-[#ccc]">{a.action_type}</span>
+            <span className="ml-2 text-[10px] text-[#6A6E73]">{a.target}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+              a.status === 'executed' ? 'bg-[#3E8635]/20 text-[#3E8635]' : 'bg-[#555]/20 text-[#8A8D90]'
+            }`}>{a.status}</span>
+            <span className="text-[10px] text-[#555]">{relativeTime(a.executed_at)}</span>
+          </div>
+        </div>
+      )) : <p className="text-xs text-[#6A6E73]">No recent activity</p>}
+    </div>
+  );
+}
+
+/* ---- Main Page ---- */
+
+export default function Operations() {
+  const [tab, setTab] = useState<Tab>('issues');
+  const [search, setSearch] = useState('');
+  const [selectedNs, setSelectedNs] = useState<string | null>(null);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['lifecycle-matrix'],
+    queryFn: () => api.getLifecycleMatrix(),
+    refetchInterval: 30000,
+  });
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: 'issues', label: 'Issues', count: data?.summary?.total_namespaces },
+    { key: 'lab', label: 'By Lab', count: data?.summary?.total_labs },
+    { key: 'cluster', label: 'By Cluster', count: data?.summary?.total_clusters },
+    { key: 'incidents', label: 'Incidents' },
+    { key: 'activity', label: 'Activity' },
+  ];
+
+  const filterData = (items: any[], fields: string[]) => {
+    if (!search) return items;
+    const q = search.toLowerCase();
+    return items.filter(r => fields.some(f => (r[f] || '').toLowerCase().includes(q)));
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>Operations</h1>
+          <p className="text-[#6A6E73] text-xs">{data?.summary?.total_monitored || 0} namespaces monitored — {data?.summary?.total_namespaces || 0} with issues</p>
+        </div>
+        <input
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search namespace, cluster, failure..."
+          className="bg-[#1e1e1e] border border-[#333] rounded px-3 py-1.5 text-sm text-white placeholder-[#555] w-64 focus:outline-none focus:border-[#4394E5]"
+        />
+      </div>
+
+      {isLoading && <div className="text-[#6A6E73] py-12 text-center">Loading...</div>}
+      {error && <div className="text-[#C9190B] py-12 text-center">Error: {(error as Error).message}</div>}
+
+      {data && (
+        <>
+          <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
+
+          <div className="flex gap-1 mb-3">
+            {tabs.map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                  tab === t.key ? 'bg-white/15 text-white' : 'text-[#6A6E73] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {t.label}
+                {t.count !== undefined && <span className="ml-1 text-xs text-[#6A6E73]">({t.count})</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] overflow-x-auto min-h-[300px]">
+            {/* Issues tab */}
+            {tab === 'issues' && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#333]">
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
+                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure']).slice(0, 200).map((r: any, i: number) => (
+                    <tr key={`${r.namespace}-${i}`} className="border-b border-[#222] hover:bg-[#1e1e1e] cursor-pointer" onClick={() => setSelectedNs(r.namespace)}>
+                      <td className="px-3 py-2 text-[#4394E5] font-mono text-xs hover:underline">{r.namespace}</td>
+                      <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
+                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
+                      <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
+                    </tr>
+                  ))}
+                  {(data.by_namespace || []).length === 0 && (
+                    <tr><td colSpan={9} className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {/* By Lab tab */}
+            {tab === 'lab' && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#333]">
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Lab</th>
+                    <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">NS</th>
+                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filterData(data.by_lab || [], ['lab_code']).map((r: any) => (
+                    <tr key={r.lab_code} className="border-b border-[#222] hover:bg-[#1e1e1e]">
+                      <td className="px-3 py-2"><span className="text-[#4394E5] text-sm">{r.lab_code}</span>
+                        {r.clusters?.length > 0 && <span className="ml-2 text-[10px] text-[#6A6E73]">{r.clusters.join(', ')}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center text-[#ccc] text-xs">{r.namespaces}</td>
+                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* By Cluster tab */}
+            {tab === 'cluster' && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#333]">
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
+                    <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">NS</th>
+                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
+                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filterData(data.by_cluster || [], ['cluster']).map((r: any) => (
+                    <tr key={r.cluster} className="border-b border-[#222] hover:bg-[#1e1e1e]">
+                      <td className="px-3 py-2"><a href={`/cluster/${r.cluster}`} className="text-[#4394E5] hover:underline">{r.cluster}</a></td>
+                      <td className="px-3 py-2 text-center text-[#ccc]">{r.namespaces}</td>
+                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
+                      <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Incidents tab */}
+            {tab === 'incidents' && <div className="p-4"><IncidentsTab search={search} /></div>}
+
+            {/* Activity tab */}
+            {tab === 'activity' && <div className="p-4"><ActivityTab /></div>}
+          </div>
+        </>
+      )}
+
+      {selectedNs && <InvestigationPanel namespace={selectedNs} onClose={() => setSelectedNs(null)} />}
+    </div>
+  );
+}
