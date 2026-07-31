@@ -2028,14 +2028,62 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
         EvaluationRecord.evaluated_at > one_hour_ago,
     ).scalar()
 
+    # Catalog commands for the top failure class
+    catalog_commands = []
+    top_fc = issues[0]["failure_class"] if issues else None
+    if top_fc:
+        import yaml as _yaml
+        from pathlib import Path as _CatPath
+        cat_path = _CatPath(__file__).parent.parent.parent / "remediations" / "catalog.yaml"
+        if cat_path.exists():
+            try:
+                cat = _yaml.safe_load(cat_path.read_text()) or []
+                for entry in cat:
+                    for cond in entry.get("allowed_when", []):
+                        if f"failure_class == {top_fc}" in cond:
+                            catalog_commands = entry.get("commands", [])
+                            break
+                    if catalog_commands:
+                        break
+            except Exception:
+                pass
+
+    # Cluster from issues (for diagnostic command execution)
+    cluster = issues[0]["cluster"] if issues else ""
+
+    # Recent evaluation history
+    eval_history = []
+    recent_evals = db.query(
+        EvaluationRecord.evaluated_at,
+        EvaluationRecord.outcome,
+        EvaluationRecord.failure_class,
+        EvaluationRecord.sub_class,
+        EvaluationRecord.message,
+    ).filter(
+        EvaluationRecord.lab_code == namespace,
+        EvaluationRecord.evaluated_at > one_hour_ago,
+    ).order_by(EvaluationRecord.evaluated_at.desc()).limit(15).all()
+
+    for ev_at, outcome, fc, sub, msg in recent_evals:
+        eval_history.append({
+            "evaluated_at": ev_at.isoformat() if ev_at else None,
+            "outcome": outcome,
+            "failure_class": fc,
+            "sub_class": sub,
+            "message": (msg or "")[:150],
+        })
+
     return {
         "namespace": namespace,
+        "cluster": cluster,
         "total_evals": total_evals,
         "pass_evals": pass_evals,
         "health_pct": round(pass_evals / max(total_evals, 1) * 100, 1),
         "issues": issues,
+        "catalog_commands": catalog_commands,
         "incidents": incident_list,
         "shadow": shadow_entries,
+        "eval_history": eval_history,
     }
 
 

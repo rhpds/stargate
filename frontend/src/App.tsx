@@ -2,7 +2,6 @@ import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TimeRangeProvider, TimeRangePicker, ClusterPicker } from './components/TimeRangeContext';
-import EcosystemHealth from './pages/EcosystemHealth';
 import LabDetail from './pages/LabDetail';
 import PipelineMatrix from './pages/PipelineMatrix';
 import FailureClasses from './pages/FailureClasses';
@@ -16,7 +15,7 @@ import TrendsPage from './pages/TrendsPage';
 import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
-import LifecycleMatrix from './pages/LifecycleMatrix';
+import Operations from './pages/Operations';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,10 +53,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 const navItems = [
-  { to: '/', label: 'Health', end: true },
-  { to: '/failures', label: 'Failures' },
-  { to: '/remediation', label: 'Remediation' },
-  { to: '/lifecycle', label: 'Lifecycle' },
+  { to: '/', label: 'Operations', end: true },
   { to: '/proof', label: 'Proof' },
 ];
 
@@ -101,26 +97,25 @@ export default function App() {
             </div>
             <main className="flex-1">
               <Routes>
-                <Route path="/" element={<EcosystemHealth />} />
+                <Route path="/" element={<Operations />} />
+                <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="/lab/:code" element={<LabDetail />} />
-                <Route path="/pipeline" element={<PipelineMatrix />} />
-                <Route path="/failures" element={<FailureClasses />} />
-                <Route path="/llm" element={<LLMAdmin />} />
-                <Route path="/remediation" element={<Remediation />} />
                 <Route path="/cluster/:name" element={<ClusterDetail />} />
                 <Route path="/pool/:name" element={<PoolDetail />} />
+                <Route path="/pipeline" element={<PipelineMatrix />} />
+                <Route path="/failures" element={<FailureClasses />} />
+                <Route path="/remediation" element={<Remediation />} />
+                <Route path="/llm" element={<LLMAdmin />} />
                 <Route path="/provisioning" element={<ProvisioningDetail />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
                 <Route path="/summit" element={<SummitReport />} />
-                <Route path="/lifecycle" element={<LifecycleMatrix />} />
-                <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="*" element={
                   <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">
                     <h1 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: 'Red Hat Display' }}>Page not found</h1>
                     <p className="text-[#6A6E73] mb-6">The page you're looking for doesn't exist.</p>
-                    <a href="/" className="px-4 py-2 rounded text-sm font-medium text-white" style={{ backgroundColor: '#EE0000' }}>Return to Health</a>
+                    <a href="/" className="px-4 py-2 rounded text-sm font-medium text-white" style={{ backgroundColor: '#EE0000' }}>Return to Operations</a>
                   </div>
                 } />
               </Routes>
