@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
@@ -8,7 +8,6 @@ const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] a
 const STAGE_LABELS: Record<string, string> = { health: 'Health', pods: 'Pods', storage: 'Storage', network: 'Network', workload: 'Workload', overall: 'Overall' };
 const STATUS_COLORS: Record<string, string> = { green: '#3E8635', yellow: '#F0AB00', red: '#C9190B', gray: '#555' };
 
-type Tab = 'issues' | 'incidents' | 'activity';
 
 function relativeTime(iso: string | null | undefined): string {
   if (!iso) return '--';
@@ -231,105 +230,9 @@ function ExpandedRow({ namespace }: { namespace: string }) {
   );
 }
 
-/* ---- Incidents Tab ---- */
-
-function IncidentsTab({ search }: { search: string }) {
-  const queryClient = useQueryClient();
-  const { data } = useQuery({ queryKey: ['approval-queue'], queryFn: api.getApprovalQueue, refetchInterval: 10_000 });
-  const approve = useMutation({ mutationFn: (id: number) => api.approveAction(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['approval-queue'] }) });
-  const reject = useMutation({ mutationFn: (id: number) => api.rejectAction(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['approval-queue'] }) });
-
-  const pending = (data as any)?.pending ?? [];
-  const resolved = (data as any)?.resolved ?? [];
-  const filtered = search ? pending.filter((p: any) => {
-    const q = search.toLowerCase();
-    return (p.target || '').toLowerCase().includes(q) || (p.action_type || '').toLowerCase().includes(q) || ((p.parameters || {}).failure_class || '').toLowerCase().includes(q);
-  }) : pending;
-
-  return (
-    <div className="space-y-3 p-4">
-      <p className="text-xs text-[#6A6E73]">{filtered.length} pending incidents from Deepfield</p>
-      {filtered.map((p: any) => {
-        const params = p.parameters || {};
-        return (
-          <div key={p.id} className="bg-[#1e1e1e] border border-[#2e2e2e] rounded p-3">
-            <div className="flex items-center justify-between mb-1">
-              <div>
-                <span className="text-sm text-white font-mono">{p.target}</span>
-                <span className="ml-2 text-xs text-[#6A6E73]">{params.failure_class || p.action_type}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => approve.mutate(p.id)} className="bg-[#3E8635] hover:bg-[#2E7625] text-white text-[10px] px-2.5 py-1 rounded">Ack</button>
-                <button onClick={() => reject.mutate(p.id)} className="bg-[#555] hover:bg-[#666] text-white text-[10px] px-2.5 py-1 rounded">Dismiss</button>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-[10px] text-[#555]">
-              <span>{p.proposed_by}</span>
-              <span>{relativeTime(p.proposed_at)}</span>
-              {params.signal_count > 0 && <span>{params.signal_count} signals</span>}
-              {p.confidence && <span>{Math.round(p.confidence * 100)}%</span>}
-            </div>
-          </div>
-        );
-      })}
-      {resolved.length > 0 && (
-        <div>
-          <h3 className="text-xs font-medium text-[#ccc] mb-2 mt-4">Auto-Resolved ({resolved.length})</h3>
-          {resolved.map((r: any) => (
-            <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-[#222]">
-              <span className="text-xs text-[#8A8D90] font-mono">{r.target}</span>
-              <span className="text-[10px] text-[#3E8635]">{r.dismiss_reason || 'auto-resolved'}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---- Activity Tab ---- */
-
-function ActivityTab() {
-  const { data: shadowData } = useQuery({ queryKey: ['shadow-status'], queryFn: api.getShadowStatus });
-  const { data: activityData } = useQuery({ queryKey: ['remediation-activity'], queryFn: () => api.getRemediationActivity(30) });
-  const shadow = shadowData as any;
-  const activity = (activityData as any)?.activity ?? [];
-
-  return (
-    <div className="space-y-3 p-4">
-      {shadow && (
-        <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded p-3 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${shadow.status === 'running' || shadow.last_run ? 'bg-[#3E8635] animate-pulse' : 'bg-[#555]'}`} />
-            <span className="text-xs text-[#ccc]">Shadow Mode</span>
-          </div>
-          <span className="text-[10px] text-[#6A6E73]">{shadow.total_entries || 0} tracked</span>
-          <span className="text-[10px] text-[#6A6E73]">{shadow.resolved_count || 0} resolved</span>
-          <span className="text-[10px] text-[#555]">Last: {relativeTime(shadow.last_run)}</span>
-        </div>
-      )}
-      {activity.length > 0 ? activity.map((a: any, i: number) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#222]">
-          <div>
-            <span className="text-xs text-[#ccc]">{a.action_type}</span>
-            <span className="ml-2 text-[10px] text-[#6A6E73]">{a.target}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-              a.status === 'executed' ? 'bg-[#3E8635]/20 text-[#3E8635]' : 'bg-[#555]/20 text-[#8A8D90]'
-            }`}>{a.status}</span>
-            <span className="text-[10px] text-[#555]">{relativeTime(a.executed_at)}</span>
-          </div>
-        </div>
-      )) : <p className="text-xs text-[#6A6E73]">No recent activity</p>}
-    </div>
-  );
-}
-
 /* ---- Main Page ---- */
 
 export default function Operations() {
-  const [tab, setTab] = useState<Tab>('issues');
   const [search, setSearch] = useState('');
   const [expandedNs, setExpandedNs] = useState<string | null>(null);
 
@@ -339,11 +242,6 @@ export default function Operations() {
     refetchInterval: 30000,
   });
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: 'issues', label: 'Issues', count: data?.summary?.total_namespaces },
-    { key: 'incidents', label: 'Incidents' },
-    { key: 'activity', label: 'Activity' },
-  ];
 
   const filterData = (items: any[], fields: string[]) => {
     if (!search) return items;
@@ -370,26 +268,15 @@ export default function Operations() {
         <>
           <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
-          <div className="flex gap-1 mb-3">
-            {tabs.map(t => (
-              <button key={t.key} onClick={() => { setTab(t.key); setExpandedNs(null); }}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                  tab === t.key ? 'bg-white/15 text-white' : 'text-[#6A6E73] hover:text-white hover:bg-white/10'
-                }`}>
-                {t.label}{t.count !== undefined && <span className="ml-1 text-xs text-[#6A6E73]">({t.count})</span>}
-              </button>
-            ))}
-          </div>
 
           <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
 
-            {/* Issues tab */}
-            {tab === 'issues' && (() => {
+            {(() => {
               const rows = filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure']);
               return (
                 <div>
                   {/* Header */}
-                  <div className="grid grid-cols-[24px_1fr_100px_repeat(6,40px)_120px] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                  <div className="grid grid-cols-[20px_minmax(120px,1fr)_80px_repeat(6,52px)_110px] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
                     <span></span>
                     <span>Namespace</span>
                     <span>Cluster</span>
@@ -402,7 +289,7 @@ export default function Operations() {
                     return (
                       <div key={`${r.namespace}-${i}`}>
                         <div
-                          className={`grid grid-cols-[24px_1fr_100px_repeat(6,40px)_120px] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                          className={`grid grid-cols-[20px_minmax(120px,1fr)_80px_repeat(6,52px)_110px] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
                           onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
                         >
                           <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
@@ -430,11 +317,6 @@ export default function Operations() {
               );
             })()}
 
-            {/* Incidents tab */}
-            {tab === 'incidents' && <IncidentsTab search={search} />}
-
-            {/* Activity tab */}
-            {tab === 'activity' && <ActivityTab />}
           </div>
         </>
       )}
