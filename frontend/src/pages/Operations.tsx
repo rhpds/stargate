@@ -5,7 +5,7 @@ import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
 
 const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
-const STAGE_LABELS: Record<string, string> = { health: 'Health', pods: 'Pods', storage: 'Storage', network: 'Network', workload: 'Workload', overall: 'Overall' };
+const STAGE_LABELS: Record<string, string> = { health: 'HLT', pods: 'POD', storage: 'STG', network: 'NET', workload: 'WRK', overall: 'ALL' };
 const STATUS_COLORS: Record<string, string> = { green: '#3E8635', yellow: '#F0AB00', red: '#C9190B', gray: '#555' };
 
 
@@ -276,7 +276,7 @@ export default function Operations() {
               return (
                 <div>
                   {/* Header */}
-                  <div className="grid grid-cols-[20px_minmax(120px,1fr)_80px_repeat(6,52px)_110px] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                  <div className="grid grid-cols-[20px_200px_64px_48px_48px_48px_48px_56px_52px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
                     <span></span>
                     <span>Namespace</span>
                     <span>Cluster</span>
@@ -289,7 +289,7 @@ export default function Operations() {
                     return (
                       <div key={`${r.namespace}-${i}`}>
                         <div
-                          className={`grid grid-cols-[20px_minmax(120px,1fr)_80px_repeat(6,52px)_110px] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                          className={`grid grid-cols-[20px_200px_64px_48px_48px_48px_48px_56px_52px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
                           onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
                         >
                           <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
