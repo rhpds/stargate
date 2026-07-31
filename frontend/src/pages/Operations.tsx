@@ -23,8 +23,6 @@ function relativeTime(iso: string | null | undefined): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-/* ---- Summary Bar ---- */
-
 function SummaryBar({ health, counts }: { health: Record<string, string>; counts: Record<string, Record<string, number>> }) {
   return (
     <div className="grid grid-cols-6 gap-2 mb-4">
@@ -48,8 +46,6 @@ function SummaryBar({ health, counts }: { health: Record<string, string>; counts
   );
 }
 
-/* ---- Status Dot ---- */
-
 function Dot({ status, detail }: { status: string; detail: string }) {
   const [hover, setHover] = useState(false);
   return (
@@ -64,9 +60,9 @@ function Dot({ status, detail }: { status: string; detail: string }) {
   );
 }
 
-/* ---- Investigation Panel ---- */
+/* ---- Expanded Row Detail ---- */
 
-function InvestigationPanel({ namespace, onClose }: { namespace: string; onClose: () => void }) {
+function ExpandedRow({ namespace }: { namespace: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['ns-detail', namespace],
     queryFn: () => api.getNamespaceDetail(namespace),
@@ -93,8 +89,7 @@ function InvestigationPanel({ namespace, onClose }: { namespace: string; onClose
     if (!data?.issues?.[0]) return;
     setAiLoading(true);
     setAiAnalysis(null);
-    const fc = data.issues[0].failure_class;
-    api.getRemediation({ failure_class: fc, lab_code: namespace, cluster: data.cluster, context_type: 'lab' })
+    api.getRemediation({ failure_class: data.issues[0].failure_class, lab_code: namespace, cluster: data.cluster, context_type: 'lab' })
       .then((r: any) => {
         setAiAnalysis({ text: r?.llm_analysis || r?.analysis || r?.remediation || JSON.stringify(r, null, 2), llmMetricId: r?.llm_metric_id });
         setAiLoading(false);
@@ -102,178 +97,146 @@ function InvestigationPanel({ namespace, onClose }: { namespace: string; onClose
       .catch(() => setAiLoading(false));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50" />
-      <div className="relative w-[520px] h-full bg-[#151515] border-l border-[#333] overflow-y-auto" onClick={e => e.stopPropagation()}>
+  if (isLoading) return <div className="text-[#6A6E73] py-4 text-center text-xs">Loading...</div>;
+  if (!data) return null;
 
-        {/* Header */}
-        <div className="sticky top-0 bg-[#151515] border-b border-[#333] px-5 py-3 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-white font-semibold text-sm font-mono">{namespace}</h2>
-            {data && (
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-[#6A6E73] text-xs">{data.cluster}</span>
-                <span className="text-[#6A6E73] text-xs">{data.total_evals} evals</span>
-                <span className="text-xs" style={{ color: data.health_pct > 70 ? '#3E8635' : '#C9190B' }}>{data.health_pct}%</span>
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+      {/* Left column: Issues + Diagnostics */}
+      <div className="space-y-4">
+        {/* Issues */}
+        <div>
+          <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">Issues</h4>
+          {data.issues?.map((iss: any, i: number) => (
+            <div key={i} className="bg-[#1a1a1a] rounded p-2 border border-[#2e2e2e] mb-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium" style={{ color: iss.severity === 'warning' ? '#F0AB00' : '#C9190B' }}>{iss.failure_class}</span>
+                <span className="text-[10px] text-[#6A6E73]">{iss.count}× · {relativeTime(iss.last_seen)}</span>
               </div>
-            )}
-          </div>
-          <button onClick={onClose} className="text-[#6A6E73] hover:text-white text-lg px-2">✕</button>
+              {iss.sub_class && (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-[#333] text-[#ccc]">{iss.sub_class}</span>
+                  {iss.workload && <span className="text-[10px] text-[#555]">{iss.workload}</span>}
+                  {iss.auto_fix_confidence && (
+                    <span className={`text-[10px] px-1 py-0.5 rounded ${
+                      iss.auto_fix_confidence === 'high' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                      iss.auto_fix_confidence === 'medium' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                      'bg-[#555]/20 text-[#8A8D90]'
+                    }`}>{iss.auto_fix_confidence} fix</span>
+                  )}
+                </div>
+              )}
+              {iss.message && <p className="text-[10px] text-[#8A8D90] mt-0.5 font-mono truncate">{iss.message}</p>}
+            </div>
+          ))}
         </div>
 
-        {isLoading && <div className="text-[#6A6E73] py-12 text-center text-sm">Loading...</div>}
-
-        {data && (
-          <div className="px-5 py-4 space-y-5">
-
-            {/* 1. Issues */}
-            <section>
-              <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Issues ({data.issues?.length || 0})</h3>
-              {data.issues?.length > 0 ? data.issues.map((iss: any, i: number) => (
-                <div key={i} className="bg-[#1e1e1e] rounded p-2.5 border border-[#2e2e2e] mb-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium" style={{ color: iss.severity === 'warning' ? '#F0AB00' : '#C9190B' }}>{iss.failure_class}</span>
-                    <span className="text-[10px] text-[#6A6E73]">{iss.count}× · {relativeTime(iss.last_seen)}</span>
+        {/* Diagnostics */}
+        {data.catalog_commands?.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73]">Diagnostics</h4>
+              <button onClick={runAll} className="text-[10px] text-[#4394E5] hover:underline">Run All</button>
+            </div>
+            {data.catalog_commands.map((cmd: string, i: number) => {
+              const key = `cat-${i}`;
+              const result = cmdOutputs[key];
+              return (
+                <div key={i} className="mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <pre className="flex-1 bg-[#0d0d0d] border border-[#333] rounded px-2 py-1 text-[10px] text-[#4EC9B0] font-mono overflow-x-auto">{cmd}</pre>
+                    <button className="bg-[#333] hover:bg-[#444] text-white text-[10px] px-2 py-0.5 rounded shrink-0 disabled:opacity-50"
+                      disabled={result?.loading} onClick={() => runCmd(cmd, key)}>
+                      {result?.loading ? '...' : result ? 'Re-run' : 'Run'}
+                    </button>
                   </div>
-                  {iss.sub_class && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#333] text-[#ccc]">{iss.sub_class}</span>
-                      {iss.workload && <span className="text-[10px] text-[#6A6E73]">{iss.workload}</span>}
-                      {iss.auto_fix_confidence && (
-                        <span className={`text-[10px] px-1 py-0.5 rounded ${
-                          iss.auto_fix_confidence === 'high' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
-                          iss.auto_fix_confidence === 'medium' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
-                          'bg-[#555]/20 text-[#8A8D90]'
-                        }`}>{iss.auto_fix_confidence} fix</span>
-                      )}
-                    </div>
+                  {result && !result.loading && (
+                    <pre className={`mt-0.5 text-[10px] rounded px-2 py-1 font-mono overflow-x-auto max-h-40 overflow-y-auto ${
+                      result.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
+                    }`}>{result.output || '(no output)'}</pre>
                   )}
-                  {iss.message && <p className="text-[#8A8D90] text-xs mt-1 font-mono">{iss.message}</p>}
                 </div>
-              )) : <p className="text-[#3E8635] text-xs">No active issues</p>}
-            </section>
+              );
+            })}
+          </div>
+        )}
 
-            {/* 2. Diagnostics */}
-            {data.catalog_commands?.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider">Diagnostics</h3>
-                  <button onClick={runAll} className="text-[10px] text-[#4394E5] hover:underline">Run All</button>
+        {/* Feedback */}
+        {data.issues?.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">Notes</h4>
+            <IssueFeedbackPanel namespace={namespace} cluster={data.cluster} failure_class={data.issues[0].failure_class} />
+          </div>
+        )}
+      </div>
+
+      {/* Right column: AI Analysis + Incidents + History */}
+      <div className="space-y-4">
+        {/* AI Analysis */}
+        <div>
+          <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">AI Analysis</h4>
+          {!aiAnalysis ? (
+            <button className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded w-full disabled:opacity-50"
+              disabled={aiLoading || !data.issues?.length} onClick={getAiAnalysis}>
+              {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <FormattedAnalysis text={aiAnalysis.text} namespace={namespace} cluster={data.cluster} />
+              <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
+            </div>
+          )}
+        </div>
+
+        {/* Incidents */}
+        {data.incidents?.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">Incidents ({data.incidents.length})</h4>
+            {data.incidents.map((inc: any) => (
+              <div key={inc.id} className="bg-[#1a1a1a] rounded p-2 border border-[#2e2e2e] mb-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#4394E5]">{inc.failure_class || inc.action_type}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    inc.status === 'pending' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
+                    inc.status === 'auto_resolved' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
+                    'bg-[#555]/30 text-[#8A8D90]'
+                  }`}>{inc.status}</span>
                 </div>
-                {data.catalog_commands.map((cmd: string, i: number) => {
-                  const key = `cat-${i}`;
-                  const result = cmdOutputs[key];
-                  return (
-                    <div key={i} className="mb-2">
-                      <div className="flex items-center gap-2">
-                        <pre className="flex-1 bg-[#0d0d0d] border border-[#333] rounded px-2 py-1 text-[11px] text-[#4EC9B0] font-mono overflow-x-auto">{cmd}</pre>
-                        <button
-                          className="bg-[#333] hover:bg-[#444] text-white text-[10px] px-2.5 py-1 rounded shrink-0 disabled:opacity-50"
-                          disabled={result?.loading}
-                          onClick={() => runCmd(cmd, key)}
-                        >{result?.loading ? '...' : result ? 'Re-run' : 'Run'}</button>
-                      </div>
-                      {result && !result.loading && (
-                        <pre className={`mt-1 text-[11px] rounded px-2 py-1.5 font-mono overflow-x-auto max-h-48 overflow-y-auto ${
-                          result.exit_code === 0 ? 'bg-[#0d1f0d] text-[#4ade80] border border-[#1a3a1a]' : 'bg-[#1f0d0d] text-[#f87171] border border-[#3a1a1a]'
-                        }`}>{result.output || '(no output)'}</pre>
-                      )}
-                    </div>
-                  );
-                })}
-              </section>
-            )}
-
-            {/* 3. AI Analysis */}
-            <section>
-              <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">AI Analysis</h3>
-              {!aiAnalysis && (
-                <button
-                  className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-2 rounded w-full disabled:opacity-50"
-                  disabled={aiLoading || !data.issues?.length}
-                  onClick={getAiAnalysis}
-                >{aiLoading ? 'Analyzing...' : 'Get AI Analysis'}</button>
-              )}
-              {aiAnalysis && (
-                <div className="space-y-2">
-                  <FormattedAnalysis text={aiAnalysis.text} namespace={namespace} cluster={data.cluster} />
-                  <AiAnalysisFeedback llmMetricId={aiAnalysis.llmMetricId} />
+                {inc.rca_summary && <p className="text-[10px] text-[#8A8D90] mt-0.5">{typeof inc.rca_summary === 'string' ? inc.rca_summary.slice(0, 150) : ''}</p>}
+                <div className="flex items-center gap-2 mt-1 text-[9px] text-[#555]">
+                  <span>{inc.proposed_by}</span>
+                  <span>{relativeTime(inc.proposed_at)}</span>
+                  {inc.signal_count > 0 && <span>{inc.signal_count} signals</span>}
                 </div>
-              )}
-            </section>
+              </div>
+            ))}
+          </div>
+        )}
 
-            {/* 4. Incidents */}
-            {data.incidents?.length > 0 && (
-              <section>
-                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Incidents ({data.incidents.length})</h3>
-                {data.incidents.map((inc: any) => (
-                  <div key={inc.id} className="bg-[#1e1e1e] rounded p-2.5 border border-[#2e2e2e] mb-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#4394E5]">{inc.failure_class || inc.action_type}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        inc.status === 'pending' ? 'bg-[#F0AB00]/20 text-[#F0AB00]' :
-                        inc.status === 'auto_resolved' ? 'bg-[#3E8635]/20 text-[#3E8635]' :
-                        'bg-[#555]/30 text-[#8A8D90]'
-                      }`}>{inc.status}</span>
-                    </div>
-                    {inc.rca_summary && <p className="text-[#8A8D90] text-xs mt-1">{typeof inc.rca_summary === 'string' ? inc.rca_summary.slice(0, 200) : ''}</p>}
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[#555]">
-                      <span>{inc.proposed_by}</span>
-                      <span>{relativeTime(inc.proposed_at)}</span>
-                      {inc.signal_count > 0 && <span>{inc.signal_count} signals</span>}
-                    </div>
-                  </div>
-                ))}
-              </section>
-            )}
+        {/* Shadow */}
+        {data.shadow?.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">Shadow Tracking</h4>
+            {data.shadow.map((sh: any, i: number) => (
+              <div key={i} className="flex items-center justify-between py-1 border-b border-[#222] text-xs">
+                <span className="text-[#ccc]">{sh.failure_class}</span>
+                {sh.resolved ? <span className="text-[10px] text-[#3E8635]">resolved ({sh.resolution_cause})</span> : <span className="text-[10px] text-[#F0AB00]">tracking</span>}
+              </div>
+            ))}
+          </div>
+        )}
 
-            {/* 5. Shadow */}
-            {data.shadow?.length > 0 && (
-              <section>
-                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Shadow Tracking</h3>
-                {data.shadow.map((sh: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between py-1 border-b border-[#222]">
-                    <span className="text-xs text-[#ccc]">{sh.failure_class}</span>
-                    {sh.resolved ? (
-                      <span className="text-[10px] text-[#3E8635]">resolved ({sh.resolution_cause})</span>
-                    ) : (
-                      <span className="text-[10px] text-[#F0AB00]">tracking</span>
-                    )}
-                  </div>
-                ))}
-              </section>
-            )}
-
-            {/* 6. Feedback */}
-            {data.issues?.length > 0 && (
-              <section>
-                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Notes & Feedback</h3>
-                <IssueFeedbackPanel
-                  namespace={namespace}
-                  cluster={data.cluster}
-                  failure_class={data.issues[0].failure_class}
-                />
-              </section>
-            )}
-
-            {/* 7. Eval History */}
-            {data.eval_history?.length > 0 && (
-              <section>
-                <h3 className="text-[#ccc] text-[10px] font-semibold uppercase tracking-wider mb-2">Recent Evaluations</h3>
-                <div className="space-y-0.5">
-                  {data.eval_history.map((ev: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2 py-1 border-b border-[#222] text-xs">
-                      <span className="text-[10px] text-[#555] w-14 shrink-0">{relativeTime(ev.evaluated_at)}</span>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.outcome === 'pass' ? 'bg-[#3E8635]' : 'bg-[#C9190B]'}`} />
-                      <span className="text-[#8A8D90] truncate">{ev.failure_class || ev.outcome}</span>
-                      {ev.sub_class && <span className="text-[10px] text-[#555]">{ev.sub_class}</span>}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
+        {/* Eval History */}
+        {data.eval_history?.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">Recent Evaluations</h4>
+            {data.eval_history.map((ev: any, i: number) => (
+              <div key={i} className="flex items-center gap-2 py-0.5 border-b border-[#222] text-[10px]">
+                <span className="text-[#555] w-12 shrink-0">{relativeTime(ev.evaluated_at)}</span>
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.outcome === 'pass' ? 'bg-[#3E8635]' : 'bg-[#C9190B]'}`} />
+                <span className="text-[#8A8D90] truncate">{ev.failure_class || ev.outcome}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -297,12 +260,12 @@ function IncidentsTab({ search }: { search: string }) {
   }) : pending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 p-4">
       <p className="text-xs text-[#6A6E73]">{filtered.length} pending incidents from Deepfield</p>
       {filtered.map((p: any) => {
         const params = p.parameters || {};
         return (
-          <div key={p.id} className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-3">
+          <div key={p.id} className="bg-[#1e1e1e] border border-[#2e2e2e] rounded p-3">
             <div className="flex items-center justify-between mb-1">
               <div>
                 <span className="text-sm text-white font-mono">{p.target}</span>
@@ -324,7 +287,7 @@ function IncidentsTab({ search }: { search: string }) {
       })}
       {resolved.length > 0 && (
         <div>
-          <h3 className="text-xs font-medium text-[#ccc] mb-2">Auto-Resolved ({resolved.length})</h3>
+          <h3 className="text-xs font-medium text-[#ccc] mb-2 mt-4">Auto-Resolved ({resolved.length})</h3>
           {resolved.map((r: any) => (
             <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-[#222]">
               <span className="text-xs text-[#8A8D90] font-mono">{r.target}</span>
@@ -342,15 +305,13 @@ function IncidentsTab({ search }: { search: string }) {
 function ActivityTab() {
   const { data: shadowData } = useQuery({ queryKey: ['shadow-status'], queryFn: api.getShadowStatus });
   const { data: activityData } = useQuery({ queryKey: ['remediation-activity'], queryFn: () => api.getRemediationActivity(30) });
-
   const shadow = shadowData as any;
   const activity = (activityData as any)?.activity ?? [];
 
   return (
-    <div className="space-y-4">
-      {/* Shadow status */}
+    <div className="space-y-3 p-4">
       {shadow && (
-        <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-3 flex items-center gap-4">
+        <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded p-3 flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${shadow.status === 'running' || shadow.last_run ? 'bg-[#3E8635] animate-pulse' : 'bg-[#555]'}`} />
             <span className="text-xs text-[#ccc]">Shadow Mode</span>
@@ -360,7 +321,6 @@ function ActivityTab() {
           <span className="text-[10px] text-[#555]">Last: {relativeTime(shadow.last_run)}</span>
         </div>
       )}
-      {/* Activity */}
       {activity.length > 0 ? activity.map((a: any, i: number) => (
         <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#222]">
           <div>
@@ -384,7 +344,7 @@ function ActivityTab() {
 export default function Operations() {
   const [tab, setTab] = useState<Tab>('issues');
   const [search, setSearch] = useState('');
-  const [selectedNs, setSelectedNs] = useState<string | null>(null);
+  const [expandedNs, setExpandedNs] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['lifecycle-matrix'],
@@ -413,11 +373,9 @@ export default function Operations() {
           <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>Operations</h1>
           <p className="text-[#6A6E73] text-xs">{data?.summary?.total_monitored || 0} namespaces monitored — {data?.summary?.total_namespaces || 0} with issues</p>
         </div>
-        <input
-          type="text" value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search namespace, cluster, failure..."
-          className="bg-[#1e1e1e] border border-[#333] rounded px-3 py-1.5 text-sm text-white placeholder-[#555] w-64 focus:outline-none focus:border-[#4394E5]"
-        />
+          className="bg-[#1e1e1e] border border-[#333] rounded px-3 py-1.5 text-sm text-white placeholder-[#555] w-64 focus:outline-none focus:border-[#4394E5]" />
       </div>
 
       {isLoading && <div className="text-[#6A6E73] py-12 text-center">Loading...</div>}
@@ -429,44 +387,61 @@ export default function Operations() {
 
           <div className="flex gap-1 mb-3">
             {tabs.map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)}
+              <button key={t.key} onClick={() => { setTab(t.key); setExpandedNs(null); }}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition ${
                   tab === t.key ? 'bg-white/15 text-white' : 'text-[#6A6E73] hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {t.label}
-                {t.count !== undefined && <span className="ml-1 text-xs text-[#6A6E73]">({t.count})</span>}
+                }`}>
+                {t.label}{t.count !== undefined && <span className="ml-1 text-xs text-[#6A6E73]">({t.count})</span>}
               </button>
             ))}
           </div>
 
-          <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] overflow-x-auto min-h-[300px]">
+          <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
+
             {/* Issues tab */}
-            {tab === 'issues' && (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#333]">
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
-                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure']).slice(0, 200).map((r: any, i: number) => (
-                    <tr key={`${r.namespace}-${i}`} className="border-b border-[#222] hover:bg-[#1e1e1e] cursor-pointer" onClick={() => setSelectedNs(r.namespace)}>
-                      <td className="px-3 py-2 text-[#4394E5] font-mono text-xs hover:underline">{r.namespace}</td>
-                      <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
-                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
-                      <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
+            {tab === 'issues' && (() => {
+              const rows = filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure']);
+              return (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#333]">
+                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium w-5"></th>
+                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
+                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
+                      {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
+                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
                     </tr>
-                  ))}
-                  {(data.by_namespace || []).length === 0 && (
-                    <tr><td colSpan={9} className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</td></tr>
-                  )}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {rows.slice(0, 100).map((r: any, i: number) => {
+                      const isExpanded = expandedNs === r.namespace;
+                      return (
+                        <tr key={`${r.namespace}-${i}`} className="contents">
+                          <tr className={`border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                            onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}>
+                            <td className="px-3 py-2 text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</td>
+                            <td className="px-3 py-2 text-[#4394E5] font-mono text-xs">{r.namespace}</td>
+                            <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
+                            {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
+                            <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
+                          </tr>
+                          {isExpanded && (
+                            <tr className="border-b border-[#333]">
+                              <td colSpan={10} className="bg-[#191919]">
+                                <ExpandedRow namespace={r.namespace} />
+                              </td>
+                            </tr>
+                          )}
+                        </tr>
+                      );
+                    })}
+                    {rows.length === 0 && (
+                      <tr><td colSpan={10} className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              );
+            })()}
 
             {/* By Lab tab */}
             {tab === 'lab' && (
@@ -517,15 +492,13 @@ export default function Operations() {
             )}
 
             {/* Incidents tab */}
-            {tab === 'incidents' && <div className="p-4"><IncidentsTab search={search} /></div>}
+            {tab === 'incidents' && <IncidentsTab search={search} />}
 
             {/* Activity tab */}
-            {tab === 'activity' && <div className="p-4"><ActivityTab /></div>}
+            {tab === 'activity' && <ActivityTab />}
           </div>
         </>
       )}
-
-      {selectedNs && <InvestigationPanel namespace={selectedNs} onClose={() => setSelectedNs(null)} />}
     </div>
   );
 }
