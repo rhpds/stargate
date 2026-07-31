@@ -8,7 +8,7 @@ const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] a
 const STAGE_LABELS: Record<string, string> = { health: 'Health', pods: 'Pods', storage: 'Storage', network: 'Network', workload: 'Workload', overall: 'Overall' };
 const STATUS_COLORS: Record<string, string> = { green: '#3E8635', yellow: '#F0AB00', red: '#C9190B', gray: '#555' };
 
-type Tab = 'issues' | 'lab' | 'cluster' | 'incidents' | 'activity';
+type Tab = 'issues' | 'incidents' | 'activity';
 
 function relativeTime(iso: string | null | undefined): string {
   if (!iso) return '--';
@@ -46,19 +46,6 @@ function SummaryBar({ health, counts }: { health: Record<string, string>; counts
   );
 }
 
-function Dot({ status, detail }: { status: string; detail: string }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <td className="px-2 py-2 text-center relative">
-      <div className="inline-block w-3 h-3 rounded-full cursor-default"
-        style={{ backgroundColor: STATUS_COLORS[status] || '#555' }}
-        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} />
-      {hover && detail && (
-        <div className="absolute z-50 bg-[#1a1a1a] border border-[#444] rounded px-2 py-1 shadow-lg text-xs text-[#ccc] whitespace-nowrap -translate-x-1/2 left-1/2 top-full mt-1">{detail}</div>
-      )}
-    </td>
-  );
-}
 
 /* ---- Expanded Row Detail ---- */
 
@@ -354,8 +341,6 @@ export default function Operations() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'issues', label: 'Issues', count: data?.summary?.total_namespaces },
-    { key: 'lab', label: 'By Lab', count: data?.summary?.total_labs },
-    { key: 'cluster', label: 'By Cluster', count: data?.summary?.total_clusters },
     { key: 'incidents', label: 'Incidents' },
     { key: 'activity', label: 'Activity' },
   ];
@@ -402,94 +387,48 @@ export default function Operations() {
             {tab === 'issues' && (() => {
               const rows = filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure']);
               return (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[#333]">
-                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium w-5"></th>
-                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Namespace</th>
-                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
-                      {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
-                      <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.slice(0, 100).map((r: any, i: number) => {
-                      const isExpanded = expandedNs === r.namespace;
-                      return (
-                        <tr key={`${r.namespace}-${i}`} className="contents">
-                          <tr className={`border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
-                            onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}>
-                            <td className="px-3 py-2 text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</td>
-                            <td className="px-3 py-2 text-[#4394E5] font-mono text-xs">{r.namespace}</td>
-                            <td className="px-3 py-2 text-[#8A8D90] text-xs">{r.cluster}</td>
-                            {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
-                            <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
-                          </tr>
-                          {isExpanded && (
-                            <tr className="border-b border-[#333]">
-                              <td colSpan={10} className="bg-[#191919]">
-                                <ExpandedRow namespace={r.namespace} />
-                              </td>
-                            </tr>
-                          )}
-                        </tr>
-                      );
-                    })}
-                    {rows.length === 0 && (
-                      <tr><td colSpan={10} className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                <div>
+                  {/* Header */}
+                  <div className="grid grid-cols-[24px_1fr_100px_repeat(6,40px)_120px] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                    <span></span>
+                    <span>Namespace</span>
+                    <span>Cluster</span>
+                    {STAGES.map(s => <span key={s} className="text-center text-[10px] uppercase">{STAGE_LABELS[s]}</span>)}
+                    <span>Top Failure</span>
+                  </div>
+                  {/* Rows */}
+                  {rows.slice(0, 100).map((r: any, i: number) => {
+                    const isExpanded = expandedNs === r.namespace;
+                    return (
+                      <div key={`${r.namespace}-${i}`}>
+                        <div
+                          className={`grid grid-cols-[24px_1fr_100px_repeat(6,40px)_120px] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                          onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
+                        >
+                          <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
+                          <span className="text-[#4394E5] font-mono text-xs truncate">{r.namespace}</span>
+                          <span className="text-[#8A8D90] text-xs">{r.cluster}</span>
+                          {STAGES.map(s => (
+                            <span key={s} className="flex justify-center">
+                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[r.stages?.[s]?.status || 'green'] }} title={r.stages?.[s]?.detail || ''} />
+                            </span>
+                          ))}
+                          <span className="text-xs text-[#C9190B] truncate">{r.top_failure || ''}</span>
+                        </div>
+                        {isExpanded && (
+                          <div className="border-b border-[#333] bg-[#191919]">
+                            <ExpandedRow namespace={r.namespace} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <div className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</div>
+                  )}
+                </div>
               );
             })()}
-
-            {/* By Lab tab */}
-            {tab === 'lab' && (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#333]">
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Lab</th>
-                    <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">NS</th>
-                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filterData(data.by_lab || [], ['lab_code']).map((r: any) => (
-                    <tr key={r.lab_code} className="border-b border-[#222] hover:bg-[#1e1e1e]">
-                      <td className="px-3 py-2"><span className="text-[#4394E5] text-sm">{r.lab_code}</span>
-                        {r.clusters?.length > 0 && <span className="ml-2 text-[10px] text-[#6A6E73]">{r.clusters.join(', ')}</span>}
-                      </td>
-                      <td className="px-3 py-2 text-center text-[#ccc] text-xs">{r.namespaces}</td>
-                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* By Cluster tab */}
-            {tab === 'cluster' && (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#333]">
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Cluster</th>
-                    <th className="text-center px-3 py-2 text-[#8A8D90] font-medium">NS</th>
-                    {STAGES.map(s => <th key={s} className="text-center px-2 py-2 text-[#8A8D90] font-medium text-[10px] uppercase">{STAGE_LABELS[s]}</th>)}
-                    <th className="text-left px-3 py-2 text-[#8A8D90] font-medium">Top Failure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filterData(data.by_cluster || [], ['cluster']).map((r: any) => (
-                    <tr key={r.cluster} className="border-b border-[#222] hover:bg-[#1e1e1e]">
-                      <td className="px-3 py-2"><a href={`/cluster/${r.cluster}`} className="text-[#4394E5] hover:underline">{r.cluster}</a></td>
-                      <td className="px-3 py-2 text-center text-[#ccc]">{r.namespaces}</td>
-                      {STAGES.map(s => <Dot key={s} status={r.stages?.[s]?.status || 'green'} detail={r.stages?.[s]?.detail || ''} />)}
-                      <td className="px-3 py-2 text-xs text-[#C9190B]">{r.top_failure || ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
 
             {/* Incidents tab */}
             {tab === 'incidents' && <IncidentsTab search={search} />}
