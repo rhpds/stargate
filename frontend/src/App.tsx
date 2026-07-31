@@ -1,7 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TimeRangeProvider, TimeRangePicker, ClusterPicker } from './components/TimeRangeContext';
+import { TimeRangeProvider, ClusterPicker } from './components/TimeRangeContext';
 import LabDetail from './pages/LabDetail';
 import PipelineMatrix from './pages/PipelineMatrix';
 import FailureClasses from './pages/FailureClasses';
@@ -92,7 +92,6 @@ export default function App() {
             <div className="border-b border-[#2e2e2e]" style={{ backgroundColor: '#1a1a1a' }}>
               <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between h-9">
                 <ClusterPicker />
-                <TimeRangePicker />
               </div>
             </div>
             <main className="flex-1">
