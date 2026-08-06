@@ -38,9 +38,14 @@ function RunButton({ cmd, namespace, cluster }: { cmd: string; namespace: string
 
 function extractOcCommand(text: string): string | null {
   const trimmed = text.trim();
-  // Match oc command anywhere in the line, stop at natural boundaries
-  const match = trimmed.match(/(?:^|Run |Command: |run )(oc\s+(?:get|describe|logs|status|version|api-resources)\s+[^\s](?:[^\s]*(?:\s+(?!to\s|for\s|and\s|if\s|should\s|will\s|that\s|which\s|the\s|this\s|is\s|are\s|was\s|has\s|have\s|can\s|may\s|must\s|could\s|would\s|after\s|before\s|then\s|when\s|where\s)[^\s]+)*))/i);
-  if (match?.[1]) return match[1].replace(/[.,;:!?)]+$/, '').trim();
+  // Match oc command including pipes (oc get ... | grep ...)
+  const match = trimmed.match(/(?:^|Run |Command: |run |`)(oc\s+(?:get|describe|logs|status|version|api-resources|adm|explain)\s+[^\s`](?:[^`]*?(?:\|[^`]*?)?)?)(?:`|$)/i)
+    || trimmed.match(/(?:^|Run |Command: |run )(oc\s+(?:get|describe|logs|status|version|api-resources|adm|explain)\s+\S+(?:\s+(?:(?:-[a-zA-Z]|-{2}[a-z][-a-z]*|[a-zA-Z][-a-zA-Z0-9_.\/{}]*|\|)\s*)*[^\s]*))/i);
+  if (match?.[1]) {
+    let cmd = match[1].replace(/[.,;:!?)]+$/, '').trim();
+    if (cmd.endsWith('`')) cmd = cmd.slice(0, -1).trim();
+    return cmd || null;
+  }
   return null;
 }
 

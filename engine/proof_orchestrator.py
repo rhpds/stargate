@@ -78,7 +78,7 @@ def _call_geolux(failure_class: str, namespace: str, detected_class: str,
             "run_id": f"proof-{failure_class}",
             "stage_id": "proof-detect",
             "lab_code": namespace,
-            "cluster": f"proof-infra01-{int(time.time())}",
+            "cluster": "ocpv-infra01",
             "namespace": namespace,
             "outcome": "fail",
             "failure_class": detected_class or failure_class,
@@ -464,4 +464,49 @@ def continue_proof_cycle(
 
     # Replace the Phase 1 result with the merged result
     tracker.record_cycle_result(failure_class, result)
+
+    # Feed proof result back to GeoLux — validate or falsify matching hypotheses
+    _update_geolux_hypotheses(failure_class, result["success"])
+
     return result
+
+
+def _update_geolux_hypotheses(failure_class: str, proof_passed: bool):
+    """Search GeoLux for hypotheses matching this failure class and validate/falsify them."""
+    import urllib.request
+    geolux_url = os.environ.get("STARGATE_GEOLUX_URL", "")
+    if not geolux_url:
+        return
+    api_key = os.environ.get("STARGATE_GEOLUX_API_KEY", os.environ.get("STARGATE_ADMIN_API_KEY", ""))
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+
+    outcome = "validated" if proof_passed else "falsified"
+
+    try:
+        search_url = f"{geolux_url.rstrip('/')}/hypotheses/search?failure_class={failure_class}&validation=pending&limit=50"
+        req = urllib.request.Request(search_url, headers=headers)
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode())
+        hypotheses = data.get("hypotheses", [])
+
+        updated = 0
+        for h in hypotheses:
+            hid = h.get("hypothesis_id", "")
+            if not hid:
+                continue
+            try:
+                validate_url = f"{geolux_url.rstrip('/')}/hypotheses/{hid}/validate"
+                body = json.dumps({"outcome": outcome, "source": "stargate-proof-system"}).encode()
+                vreq = urllib.request.Request(validate_url, data=body, headers=headers, method="POST")
+                urllib.request.urlopen(vreq, timeout=5)
+                updated += 1
+            except Exception:
+                pass
+
+        if updated:
+            logger.info("GeoLux: %s %d hypotheses for %s (proof %s)",
+                        outcome, updated, failure_class, "PASSED" if proof_passed else "FAILED")
+    except Exception as e:
+        logger.debug("GeoLux hypothesis update failed: %s", e)

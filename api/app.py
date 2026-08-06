@@ -178,7 +178,7 @@ def _shadow_mode_loop():
             from db.database import get_db
             db = next(get_db())
             from engine.historical_miner import run_shadow_cycle
-            run_shadow_cycle(db, max_failures=20)
+            run_shadow_cycle(db, max_failures=100)
             _auto_resolve_incidents(db)
             _record_gap_detections(db)
             db.close()
@@ -233,6 +233,26 @@ def _record_gap_detections(db):
             outcome="fail",
             failure_class="resource_leak_pv",
             message=f"Orphaned PV {lk.get('pv_name', '')} ({lk.get('capacity', '?')}) bound to deleted namespace",
+            evaluated_at=now,
+        )
+        db.add(ev)
+        recorded += 1
+
+    # Operator health
+    unhealthy = babylon.get("operator_health", {}).get("unhealthy", [])
+    for op in unhealthy:
+        ns = op.get("namespace", "")
+        if not ns:
+            continue
+        issues_str = ", ".join(op.get("issues", []))
+        ev = EvaluationRecord(
+            run_id=run_id,
+            stage_id="cluster-health",
+            lab_code=ns,
+            cluster_name="",
+            outcome="fail",
+            failure_class="operator_unhealthy",
+            message=f"Pod {op.get('pod', '')} in {ns}: {issues_str}",
             evaluated_at=now,
         )
         db.add(ev)

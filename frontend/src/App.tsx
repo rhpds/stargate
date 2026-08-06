@@ -16,6 +16,8 @@ import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
+import DeepfieldOverview from './pages/DeepfieldOverview';
+import GeoluxOverview from './pages/GeoluxOverview';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +56,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 const navItems = [
   { to: '/', label: 'Operations', end: true },
-  { to: '/proof', label: 'Proof' },
+  { to: '/deepfield', label: 'Deepfield' },
+  { to: '/geolux', label: 'GeoLux' },
 ];
 
 export default function App() {
@@ -98,6 +101,8 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Operations />} />
                 <Route path="/proof" element={<ProofDashboard />} />
+                <Route path="/deepfield" element={<DeepfieldOverview />} />
+                <Route path="/geolux" element={<GeoluxOverview />} />
                 <Route path="/lab/:code" element={<LabDetail />} />
                 <Route path="/cluster/:name" element={<ClusterDetail />} />
                 <Route path="/pool/:name" element={<PoolDetail />} />
