@@ -1777,6 +1777,7 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
     from api.routers._shared import EXECUTOR_KUBECONFIG
     from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
     from collectors.cleanup.collect_leaks import detect_resource_leaks
+    from collectors.cleanup.collect_operator_health import detect_operator_issues
 
     results = {}
 
@@ -1790,7 +1791,103 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
     except Exception as e:
         results["resource_leaks"] = {"error": str(e)}
 
+    try:
+        results["operator_health"] = detect_operator_issues(kubeconfig=EXECUTOR_KUBECONFIG)
+    except Exception as e:
+        results["operator_health"] = {"error": str(e)}
+
     return results
+
+
+@router.get("/admin/provision-readiness-mismatches")
+def get_provision_readiness_mismatches(
+    hours: int = 24,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin_read),
+):
+    """Find namespaces where provisioning succeeded but readiness failed.
+
+    Correlates evaluations: namespaces with readiness failures (non-AAP stages)
+    but no AAP provisioning failures in the same time window — meaning AAP
+    reported success but the sandbox still broke.
+    """
+    from db.models import EvaluationRecord
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    # Namespaces with readiness failures (non-AAP stages)
+    failing_ns = (
+        db.query(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+            func.count(EvaluationRecord.id).label("failure_count"),
+            func.max(EvaluationRecord.evaluated_at).label("last_failure"),
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= cutoff,
+            EvaluationRecord.outcome == "fail",
+            EvaluationRecord.stage_id != "aap-provisioning",
+            EvaluationRecord.lab_code.isnot(None),
+            EvaluationRecord.lab_code != "",
+            EvaluationRecord.lab_code.like("sandbox-%"),
+        )
+        .group_by(EvaluationRecord.lab_code, EvaluationRecord.cluster_name)
+        .all()
+    )
+
+    # Namespaces with AAP provisioning failures in the same window
+    aap_failed_ns = set(
+        row[0] for row in
+        db.query(EvaluationRecord.lab_code)
+        .filter(
+            EvaluationRecord.evaluated_at >= cutoff,
+            EvaluationRecord.stage_id == "aap-provisioning",
+            EvaluationRecord.outcome == "fail",
+        )
+        .distinct()
+        .all()
+    )
+
+    # Collect distinct failure classes per namespace
+    mismatch_ns = {row.lab_code for row in failing_ns if row.lab_code not in aap_failed_ns}
+    fc_rows = (
+        db.query(EvaluationRecord.lab_code, EvaluationRecord.failure_class)
+        .filter(
+            EvaluationRecord.evaluated_at >= cutoff,
+            EvaluationRecord.outcome == "fail",
+            EvaluationRecord.lab_code.in_(mismatch_ns),
+            EvaluationRecord.failure_class.isnot(None),
+        )
+        .distinct()
+        .all()
+    ) if mismatch_ns else []
+
+    fc_by_ns: dict = {}
+    for r in fc_rows:
+        fc_by_ns.setdefault(r.lab_code, []).append(r.failure_class)
+
+    mismatches = []
+    for row in failing_ns:
+        if row.lab_code in aap_failed_ns:
+            continue
+        mismatches.append({
+            "namespace": row.lab_code,
+            "cluster": row.cluster_name or "",
+            "failure_count": row.failure_count,
+            "last_failure": row.last_failure.isoformat() if row.last_failure else None,
+            "failure_classes": fc_by_ns.get(row.lab_code, []),
+        })
+
+    mismatches.sort(key=lambda x: x["failure_count"], reverse=True)
+
+    return {
+        "hours": hours,
+        "total_mismatches": len(mismatches),
+        "total_with_aap_failures": len(aap_failed_ns),
+        "mismatches": mismatches[:50],
+    }
 
 
 @router.get("/admin/correlated-view")
@@ -2340,4 +2437,112 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             },
             "stage_counts": stage_totals,
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Deepfield / GeoLux proxy endpoints
+# ---------------------------------------------------------------------------
+
+def _proxy_get(url: str, headers: dict | None = None, timeout: int = 15) -> dict:
+    """Fetch JSON from an internal service URL."""
+    import urllib.request
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+def _proxy_parallel(calls: list[tuple[str, str, dict | None]]) -> dict:
+    """Fetch multiple URLs in parallel. calls = [(key, url, headers), ...]"""
+    from concurrent.futures import ThreadPoolExecutor
+    results = {}
+
+    def _fetch(key, url, headers):
+        results[key] = _proxy_get(url, headers)
+
+    with ThreadPoolExecutor(max_workers=len(calls)) as pool:
+        for key, url, headers in calls:
+            pool.submit(_fetch, key, url, headers)
+
+    return results
+
+
+@router.get("/admin/deepfield/overview")
+def deepfield_overview(_auth=Depends(require_admin_read)):
+    """Proxy Deepfield metrics + incidents for the StarGate dashboard."""
+    import os
+    base = os.environ.get("STARGATE_DEEPFIELD_INTERNAL_URL", "http://deepfield-backend.deepfield.svc:8099")
+
+    r = _proxy_parallel([
+        ("metrics", f"{base}/api/v1/metrics?window=1h", None),
+        ("incidents", f"{base}/api/v1/incidents?limit=50", None),
+        ("clusters", f"{base}/api/v1/observatory/clusters", None),
+    ])
+
+    incidents = r.get("incidents", {})
+    clusters = r.get("clusters", {})
+    return {
+        "metrics": r.get("metrics", {}),
+        "incidents": incidents.get("incidents", []) if isinstance(incidents, dict) else [],
+        "incident_count": incidents.get("count", 0) if isinstance(incidents, dict) else 0,
+        "clusters": clusters.get("clusters", {}) if isinstance(clusters, dict) else {},
+    }
+
+
+@router.get("/admin/geolux/overview")
+def geolux_overview(_auth=Depends(require_admin_read)):
+    """Proxy GeoLux governance pipeline + stability for the StarGate dashboard."""
+    import os
+    base = os.environ.get("STARGATE_GEOLUX_URL", "http://geolux-geolux.geolux.svc:8091")
+    api_key = os.environ.get("STARGATE_GEOLUX_API_KEY", "")
+    headers = {"X-API-Key": api_key} if api_key else {}
+
+    r = _proxy_parallel([
+        ("stability", f"{base}/stability/scores?limit=20", headers),
+        ("thresholds", f"{base}/stability/thresholds", headers),
+        ("hyp_stats", f"{base}/hypotheses/stats", headers),
+        ("mpc_stats", f"{base}/mpc/stats", headers),
+        ("constraints", f"{base}/classify/constraints", headers),
+        ("classifications", f"{base}/classify/recent?limit=50", headers),
+        ("routing", f"{base}/deepfield/routing-history?limit=10", headers),
+        ("queue", f"{base}/hypotheses/queue?limit=10", headers),
+    ])
+
+    stability = r.get("stability", {})
+    thresholds = r.get("thresholds", {})
+    hyp_stats = r.get("hyp_stats", {})
+    mpc_stats = r.get("mpc_stats", {})
+    constraints = r.get("constraints", [])
+    classifications = r.get("classifications", [])
+    queue = r.get("queue", {})
+    routing = r.get("routing", [])
+
+    cls_pass = sum(1 for c in classifications if isinstance(c, dict) and c.get("result") == "pass") if isinstance(classifications, list) else 0
+    cls_fail = sum(1 for c in classifications if isinstance(c, dict) and c.get("result") == "fail") if isinstance(classifications, list) else 0
+    cls_inc = sum(1 for c in classifications if isinstance(c, dict) and c.get("result") == "inconclusive") if isinstance(classifications, list) else 0
+
+    pipeline = {
+        "classifications": {"total": len(classifications) if isinstance(classifications, list) else 0, "pass": cls_pass, "fail": cls_fail, "inconclusive": cls_inc},
+        "hypotheses": {"total": hyp_stats.get("total", 0), "pending": hyp_stats.get("pending", 0), "validated": hyp_stats.get("validated", 0), "falsified": hyp_stats.get("falsified", 0)},
+        "actions": {"mpc_cycles": mpc_stats.get("total", 0), "mpc_suspended": mpc_stats.get("suspended", 0)},
+        "top_failure_classes": hyp_stats.get("failure_classes", []),
+        "clusters": hyp_stats.get("clusters", []) if not isinstance(mpc_stats.get("clusters"), list) else mpc_stats["clusters"],
+    }
+
+    # Learned patterns (non-blocking — may not exist yet)
+    learning = _proxy_get(f"{base}/learning/patterns", headers)
+
+    return {
+        "pipeline": pipeline,
+        "stability_scores": stability if isinstance(stability, list) else [],
+        "stability_threshold": thresholds.get("stability_threshold", 0.7) if isinstance(thresholds, dict) else 0.7,
+        "hypothesis_stats": hyp_stats,
+        "mpc_stats": mpc_stats,
+        "constraints_count": len(constraints) if isinstance(constraints, list) else 0,
+        "recent_hypotheses": queue.get("hypotheses", [])[:10] if isinstance(queue, dict) else [],
+        "recent_routing": routing if isinstance(routing, list) else [],
+        "learned_patterns": learning.get("patterns", []) if isinstance(learning, dict) else [],
     }

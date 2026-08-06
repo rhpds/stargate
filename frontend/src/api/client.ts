@@ -303,6 +303,14 @@ export const api = {
     return request<any>(`/admin/correlated-view${qs ? `?${qs}` : ''}`);
   },
 
+  // Deepfield / GeoLux
+  getDeepfieldOverview: () => request<any>('/admin/deepfield/overview'),
+  getGeoluxOverview: () => request<any>('/admin/geolux/overview'),
+
+  // Monitoring Gaps
+  getMonitoringGaps: () => request<any>('/admin/monitoring-gaps'),
+  getProvisionReadinessMismatches: (hours = 24) => request<any>(`/admin/provision-readiness-mismatches?hours=${hours}`),
+
   // Lifecycle Matrix
   getLifecycleMatrix: () => request<any>('/admin/lifecycle-matrix'),
   getNamespaceDetail: (ns: string) => request<any>(`/admin/namespace-detail/${encodeURIComponent(ns)}`),

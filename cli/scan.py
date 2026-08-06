@@ -34,9 +34,6 @@ _DEFAULT_CLUSTERS = {
     "ocpv07": "kubeconfig-ocpv07",
     "ocpv08": "kubeconfig-ocpv08",
     "ocpv09": "kubeconfig-ocpv09",
-    "ocpv-infra01": "kubeconfig-infra01",
-    "ocpv-infra02": "kubeconfig-infra02",
-    "ocp-us-east-1": "kubeconfig",
 }
 
 

@@ -69,13 +69,18 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespace: str = "babyl
         if age_hours >= STUCK_THRESHOLD_HOURS:
             name = metadata.get("name", "unknown")
             namespace = spec_vars.get("job_vars", {}).get("namespace", name)
+            cluster = spec_vars.get("job_vars", {}).get("cluster_name", "unknown")
             stuck.append({
                 "anarchy_subject": name,
                 "namespace": namespace,
                 "state": state,
                 "age_hours": round(age_hours, 1),
-                "cluster": spec_vars.get("job_vars", {}).get("cluster_name", "unknown"),
+                "cluster": cluster,
             })
+
+    # Check whether stuck namespaces still exist on the target cluster
+    if stuck:
+        _check_namespace_existence(stuck, env)
 
     return {
         "total_subjects": len(items),
@@ -83,3 +88,21 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespace: str = "babyl
         "stuck_count": len(stuck),
         "threshold_hours": STUCK_THRESHOLD_HOURS,
     }
+
+
+def _check_namespace_existence(stuck_entries: List[Dict], env: Dict) -> None:
+    """Add namespace_exists boolean to each stuck entry by querying the cluster."""
+    clusters_checked: Dict[str, set] = {}
+    for entry in stuck_entries:
+        cluster = entry.get("cluster", "")
+        if cluster not in clusters_checked:
+            try:
+                r = subprocess.run(
+                    ["oc", "get", "namespaces", "-o", "jsonpath={.items[*].metadata.name}"],
+                    capture_output=True, text=True, timeout=15, env=env,
+                )
+                clusters_checked[cluster] = set(r.stdout.strip().split()) if r.returncode == 0 else set()
+            except Exception:
+                clusters_checked[cluster] = set()
+
+        entry["namespace_exists"] = entry["namespace"] in clusters_checked[cluster]

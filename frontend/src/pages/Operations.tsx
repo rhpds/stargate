@@ -1,8 +1,84 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
+
+function Synopsis({ clusterCount, namespaceCount }: { clusterCount: number; namespaceCount: number }) {
+  const [open, setOpen] = useState(() => {
+    try { return sessionStorage.getItem('sg-synopsis') !== 'closed'; } catch { return true; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('sg-synopsis', open ? 'open' : 'closed'); } catch {}
+  }, [open]);
+
+  const { data: gaps } = useQuery({
+    queryKey: ['monitoring-gaps'],
+    queryFn: () => api.getMonitoringGaps(),
+    refetchInterval: 60000,
+    enabled: open,
+  });
+
+  const st = gaps?.stuck_teardowns || {};
+  const rl = gaps?.resource_leaks || {};
+  const oh = gaps?.operator_health || {};
+
+  function GapDot({ count }: { count: number }) {
+    const color = count > 0 ? '#C9190B' : '#3E8635';
+    return <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: color }} />;
+  }
+
+  return (
+    <div className="mb-4 bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#222] transition">
+        <span className="text-sm font-semibold text-white" style={{ fontFamily: 'Red Hat Display' }}>What you're looking at</span>
+        <span className="text-[#555] text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 text-xs leading-relaxed text-[#b0b0b0] space-y-2.5 border-t border-[#2e2e2e] pt-3">
+          <p>
+            <span className="text-white font-medium">StarGate</span> continuously scans <span className="text-[#4394E5] font-medium">{clusterCount} OpenShift clusters</span> and
+            monitors <span className="text-[#4394E5] font-medium">{namespaceCount} sandbox namespaces</span> for issues across 6 readiness stages:
+            health, pods, storage, network, workload, and overall.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
+              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Data Sources</div>
+              <ul className="space-y-0.5 text-[11px]">
+                <li><span className="text-[#4EC9B0]">oc get pods/events/pv</span> — live cluster state</li>
+                <li><span className="text-[#4EC9B0]">AnarchySubjects</span> — provisioning lifecycle</li>
+                <li><span className="text-[#4EC9B0]">AAP Controllers</span> — job success/failure</li>
+                <li><span className="text-[#4EC9B0]">AlertManager</span> — cluster alerts</li>
+              </ul>
+            </div>
+            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
+              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Intelligence</div>
+              <ul className="space-y-0.5 text-[11px]">
+                <li><span className="text-[#DCDCAA]">24 failure classes</span> — pattern-matched from K8s events</li>
+                <li><span className="text-[#DCDCAA]">Sub-classification</span> — root cause + workload context</li>
+                <li><span className="text-[#DCDCAA]">LLM analysis</span> — on-demand diagnosis with live diagnostics</li>
+                <li><span className="text-[#DCDCAA]">Deepfield</span> — real-time correlation + RCA</li>
+              </ul>
+            </div>
+            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
+              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Monitoring Gaps {gaps ? '' : '(loading...)'}</div>
+              <ul className="space-y-0.5 text-[11px]">
+                <li><GapDot count={st.stuck_count || 0} /><span className="text-[#ccc]">Stuck teardowns</span> — <span className="text-white font-medium">{st.error ? 'N/A' : st.stuck_count || 0}</span>{st.stuck_count > 0 && ` (${st.stuck?.filter((s: any) => s.namespace_exists).length} with live ns)`}</li>
+                <li><GapDot count={rl.orphaned_count || 0} /><span className="text-[#ccc]">Resource leaks</span> — <span className="text-white font-medium">{rl.orphaned_count || 0}</span> orphaned PVs{rl.orphaned_pvc_count > 0 && `, ${rl.orphaned_pvc_count} PVCs`}{rl.orphaned_capacity_gi > 0 && ` (${rl.orphaned_capacity_gi} Gi)`}</li>
+                <li><GapDot count={oh.unhealthy_count || 0} /><span className="text-[#ccc]">Operator health</span> — <span className="text-white font-medium">{oh.unhealthy_count || 0}</span> unhealthy / {oh.total_pods || 0} pods</li>
+                <li><GapDot count={0} /><span className="text-[#ccc]">Provision mismatch</span> — sandbox readiness after AAP success</li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-[#6A6E73] italic">
+            Click any row below to expand — run diagnostics, get AI analysis, or see Deepfield incidents for that namespace.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
 const STAGE_LABELS: Record<string, string> = { health: 'HLT', pods: 'POD', storage: 'STG', network: 'NET', workload: 'WRK', overall: 'ALL' };
@@ -266,6 +342,7 @@ export default function Operations() {
 
       {data && (
         <>
+          <Synopsis clusterCount={data.summary?.total_clusters || 0} namespaceCount={data.summary?.total_monitored || 0} />
           <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
 
@@ -276,7 +353,7 @@ export default function Operations() {
               return (
                 <div>
                   {/* Header */}
-                  <div className="grid grid-cols-[20px_200px_64px_48px_48px_48px_48px_56px_52px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                  <div className="grid grid-cols-[20px_260px_72px_repeat(6,48px)_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
                     <span></span>
                     <span>Namespace</span>
                     <span>Cluster</span>
@@ -289,7 +366,7 @@ export default function Operations() {
                     return (
                       <div key={`${r.namespace}-${i}`}>
                         <div
-                          className={`grid grid-cols-[20px_200px_64px_48px_48px_48px_48px_56px_52px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                          className={`grid grid-cols-[20px_260px_72px_repeat(6,48px)_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
                           onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
                         >
                           <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>

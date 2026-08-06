@@ -246,7 +246,12 @@ class GeoLuxConsumer(EventConsumer):
             return False
         if event.filtered:
             return False
-        return event.event_type in self._FORWARD_TYPES
+        if event.event_type not in self._FORWARD_TYPES:
+            return False
+        ns = getattr(event, 'lab_code', '') or ''
+        if not (ns.startswith("sandbox-") or ns.startswith("showroom-")):
+            return False
+        return True
 
     def deliver(self, event: Event):
         try:
@@ -263,7 +268,7 @@ class GeoLuxConsumer(EventConsumer):
                     "run_id": event.run_id,
                     "stage_id": event.stage_id,
                     "lab_code": event.lab_code,
-                    "cluster": event.cluster_name,
+                    "cluster": event.cluster_name or "",
                     "outcome": event.outcome,
                     "failure_class": event.failure_class,
                     "message": getattr(event, 'message', ''),
