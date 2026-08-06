@@ -377,6 +377,8 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
         EvaluationRecord.id > last_id,
         EvaluationRecord.outcome == "fail",
         EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class != "",
+        EvaluationRecord.lab_code.like("sandbox-%"),
     ).order_by(EvaluationRecord.id).limit(max_failures).all()
 
     if not new_failures:
@@ -388,6 +390,14 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
     fed = []
     seen_keys = set()
     for eval_id, fc, lab_code, cluster, message in new_failures:
+        # Only send sandbox namespace failures with real failure classes to GeoLux
+        if not fc or not lab_code:
+            last_id = max(last_id, eval_id)
+            continue
+        if not (lab_code.startswith("sandbox-") or lab_code.startswith("showroom-")):
+            last_id = max(last_id, eval_id)
+            continue
+
         # Dedupe by namespace+failure_class in this batch
         key = f"{lab_code}:{fc}"
         if key in seen_keys:
@@ -420,7 +430,7 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
                         "run_id": f"shadow-{lab_code}",
                         "stage_id": "shadow-monitor",
                         "lab_code": lab_code or "",
-                        "cluster": f"shadow-{cluster}-{eval_id}",
+                        "cluster": cluster or "",
                         "namespace": lab_code or "",
                         "outcome": "fail",
                         "failure_class": fc,

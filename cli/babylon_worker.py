@@ -384,6 +384,16 @@ def run_collection() -> Dict:
         results["resource_leaks"] = {"error": str(e)}
         print(f"    Resource leak detection failed: {e}")
 
+    print("  Checking operator health...")
+    try:
+        from collectors.cleanup.collect_operator_health import detect_operator_issues
+        results["operator_health"] = detect_operator_issues(kubeconfig=kubeconfig)
+        oh = results["operator_health"]
+        print(f"    {oh.get('unhealthy_count', 0)} unhealthy operator pods across {len(oh.get('namespaces_checked', []))} namespaces")
+    except Exception as e:
+        results["operator_health"] = {"error": str(e)}
+        print(f"    Operator health check failed: {e}")
+
     # Save again with Labagator/Demolition/monitoring gap data
     _save_results(results)
     return results

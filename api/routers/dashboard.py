@@ -3902,21 +3902,41 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
 # Read-only diagnostic command runner
 # ---------------------------------------------------------------------------
 
-_SAFE_OC_VERBS = frozenset({"get", "describe", "logs", "status", "whoami", "version", "api-resources"})
+_SAFE_OC_VERBS = frozenset({"get", "describe", "logs", "status", "whoami", "version", "api-resources", "adm", "explain", "api-versions"})
 _BLOCKED_FLAGS = frozenset({"--force", "--grace-period=0", "-f", "--filename", "--dry-run=none"})
+_SAFE_ADM_SUBCOMMANDS = frozenset({"top", "node-logs", "inspect", "must-gather"})
+
+
+_SAFE_PIPE_COMMANDS = {"grep", "head", "tail", "wc", "sort", "uniq", "cut", "awk", "sed", "tr", "column"}
 
 
 def _is_safe_command(cmd: str) -> bool:
-    """Only allow read-only oc commands. Rejects anything that could mutate."""
-    parts = cmd.strip().split()
+    """Only allow read-only oc commands, optionally piped to safe filters."""
+    segments = [s.strip() for s in cmd.split("|")]
+
+    # First segment must be an oc command
+    parts = segments[0].split()
     if not parts or parts[0] != "oc":
         return False
     verb = parts[1] if len(parts) > 1 else ""
     if verb not in _SAFE_OC_VERBS:
         return False
+    if verb == "adm":
+        adm_sub = parts[2] if len(parts) > 2 else ""
+        if adm_sub not in _SAFE_ADM_SUBCOMMANDS:
+            return False
     for flag in _BLOCKED_FLAGS:
         if flag in parts:
             return False
+
+    # Subsequent segments must be safe filter commands
+    for seg in segments[1:]:
+        seg_parts = seg.split()
+        if not seg_parts:
+            return False
+        if seg_parts[0] not in _SAFE_PIPE_COMMANDS:
+            return False
+
     return True
 
 
@@ -3976,11 +3996,13 @@ def _run_diagnostic_commands(
             continue
 
         try:
+            use_shell = "|" in cmd
             r = subprocess.run(
-                cmd.split(),
+                cmd if use_shell else cmd.split(),
                 capture_output=True,
                 text=True,
                 timeout=timeout_per_cmd,
+                shell=use_shell,
                 env={**os.environ, "KUBECONFIG": kubeconfig},
             )
             output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
@@ -4405,11 +4427,13 @@ def run_diagnostic_command(request: Request, req: dict, _auth=Depends(require_ad
         raise HTTPException(status_code=503, detail="No kubeconfig available for this cluster")
 
     try:
+        use_shell = "|" in resolved
         r = subprocess.run(
-            resolved.split(),
+            resolved if use_shell else resolved.split(),
             capture_output=True,
             text=True,
             timeout=15,
+            shell=use_shell,
             env={**os.environ, "KUBECONFIG": kubeconfig},
         )
         return {
