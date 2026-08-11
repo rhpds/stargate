@@ -514,7 +514,7 @@ export default function Operations() {
                                 title={r.attention_reason}>{r.attention}</span>
                             )}
                           </div>
-                          <span className="text-[#ccc] text-[10px] truncate" title={r.catalog_item}>{r.catalog_item || ''}</span>
+                          <span className="text-[#ccc] text-[10px] truncate" title={`${r.lab_name || r.catalog_item} (${r.catalog_item})`}>{r.lab_name || r.catalog_item || ''}</span>
                           <span className="text-[#8A8D90] text-xs">{r.cluster}</span>
                           {STAGES.map(s => (
                             <span key={s} className="flex justify-center">
