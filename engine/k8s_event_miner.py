@@ -19,6 +19,24 @@ logger = logging.getLogger("stargate.k8s_miner")
 
 SECRETS_DIR = Path(__file__).parent.parent / "secrets"
 
+
+def _parse_age_minutes(age_str: str) -> float:
+    """Parse K8s age string (e.g., '14m', '3s', '2h', '1d') to minutes."""
+    if not age_str:
+        return 9999
+    try:
+        if age_str.endswith("s"):
+            return int(age_str[:-1]) / 60.0
+        if age_str.endswith("m"):
+            return int(age_str[:-1])
+        if age_str.endswith("h"):
+            return int(age_str[:-1]) * 60
+        if age_str.endswith("d"):
+            return int(age_str[:-1]) * 1440
+        return 9999
+    except (ValueError, IndexError):
+        return 9999
+
 K8S_FAILURE_CLASSES = {
     "image_pull_backoff": {
         "pattern": r"(Back-off pulling image|ErrImagePull|ImagePullBackOff|Failed to pull image)",
@@ -304,9 +322,15 @@ def mine_cluster_events(cluster_name: str, kubeconfig: str, limit: int = 500) ->
             parts = line.split(None, 5)
             if len(parts) >= 6:
                 ns = parts[0]
+                last_seen = parts[1] if len(parts) > 1 else ""
                 reason = parts[3] if len(parts) > 3 else ""
                 kind_name = parts[4] if len(parts) > 4 else ""
                 message = parts[5] if len(parts) > 5 else ""
+
+                # Skip stale events (older than 15 min)
+                if _parse_age_minutes(last_seen) > 15:
+                    continue
+
                 resource_kind, resource_name = "", ""
                 if "/" in kind_name:
                     resource_kind, resource_name = kind_name.split("/", 1)
@@ -355,9 +379,15 @@ def batch_classify_events(events: List[Dict], db=None) -> Dict:
     if db:
         try:
             from db import repository
+            seen: set = set()
             for parsed in results:
                 if parsed["failure_class"] == "unclassified":
                     continue
+                # Deduplicate: one evaluation per namespace + failure_class per batch
+                dedup_key = f"{parsed['namespace']}:{parsed['failure_class']}"
+                if dedup_key in seen:
+                    continue
+                seen.add(dedup_key)
                 repository.create_evaluation(
                     db, run_id=f"k8s-mine-{parsed['cluster']}-{parsed['resource_name'][:20]}",
                     stage_id="cluster-health", outcome="fail",
