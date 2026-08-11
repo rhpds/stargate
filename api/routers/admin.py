@@ -2567,6 +2567,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     _BASE_ENV_NAMES = {
         "zt-ansiblebu": "Ansible Automation Platform Labs",
         "zt-rhelbu": "RHEL Labs",
+        "ocp4-cluster": "OpenShift 4 Cluster",
     }
     catalog_display_names: Dict[str, str] = dict(_BASE_ENV_NAMES)
     try:
