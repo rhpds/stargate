@@ -3861,6 +3861,8 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     import urllib.request as urllib_req
 
     context_type = req.get("context_type", "error")
+    if context_type == "failure_class":
+        context_type = "error"
     failure_class = req.get("failure_class", "")
     lab_code = req.get("lab_code", "")
     cluster = req.get("cluster", "")
