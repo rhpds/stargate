@@ -2562,6 +2562,24 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     # Build catalog item baselines and first-eval timestamps for classification
     baselines = _build_catalog_baselines(db)
 
+    # Build catalog item slug -> display name map from Labagator
+    catalog_display_names: Dict[str, str] = {}
+    try:
+        import urllib.request as _urlreq
+        _lab_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
+        if _lab_url:
+            with _urlreq.urlopen(f"{_lab_url}/labs?limit=300", timeout=5) as _resp:
+                _labs = json.loads(_resp.read())
+                for _lab in (_labs if isinstance(_labs, list) else []):
+                    _ci = _lab.get("ci_name", "")
+                    _title = _lab.get("title", "")
+                    if _ci and _title:
+                        _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
+                        if _slug not in catalog_display_names:
+                            catalog_display_names[_slug] = _title
+    except Exception:
+        pass
+
     first_eval_map: Dict[str, datetime] = {}
     try:
         first_evals = db.query(
@@ -2622,6 +2640,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "namespace": ns,
             "cluster": d["cluster"],
             "catalog_item": catalog_item,
+            "lab_name": catalog_display_names.get(catalog_item, catalog_item),
             "pass": d["pass"],
             "fail": d["fail"],
             "total": d["total"],
@@ -2785,7 +2804,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         cat_health[cat][entry.get("attention", "expected")] += 1
 
     by_catalog_item = sorted([
-        {"catalog_item": cat, **counts}
+        {"catalog_item": cat, "lab_name": catalog_display_names.get(cat, cat), **counts}
         for cat, counts in cat_health.items()
     ], key=lambda x: x["stuck"] + x["anomalous"], reverse=True)
 
