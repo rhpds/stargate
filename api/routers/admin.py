@@ -2581,8 +2581,18 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                         _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
                         if _slug not in catalog_display_names:
                             catalog_display_names[_slug] = _title
-    except Exception:
-        pass
+    except Exception as _e:
+        import logging
+        logging.getLogger("stargate").warning("Labagator display name fetch failed: %s", _e)
+
+    # Resolve multi-cluster variants (e.g., 1-ocp4-cluster -> ocp4-cluster)
+    for _cat_slug in list(ns_data.keys()):
+        _m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", _cat_slug)
+        _ci_slug = _m.group(1) if _m else _cat_slug
+        if _ci_slug not in catalog_display_names:
+            _base = _re.sub(r"^\d+-", "", _ci_slug)
+            if _base in catalog_display_names:
+                catalog_display_names[_ci_slug] = catalog_display_names[_base]
 
     first_eval_map: Dict[str, datetime] = {}
     try:
