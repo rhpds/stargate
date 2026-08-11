@@ -309,6 +309,98 @@ function ExpandedRow({ namespace }: { namespace: string }) {
 /* ---- Main Page ---- */
 
 const ATTENTION_COLORS: Record<string, string> = { stuck: '#C9190B', anomalous: '#F0AB00', provisioning: '#4394E5', expected: '#555' };
+const FC_ATTENTION_COLORS: Record<string, string> = { spiking: '#C9190B', spreading: '#F0AB00', stuck: '#C9190B', concentrated: '#4394E5', normal: '#3E8635' };
+
+function FailureClassCard({ fc, namespaces }: { fc: any; namespaces: any[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const getAiAnalysis = () => {
+    const affectedNs = namespaces.filter((n: any) =>
+      Object.keys(n.stages || {}).some(s => n.stages[s]?.detail?.includes(fc.failure_class))
+      || n.top_failure === fc.failure_class
+    );
+    const sampleNs = affectedNs[0]?.namespace || '';
+    const sampleCluster = affectedNs[0]?.cluster || '';
+    if (!sampleNs) return;
+
+    setAiLoading(true);
+    setAiAnalysis(null);
+    api.getRemediation({
+      failure_class: fc.failure_class,
+      lab_code: sampleNs,
+      cluster: sampleCluster,
+      context_type: 'failure_class',
+    }).then((r: any) => {
+      setAiAnalysis(r?.llm_analysis || r?.analysis || JSON.stringify(r, null, 2));
+      setAiLoading(false);
+    }).catch(() => { setAiAnalysis('Analysis failed'); setAiLoading(false); });
+  };
+
+  const attColor = FC_ATTENTION_COLORS[fc.attention] || '#3E8635';
+
+  return (
+    <div className="bg-[#1a1a1a] rounded p-2.5 border border-[#2a2a2a]">
+      <div className="flex items-center justify-between mb-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center gap-2">
+          <span className="text-[#555] text-[10px]">{expanded ? '▼' : '▶'}</span>
+          <span className="text-xs font-mono text-[#ccc]">{fc.failure_class}</span>
+        </div>
+        {fc.attention !== 'normal' && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+            style={{ backgroundColor: `${attColor}20`, color: attColor }}>{fc.attention}</span>
+        )}
+      </div>
+      <p className="text-[10px] text-[#6A6E73] mb-1.5">{fc.attention_reason}</p>
+      <div className="flex items-center gap-3 text-[10px]">
+        <span className="text-[#8A8D90]">{fc.affected_namespaces} ns</span>
+        <span className="text-[#8A8D90]">{fc.affected_catalog_items?.length || 0} labs</span>
+        <span className="text-[#8A8D90]">{fc.affected_clusters?.length || 0} clusters</span>
+        {fc.stuck_count > 0 && <span className="text-[#C9190B]">{fc.stuck_count} stuck</span>}
+        {fc.self_resolve_pct != null && <span className="text-[#3E8635]">{fc.self_resolve_pct}% self-resolve</span>}
+      </div>
+      {fc.affected_catalog_items?.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {fc.affected_catalog_items.slice(0, 4).map((c: any) => (
+            <span key={c.catalog_item} className="text-[9px] px-1.5 py-0.5 bg-[#222] rounded text-[#8A8D90]">
+              {c.catalog_item} <span className="text-[#555]">×{c.count}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-[#2e2e2e]">
+          {fc.affected_clusters?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {fc.affected_clusters.map((c: any) => (
+                <span key={c.cluster} className="text-[9px] px-1.5 py-0.5 bg-[#222] rounded text-[#6A6E73]">
+                  {c.cluster} <span className="text-[#555]">×{c.count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          {fc.resolutions_24h && (
+            <div className="flex flex-wrap gap-2 mb-2 text-[10px]">
+              {Object.entries(fc.resolutions_24h).map(([type, count]) => (
+                <span key={type} className="text-[#8A8D90]">{(type as string).replace(/_/g, ' ')}: {count as number}</span>
+              ))}
+            </div>
+          )}
+          <button onClick={getAiAnalysis} disabled={aiLoading}
+            className="text-[10px] px-2 py-1 rounded bg-[#222] text-[#4394E5] hover:bg-[#333] transition disabled:opacity-50">
+            {aiLoading ? 'Analyzing...' : 'AI Analysis'}
+          </button>
+          {aiAnalysis && (
+            <div className="mt-2 bg-[#111] rounded p-2 text-[10px] text-[#ccc] whitespace-pre-wrap max-h-48 overflow-y-auto">
+              <FormattedAnalysis text={aiAnalysis} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Operations() {
   const [search, setSearch] = useState('');
@@ -372,41 +464,9 @@ export default function Operations() {
             <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
               <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Failure Classes — Platform-Wide</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {data.by_failure_class.slice(0, 12).map((fc: any) => {
-                  const attColor = fc.attention === 'spiking' ? '#C9190B'
-                    : fc.attention === 'spreading' ? '#F0AB00'
-                    : fc.attention === 'stuck' ? '#C9190B'
-                    : fc.attention === 'concentrated' ? '#4394E5'
-                    : '#3E8635';
-                  return (
-                    <div key={fc.failure_class} className="bg-[#1a1a1a] rounded p-2.5 border border-[#2a2a2a]">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-mono text-[#ccc]">{fc.failure_class}</span>
-                        {fc.attention !== 'normal' && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                            style={{ backgroundColor: `${attColor}20`, color: attColor }}>{fc.attention}</span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-[#6A6E73] mb-1.5">{fc.attention_reason}</p>
-                      <div className="flex items-center gap-3 text-[10px]">
-                        <span className="text-[#8A8D90]">{fc.affected_namespaces} ns</span>
-                        <span className="text-[#8A8D90]">{fc.affected_catalog_items?.length || 0} labs</span>
-                        <span className="text-[#8A8D90]">{fc.affected_clusters?.length || 0} clusters</span>
-                        {fc.stuck_count > 0 && <span className="text-[#C9190B]">{fc.stuck_count} stuck</span>}
-                        {fc.self_resolve_pct != null && <span className="text-[#3E8635]">{fc.self_resolve_pct}% self-resolve</span>}
-                      </div>
-                      {fc.affected_catalog_items?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {fc.affected_catalog_items.slice(0, 4).map((c: any) => (
-                            <span key={c.catalog_item} className="text-[9px] px-1.5 py-0.5 bg-[#222] rounded text-[#8A8D90]">
-                              {c.catalog_item} <span className="text-[#555]">×{c.count}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {data.by_failure_class.slice(0, 12).map((fc: any) => (
+                  <FailureClassCard key={fc.failure_class} fc={fc} namespaces={data.by_namespace || []} />
+                ))}
               </div>
             </div>
           )}
