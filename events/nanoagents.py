@@ -35,6 +35,21 @@ class FilterAgent(Nanoagent):
             if prev == "pass":
                 event.filtered = True
                 return event
+            if prev == "fail":
+                resolved = Event(
+                    event_type="issue.resolved",
+                    run_id=event.run_id,
+                    stage_id=event.stage_id,
+                    lab_code=event.lab_code,
+                    cluster_name=event.cluster_name,
+                    namespace=event.namespace,
+                    outcome="pass",
+                    failure_class=event.failure_class,
+                    message=f"Resolved: {event.failure_class or 'unknown'} on {event.lab_code}",
+                    priority=event.priority,
+                    metadata={"previous_outcome": "fail"},
+                )
+                bus.emit(resolved)
 
         # Deduplicate same failure class on same lab within window
         if event.event_type == "evaluation.failed" and event.failure_class:

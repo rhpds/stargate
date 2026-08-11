@@ -11,6 +11,7 @@ from db.models import (
     EvidenceRecord,
     LabRemediationConfig,
     RemediationRecord,
+    ResolutionRecord,
     RunRecord,
     StageRecord,
 )
@@ -267,7 +268,50 @@ def create_evaluation(
     db.add(record)
     db.commit()
     db.refresh(record)
+
+    if outcome == "pass" and lab_code and failure_class:
+        _check_for_resolution(db, record)
+
     return record
+
+
+def _check_for_resolution(db: Session, passing_eval: EvaluationRecord) -> None:
+    """If the previous evaluation for this lab+failure_class was a fail,
+    record a resolution with cause attribution."""
+    import logging
+    log = logging.getLogger("stargate.resolution")
+
+    prev = (
+        db.query(EvaluationRecord)
+        .filter(
+            EvaluationRecord.lab_code == passing_eval.lab_code,
+            EvaluationRecord.failure_class == passing_eval.failure_class,
+            EvaluationRecord.id < passing_eval.id,
+        )
+        .order_by(EvaluationRecord.id.desc())
+        .first()
+    )
+    if not prev or prev.outcome != "fail":
+        return
+
+    try:
+        record_resolution(
+            db=db,
+            lab_code=passing_eval.lab_code,
+            cluster=passing_eval.cluster_name or "",
+            failure_class=passing_eval.failure_class,
+            failing_eval_id=prev.id,
+            resolved_eval_id=passing_eval.id,
+            detected_at=prev.evaluated_at,
+            resolved_at=passing_eval.evaluated_at,
+        )
+        log.info(
+            "Resolution recorded: %s/%s fail→pass (eval %d→%d)",
+            passing_eval.lab_code, passing_eval.failure_class,
+            prev.id, passing_eval.id,
+        )
+    except Exception:
+        log.exception("Failed to record resolution for %s", passing_eval.lab_code)
 
 
 def list_evaluations(
@@ -1309,3 +1353,44 @@ def refresh_overview_snapshot(db: Session) -> None:
         updated_at=now,
     ))
     db.commit()
+
+
+def record_resolution(
+    db: Session,
+    lab_code: str,
+    cluster: str,
+    failure_class: str,
+    failing_eval_id: Optional[int],
+    resolved_eval_id: Optional[int],
+    detected_at: datetime,
+    resolved_at: datetime,
+) -> Optional[ResolutionRecord]:
+    """Create a ResolutionRecord when a fail→pass transition is detected.
+
+    Uses _determine_resolution_cause from historical_miner to attribute what
+    fixed it: stargate_remediated, human_remediated, namespace_recycled,
+    incident_acknowledged, geolux_remediated, or self_resolved.
+    """
+    from engine.historical_miner import _determine_resolution_cause
+
+    cause = _determine_resolution_cause(lab_code, cluster or "", resolved_eval_id or 0, db)
+
+    ttr = (resolved_at - detected_at).total_seconds() if detected_at and resolved_at else None
+
+    rec = ResolutionRecord(
+        lab_code=lab_code,
+        cluster=cluster,
+        failure_class=failure_class,
+        failing_eval_id=failing_eval_id,
+        resolved_eval_id=resolved_eval_id,
+        resolution_type=cause.get("cause", "self_resolved"),
+        resolved_by=cause.get("resolved_by"),
+        resolution_action=cause.get("action"),
+        detected_at=detected_at,
+        resolved_at=resolved_at,
+        ttr_seconds=ttr,
+        audit_evidence=cause.get("audit_evidence"),
+    )
+    db.add(rec)
+    db.commit()
+    return rec

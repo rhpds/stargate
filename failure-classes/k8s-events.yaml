@@ -58,17 +58,17 @@ classes:
     pattern: "(NodeNotReady|EvictionThresholdMet|DiskPressure|MemoryPressure|PIDPressure)"
     severity: critical
     remediation:
-      - "Check node conditions: oc get nodes -o wide"
-      - "Identify top resource consumers: oc adm top pods -A"
+      - "Check pod resource usage in namespace: oc adm top pods -n {namespace}"
+      - "Check events for eviction: oc get events -n {namespace} --field-selector=reason=Evicted"
       - Consider draining the node and investigating
 
   pvc_binding_failed:
     pattern: "(FailedBinding|ProvisioningFailed|no persistent volumes available|WaitForFirstConsumer)"
     severity: high
     remediation:
-      - "Check available PVs: oc get pv"
+      - "Check PVC status: oc get pvc -n {namespace}"
+      - "Check PVs bound to namespace: oc get pv -o wide | grep {namespace}"
       - Verify storage class exists and has capacity
-      - Check CSI driver health
 
   quota_exceeded:
     pattern: "(forbidden.*quota|exceeded quota|ResourceQuota)"
@@ -97,9 +97,9 @@ classes:
     pattern: "(FailedScheduling|Unschedulable|insufficient.*resources|nodes are available)"
     severity: high
     remediation:
-      - "Check node resource availability: oc adm top nodes"
+      - "Check scheduling events: oc get events -n {namespace} --field-selector=reason=FailedScheduling"
       - Verify node selectors and tolerations
-      - Consider scaling the cluster or freeing resources
+      - "Check resource quotas: oc get resourcequota -n {namespace}"
 
   claim_misbound:
     pattern: "(ClaimMisbound|claim is bound to a non-existent|pvc.*misbound)"
@@ -213,7 +213,7 @@ classes:
     severity: medium
     remediation:
       - Check PV status and claimRef
-      - "oc get pv | grep Released"
+      - "oc get pv -o wide | grep {namespace}"
       - Verify the referenced namespace no longer exists
       - Delete orphaned PVs after confirmation
 
@@ -222,8 +222,8 @@ classes:
     severity: critical
     remediation:
       - Check operator pod status
-      - "oc get pods -n openshift-cnv"
-      - "oc get csv -n openshift-cnv"
+      - "oc get csv -n {namespace}"
+      - "oc get pods -n {namespace} | grep -v Running"
       - Review operator logs for the failure reason
 
   operator_degraded:
@@ -231,5 +231,5 @@ classes:
     severity: high
     remediation:
       - Check operator conditions
-      - "oc get clusteroperator"
-      - Review degraded reason in operator status
+      - "oc get csv -n {namespace}"
+      - "oc get events -n {namespace} --field-selector=type=Warning"

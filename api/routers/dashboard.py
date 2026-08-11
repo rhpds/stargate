@@ -1239,6 +1239,56 @@ def dashboard_mttr(hours: int = 168, db: Session = Depends(get_db)):
     return repository.compute_mttr(db, hours=hours)
 
 
+@router.get("/dashboard/resolutions")
+def dashboard_resolutions(
+    lab_code: Optional[str] = None,
+    failure_class: Optional[str] = None,
+    hours: int = 168,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """Recent resolution records with cause attribution."""
+    from db.models import ResolutionRecord
+    from datetime import timedelta
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    query = db.query(ResolutionRecord).filter(ResolutionRecord.resolved_at >= cutoff)
+    if lab_code:
+        query = query.filter(ResolutionRecord.lab_code == lab_code)
+    if failure_class:
+        query = query.filter(ResolutionRecord.failure_class == failure_class)
+
+    records = query.order_by(ResolutionRecord.resolved_at.desc()).limit(limit).all()
+
+    by_type: Dict[str, int] = {}
+    ttr_values: List[float] = []
+    for r in records:
+        by_type[r.resolution_type] = by_type.get(r.resolution_type, 0) + 1
+        if r.ttr_seconds and r.ttr_seconds > 0:
+            ttr_values.append(r.ttr_seconds / 60.0)
+
+    return {
+        "total": len(records),
+        "by_type": by_type,
+        "avg_ttr_minutes": round(sum(ttr_values) / len(ttr_values), 1) if ttr_values else None,
+        "records": [
+            {
+                "id": r.id,
+                "lab_code": r.lab_code,
+                "cluster": r.cluster,
+                "failure_class": r.failure_class,
+                "resolution_type": r.resolution_type,
+                "resolved_by": r.resolved_by,
+                "resolution_action": r.resolution_action,
+                "detected_at": r.detected_at.isoformat() if r.detected_at else None,
+                "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+                "ttr_minutes": round(r.ttr_seconds / 60.0, 1) if r.ttr_seconds else None,
+            }
+            for r in records
+        ],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Summit Report
 # ---------------------------------------------------------------------------
