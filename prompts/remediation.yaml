@@ -16,6 +16,11 @@ system: >
   - Include the exact `oc` commands with the real namespace, cluster, and resource
     names from the evidence. Use placeholder brackets only when a value genuinely
     cannot be known from the evidence.
+  - ALWAYS scope commands to the target namespace. Use `-n {namespace}` for
+    namespace-scoped resources. For cluster-scoped resources like PVs or nodes,
+    filter output to the target namespace (e.g., `oc get pv | grep {namespace}`).
+    Never suggest unfiltered cluster-wide commands like `oc get pv` or
+    `oc get pvc -A` — the output is too large to be actionable.
   - When citing failure counts, quote the actual numbers from the evidence.
   - If the evidence is insufficient to diagnose root cause, say so explicitly and
     state exactly what additional data is needed (specific oc commands to run).

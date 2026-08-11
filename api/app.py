@@ -321,6 +321,23 @@ def _auto_resolve_incidents(db):
             inc.parameters = params
             resolved_count += 1
 
+            if fc:
+                try:
+                    from db.repository import record_resolution
+                    proposed_at = inc.proposed_at or inc.reviewed_at
+                    record_resolution(
+                        db=db,
+                        lab_code=ns,
+                        cluster=(inc.parameters or {}).get("cluster", ""),
+                        failure_class=fc,
+                        failing_eval_id=None,
+                        resolved_eval_id=None,
+                        detected_at=proposed_at,
+                        resolved_at=datetime.now(timezone.utc),
+                    )
+                except Exception:
+                    pass
+
     if resolved_count > 0:
         db.commit()
         import logging

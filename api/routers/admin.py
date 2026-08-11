@@ -2188,6 +2188,294 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
 
 
 # ---------------------------------------------------------------------------
+# Catalog Item Baselines (for needs-attention classification)
+# ---------------------------------------------------------------------------
+
+def _build_catalog_baselines(db, hours: int = 168) -> Dict:
+    """Build per-catalog-item baseline failure profiles from evaluation history.
+
+    Returns {catalog_item: {failure_class: {rate, p95_ttr_minutes, count}}}
+    Used to distinguish 'expected noise' from 'needs attention'.
+    """
+    from db.models import EvaluationRecord
+    from sqlalchemy import func
+    import re as _re
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    rows = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.outcome,
+        EvaluationRecord.failure_class,
+        func.count().label("cnt"),
+    ).filter(
+        EvaluationRecord.evaluated_at >= cutoff,
+        EvaluationRecord.lab_code.isnot(None),
+    ).group_by(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.outcome,
+        EvaluationRecord.failure_class,
+    ).all()
+
+    # Group by catalog item
+    cat_data: Dict[str, Dict] = {}
+    for lab_code, outcome, fc, cnt in rows:
+        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", lab_code)
+        cat = m.group(1) if m else lab_code
+        if cat not in cat_data:
+            cat_data[cat] = {"total_evals": 0, "namespaces": set(), "failures": {}}
+        cat_data[cat]["total_evals"] += cnt
+        cat_data[cat]["namespaces"].add(lab_code)
+        if outcome == "fail" and fc:
+            cat_data[cat]["failures"].setdefault(fc, 0)
+            cat_data[cat]["failures"][fc] += cnt
+
+    # Build TTR baselines from resolution records
+    ttr_by_cat: Dict[str, Dict[str, list]] = {}
+    try:
+        from db.models import ResolutionRecord
+        res_rows = db.query(
+            ResolutionRecord.lab_code,
+            ResolutionRecord.failure_class,
+            ResolutionRecord.ttr_seconds,
+        ).filter(
+            ResolutionRecord.resolved_at >= cutoff,
+            ResolutionRecord.ttr_seconds.isnot(None),
+            ResolutionRecord.ttr_seconds > 0,
+        ).all()
+        for lab_code, fc, ttr in res_rows:
+            m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", lab_code)
+            cat = m.group(1) if m else lab_code
+            ttr_by_cat.setdefault(cat, {}).setdefault(fc, []).append(ttr / 60.0)
+    except Exception:
+        pass
+
+    baselines: Dict[str, Dict] = {}
+    for cat, d in cat_data.items():
+        total = d["total_evals"]
+        ns_count = len(d["namespaces"])
+        fc_profiles = {}
+        for fc, fail_cnt in d["failures"].items():
+            rate = round(fail_cnt / max(total, 1), 3)
+            ttr_list = sorted(ttr_by_cat.get(cat, {}).get(fc, []))
+            p95 = ttr_list[int(len(ttr_list) * 0.95)] if len(ttr_list) > 1 else (ttr_list[0] if ttr_list else None)
+            fc_profiles[fc] = {
+                "rate": rate,
+                "count": fail_cnt,
+                "p95_ttr_minutes": round(p95, 1) if p95 else None,
+            }
+        baselines[cat] = {
+            "namespace_count": ns_count,
+            "total_evals": total,
+            "failure_profiles": fc_profiles,
+        }
+    return baselines
+
+
+def _classify_namespace(
+    ns: str, catalog_item: str, failure_classes: Dict[str, int],
+    first_eval_at: Optional[datetime], baselines: Dict,
+) -> Dict:
+    """Classify a failing namespace as: stuck, anomalous, provisioning, or expected.
+
+    - provisioning: namespace < 20 min old, failures are common for this catalog item
+    - stuck: failure duration exceeds P95 TTR for this catalog item + failure class
+    - anomalous: failure class is unusual for this catalog item (< 5% baseline rate)
+    - expected: normal churn — this failure class and rate are typical
+    """
+    now = datetime.now(timezone.utc)
+    age_minutes = None
+    if first_eval_at:
+        first = first_eval_at.replace(tzinfo=timezone.utc) if first_eval_at.tzinfo is None else first_eval_at
+        age_minutes = (now - first).total_seconds() / 60.0
+
+    baseline = baselines.get(catalog_item, {})
+    fc_profiles = baseline.get("failure_profiles", {})
+
+    # Young namespace — likely still provisioning
+    if age_minutes is not None and age_minutes < 20:
+        return {"attention": "provisioning", "reason": f"namespace is {int(age_minutes)}m old"}
+
+    top_fc = max(failure_classes, key=failure_classes.get) if failure_classes else None
+    if not top_fc:
+        return {"attention": "expected", "reason": "no classified failures"}
+
+    profile = fc_profiles.get(top_fc, {})
+    baseline_rate = profile.get("rate", 0)
+    p95_ttr = profile.get("p95_ttr_minutes")
+
+    # Stuck: failing longer than P95 TTR (with a floor of 30 min)
+    if age_minutes is not None and p95_ttr:
+        threshold = max(p95_ttr, 30)
+        if age_minutes > threshold:
+            return {
+                "attention": "stuck",
+                "reason": f"{top_fc} for {int(age_minutes)}m (P95 is {int(p95_ttr)}m)",
+            }
+
+    # Anomalous: failure class is rare for this catalog item
+    if baseline_rate < 0.05 and baseline.get("total_evals", 0) > 50:
+        return {
+            "attention": "anomalous",
+            "reason": f"{top_fc} is unusual for {catalog_item} ({baseline_rate*100:.0f}% baseline)",
+        }
+
+    # Stuck fallback: no TTR data but failing for > 60 min
+    if age_minutes is not None and age_minutes > 60 and not p95_ttr:
+        return {
+            "attention": "stuck",
+            "reason": f"{top_fc} for {int(age_minutes)}m (no baseline TTR)",
+        }
+
+    return {"attention": "expected", "reason": f"{top_fc} is normal for {catalog_item}"}
+
+
+def _build_failure_class_view(
+    by_namespace: list, baselines: Dict, ns_data: Dict, db,
+) -> list:
+    """Build a per-failure-class correlation view.
+
+    For each failure class currently active, computes:
+    - affected_namespaces: count and list of namespaces hit
+    - affected_catalog_items: which lab types are affected
+    - affected_clusters: which clusters are affected
+    - stuck_count: how many of those namespaces are classified as stuck
+    - baseline_rate: 7-day average rate across all catalog items
+    - current_rate: current-hour rate (affected / total monitored)
+    - attention: spiking (> 2x baseline), spreading (hitting unusual catalog items),
+      concentrated (isolated to one catalog item), or normal
+    """
+    import re as _re
+
+    # Aggregate current failure data by failure class
+    fc_agg: Dict[str, Dict] = {}
+    for entry in by_namespace:
+        ns = entry["namespace"]
+        cat = entry.get("catalog_item", "unknown")
+        cluster = entry.get("cluster", "")
+        d = ns_data.get(ns, {})
+        att = entry.get("attention", "expected")
+
+        for fc, cnt in d.get("failure_classes", {}).items():
+            if fc not in fc_agg:
+                fc_agg[fc] = {
+                    "namespaces": [], "catalog_items": {}, "clusters": {},
+                    "total_hits": 0, "stuck": 0, "anomalous": 0,
+                }
+            agg = fc_agg[fc]
+            agg["namespaces"].append(ns)
+            agg["total_hits"] += cnt
+            agg["catalog_items"][cat] = agg["catalog_items"].get(cat, 0) + 1
+            agg["clusters"][cluster] = agg["clusters"].get(cluster, 0) + 1
+            if att == "stuck":
+                agg["stuck"] += 1
+            elif att == "anomalous":
+                agg["anomalous"] += 1
+
+    # Compute baseline rate across all catalog items for each failure class
+    fc_baseline_rates: Dict[str, float] = {}
+    total_baseline_evals = sum(b.get("total_evals", 0) for b in baselines.values())
+    for cat, bl in baselines.items():
+        for fc, profile in bl.get("failure_profiles", {}).items():
+            fc_baseline_rates[fc] = fc_baseline_rates.get(fc, 0) + profile.get("count", 0)
+    for fc in fc_baseline_rates:
+        fc_baseline_rates[fc] = fc_baseline_rates[fc] / max(total_baseline_evals, 1)
+
+    # Compute baseline catalog items per failure class (which catalog items normally see this failure)
+    fc_baseline_cats: Dict[str, set] = {}
+    for cat, bl in baselines.items():
+        for fc, profile in bl.get("failure_profiles", {}).items():
+            if profile.get("rate", 0) >= 0.05:
+                fc_baseline_cats.setdefault(fc, set()).add(cat)
+
+    # Get resolution data per failure class
+    fc_resolutions: Dict[str, Dict] = {}
+    try:
+        from db.models import ResolutionRecord
+        from sqlalchemy import func
+        twenty_four_h_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+        res_rows = db.query(
+            ResolutionRecord.failure_class,
+            ResolutionRecord.resolution_type,
+            func.count().label("cnt"),
+        ).filter(
+            ResolutionRecord.resolved_at >= twenty_four_h_ago,
+        ).group_by(
+            ResolutionRecord.failure_class,
+            ResolutionRecord.resolution_type,
+        ).all()
+        for fc, res_type, cnt in res_rows:
+            fc_resolutions.setdefault(fc, {})
+            fc_resolutions[fc][res_type] = cnt
+    except Exception:
+        pass
+
+    total_monitored = len(ns_data)
+    result = []
+
+    for fc, agg in sorted(fc_agg.items(), key=lambda x: x[1]["stuck"] + x[1]["anomalous"], reverse=True):
+        ns_count = len(agg["namespaces"])
+        current_rate = ns_count / max(total_monitored, 1)
+        baseline_rate = fc_baseline_rates.get(fc, 0)
+        cats_affected = agg["catalog_items"]
+        cats_baseline = fc_baseline_cats.get(fc, set())
+
+        # Classify
+        new_cats = set(cats_affected.keys()) - cats_baseline
+        if baseline_rate > 0 and current_rate > baseline_rate * 2 and ns_count >= 3:
+            attention = "spiking"
+            reason = f"{current_rate*100:.0f}% of namespaces vs {baseline_rate*100:.1f}% baseline ({current_rate/baseline_rate:.1f}x)"
+        elif new_cats and len(cats_baseline) > 0:
+            attention = "spreading"
+            reason = f"now hitting {', '.join(sorted(new_cats))} (not in baseline)"
+        elif len(cats_affected) == 1 and ns_count >= 3:
+            attention = "concentrated"
+            cat_name = list(cats_affected.keys())[0]
+            reason = f"isolated to {cat_name} ({ns_count} namespaces)"
+        elif agg["stuck"] > 0:
+            attention = "stuck"
+            reason = f"{agg['stuck']} namespace{'s' if agg['stuck'] != 1 else ''} stuck"
+        else:
+            attention = "normal"
+            reason = f"within baseline ({current_rate*100:.0f}% vs {baseline_rate*100:.1f}%)"
+
+        # Resolution profile for this failure class
+        resolutions = fc_resolutions.get(fc, {})
+        total_resolved = sum(resolutions.values())
+        self_resolve_pct = round(resolutions.get("self_resolved", 0) / max(total_resolved, 1) * 100) if total_resolved else None
+
+        result.append({
+            "failure_class": fc,
+            "affected_namespaces": ns_count,
+            "affected_catalog_items": sorted([
+                {"catalog_item": cat, "count": cnt}
+                for cat, cnt in cats_affected.items()
+            ], key=lambda x: -x["count"]),
+            "affected_clusters": sorted([
+                {"cluster": c, "count": cnt}
+                for c, cnt in agg["clusters"].items()
+            ], key=lambda x: -x["count"]),
+            "total_hits": agg["total_hits"],
+            "stuck_count": agg["stuck"],
+            "anomalous_count": agg["anomalous"],
+            "current_rate": round(current_rate, 4),
+            "baseline_rate": round(baseline_rate, 4),
+            "attention": attention,
+            "attention_reason": reason,
+            "resolutions_24h": resolutions if resolutions else None,
+            "self_resolve_pct": self_resolve_pct,
+        })
+
+    result.sort(key=lambda x: (
+        0 if x["attention"] == "spiking" else 1 if x["attention"] == "spreading" else
+        2 if x["attention"] == "stuck" else 3 if x["attention"] == "concentrated" else 4,
+        -x["affected_namespaces"],
+    ))
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
 
@@ -2271,6 +2559,22 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 stage = STAGE_MAP.get(fc, "workload")
                 d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
 
+    # Build catalog item baselines and first-eval timestamps for classification
+    baselines = _build_catalog_baselines(db)
+
+    first_eval_map: Dict[str, datetime] = {}
+    try:
+        first_evals = db.query(
+            EvaluationRecord.lab_code,
+            func.min(EvaluationRecord.evaluated_at).label("first_at"),
+        ).filter(
+            EvaluationRecord.lab_code.in_(list(ns_data.keys())),
+        ).group_by(EvaluationRecord.lab_code).all()
+        for lab_code, first_at in first_evals:
+            first_eval_map[lab_code] = first_at
+    except Exception:
+        pass
+
     # Build namespace rows — only namespaces with real failures (green ones are noise)
     by_namespace = []
     all_ns_stages = []
@@ -2303,16 +2607,34 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             continue
 
         top_fc = max(d["failure_classes"], key=d["failure_classes"].get) if d["failure_classes"] else None
+
+        # Extract catalog item name from sandbox namespace
+        import re as _re
+        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
+        catalog_item = m.group(1) if m else ns
+
+        classification = _classify_namespace(
+            ns, catalog_item, d["failure_classes"],
+            first_eval_map.get(ns), baselines,
+        )
+
         by_namespace.append({
             "namespace": ns,
             "cluster": d["cluster"],
+            "catalog_item": catalog_item,
             "pass": d["pass"],
             "fail": d["fail"],
             "total": d["total"],
             "health_pct": health_pct,
             "top_failure": top_fc,
+            "attention": classification["attention"],
+            "attention_reason": classification["reason"],
             "stages": stages,
         })
+
+    # Sort by attention: stuck > anomalous > provisioning > expected
+    ATTENTION_ORDER = {"stuck": 0, "anomalous": 1, "provisioning": 2, "expected": 3}
+    by_namespace.sort(key=lambda r: (ATTENTION_ORDER.get(r.get("attention", "expected"), 3), -r["fail"]))
 
     # Build lab grouping (by demo_id prefix)
     lab_map: Dict[str, Dict] = {}
@@ -2413,6 +2735,32 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "stages": stages,
         })
 
+    # Attach last resolution info (single batch query)
+    try:
+        from db.models import ResolutionRecord
+        failing_ns = [r["namespace"] for r in by_namespace]
+        if failing_ns:
+            latest_resolutions = (
+                db.query(ResolutionRecord)
+                .filter(ResolutionRecord.lab_code.in_(failing_ns))
+                .order_by(ResolutionRecord.resolved_at.desc())
+                .all()
+            )
+            res_by_ns: Dict[str, Dict] = {}
+            for r in latest_resolutions:
+                if r.lab_code not in res_by_ns:
+                    res_by_ns[r.lab_code] = {
+                        "resolution_type": r.resolution_type,
+                        "resolved_by": r.resolved_by,
+                        "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+                        "ttr_minutes": round(r.ttr_seconds / 60.0, 1) if r.ttr_seconds else None,
+                        "failure_class": r.failure_class,
+                    }
+            for entry in by_namespace:
+                entry["last_resolution"] = res_by_ns.get(entry["namespace"])
+    except Exception:
+        pass
+
     # Summary — counts ALL namespaces (including healthy) for accurate percentages
     total_ns_count = len(all_ns_stages)
     stage_totals: Dict[str, Dict[str, int]] = {s: {"green": 0, "yellow": 0, "red": 0} for s in STAGES}
@@ -2421,16 +2769,46 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             st = stages.get(s, {}).get("status", "green")
             stage_totals[s][st] = stage_totals[s].get(st, 0) + 1
 
+    # Attention breakdown
+    attention_counts: Dict[str, int] = {}
+    for entry in by_namespace:
+        a = entry.get("attention", "expected")
+        attention_counts[a] = attention_counts.get(a, 0) + 1
+
+    # Catalog item health summary
+    cat_health: Dict[str, Dict] = {}
+    for entry in by_namespace:
+        cat = entry.get("catalog_item", "unknown")
+        if cat not in cat_health:
+            cat_health[cat] = {"total": 0, "stuck": 0, "anomalous": 0, "expected": 0, "provisioning": 0}
+        cat_health[cat]["total"] += 1
+        cat_health[cat][entry.get("attention", "expected")] += 1
+
+    by_catalog_item = sorted([
+        {"catalog_item": cat, **counts}
+        for cat, counts in cat_health.items()
+    ], key=lambda x: x["stuck"] + x["anomalous"], reverse=True)
+
+    # --- Failure class correlation view ---
+    # Per failure class: current rate vs baseline, which catalog items & clusters hit,
+    # attention classification (spiking / spreading / normal / improving)
+    by_failure_class = _build_failure_class_view(by_namespace, baselines, ns_data, db)
+
     return {
         "stages": STAGES,
         "by_namespace": by_namespace[:500],
         "by_lab": by_lab,
         "by_cluster": by_cluster,
+        "by_catalog_item": by_catalog_item,
+        "by_failure_class": by_failure_class,
         "summary": {
             "total_namespaces": len(by_namespace),
             "total_monitored": total_ns_count,
             "total_labs": len(by_lab),
             "total_clusters": len(by_cluster),
+            "needs_attention": attention_counts.get("stuck", 0) + attention_counts.get("anomalous", 0),
+            "expected_noise": attention_counts.get("expected", 0) + attention_counts.get("provisioning", 0),
+            "attention_counts": attention_counts,
             "stages_health": {
                 s: "red" if t["red"] > 0 else "yellow" if t["yellow"] > 0 else "green"
                 for s, t in stage_totals.items()
