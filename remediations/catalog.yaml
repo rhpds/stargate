@@ -1123,7 +1123,8 @@
   allowed_when:
   - failure_class == operator_degraded
   commands:
-  - oc get co | grep -v 'True.*False.*False'
+  - oc get csv -n {namespace}
+  - oc get events -n {namespace} --field-selector=type=Warning --sort-by=.lastTimestamp
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_operator_install_failed
@@ -1135,8 +1136,8 @@
   allowed_when:
   - failure_class == operator_install_failed
   commands:
-  - oc get installplan -A | grep -v Complete
-  - oc get catalogsource -n openshift-marketplace
+  - oc get installplan -n {namespace}
+  - oc get csv -n {namespace}
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_outdated_vmi_workloads
@@ -1148,7 +1149,7 @@
   allowed_when:
   - failure_class == outdated_vmi_workloads
   commands:
-  - oc get vmi -A | grep -v Running
+  - oc get vmi -n {namespace} | grep -v Running
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_pdb_at_limit
@@ -1553,28 +1554,28 @@
   risk: low
   mode: recommend_only
   execution_method: kubernetes
-  scope: cluster
+  scope: namespace
   requires_approval: false
   allowed_when:
   - failure_class == resource_leak_pv
   commands:
-  - oc get pv -o wide | grep Released
-  - oc get pv -o json
+  - oc get pv -o wide | grep {namespace}
+  - oc get pvc -n {namespace} -o wide
   forbidden_when: []
 
 - id: investigate_operator_health
   risk: low
   mode: recommend_only
   execution_method: kubernetes
-  scope: cluster
+  scope: namespace
   requires_approval: false
   allowed_when:
   - failure_class == operator_unhealthy
   - failure_class == operator_degraded
   commands:
-  - oc get pods -n openshift-cnv -o wide
-  - oc get csv -A | grep -v Succeeded
-  - oc get clusteroperator
+  - oc get csv -n {namespace}
+  - oc get pods -n {namespace} -o wide | grep -v Running
+  - oc get events -n {namespace} --field-selector=type=Warning --sort-by=.lastTimestamp
   forbidden_when: []
 
 - id: investigate_crashloop
@@ -1614,8 +1615,8 @@
   - failure_class == scheduling_failed
   commands:
   - oc describe pod {pod} -n {namespace}
-  - oc get nodes -o wide
-  - oc adm top nodes
+  - oc get events -n {namespace} --field-selector=reason=FailedScheduling
+  - oc get resourcequota -n {namespace}
   forbidden_when:
   - namespace == openshift-*
 - id: investigate_backoff_limit
@@ -1655,7 +1656,7 @@
   commands:
   - oc describe pod {pod} -n {namespace}
   - oc get resourcequota -n {namespace}
-  - oc adm top nodes
+  - oc get events -n {namespace} --field-selector=reason=FailedScheduling
   forbidden_when:
   - namespace == openshift-*
 - id: investigate_invalid_config
@@ -1682,7 +1683,7 @@
   - failure_class == volume_attach_failed
   commands:
   - oc get pvc -n {namespace}
-  - oc get pv
+  - oc get pv -o wide | grep {namespace}
   - oc describe pod {pod} -n {namespace}
   forbidden_when:
   - namespace == openshift-*

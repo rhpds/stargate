@@ -8,8 +8,8 @@ classes:
     alertnames: [SystemMemoryExceedsReservation, NodeMemoryPressure, KubeMemoryOvercommit]
     severity: warning
     remediation:
-      - "Check memory usage per node: oc adm top nodes"
-      - "Identify top memory consumers: oc adm top pods -A --sort-by=memory"
+      - "Check memory usage in namespace: oc adm top pods -n {namespace} --sort-by=memory"
+      - "Check resource limits: oc get resourcequota -n {namespace}"
       - Consider evicting non-critical workloads or adding nodes
       - Review system reserved memory configuration
 
@@ -17,7 +17,7 @@ classes:
     alertnames: [PodDisruptionBudgetAtLimit, PodDisruptionBudgetLimit]
     severity: warning
     remediation:
-      - "Check which PDBs are at limit: oc get pdb -A"
+      - "Check PDBs in namespace: oc get pdb -n {namespace}"
       - Review if the PDB minAvailable is too high
       - May block node drains and upgrades
 
@@ -50,8 +50,8 @@ classes:
     alertnames: [ClusterNotUpgradeable]
     severity: warning
     remediation:
-      - "Check cluster operator status: oc get co"
-      - "Identify blocking conditions: oc get clusterversion -o yaml"
+      - "Check operator status in namespace: oc get csv -n {namespace}"
+      - "Check events: oc get events -n {namespace} --field-selector=type=Warning"
       - Resolve operator issues before attempting upgrade
 
   alertmanager_misconfigured:
@@ -82,7 +82,7 @@ classes:
     severity: info
     remediation:
       - Restart VMIs to pick up the latest virt-launcher version
-      - "oc get vmi -A | grep -v Running"
+      - "oc get vmi -n {namespace} | grep -v Running"
       - Schedule rolling restart during maintenance window
 
   watchdog:
@@ -112,14 +112,14 @@ classes:
     alertnames: [KubeNodeNotReady, KubeNodeUnreachable]
     severity: critical
     remediation:
-      - "Check node status: oc get nodes"
-      - "SSH to the node and check kubelet: systemctl status kubelet"
+      - "Check pod status in namespace: oc get pods -n {namespace} -o wide"
+      - "Check scheduling events: oc get events -n {namespace} --field-selector=reason=FailedScheduling"
       - Check for network partition or hardware failure
 
   persistent_volume_errors:
     alertnames: [KubePersistentVolumeErrors, KubePersistentVolumeFillingUp]
     severity: warning
     remediation:
-      - "Check PV status: oc get pv | grep -v Bound"
-      - "Identify filling volumes: oc get pvc -A --sort-by=.status.capacity.storage"
+      - "Check PVCs in namespace: oc get pvc -n {namespace}"
+      - "Check PVs for namespace: oc get pv -o wide | grep {namespace}"
       - Plan capacity expansion or cleanup

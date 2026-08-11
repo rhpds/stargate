@@ -349,6 +349,8 @@ class RemediationRecord(Base):
     remediation_id = Column(String(255), nullable=False, index=True)
     action_taken = Column(Text, nullable=True)
     resolved = Column(Boolean, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    verification_eval_id = Column(Integer, nullable=True)
     applied_at = Column(DateTime(timezone=True), nullable=True)
     applied_by = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
@@ -435,6 +437,28 @@ class SandboxAPIMetric(Base):
     failing = Column(Integer, nullable=True)
     crashloop = Column(Integer, nullable=True)
     by_cluster = Column(JSON, nullable=True)
+
+
+class ResolutionRecord(Base):
+    """Tracks how and when a failure was resolved — ties together the failing
+    evaluation, resolution cause, confirming pass evaluation, and any
+    remediation action that preceded the recovery."""
+    __tablename__ = "resolution_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    lab_code = Column(String(255), nullable=False, index=True)
+    cluster = Column(String(100), nullable=True, index=True)
+    failure_class = Column(String(255), nullable=False, index=True)
+    failing_eval_id = Column(Integer, nullable=True)
+    resolved_eval_id = Column(Integer, nullable=True)
+    remediation_id = Column(Integer, nullable=True)
+    resolution_type = Column(String(50), nullable=False, index=True)
+    resolved_by = Column(String(255), nullable=True)
+    resolution_action = Column(Text, nullable=True)
+    detected_at = Column(DateTime(timezone=True), nullable=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=False)
+    ttr_seconds = Column(Float, nullable=True)
+    audit_evidence = Column(JSON, nullable=True)
 
 
 class LabRemediationConfig(Base):
