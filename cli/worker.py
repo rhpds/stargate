@@ -340,6 +340,7 @@ class ClusterWorker:
         lab_mappings = self._get_lab_mappings()
 
         outcome_changes = []
+        uuid_map: Dict[str, str] = {}  # serviceUuid -> namespace
         for ns in batch:
             lab_code = None
             if lab_mappings:
@@ -347,6 +348,8 @@ class ClusterWorker:
                 lab_code = match_namespace_to_lab(ns, lab_mappings)
             result = self._collect_namespace(ns, lab_code=lab_code)
             if result:
+                if result.get("service_uuid"):
+                    uuid_map[result["service_uuid"]] = ns
                 persisted += 1
                 ns_outcome = "pass"
                 for r in result.get("results", []):
@@ -369,6 +372,10 @@ class ClusterWorker:
                 self.state.ns_outcomes[ns] = ns_outcome
 
         self.state.scanned_namespaces.update(batch)
+
+        # Resolve lab names from serviceUuids via Sandbox API
+        if uuid_map and self.api_url:
+            self._resolve_lab_names(uuid_map)
 
         return {
             "batch_size": len(batch),
@@ -407,6 +414,17 @@ class ClusterWorker:
             except Exception as e:
                 logger.debug("Resource collection failed: %s", e)
 
+        # Extract serviceUuid from namespace labels for lab name resolution
+        service_uuid = None
+        try:
+            ns_file = f"{tmpdir}/namespace.json"
+            if os.path.exists(ns_file):
+                with open(ns_file) as f:
+                    ns_data = json.load(f)
+                service_uuid = ns_data.get("metadata", {}).get("labels", {}).get("serviceUuid")
+        except Exception:
+            pass
+
         # HTTP health checks for showroom
         self._check_showroom_health(namespace, tmpdir)
 
@@ -426,7 +444,10 @@ class ClusterWorker:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
         try:
-            return json.loads(r.stdout)
+            result = json.loads(r.stdout)
+            if service_uuid:
+                result["service_uuid"] = service_uuid
+            return result
         except Exception as e:
             logger.warning("Namespace collection parse failed: %s", e)
             return None
@@ -444,6 +465,67 @@ class ClusterWorker:
         except Exception as e:
             logger.warning("Lab mapping fetch failed: %s", e)
             return []
+
+    def _resolve_lab_names(self, uuid_map: Dict[str, str]):
+        """Batch-resolve serviceUuids to lab names via Sandbox API and persist to LabMapping."""
+        import urllib.request
+        import re
+
+        sandbox_api = os.environ.get("STARGATE_SANDBOX_API_URL", "")
+        sandbox_token = os.environ.get("STARGATE_SANDBOX_API_TOKEN", "")
+        if not sandbox_api or not sandbox_token:
+            return
+
+        resolved = 0
+        for service_uuid, namespace in uuid_map.items():
+            try:
+                req = urllib.request.Request(
+                    f"{sandbox_api}/api/v1/placements?service_uuid={service_uuid}",
+                    headers={"Authorization": f"Bearer {sandbox_token}"},
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    data = json.loads(resp.read())
+                    if isinstance(data, list) and data:
+                        placement = data[0]
+                    elif isinstance(data, dict) and data.get("items"):
+                        placement = data["items"][0]
+                    else:
+                        continue
+
+                    lab_name = (
+                        placement.get("service_display_name")
+                        or placement.get("catalog_item_display_name")
+                        or placement.get("service_name")
+                        or ""
+                    )
+                    if not lab_name:
+                        continue
+
+                    m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", namespace)
+                    ci_base = m.group(1) if m else namespace
+
+                    # Persist to LabMapping via API
+                    payload = json.dumps({
+                        "lab_code": namespace,
+                        "ci_name": lab_name,
+                        "ci_base": ci_base,
+                        "ci_slug": placement.get("catalog_item_name", ""),
+                        "namespace_pattern": f"sandbox-*-{ci_base}",
+                        "clusters": [self.state.name],
+                    }).encode()
+                    post_req = urllib.request.Request(
+                        f"{self.api_url}/labs/mappings",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="PUT",
+                    )
+                    urllib.request.urlopen(post_req, timeout=5)
+                    resolved += 1
+            except Exception:
+                continue
+
+        if resolved:
+            logger.info("Resolved %d lab names from Sandbox API", resolved)
 
     def _check_showroom_health(self, namespace: str, tmpdir: str):
         """Check showroom readiness via route URL."""

@@ -2564,12 +2564,29 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     baselines = _build_catalog_baselines(db)
 
     # Build catalog item slug -> display name map from Labagator
+    # Build catalog item slug -> display name map
+    # Priority: 1) LabMapping table (scanner-populated), 2) Labagator API, 3) base env fallbacks
     _BASE_ENV_NAMES = {
         "zt-ansiblebu": "Ansible Automation Platform Labs",
         "zt-rhelbu": "RHEL Labs",
         "ocp4-cluster": "OpenShift 4 Cluster",
     }
     catalog_display_names: Dict[str, str] = dict(_BASE_ENV_NAMES)
+
+    # Per-namespace display names from LabMapping (most specific)
+    ns_display_names: Dict[str, str] = {}
+    try:
+        from db.models import LabMapping
+        lab_mappings_db = db.query(LabMapping).filter(LabMapping.ci_name.isnot(None)).all()
+        for m in lab_mappings_db:
+            if m.ci_name:
+                ns_display_names[m.lab_code] = m.ci_name
+                if m.ci_base and m.ci_base not in catalog_display_names:
+                    catalog_display_names[m.ci_base] = m.ci_name
+    except Exception:
+        pass
+
+    # Supplement with Labagator API
     try:
         import urllib.request as _urlreq
         _lab_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
@@ -2583,9 +2600,8 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                         _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
                         if _slug not in catalog_display_names:
                             catalog_display_names[_slug] = _title
-    except Exception as _e:
-        import logging
-        logging.getLogger("stargate").warning("Labagator display name fetch failed: %s", _e)
+    except Exception:
+        pass
 
     # Resolve multi-cluster variants (e.g., 1-ocp4-cluster -> ocp4-cluster)
     for _cat_slug in list(ns_data.keys()):
@@ -2655,7 +2671,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "namespace": ns,
             "cluster": d["cluster"],
             "catalog_item": catalog_item,
-            "lab_name": catalog_display_names.get(catalog_item, catalog_item),
+            "lab_name": ns_display_names.get(ns) or catalog_display_names.get(catalog_item, catalog_item),
             "pass": d["pass"],
             "fail": d["fail"],
             "total": d["total"],

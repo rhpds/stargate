@@ -563,6 +563,46 @@ async def get_lab_mappings():
         db.close()
 
 
+@router.put("/labs/mappings")
+async def upsert_lab_mapping(req: dict):
+    """Upsert a lab mapping — scanner calls this to persist lab name resolution."""
+    from db.database import get_db
+    from db.models import LabMapping
+    from datetime import datetime, timezone
+    db = next(get_db())
+    try:
+        lab_code = req.get("lab_code", "")
+        if not lab_code:
+            return {"error": "lab_code required"}
+        existing = db.query(LabMapping).filter(LabMapping.lab_code == lab_code).first()
+        if existing:
+            if req.get("ci_name"):
+                existing.ci_name = req["ci_name"]
+            if req.get("ci_base"):
+                existing.ci_base = req["ci_base"]
+            if req.get("ci_slug"):
+                existing.ci_slug = req["ci_slug"]
+            if req.get("namespace_pattern"):
+                existing.namespace_pattern = req["namespace_pattern"]
+            if req.get("clusters"):
+                existing.clusters = req["clusters"]
+            existing.updated_at = datetime.now(timezone.utc)
+        else:
+            db.add(LabMapping(
+                lab_code=lab_code,
+                ci_name=req.get("ci_name"),
+                ci_base=req.get("ci_base"),
+                ci_slug=req.get("ci_slug"),
+                namespace_pattern=req.get("namespace_pattern"),
+                clusters=req.get("clusters"),
+                updated_at=datetime.now(timezone.utc),
+            ))
+        db.commit()
+        return {"status": "ok", "lab_code": lab_code}
+    finally:
+        db.close()
+
+
 @router.get("/api/failure-classes")
 async def get_failure_classes():
     """Return all failure classes in normalized shared schema for cross-product sync."""
