@@ -2563,7 +2563,11 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     baselines = _build_catalog_baselines(db)
 
     # Build catalog item slug -> display name map from Labagator
-    catalog_display_names: Dict[str, str] = {}
+    _BASE_ENV_NAMES = {
+        "zt-ansiblebu": "Ansible Automation Platform Labs",
+        "zt-rhelbu": "RHEL Labs",
+    }
+    catalog_display_names: Dict[str, str] = dict(_BASE_ENV_NAMES)
     try:
         import urllib.request as _urlreq
         _lab_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
@@ -2571,8 +2575,8 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             with _urlreq.urlopen(f"{_lab_url}/labs?limit=300", timeout=5) as _resp:
                 _labs = json.loads(_resp.read())
                 for _lab in (_labs if isinstance(_labs, list) else []):
-                    _ci = _lab.get("ci_name", "")
-                    _title = _lab.get("title", "")
+                    _ci = _lab.get("ci_name") or ""
+                    _title = _lab.get("title") or ""
                     if _ci and _title:
                         _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
                         if _slug not in catalog_display_names:
