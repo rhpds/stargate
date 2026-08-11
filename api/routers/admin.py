@@ -2488,6 +2488,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     """
     from db.models import EvaluationRecord
     from sqlalchemy import func, or_
+    import re as _re
 
     STAGES = ["health", "pods", "storage", "network", "workload", "overall"]
 
@@ -2641,7 +2642,6 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         top_fc = max(d["failure_classes"], key=d["failure_classes"].get) if d["failure_classes"] else None
 
         # Extract catalog item name from sandbox namespace
-        import re as _re
         m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
         catalog_item = m.group(1) if m else ns
 
