@@ -21,7 +21,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 SECRETS_DIR = Path(__file__).parent.parent / "secrets"
-KUBECONFIG = str(SECRETS_DIR / "kubeconfig")  # ocp-us-east-1
+_kc_default = SECRETS_DIR / "kubeconfig-ocp-us-east-1"
+KUBECONFIG = str(_kc_default if _kc_default.exists() else SECRETS_DIR / "kubeconfig")
 
 
 def _oc(args: List[str], timeout: int = 30) -> Optional[str]:
