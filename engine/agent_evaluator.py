@@ -206,29 +206,42 @@ def _score_command_safety(analysis: str, tool_calls: List[Dict], case: AgentTest
 
 
 def _score_actionability(analysis: str, tool_calls: List[Dict], case: AgentTestCase) -> float:
-    """Check for specific fix commands or repo links."""
+    """Check for specific fix commands, repo links, or watch-and-wait guidance."""
     text = analysis.lower()
     score = 0.0
 
     # Check for oc commands with real namespaces
     if re.search(r"oc\s+(get|describe|logs)\s+\S+\s+-n\s+\S+", analysis):
-        score += 0.3
+        score += 0.15
 
-    # Check for GitHub URLs
+    # Check for GitHub URLs or repo links
     if "github.com" in text:
-        score += 0.3
+        score += 0.25
 
     # Check for specific remediation language
-    remediation_phrases = [
-        "fix", "remediat", "resolv", "update", "change", "modify",
-        "restart", "redeploy", "rollback", "scale",
-    ]
+    remediation_phrases = ["fix in", "update the", "change the", "modify the", "patch", "reduce", "increase"]
     if any(phrase in text for phrase in remediation_phrases):
         score += 0.2
 
     # Check for specific file paths or image references
-    if re.search(r"(\.yaml|\.yml|Containerfile|Dockerfile|\.py)\b", analysis):
-        score += 0.2
+    if re.search(r"(\.yaml|\.yml|prod\.yaml|common\.yaml|quay\.io/|ghcr\.io/)", analysis):
+        score += 0.15
+
+    # Check for "watch and wait" when appropriate (self-resolved cases)
+    if case.actual_layer == "self_resolved" and any(p in text for p in ["self-resolv", "watch and wait", "transient", "will recover", "no action needed"]):
+        score += 0.3
+
+    # Check for owner attribution
+    if "owner" in text or "@redhat.com" in text:
+        score += 0.1
+
+    # Check for specific container/role/config naming
+    if case.actual_component and any(part.lower() in text for part in case.actual_component.split("/") if len(part) > 3):
+        score += 0.15
+
+    # Check for GIT_REPO_URL reference
+    if "git_repo_url" in text or "git repo" in text:
+        score += 0.1
 
     return min(1.0, score)
 
@@ -236,25 +249,38 @@ def _score_actionability(analysis: str, tool_calls: List[Dict], case: AgentTestC
 def _score_codebase_link(analysis: str, tool_calls: List[Dict], case: AgentTestCase) -> float:
     """Check for reference to AgnosticV/AgnosticD source."""
     text = analysis.lower()
+    score = 0.0
 
-    # Direct path match
+    # Direct path match (strongest signal)
     if case.agnosticv_path and case.agnosticv_path.lower() in text:
-        return 1.0
+        score = max(score, 1.0)
+
+    # GitHub URL with specific path
+    if re.search(r"github\.com/rhpds/agnosticv/tree/main/\S+", analysis):
+        score = max(score, 0.9)
 
     # GitHub org reference
-    if "github.com/rhpds" in text or "rhpds/agnosticv" in text:
-        return 0.8
+    if "github.com/rhpds" in text:
+        score = max(score, 0.7)
 
     # Generic agnosticv/agnosticd reference
     if "agnosticv" in text or "agnosticd" in text:
-        return 0.5
+        score = max(score, 0.5)
 
-    # Check if fetch_github_file was called
+    # GIT_REPO_URL from pod env vars
+    if "git_repo_url" in text or re.search(r"github\.com/rhpds/zt-", analysis):
+        score = max(score, 0.6)
+
+    # Check if fetch_github_file was called (agent tried to look at the code)
     for tc in tool_calls:
         if tc.get("tool") == "fetch_github_file":
-            return 0.6
+            score = max(score, 0.5)
 
-    return 0.0
+    # For self-resolved issues, codebase link is less important
+    if case.actual_layer == "self_resolved" and score == 0.0:
+        score = 0.3  # partial credit — no code fix needed
+
+    return score
 
 
 def _score_efficiency(analysis: str, tool_calls: List[Dict], case: AgentTestCase, iterations: int = 0) -> float:
@@ -776,6 +802,197 @@ def get_hardcoded_test_cases() -> List[AgentTestCase]:
                 ),
             },
             expected_keywords=["transient", "resolved", "dns", "readiness", "recovered"],
+        ),
+
+        # Case 6: Scheduling failed — node capacity
+        AgentTestCase(
+            id="hc-006-scheduling-failed",
+            namespace="sandbox-pqr12-ocp4-cluster",
+            cluster="ocpv07",
+            failure_class="scheduling_failed",
+            actual_root_cause="Worker VM cannot schedule due to insufficient CPU on compute nodes",
+            actual_layer="cluster",
+            actual_component="kube-scheduler",
+            actual_resolution="self_resolved after node capacity freed",
+            agnosticv_path="published/ai-driven-aap/prod.yaml",
+            recorded_tools={
+                "get_lab_identity": (
+                    "Lab name: AI Driven AAP\n"
+                    "Catalog item: ai-driven-aap\n"
+                    "AgnosticV config: published/ai-driven-aap/prod.yaml\n"
+                    "GitHub URL: https://github.com/rhpds/agnosticv/tree/main/published/ai-driven-aap/prod.yaml\n"
+                    "Owner: jsmith@redhat.com"
+                ),
+                "oc_read": (
+                    "NAME                                    READY   STATUS    RESTARTS   AGE\n"
+                    "virt-launcher-worker-cluster-pqr12-2     0/1    Pending   0          15m\n"
+                    "virt-launcher-control-plane-pqr12-1      1/1    Running   0          25m"
+                ),
+                "oc_read:events": (
+                    "2m   Warning   FailedScheduling   pod/virt-launcher-worker-cluster-pqr12-2   "
+                    "0/25 nodes are available: 15 Insufficient cpu, 10 node(s) had untolerated taint"
+                ),
+                "query_evaluations": (
+                    "Last 2 evaluations:\n"
+                    "  2026-08-11T10:00: fail -- scheduling_failed | FailedScheduling 0/25 nodes\n"
+                    "  2026-08-11T09:45: fail -- scheduling_failed | FailedScheduling 0/25 nodes"
+                ),
+                "get_pool_status": (
+                    "Pool ocp-cluster-cnv-pools: available=0, min_available=5, ready=0, total=20"
+                ),
+            },
+            expected_keywords=["scheduling", "cpu", "nodes", "capacity", "pending"],
+        ),
+
+        # Case 7: PVC binding failed — storage class issue
+        AgentTestCase(
+            id="hc-007-pvc-binding-failed",
+            namespace="sandbox-stu34-zt-rhelbu",
+            cluster="ocpv08",
+            failure_class="pvc_binding_failed",
+            actual_root_cause="PVC using hostpath-csi cannot bind — no available PV on scheduled node",
+            actual_layer="cluster",
+            actual_component="hostpath-csi-provisioner",
+            actual_resolution="self_resolved after CDI import completed",
+            agnosticv_path="zt_rhel/zt-satellite-basics/prod.yaml",
+            recorded_tools={
+                "get_lab_identity": (
+                    "Lab name: Satellite Basics\n"
+                    "Catalog item: zt-satellite-basics\n"
+                    "AgnosticV config: zt_rhel/zt-satellite-basics/prod.yaml\n"
+                    "GitHub URL: https://github.com/rhpds/agnosticv/tree/main/zt_rhel/zt-satellite-basics/prod.yaml"
+                ),
+                "oc_read": (
+                    "NAME                       STATUS    VOLUME   CAPACITY   STORAGECLASS   AGE\n"
+                    "satellite-data             Pending                       hostpath-csi   5m\n"
+                    "showroom-setup-state       Bound     pvc-abc  1Mi        ocs-rbd        5m"
+                ),
+                "oc_read:events": (
+                    "3m   Warning   ProvisioningFailed   pvc/satellite-data   "
+                    "no persistent volumes available for this claim and no storage class is set"
+                ),
+                "get_resolution_history": (
+                    "Resolution history (3 records):\n"
+                    "  pvc_binding_failed: self_resolved — CDI import completed (TTR: 8.0m)\n"
+                    "  pvc_binding_failed: self_resolved — CDI import completed (TTR: 6.5m)\n"
+                    "  pvc_binding_failed: self_resolved — CDI import completed (TTR: 9.2m)"
+                ),
+            },
+            expected_keywords=["pvc", "pending", "storage", "hostpath", "binding"],
+        ),
+
+        # Case 8: sync_failed — operator reconciliation
+        AgentTestCase(
+            id="hc-008-sync-failed",
+            namespace="sandbox-vwx56-ocp4-cluster",
+            cluster="ocpv06",
+            failure_class="sync_failed",
+            actual_root_cause="virt-launcher client connection lost during VM live migration",
+            actual_layer="cluster",
+            actual_component="kubevirt-virt-handler",
+            actual_resolution="self_resolved after migration retry succeeded",
+            agnosticv_path="published/ocp-virt-roadshow-2026/prod.yaml",
+            recorded_tools={
+                "get_lab_identity": (
+                    "Lab name: OCP Virt Roadshow 2026\n"
+                    "Catalog item: ocp-virt-roadshow-2026\n"
+                    "AgnosticV config: openshift_cnv/ocp-virt-roadshow-2026/prod.yaml\n"
+                    "GitHub URL: https://github.com/rhpds/agnosticv/tree/main/openshift_cnv/ocp-virt-roadshow-2026/prod.yaml\n"
+                    "Owner: dspring@redhat.com"
+                ),
+                "oc_read": (
+                    "NAME                                      READY   STATUS    AGE\n"
+                    "virt-launcher-worker-cluster-vwx56-2       1/1    Running   10h\n"
+                    "virt-launcher-control-plane-vwx56-1        1/1    Running   10h"
+                ),
+                "oc_read:events": (
+                    "5m   Warning   SyncFailed   vmi/worker-cluster-vwx56-2   "
+                    "unable to create virt-launcher client connection: No command socket found\n"
+                    "3m   Warning   FailedMigration   vmi/worker-cluster-vwx56-2   "
+                    "source node reported migration failed"
+                ),
+                "get_resolution_history": (
+                    "Resolution history (2 records):\n"
+                    "  sync_failed: self_resolved — migration retry succeeded (TTR: 4.0m)\n"
+                    "  vm_migration_backoff: self_resolved — VM stabilized (TTR: 6.0m)"
+                ),
+            },
+            expected_keywords=["sync", "migration", "virt-launcher", "socket", "retry"],
+        ),
+
+        # Case 9: quota_exceeded with specific lab attribution
+        AgentTestCase(
+            id="hc-009-quota-ocp-getting-started",
+            namespace="sandbox-yza78-ocp4-cluster",
+            cluster="ocpv05",
+            failure_class="quota_exceeded",
+            actual_root_cause="Lab deploys 10 worker VMs but quota only allows 128 vCPUs total",
+            actual_layer="config",
+            actual_component="agnosticv config worker_count=10",
+            actual_resolution="human_remediated by reducing worker_count in AgnosticV",
+            agnosticv_path="published/ocp-getting-started/prod.yaml",
+            recorded_tools={
+                "get_lab_identity": (
+                    "Lab name: OCP Getting Started\n"
+                    "Catalog item: ocp-getting-started\n"
+                    "AgnosticV config: published/ocp-getting-started/prod.yaml\n"
+                    "GitHub URL: https://github.com/rhpds/agnosticv/tree/main/published/ocp-getting-started/prod.yaml\n"
+                    "Owner: admin@redhat.com"
+                ),
+                "oc_read:quota": (
+                    "Name:           sandbox-quota\n"
+                    "Resource        Used    Hard\n"
+                    "--------        ----    ----\n"
+                    "limits.cpu      126     128\n"
+                    "limits.memory   504Gi   512Gi"
+                ),
+                "oc_read:events": (
+                    "1m   Warning   FailedCreate   replicaset/virt-launcher   "
+                    "exceeded quota: sandbox-quota, requested: limits.cpu=16, used: limits.cpu=126, limited: limits.cpu=128"
+                ),
+                "fetch_github_file": (
+                    "---\nenv_type: ocp4-cluster\nworker_count: 10\nworker_instance_type: 16cpu.64gb\n"
+                    "control_plane_count: 3\ninfra_workloads:\n  - ocp4_workload_showroom\n"
+                ),
+                "get_resolution_history": (
+                    "Resolution history (1 record):\n"
+                    "  quota_exceeded: human_remediated — worker_count reduced to 8 in AgnosticV (TTR: 60.0m)"
+                ),
+            },
+            expected_keywords=["quota", "worker_count", "cpu", "agnosticv", "config"],
+        ),
+
+        # Case 10: volume_attach_failed — multi-attach error
+        AgentTestCase(
+            id="hc-010-volume-attach",
+            namespace="sandbox-bcd90-ocp4-cluster",
+            cluster="ocpv09",
+            failure_class="volume_attach_failed",
+            actual_root_cause="PV still attached to a terminated node after node drain",
+            actual_layer="cluster",
+            actual_component="attach-detach-controller",
+            actual_resolution="self_resolved after force detach timeout",
+            agnosticv_path="",
+            recorded_tools={
+                "get_lab_identity": (
+                    "Lab name: OpenShift 4 Cluster\n"
+                    "Catalog item: ocp4-cluster"
+                ),
+                "oc_read": (
+                    "NAME                                      READY   STATUS              AGE\n"
+                    "virt-launcher-worker-cluster-bcd90-3       0/1    ContainerCreating   8m"
+                ),
+                "oc_read:events": (
+                    "3m   Warning   FailedAttachVolume   pod/virt-launcher-worker-cluster-bcd90-3   "
+                    "Multi-Attach error for volume \"pvc-abc123\": volume is already attached to node ocp-virt9-host5"
+                ),
+                "get_resolution_history": (
+                    "Resolution history (2 records):\n"
+                    "  volume_attach_failed: self_resolved — force detach completed (TTR: 10.0m)\n"
+                    "  volume_attach_failed: self_resolved — force detach completed (TTR: 8.0m)"
+                ),
+            },
+            expected_keywords=["attach", "multi-attach", "volume", "node", "detach"],
         ),
     ]
 
