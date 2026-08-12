@@ -2190,16 +2190,17 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
     if cluster and issues:
         try:
             import subprocess as _sp
-            from api.routers._shared import EXECUTOR_KUBECONFIG
-            _kc = EXECUTOR_KUBECONFIG
-            if cluster:
-                _secrets = os.path.dirname(_kc) if _kc else ""
-                _ckc = os.path.join(_secrets, f"kubeconfig-{cluster}")
-                if os.path.exists(_ckc):
-                    _kc = _ckc
+            _secrets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "secrets")
+            _kc = os.path.join(_secrets_dir, f"kubeconfig-{cluster}")
+            if not os.path.exists(_kc):
+                try:
+                    from api.routers._shared import EXECUTOR_KUBECONFIG
+                    _kc = EXECUTOR_KUBECONFIG
+                except Exception:
+                    _kc = ""
             if _kc and os.path.exists(_kc):
                 _r = _sp.run(["oc", "--kubeconfig", _kc, "get", "ns", namespace, "--no-headers"],
-                             capture_output=True, text=True, timeout=5)
+                             capture_output=True, text=True, timeout=8)
                 ns_exists = _r.returncode == 0
         except Exception:
             pass
