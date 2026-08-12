@@ -3929,6 +3929,20 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
         except Exception:
             pass
 
+    # Post-process LLM output: replace angle-bracket placeholders with real names
+    if llm_analysis and lab_code:
+        # Extract real resource names from the evidence/live diagnostics
+        _pod_names = re.findall(r'(?:pod[/ ])([a-z0-9][a-z0-9.-]+?)(?:_|\(| |$|\n)', evidence_context.get("live_diagnostics", ""), re.IGNORECASE)
+        _pod = _pod_names[0] if _pod_names else ""
+        if _pod:
+            llm_analysis = llm_analysis.replace("<pod_name>", _pod).replace("<pod-name>", _pod)
+        llm_analysis = re.sub(r'<(deployment|service|pvc|node|pv)_name>', r'{\1}', llm_analysis)
+        # Remove commands for CRDs that don't exist on workload clusters
+        llm_analysis = re.sub(r'```[^\n]*\noc get resourceclaim[^\n]*\n```', '', llm_analysis)
+        llm_analysis = re.sub(r'oc get resourceclaim[^\n]*', '# resourceclaim CRD is on Babylon control plane, not this cluster', llm_analysis)
+        # Redact any sensitive data the LLM echoed back
+        llm_analysis = _redact_sensitive(llm_analysis)
+
     return {
         "failure_class": failure_class,
         "lab_code": lab_code,
