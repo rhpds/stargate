@@ -2609,9 +2609,15 @@ def catalog_item_history(
         if d["total_fails"] == 0:
             continue
 
-        # Fail rate = % of namespaces that had any failure (not eval count ratio)
-        total_ns = len(d["namespaces"])
+        # Fail rate = failing namespaces / total provisioned for this catalog item
+        # Total provisioned comes from guid mappings (ResourceClaims), which includes
+        # healthy namespaces that have zero evaluations
+        total_provisioned = sum(
+            1 for g, info in guid_info.items()
+            if info.get("catalog_item") == cat_key
+        )
         failing_ns = len(d.get("failing_namespaces", set()))
+        total_ns = max(total_provisioned, len(d["namespaces"]))
         fail_rate = round(failing_ns / max(total_ns, 1) * 100, 1)
         fc_list = []
         for fc, fc_data in sorted(d["failure_classes"].items(), key=lambda x: -x[1]["count"]):
