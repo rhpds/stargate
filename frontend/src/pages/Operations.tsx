@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
@@ -56,9 +56,9 @@ function KpiDashboard() {
 
 /* ---- Cost Analysis ---- */
 
-function CostAnalysis() {
+function CostAnalysis({ alwaysOpen = false }: { alwaysOpen?: boolean }) {
   const { data } = useQuery({ queryKey: ['cost-analysis'], queryFn: () => api.getCostAnalysis(), refetchInterval: 120000 });
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(alwaysOpen);
   if (!data?.summary) return null;
 
   const s = data.summary;
@@ -66,9 +66,8 @@ function CostAnalysis() {
 
   return (
     <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#1e1e1e] transition">
-        <div className="flex items-center gap-3">
+      {alwaysOpen ? (
+        <div className="flex items-center gap-3 px-4 py-2.5">
           <span className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider">Cost Analysis</span>
           <span className="text-xs text-white font-medium">${s.estimated_monthly_cost?.toLocaleString(undefined, {maximumFractionDigits: 0}) || '--'}/mo</span>
           {s.waste_pct > 0 && (
@@ -77,9 +76,22 @@ function CostAnalysis() {
             </span>
           )}
         </div>
-        <span className="text-[#555] text-xs">{open ? '▲' : '▼'}</span>
-      </button>
-      {open && (
+      ) : (
+        <button onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#1e1e1e] transition">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider">Cost Analysis</span>
+            <span className="text-xs text-white font-medium">${s.estimated_monthly_cost?.toLocaleString(undefined, {maximumFractionDigits: 0}) || '--'}/mo</span>
+            {s.waste_pct > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#C9190B20', color: '#C9190B' }}>
+                {s.waste_pct.toFixed(1)}% waste
+              </span>
+            )}
+          </div>
+          <span className="text-[#555] text-xs">{open ? '▲' : '▼'}</span>
+        </button>
+      )}
+      {(alwaysOpen || open) && (
         <div className="px-4 pb-4 border-t border-[#2e2e2e] pt-3">
           {/* Summary tiles */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
@@ -185,82 +197,6 @@ function RemediationStrategies() {
   );
 }
 
-
-function Synopsis({ clusterCount, namespaceCount }: { clusterCount: number; namespaceCount: number }) {
-  const [open, setOpen] = useState(() => {
-    try { return sessionStorage.getItem('sg-synopsis') !== 'closed'; } catch { return true; }
-  });
-  useEffect(() => {
-    try { sessionStorage.setItem('sg-synopsis', open ? 'open' : 'closed'); } catch {}
-  }, [open]);
-
-  const { data: gaps } = useQuery({
-    queryKey: ['monitoring-gaps'],
-    queryFn: () => api.getMonitoringGaps(),
-    refetchInterval: 60000,
-    enabled: open,
-  });
-
-  const st = gaps?.stuck_teardowns || {};
-  const rl = gaps?.resource_leaks || {};
-  const oh = gaps?.operator_health || {};
-
-  function GapDot({ count }: { count: number }) {
-    const color = count > 0 ? '#C9190B' : '#3E8635';
-    return <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: color }} />;
-  }
-
-  return (
-    <div className="mb-4 bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#222] transition">
-        <span className="text-sm font-semibold text-white" style={{ fontFamily: 'Red Hat Display' }}>What you're looking at</span>
-        <span className="text-[#555] text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
-      </button>
-      {open && (
-        <div className="px-4 pb-4 text-xs leading-relaxed text-[#b0b0b0] space-y-2.5 border-t border-[#2e2e2e] pt-3">
-          <p>
-            <span className="text-white font-medium">StarGate</span> continuously scans <span className="text-[#4394E5] font-medium">{clusterCount} OpenShift clusters</span> and
-            monitors <span className="text-[#4394E5] font-medium">{namespaceCount} sandbox namespaces</span> for issues across 6 readiness stages:
-            health, pods, storage, network, workload, and overall.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
-              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Data Sources</div>
-              <ul className="space-y-0.5 text-[11px]">
-                <li><span className="text-[#4EC9B0]">oc get pods/events/pv</span> — live cluster state</li>
-                <li><span className="text-[#4EC9B0]">AnarchySubjects</span> — provisioning lifecycle</li>
-                <li><span className="text-[#4EC9B0]">AAP Controllers</span> — job success/failure</li>
-                <li><span className="text-[#4EC9B0]">AlertManager</span> — cluster alerts</li>
-              </ul>
-            </div>
-            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
-              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Intelligence</div>
-              <ul className="space-y-0.5 text-[11px]">
-                <li><span className="text-[#DCDCAA]">24 failure classes</span> — pattern-matched from K8s events</li>
-                <li><span className="text-[#DCDCAA]">Sub-classification</span> — root cause + workload context</li>
-                <li><span className="text-[#DCDCAA]">LLM analysis</span> — on-demand diagnosis with live diagnostics</li>
-                <li><span className="text-[#DCDCAA]">Deepfield</span> — real-time correlation + RCA</li>
-              </ul>
-            </div>
-            <div className="bg-[#151515] rounded p-2 border border-[#2a2a2a]">
-              <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1 font-semibold">Monitoring Gaps {gaps ? '' : '(loading...)'}</div>
-              <ul className="space-y-0.5 text-[11px]">
-                <li><GapDot count={st.stuck_count || 0} /><span className="text-[#ccc]">Stuck teardowns</span> — <span className="text-white font-medium">{st.error ? 'N/A' : st.stuck_count || 0}</span>{st.stuck_count > 0 && ` (${st.stuck?.filter((s: any) => s.namespace_exists).length} with live ns)`}</li>
-                <li><GapDot count={rl.orphaned_count || 0} /><span className="text-[#ccc]">Resource leaks</span> — <span className="text-white font-medium">{rl.orphaned_count || 0}</span> orphaned PVs{rl.orphaned_pvc_count > 0 && `, ${rl.orphaned_pvc_count} PVCs`}{rl.orphaned_capacity_gi > 0 && ` (${rl.orphaned_capacity_gi} Gi)`}</li>
-                <li><GapDot count={oh.unhealthy_count || 0} /><span className="text-[#ccc]">Operator health</span> — <span className="text-white font-medium">{oh.unhealthy_count || 0}</span> unhealthy / {oh.total_pods || 0} pods</li>
-                <li><GapDot count={0} /><span className="text-[#ccc]">Provision mismatch</span> — sandbox readiness after AAP success</li>
-              </ul>
-            </div>
-          </div>
-          <p className="text-[#6A6E73] italic">
-            Click any row below to expand — run diagnostics, get AI analysis, or see Deepfield incidents for that namespace.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
 const STAGE_LABELS: Record<string, string> = { health: 'HLT', pods: 'POD', storage: 'STG', network: 'NET', workload: 'WRK', overall: 'ALL' };
@@ -678,6 +614,7 @@ export default function Operations() {
   const [search, setSearch] = useState('');
   const [expandedNs, setExpandedNs] = useState<string | null>(null);
   const [attentionFilter, setAttentionFilter] = useState<string>('needs_attention');
+  const [tab, setTab] = useState<'operations' | 'cost' | 'labs' | 'strategies'>('operations');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['lifecycle-matrix'],
@@ -703,23 +640,25 @@ export default function Operations() {
             {data?.summary?.expected_noise ? <> · <span className="text-[#555]">{data.summary.expected_noise} expected noise</span></> : null}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-[#1e1e1e] border border-[#333] rounded overflow-hidden text-xs">
-            {[
-              { key: 'needs_attention', label: 'Needs Attention', count: (data?.summary?.attention_counts?.stuck || 0) + (data?.summary?.attention_counts?.anomalous || 0) },
-              { key: 'all', label: 'All', count: data?.summary?.total_namespaces || 0 },
-            ].map(f => (
-              <button key={f.key}
-                onClick={() => setAttentionFilter(f.key)}
-                className={`px-3 py-1.5 transition ${attentionFilter === f.key ? 'bg-[#333] text-white' : 'text-[#8A8D90] hover:text-white'}`}>
-                {f.label} {f.count > 0 && <span className="text-[10px] ml-1 opacity-60">{f.count}</span>}
-              </button>
-            ))}
+        {tab === 'operations' && (
+          <div className="flex items-center gap-2">
+            <div className="flex bg-[#1e1e1e] border border-[#333] rounded overflow-hidden text-xs">
+              {[
+                { key: 'needs_attention', label: 'Needs Attention', count: (data?.summary?.attention_counts?.stuck || 0) + (data?.summary?.attention_counts?.anomalous || 0) },
+                { key: 'all', label: 'All', count: data?.summary?.total_namespaces || 0 },
+              ].map(f => (
+                <button key={f.key}
+                  onClick={() => setAttentionFilter(f.key)}
+                  className={`px-3 py-1.5 transition ${attentionFilter === f.key ? 'bg-[#333] text-white' : 'text-[#8A8D90] hover:text-white'}`}>
+                  {f.label} {f.count > 0 && <span className="text-[10px] ml-1 opacity-60">{f.count}</span>}
+                </button>
+              ))}
+            </div>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search namespace, lab, cluster..."
+              className="bg-[#1e1e1e] border border-[#333] rounded px-3 py-1.5 text-sm text-white placeholder-[#555] w-64 focus:outline-none focus:border-[#4394E5]" />
           </div>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search namespace, lab, cluster..."
-            className="bg-[#1e1e1e] border border-[#333] rounded px-3 py-1.5 text-sm text-white placeholder-[#555] w-64 focus:outline-none focus:border-[#4394E5]" />
-        </div>
+        )}
       </div>
 
       {isLoading && <div className="text-[#6A6E73] py-12 text-center">Loading...</div>}
@@ -728,99 +667,121 @@ export default function Operations() {
       {data && (
         <>
           <KpiDashboard />
-          <CostAnalysis />
-          <Synopsis clusterCount={data.summary?.total_clusters || 0} namespaceCount={data.summary?.total_monitored || 0} />
-          <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-4 border-b border-[#333]">
+            {[
+              { key: 'operations', label: 'Operations' },
+              { key: 'cost', label: 'Cost' },
+              { key: 'labs', label: 'Labs' },
+              { key: 'strategies', label: 'Strategies' },
+            ].map(t => (
+              <button key={t.key} onClick={() => setTab(t.key as any)}
+                className={`px-4 py-2 text-xs font-medium transition ${tab === t.key ? 'text-white border-b-2 border-[#EE0000]' : 'text-[#8A8D90] hover:text-white'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Failure Class Correlation */}
-          {data.by_failure_class?.length > 0 && (
-            <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
-              <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Failure Classes — Platform-Wide</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {data.by_failure_class.slice(0, 12).map((fc: any) => (
-                  <FailureClassCard key={fc.failure_class} fc={fc} namespaces={data.by_namespace || []} />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Tab: Operations */}
+          {tab === 'operations' && (
+            <>
+              <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
-          <RemediationStrategies />
-          <CatalogItemHistory />
-
-          <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
-
-            {(() => {
-              const allRows = filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure', 'catalog_item']);
-              const rows = attentionFilter === 'needs_attention'
-                ? allRows.filter((r: any) => r.attention === 'stuck' || r.attention === 'anomalous')
-                : allRows;
-              return (
-                <div>
-                  {/* Header */}
-                  <div className="grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
-                    <span></span>
-                    <span>Namespace</span>
-                    <span>Lab</span>
-                    <span>Cluster</span>
-                    {STAGES.map(s => <span key={s} className="text-center text-[10px] uppercase">{STAGE_LABELS[s]}</span>)}
-                    <span>Top Failure</span>
-                    <span>Owner</span>
-                    <span>Last Resolution</span>
+              {/* Failure Class Correlation */}
+              {data.by_failure_class?.length > 0 && (
+                <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
+                  <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Failure Classes — Platform-Wide</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {data.by_failure_class.slice(0, 12).map((fc: any) => (
+                      <FailureClassCard key={fc.failure_class} fc={fc} namespaces={data.by_namespace || []} />
+                    ))}
                   </div>
-                  {/* Rows */}
-                  {rows.slice(0, 100).map((r: any, i: number) => {
-                    const isExpanded = expandedNs === r.namespace;
-                    const res = r.last_resolution;
-                    const resColor = res?.resolution_type === 'self_resolved' ? '#6A6E73'
-                      : res?.resolution_type === 'stargate_remediated' ? '#3E8635'
-                      : res?.resolution_type === 'human_remediated' ? '#4394E5'
-                      : res?.resolution_type === 'namespace_recycled' ? '#6A6E73'
-                      : '#8A8D90';
-                    return (
-                      <div key={`${r.namespace}-${i}`}>
-                        <div
-                          className={`grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
-                          onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
-                        >
-                          <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
-                          <div className="flex items-center gap-1.5 truncate">
-                            <span className="text-[#4394E5] font-mono text-xs truncate" title={r.namespace}>{r.namespace}</span>
-                            {r.attention && r.attention !== 'expected' && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0"
-                                style={{ backgroundColor: `${ATTENTION_COLORS[r.attention]}20`, color: ATTENTION_COLORS[r.attention] }}
-                                title={r.attention_reason}>{r.attention}</span>
+                </div>
+              )}
+
+              <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
+                {(() => {
+                  const allRows = filterData(data.by_namespace || [], ['namespace', 'cluster', 'top_failure', 'catalog_item']);
+                  const rows = attentionFilter === 'needs_attention'
+                    ? allRows.filter((r: any) => r.attention === 'stuck' || r.attention === 'anomalous')
+                    : allRows;
+                  return (
+                    <div>
+                      {/* Header */}
+                      <div className="grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                        <span></span>
+                        <span>Namespace</span>
+                        <span>Lab</span>
+                        <span>Cluster</span>
+                        {STAGES.map(s => <span key={s} className="text-center text-[10px] uppercase">{STAGE_LABELS[s]}</span>)}
+                        <span>Top Failure</span>
+                        <span>Owner</span>
+                        <span>Last Resolution</span>
+                      </div>
+                      {/* Rows */}
+                      {rows.slice(0, 100).map((r: any, i: number) => {
+                        const isExpanded = expandedNs === r.namespace;
+                        const res = r.last_resolution;
+                        const resColor = res?.resolution_type === 'self_resolved' ? '#6A6E73'
+                          : res?.resolution_type === 'stargate_remediated' ? '#3E8635'
+                          : res?.resolution_type === 'human_remediated' ? '#4394E5'
+                          : res?.resolution_type === 'namespace_recycled' ? '#6A6E73'
+                          : '#8A8D90';
+                        return (
+                          <div key={`${r.namespace}-${i}`}>
+                            <div
+                              className={`grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                              onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
+                            >
+                              <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="text-[#4394E5] font-mono text-xs truncate" title={r.namespace}>{r.namespace}</span>
+                                {r.attention && r.attention !== 'expected' && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0"
+                                    style={{ backgroundColor: `${ATTENTION_COLORS[r.attention]}20`, color: ATTENTION_COLORS[r.attention] }}
+                                    title={r.attention_reason}>{r.attention}</span>
+                                )}
+                              </div>
+                              <span className="text-[#ccc] text-[10px] truncate" title={`${r.lab_name || r.catalog_item} (${r.catalog_item})`}>{r.lab_name || r.catalog_item || ''}</span>
+                              <span className="text-[#8A8D90] text-xs">{r.cluster}</span>
+                              {STAGES.map(s => (
+                                <span key={s} className="flex justify-center">
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[r.stages?.[s]?.status || 'green'] }} title={r.stages?.[s]?.detail || ''} />
+                                </span>
+                              ))}
+                              <span className="text-xs text-[#C9190B] truncate" title={r.attention_reason}>{r.top_failure || ''}</span>
+                              <span className="text-[10px] text-[#8A8D90] truncate" title={r.owner}>{r.owner ? r.owner.split('@')[0] : ''}</span>
+                              <span className="text-[10px] truncate" style={{ color: resColor }}>
+                                {res ? `${res.resolution_type.replace(/_/g, ' ')}${res.ttr_minutes ? ` · ${res.ttr_minutes}m` : ''}` : ''}
+                              </span>
+                            </div>
+                            {isExpanded && (
+                              <div className="border-b border-[#333] bg-[#191919]">
+                                <ExpandedRow namespace={r.namespace} />
+                              </div>
                             )}
                           </div>
-                          <span className="text-[#ccc] text-[10px] truncate" title={`${r.lab_name || r.catalog_item} (${r.catalog_item})`}>{r.lab_name || r.catalog_item || ''}</span>
-                          <span className="text-[#8A8D90] text-xs">{r.cluster}</span>
-                          {STAGES.map(s => (
-                            <span key={s} className="flex justify-center">
-                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[r.stages?.[s]?.status || 'green'] }} title={r.stages?.[s]?.detail || ''} />
-                            </span>
-                          ))}
-                          <span className="text-xs text-[#C9190B] truncate" title={r.attention_reason}>{r.top_failure || ''}</span>
-                          <span className="text-[10px] text-[#8A8D90] truncate" title={r.owner}>{r.owner ? r.owner.split('@')[0] : ''}</span>
-                          <span className="text-[10px] truncate" style={{ color: resColor }}>
-                            {res ? `${res.resolution_type.replace(/_/g, ' ')}${res.ttr_minutes ? ` · ${res.ttr_minutes}m` : ''}` : ''}
-                          </span>
-                        </div>
-                        {isExpanded && (
-                          <div className="border-b border-[#333] bg-[#191919]">
-                            <ExpandedRow namespace={r.namespace} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {rows.length === 0 && (
-                    <div className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</div>
-                  )}
-                </div>
-              );
-            })()}
+                        );
+                      })}
+                      {rows.length === 0 && (
+                        <div className="px-3 py-8 text-center text-[#3E8635] text-sm">All namespaces healthy</div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </>
+          )}
 
-          </div>
+          {/* Tab: Cost */}
+          {tab === 'cost' && <CostAnalysis alwaysOpen />}
+
+          {/* Tab: Labs */}
+          {tab === 'labs' && <CatalogItemHistory />}
+
+          {/* Tab: Strategies */}
+          {tab === 'strategies' && <RemediationStrategies />}
         </>
       )}
     </div>
