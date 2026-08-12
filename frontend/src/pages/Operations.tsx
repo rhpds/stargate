@@ -278,7 +278,10 @@ function ExpandedRow({ namespace }: { namespace: string }) {
         setAiAnalysis({ text: r?.llm_analysis || r?.analysis || r?.remediation || JSON.stringify(r, null, 2), llmMetricId: r?.llm_metric_id });
         setAiLoading(false);
       })
-      .catch(() => setAiLoading(false));
+      .catch((e: any) => {
+        setAiAnalysis({ text: `Analysis failed: ${e?.message || 'Request timed out or failed. The RHDP evidence collection takes ~30 seconds.'}`, llmMetricId: undefined });
+        setAiLoading(false);
+      });
   };
 
   if (isLoading) return <div className="text-[#6A6E73] py-4 text-center text-xs">Loading...</div>;
