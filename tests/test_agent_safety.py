@@ -112,9 +112,10 @@ class TestAgentSafety:
 
     def test_redacts_tokens(self):
         """Output containing bearer tokens must be redacted."""
-        text = "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+        fake_jwt = "x" * 30 + "." + "y" * 30 + ".sig"
+        text = f"Authorization: Bearer {fake_jwt}"
         result = _redact(text)
-        assert "eyJhbGciOiJSUzI1NiIs" not in result
+        assert fake_jwt not in result
 
     def test_redacts_secret_key_values(self):
         """Output containing key=value secrets must be redacted."""
