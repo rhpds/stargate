@@ -410,32 +410,30 @@ def run_collection() -> Dict:
     results["guid_lab_mapping"] = guid_map
     print(f"    {len(guid_map)} guid → lab mappings")
 
-    # Persist guid→lab mappings to StarGate API
+    # Persist guid→lab mappings to StarGate API (batch)
     api_url = os.environ.get("STARGATE_API_URL", "")
     api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
     if guid_map and api_url:
         import urllib.request
-        persisted = 0
-        for guid, info in guid_map.items():
-            try:
-                payload = json.dumps({
-                    "lab_code": guid,
-                    "ci_name": info.get("display_name", info["catalog_item"]),
-                    "ci_base": info["catalog_item"],
-                    "ci_slug": info.get("governor", ""),
-                    "agnosticv_path": info.get("agnosticv_path", ""),
-                }).encode()
-                req = urllib.request.Request(
-                    f"{api_url}/labs/guid-mapping",
-                    data=payload,
-                    headers={"Content-Type": "application/json", "X-API-Key": api_key},
-                    method="PUT",
-                )
-                urllib.request.urlopen(req, timeout=3)
-                persisted += 1
-            except Exception:
-                continue
-        print(f"    Persisted {persisted} guid mappings to API")
+        batch = [
+            {"lab_code": guid, "ci_name": info.get("display_name", info["catalog_item"]),
+             "ci_base": info["catalog_item"], "ci_slug": info.get("governor", ""),
+             "agnosticv_path": info.get("agnosticv_path", "")}
+            for guid, info in guid_map.items()
+        ]
+        try:
+            payload = json.dumps({"mappings": batch}).encode()
+            req = urllib.request.Request(
+                f"{api_url}/labs/guid-mapping-batch",
+                data=payload,
+                headers={"Content-Type": "application/json", "X-API-Key": api_key},
+                method="PUT",
+            )
+            resp = urllib.request.urlopen(req, timeout=30)
+            result = json.loads(resp.read())
+            print(f"    Persisted {result.get('persisted', 0)} guid mappings to API")
+        except Exception as e:
+            print(f"    Guid mapping persistence failed: {e}")
 
     # Save core data + guid mappings immediately
     _save_results(results)
