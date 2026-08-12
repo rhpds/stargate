@@ -2138,9 +2138,20 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
                 for entry in cat:
                     for cond in entry.get("allowed_when", []):
                         if f"failure_class == {top_fc}" in cond:
+                            # Extract pod name from issue message if available
+                            _pod_name = ""
+                            if issues:
+                                import re as _pod_re
+                                _msg = issues[0].get("message", "")
+                                _pm = _pod_re.search(r"pod[/ ]([a-z0-9][\w.-]+)", _msg, _pod_re.IGNORECASE)
+                                if _pm:
+                                    _pod_name = _pm.group(1)
                             catalog_commands = [
                                 cmd.replace("{namespace}", namespace).replace("{ns}", namespace)
+                                   .replace("{pod}", _pod_name) if _pod_name else
+                                cmd.replace("{namespace}", namespace).replace("{ns}", namespace)
                                 for cmd in entry.get("commands", [])
+                                if "{pod}" not in cmd or _pod_name  # skip pod commands if no pod name
                             ]
                             break
                     if catalog_commands:
