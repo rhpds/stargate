@@ -2552,7 +2552,10 @@ def _compute_platform_kpis(db: Session) -> dict:
         LabMapping.lab_code.like("guid:%"),
     ).scalar() or 0
     utilization = round(total_monitored / max(total_prov, 1) * 100, 1) if total_prov else None
-    mttr = repository.compute_mttr(db, hours=168)
+    try:
+        mttr = repository.compute_mttr(db, hours=24)
+    except Exception:
+        mttr = {"overall_mttr_minutes": None, "by_class": []}
 
     # --- Developer impact ---
     guids = set()
@@ -2596,31 +2599,25 @@ def _compute_platform_kpis(db: Session) -> dict:
          "unit": "%", "status": _slo_status(prov_success, 99.0)},
     ]
 
-    # --- 7-day daily trend ---
-    daily_t = db.query(
-        func.date(EvaluationRecord.evaluated_at).label("day"),
-        func.count(func.distinct(EvaluationRecord.lab_code)),
-    ).filter(
-        EvaluationRecord.evaluated_at >= seven_days, EvaluationRecord.lab_code.isnot(None), _lf,
-    ).group_by(func.date(EvaluationRecord.evaluated_at)).all()
-
-    daily_f = db.query(
-        func.date(EvaluationRecord.evaluated_at).label("day"),
-        func.count(func.distinct(EvaluationRecord.lab_code)),
-    ).filter(
-        EvaluationRecord.evaluated_at >= seven_days, EvaluationRecord.outcome == "fail",
-        EvaluationRecord.failure_class.isnot(None),
-        EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
-        EvaluationRecord.lab_code.isnot(None), _lf,
-    ).group_by(func.date(EvaluationRecord.evaluated_at)).all()
-
-    t_map = {str(d): c for d, c in daily_t}
-    f_map = {str(d): c for d, c in daily_f}
-    daily_trend = [
-        {"date": day, "fail_rate": round(f_map.get(day, 0) / max(t_map[day], 1), 4),
-         "total_ns": t_map[day], "failing_ns": f_map.get(day, 0)}
-        for day in sorted(t_map)
-    ]
+    # --- 3-day daily trend (lightweight) ---
+    three_days = now - timedelta(days=3)
+    try:
+        daily_f = db.query(
+            func.date(EvaluationRecord.evaluated_at).label("day"),
+            func.count(func.distinct(EvaluationRecord.lab_code)),
+        ).filter(
+            EvaluationRecord.evaluated_at >= three_days, EvaluationRecord.outcome == "fail",
+            EvaluationRecord.failure_class.isnot(None),
+            EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
+            EvaluationRecord.lab_code.isnot(None), _lf,
+        ).group_by(func.date(EvaluationRecord.evaluated_at)).all()
+        f_map = {str(d): c for d, c in daily_f}
+        daily_trend = [
+            {"date": day, "failing_ns": cnt, "fail_rate": round(cnt / max(total_monitored, 1), 4)}
+            for day, cnt in sorted(f_map.items())
+        ]
+    except Exception:
+        daily_trend = []
 
     return {"kpis": kpis, "slos": slos, "daily_trend": daily_trend}
 
