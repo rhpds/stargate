@@ -306,6 +306,96 @@ function ExpandedRow({ namespace }: { namespace: string }) {
   );
 }
 
+/* ---- Catalog Item History ---- */
+
+function CatalogItemHistory() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['catalog-item-history'],
+    queryFn: () => api.getCatalogItemHistory(7),
+    refetchInterval: 60000,
+  });
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  if (isLoading || !data?.items?.length) return null;
+
+  const REC_COLORS: Record<string, string> = {
+    watch_and_wait: '#3E8635', investigate: '#F0AB00', candidate_for_automation: '#4394E5', insufficient_data: '#555',
+  };
+
+  return (
+    <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
+      <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Lab Health — 7 Day History</h3>
+      <div className="space-y-1">
+        {data.items.slice(0, 15).map((item: any) => {
+          const isOpen = expanded === item.catalog_item;
+          return (
+            <div key={item.catalog_item} className="bg-[#1a1a1a] rounded border border-[#2a2a2a]">
+              <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-[#222] transition"
+                onClick={() => setExpanded(isOpen ? null : item.catalog_item)}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[#555] text-xs">{isOpen ? '▼' : '▶'}</span>
+                  <span className="text-xs text-white font-medium truncate">{item.display_name}</span>
+                  <span className="text-[10px] text-[#6A6E73] font-mono shrink-0">{item.catalog_item}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] shrink-0">
+                  <span className="text-[#8A8D90]">{item.namespace_count} ns</span>
+                  <span className="text-[#C9190B]">{item.total_fails.toLocaleString()} fails</span>
+                  <span className="text-[#6A6E73]">{item.fail_rate_pct}%</span>
+                </div>
+              </div>
+              {isOpen && (
+                <div className="px-3 pb-3 border-t border-[#2e2e2e] pt-2">
+                  {item.agnosticv_url && (
+                    <a href={item.agnosticv_url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-[#4394E5] hover:underline block mb-2 font-mono">
+                      {item.agnosticv_path}
+                    </a>
+                  )}
+                  <div className="space-y-1.5">
+                    {item.failure_classes.map((fc: any) => {
+                      const res = fc.resolutions;
+                      const rec = res?.recommendation;
+                      return (
+                        <div key={fc.failure_class} className="bg-[#111] rounded p-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-mono text-[#ccc]">{fc.failure_class}</span>
+                              <span className="text-[10px] text-[#6A6E73]">{fc.count.toLocaleString()} ({fc.pct_of_failures}%)</span>
+                              <span className="text-[10px] text-[#8A8D90]">{fc.affected_namespaces} ns</span>
+                            </div>
+                            {rec && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+                                style={{ backgroundColor: `${REC_COLORS[rec] || '#555'}20`, color: REC_COLORS[rec] || '#555' }}>
+                                {rec.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                          </div>
+                          {res && (
+                            <div className="flex items-center gap-3 text-[10px] text-[#8A8D90]">
+                              <span>{res.self_resolve_pct}% self-resolve</span>
+                              {res.avg_ttr_minutes && <span>{res.avg_ttr_minutes}m avg TTR</span>}
+                              {res.p95_ttr_minutes && <span>P95: {res.p95_ttr_minutes}m</span>}
+                              <span>{res.total} resolutions</span>
+                              {Object.entries(res.by_type || {}).map(([type, count]) => (
+                                <span key={type} className="text-[#6A6E73]">{(type as string).replace(/_/g, ' ')}: {count as number}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 /* ---- Main Page ---- */
 
 const ATTENTION_COLORS: Record<string, string> = { stuck: '#C9190B', anomalous: '#F0AB00', provisioning: '#4394E5', expected: '#555' };
@@ -470,6 +560,8 @@ export default function Operations() {
               </div>
             </div>
           )}
+
+          <CatalogItemHistory />
 
           <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
 

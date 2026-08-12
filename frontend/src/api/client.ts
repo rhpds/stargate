@@ -314,6 +314,8 @@ export const api = {
   // Lifecycle Matrix
   getLifecycleMatrix: () => request<any>('/admin/lifecycle-matrix'),
   getNamespaceDetail: (ns: string) => request<any>(`/admin/namespace-detail/${encodeURIComponent(ns)}`),
+  getCatalogItemHistory: (days?: number) => request<any>(`/admin/catalog-item-history?days=${days || 7}`),
+  getResolutions: (hours?: number) => request<any>(`/dashboard/resolutions?hours=${hours || 168}`),
 
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),
