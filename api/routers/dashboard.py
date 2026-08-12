@@ -3964,15 +3964,19 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     }
 
 
+_investigation_results: Dict[str, Dict] = {}
+
+
 @router.post("/dashboard/investigate")
 @limiter.limit("5/minute")
-def dashboard_investigate(request: Request, req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
-    """AI investigation agent — iterative tool-calling for deep diagnosis.
+def dashboard_investigate_start(request: Request, req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Start an AI investigation — returns immediately with a job ID.
 
-    Uses read-only tools to investigate sandbox failures across the RHDP stack.
-    The agent decides what to look at, runs commands, reads configs, and produces
-    a specific remediation strategy.
+    Poll GET /dashboard/investigate/{job_id} for progress and results.
     """
+    import threading
+    import uuid
+
     failure_class = req.get("failure_class", "")
     lab_code = req.get("lab_code", "")
     cluster = req.get("cluster", "")
@@ -3980,46 +3984,66 @@ def dashboard_investigate(request: Request, req: dict, db: Session = Depends(get
     if not lab_code:
         return {"error": "lab_code required"}
 
-    # Build initial evidence summary for the agent
-    evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
+    job_id = f"inv-{uuid.uuid4().hex[:8]}"
+    _investigation_results[job_id] = {"status": "running", "tool_calls": [], "analysis": None, "error": None}
 
-    # Add recent evaluation context
-    from db.models import EvaluationRecord
-    recent = db.query(EvaluationRecord).filter(
-        EvaluationRecord.lab_code == lab_code,
-    ).order_by(EvaluationRecord.id.desc()).limit(5).all()
-    if recent:
-        evidence_lines.append("\nRecent evaluations:")
-        for e in recent:
-            evidence_lines.append(f"  {e.evaluated_at}: {e.outcome} — {e.failure_class or 'none'} | {(e.message or '')[:150]}")
+    def _run():
+        try:
+            evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
 
-    initial_evidence = "\n".join(evidence_lines)
+            from db.database import get_session_factory
+            from db.models import EvaluationRecord
+            factory = get_session_factory()
+            _db = factory()
+            try:
+                recent = _db.query(EvaluationRecord).filter(
+                    EvaluationRecord.lab_code == lab_code,
+                ).order_by(EvaluationRecord.id.desc()).limit(5).all()
+                if recent:
+                    evidence_lines.append("\nRecent evaluations:")
+                    for e in recent:
+                        evidence_lines.append(f"  {e.evaluated_at}: {e.outcome} — {e.failure_class or 'none'} | {(e.message or '')[:150]}")
+            finally:
+                _db.close()
 
-    # Run the agent
-    from engine.investigation_agent import run_investigation
-    from api.routers._shared import EXECUTOR_KUBECONFIG
+            from engine.investigation_agent import run_investigation, _investigation_progress
+            from api.routers._shared import EXECUTOR_KUBECONFIG
+            kubeconfig_dir = os.path.dirname(EXECUTOR_KUBECONFIG) if EXECUTOR_KUBECONFIG else ""
 
-    kubeconfig_dir = os.path.dirname(EXECUTOR_KUBECONFIG) if EXECUTOR_KUBECONFIG else ""
+            _investigation_progress[job_id] = _investigation_results[job_id]
 
-    result = run_investigation(
-        namespace=lab_code,
-        cluster=cluster,
-        failure_class=failure_class,
-        initial_evidence=initial_evidence,
-        kubeconfig_dir=kubeconfig_dir,
-        db=db,
-    )
+            result = run_investigation(
+                namespace=lab_code,
+                cluster=cluster,
+                failure_class=failure_class,
+                initial_evidence="\n".join(evidence_lines),
+                kubeconfig_dir=kubeconfig_dir,
+                job_id=job_id,
+            )
+            _investigation_results[job_id] = {
+                "status": "complete",
+                "analysis": result.get("analysis", ""),
+                "tool_calls": result.get("tool_calls", []),
+                "iterations": result.get("iterations", 0),
+                "error": result.get("error"),
+                "fallback": result.get("fallback", False),
+            }
+        except Exception as e:
+            _investigation_results[job_id] = {"status": "error", "error": str(e)[:500], "tool_calls": [], "analysis": None}
 
-    return {
-        "analysis": result.get("analysis", ""),
-        "tool_calls": result.get("tool_calls", []),
-        "iterations": result.get("iterations", 0),
-        "error": result.get("error"),
-        "fallback": result.get("fallback", False),
-        "lab_code": lab_code,
-        "cluster": cluster,
-        "failure_class": failure_class,
-    }
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+@router.get("/dashboard/investigate/{job_id}")
+def dashboard_investigate_poll(job_id: str, _auth=Depends(require_admin_read)):
+    """Poll for investigation progress and results."""
+    result = _investigation_results.get(job_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Investigation not found")
+    return result
 
 
 # ---------------------------------------------------------------------------
