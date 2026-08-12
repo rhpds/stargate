@@ -278,15 +278,15 @@ class TestAgentEvaluator:
         from engine.agent_evaluator import evaluate_agent, get_hardcoded_test_cases
 
         cases = get_hardcoded_test_cases()
-        assert len(cases) == 5
+        assert len(cases) >= 5
 
         report = evaluate_agent(cases)
         assert report["status"] == "evaluated"
         assert "trust_score" in report
         assert "trust_level" in report
         assert report["trust_level"] in ("trusted", "provisional", "untrusted")
-        assert report["test_cases_run"] == 5
-        assert len(report["details"]) == 5
+        assert report["test_cases_run"] == len(cases)
+        assert len(report["details"]) == len(cases)
 
     def test_evaluate_agent_empty_cases(self):
         """evaluate_agent with no cases should return no_data."""
@@ -310,7 +310,9 @@ class TestAgentEvaluator:
                 f"Case {case.id} has invalid layer: {case.actual_layer}"
             assert case.actual_component, f"Case {case.id} missing actual_component"
             assert case.actual_resolution, f"Case {case.id} missing actual_resolution"
-            assert case.agnosticv_path, f"Case {case.id} missing agnosticv_path"
+            # agnosticv_path can be empty for cluster-level issues
+            if case.actual_layer not in ("cluster", "self_resolved"):
+                assert case.agnosticv_path, f"Case {case.id} missing agnosticv_path"
             assert len(case.recorded_tools) >= 2, \
                 f"Case {case.id} has too few recorded tools: {len(case.recorded_tools)}"
 
