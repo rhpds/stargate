@@ -4000,6 +4000,27 @@ _BASELINE_DIAGNOSTICS = [
 ]
 
 
+_SENSITIVE_PATTERNS = re.compile(
+    r'('
+    r'(?:password|passwd|secret|token|key|auth|credential|api.key|ssh.pass|vault.password|activationkey)'
+    r'\s*[:=]\s*)'
+    r'(\S+)',
+    re.IGNORECASE,
+)
+_CERT_BLOCK = re.compile(r'-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----')
+_BEARER_TOKEN = re.compile(r'(Bearer\s+|token["\s:=]+)([A-Za-z0-9._-]{20,})')
+_LONG_BASE64 = re.compile(r'[A-Za-z0-9+/=]{60,}')
+
+
+def _redact_sensitive(text: str) -> str:
+    """Redact passwords, tokens, certificates, and long base64 from command output."""
+    text = _CERT_BLOCK.sub('[CERTIFICATE REDACTED]', text)
+    text = _SENSITIVE_PATTERNS.sub(r'\1[REDACTED]', text)
+    text = _BEARER_TOKEN.sub(r'\1[REDACTED]', text)
+    text = _LONG_BASE64.sub('[REDACTED]', text)
+    return text
+
+
 def _run_diagnostic_commands(
     catalog_commands: List[str],
     namespace: str,
@@ -4058,6 +4079,7 @@ def _run_diagnostic_commands(
                 env={**os.environ, "KUBECONFIG": kubeconfig},
             )
             output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
+            output = _redact_sensitive(output)
             if len(output) > 2000:
                 output = output[:2000] + "\n... (truncated)"
             results.append(f"$ {cmd}\n{output}")
@@ -4556,7 +4578,7 @@ def run_diagnostic_command(request: Request, req: dict, _auth=Depends(require_ad
         )
         return {
             "command": resolved,
-            "output": r.stdout.strip() if r.returncode == 0 else r.stderr.strip(),
+            "output": _redact_sensitive(r.stdout.strip() if r.returncode == 0 else r.stderr.strip()),
             "exit_code": r.returncode,
             "cluster": cluster,
             "namespace": namespace,
