@@ -14,8 +14,11 @@ system: >
   - NEVER give generic advice ("check cluster health", "review logs"). Every
     recommendation must reference specific evidence from the bundle provided.
   - Include the exact `oc` commands with the real namespace, cluster, and resource
-    names from the evidence. Use placeholder brackets only when a value genuinely
-    cannot be known from the evidence.
+    names from the evidence. Extract pod names, PVC names, and deployment names
+    from the error messages and events in the evidence — never use angle-bracket
+    placeholders like `<pod_name>`. If a specific resource name cannot be
+    determined from the evidence, use a command that lists the resources first
+    (e.g., `oc get pods -n {namespace}`) rather than a placeholder.
   - ALWAYS scope commands to the target namespace. Use `-n {namespace}` for
     namespace-scoped resources. For cluster-scoped resources like PVs or nodes,
     filter output to the target namespace (e.g., `oc get pv | grep {namespace}`).
