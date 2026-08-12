@@ -481,13 +481,14 @@ export default function Operations() {
               return (
                 <div>
                   {/* Header */}
-                  <div className="grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
+                  <div className="grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 border-b border-[#333] px-3 py-2 text-[#8A8D90] text-xs font-medium">
                     <span></span>
                     <span>Namespace</span>
                     <span>Lab</span>
                     <span>Cluster</span>
                     {STAGES.map(s => <span key={s} className="text-center text-[10px] uppercase">{STAGE_LABELS[s]}</span>)}
                     <span>Top Failure</span>
+                    <span>Owner</span>
                     <span>Last Resolution</span>
                   </div>
                   {/* Rows */}
@@ -502,7 +503,7 @@ export default function Operations() {
                     return (
                       <div key={`${r.namespace}-${i}`}>
                         <div
-                          className={`grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
+                          className={`grid grid-cols-[20px_200px_100px_72px_repeat(6,44px)_120px_100px_1fr] gap-0 items-center px-3 py-2 border-b border-[#222] cursor-pointer transition ${isExpanded ? 'bg-[#1e1e1e]' : 'hover:bg-[#1a1a1a]'}`}
                           onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
                         >
                           <span className="text-[#555] text-xs">{isExpanded ? '▼' : '▶'}</span>
@@ -522,6 +523,7 @@ export default function Operations() {
                             </span>
                           ))}
                           <span className="text-xs text-[#C9190B] truncate" title={r.attention_reason}>{r.top_failure || ''}</span>
+                          <span className="text-[10px] text-[#8A8D90] truncate" title={r.owner}>{r.owner ? r.owner.split('@')[0] : ''}</span>
                           <span className="text-[10px] truncate" style={{ color: resColor }}>
                             {res ? `${res.resolution_type.replace(/_/g, ' ')}${res.ttr_minutes ? ` · ${res.ttr_minutes}m` : ''}` : ''}
                           </span>

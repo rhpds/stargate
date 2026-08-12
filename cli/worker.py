@@ -492,14 +492,15 @@ class ClusterWorker:
                     else:
                         continue
 
+                    annotations = placement.get("annotations", {})
                     lab_name = (
                         placement.get("service_display_name")
                         or placement.get("catalog_item_display_name")
+                        or annotations.get("catalog_item")
                         or placement.get("service_name")
                         or ""
                     )
-                    if not lab_name:
-                        continue
+                    owner = annotations.get("owner") or annotations.get("owner_email") or ""
 
                     m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", namespace)
                     ci_base = m.group(1) if m else namespace
@@ -507,11 +508,13 @@ class ClusterWorker:
                     # Persist to LabMapping via API
                     payload = json.dumps({
                         "lab_code": namespace,
-                        "ci_name": lab_name,
+                        "ci_name": lab_name or None,
                         "ci_base": ci_base,
-                        "ci_slug": placement.get("catalog_item_name", ""),
+                        "ci_slug": annotations.get("env_type", ""),
                         "namespace_pattern": f"sandbox-*-{ci_base}",
+                        "cloud": annotations.get("comment", "")[:50] if annotations.get("comment") else None,
                         "clusters": [self.state.name],
+                        "owner": owner,
                     }).encode()
                     post_req = urllib.request.Request(
                         f"{self.api_url}/labs/mappings",
