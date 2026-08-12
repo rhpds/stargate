@@ -2496,7 +2496,7 @@ def _compute_platform_kpis(db: Session) -> dict:
     """Compute platform KPIs, SLOs, and 7-day rolling trends."""
     from db.models import EvaluationRecord, LabMapping
     from sqlalchemy import func, or_
-    from api.constants import INFORMATIONAL_CLASSES
+    from api.constants import INFORMATIONAL_CLASSES, WARNING_CLASSES
     import re as _re
 
     now = datetime.now(timezone.utc)
