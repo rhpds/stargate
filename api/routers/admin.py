@@ -2480,6 +2480,360 @@ def _build_failure_class_view(
 
 
 # ---------------------------------------------------------------------------
+# Platform KPIs / SLOs
+# ---------------------------------------------------------------------------
+
+def _slo_status(current: float, target: float) -> str:
+    """Classify SLO compliance: met / at_risk / breached."""
+    if current >= target:
+        return "met"
+    if current >= target * 0.95:
+        return "at_risk"
+    return "breached"
+
+
+def _compute_platform_kpis(db: Session) -> dict:
+    """Compute platform KPIs, SLOs, and 7-day rolling trends."""
+    from db.models import EvaluationRecord, LabMapping
+    from sqlalchemy import func, or_
+    from api.constants import INFORMATIONAL_CLASSES
+    import re as _re
+
+    now = datetime.now(timezone.utc)
+    one_hour = now - timedelta(hours=1)
+    one_day = now - timedelta(hours=24)
+    seven_days = now - timedelta(days=7)
+
+    LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
+    _lf = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
+
+    # --- Last-hour namespace health ---
+    total_monitored = db.query(func.count(func.distinct(EvaluationRecord.lab_code))).filter(
+        EvaluationRecord.evaluated_at > one_hour, EvaluationRecord.lab_code.isnot(None), _lf,
+    ).scalar() or 0
+
+    failing_rows = db.query(EvaluationRecord.lab_code).filter(
+        EvaluationRecord.evaluated_at > one_hour, EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).distinct().all()
+    failing_ns = {r[0] for r in failing_rows}
+    readiness = round((total_monitored - len(failing_ns)) / max(total_monitored, 1) * 100, 1)
+
+    # --- Provisioning (Babylon cache) ---
+    babylon = _load_latest_babylon()
+    prov = babylon.get("provisioning", {}) if babylon else {}
+    prov_success = round((1 - (prov.get("failure_rate", 0) or 0)) * 100, 1)
+
+    # --- Mean time to ready (last 24h): first eval -> first pass per ns ---
+    fe = {r[0]: r[1] for r in db.query(
+        EvaluationRecord.lab_code, func.min(EvaluationRecord.evaluated_at),
+    ).filter(
+        EvaluationRecord.evaluated_at >= one_day, EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(EvaluationRecord.lab_code).all()}
+
+    fp = {r[0]: r[1] for r in db.query(
+        EvaluationRecord.lab_code, func.min(EvaluationRecord.evaluated_at),
+    ).filter(
+        EvaluationRecord.evaluated_at >= one_day, EvaluationRecord.outcome == "pass",
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(EvaluationRecord.lab_code).all()}
+
+    ttr_vals = [
+        (fp[ns] - fe[ns]).total_seconds() / 60.0
+        for ns in fe if ns in fp and fp[ns] > fe[ns]
+        and 0 < (fp[ns] - fe[ns]).total_seconds() / 60.0 < 1440
+    ]
+    mean_ttr = round(sum(ttr_vals) / len(ttr_vals), 1) if ttr_vals else None
+
+    # --- Utilization + MTTR ---
+    total_prov = db.query(func.count(LabMapping.lab_code)).filter(
+        LabMapping.lab_code.like("guid:%"),
+    ).scalar() or 0
+    utilization = round(total_monitored / max(total_prov, 1) * 100, 1) if total_prov else None
+    mttr = repository.compute_mttr(db, hours=168)
+
+    # --- Developer impact ---
+    guids = set()
+    for ns in failing_ns:
+        m = _re.match(r"^sandbox-([a-z0-9]+)-", ns)
+        if m:
+            guids.add(f"guid:{m.group(1)}")
+    dev_impact = 0
+    if guids:
+        dev_impact = db.query(func.count(func.distinct(LabMapping.owner))).filter(
+            LabMapping.lab_code.in_(list(guids)), LabMapping.owner.isnot(None),
+        ).scalar() or 0
+
+    kpis = {
+        "lab_readiness_rate": readiness,
+        "provisioning_success_rate": prov_success,
+        "mean_time_to_ready_minutes": mean_ttr,
+        "active_sandboxes": total_monitored,
+        "platform_utilization_pct": utilization,
+        "mttr_minutes": mttr.get("overall_mttr_minutes"),
+        "developer_impact": dev_impact,
+    }
+
+    # --- SLOs ---
+    ready_pct = round(
+        sum(1 for t in ttr_vals if t <= 20) / max(len(ttr_vals), 1) * 100, 1,
+    ) if ttr_vals else 100.0
+    by_class = mttr.get("by_class", [])
+    mttr_entries = [e for e in by_class if e.get("avg_minutes") is not None]
+    fast = sum(1 for e in mttr_entries if e["avg_minutes"] <= 15)
+    slo_mttr = round(fast / max(len(mttr_entries), 1) * 100, 1) if mttr_entries else 100.0
+
+    slos = [
+        {"name": "Sandbox Ready < 20min", "target": 95.0, "current": ready_pct,
+         "unit": "%", "status": _slo_status(ready_pct, 95.0)},
+        {"name": "Session Uptime", "target": 98.0, "current": readiness,
+         "unit": "%", "status": _slo_status(readiness, 98.0)},
+        {"name": "MTTR Critical < 15min", "target": 85.0, "current": slo_mttr,
+         "unit": "%", "status": _slo_status(slo_mttr, 85.0)},
+        {"name": "Provisioning Success", "target": 99.0, "current": prov_success,
+         "unit": "%", "status": _slo_status(prov_success, 99.0)},
+    ]
+
+    # --- 7-day daily trend ---
+    daily_t = db.query(
+        func.date(EvaluationRecord.evaluated_at).label("day"),
+        func.count(func.distinct(EvaluationRecord.lab_code)),
+    ).filter(
+        EvaluationRecord.evaluated_at >= seven_days, EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(func.date(EvaluationRecord.evaluated_at)).all()
+
+    daily_f = db.query(
+        func.date(EvaluationRecord.evaluated_at).label("day"),
+        func.count(func.distinct(EvaluationRecord.lab_code)),
+    ).filter(
+        EvaluationRecord.evaluated_at >= seven_days, EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(func.date(EvaluationRecord.evaluated_at)).all()
+
+    t_map = {str(d): c for d, c in daily_t}
+    f_map = {str(d): c for d, c in daily_f}
+    daily_trend = [
+        {"date": day, "fail_rate": round(f_map.get(day, 0) / max(t_map[day], 1), 4),
+         "total_ns": t_map[day], "failing_ns": f_map.get(day, 0)}
+        for day in sorted(t_map)
+    ]
+
+    return {"kpis": kpis, "slos": slos, "daily_trend": daily_trend}
+
+
+@router.get("/admin/platform-kpis", dependencies=[Depends(require_admin_read)])
+def platform_kpis(db: Session = Depends(get_db)):
+    """Platform KPIs, SLO compliance, and 7-day trends."""
+    return _compute_platform_kpis(db)
+
+
+# ---------------------------------------------------------------------------
+# Remediation Strategies
+# ---------------------------------------------------------------------------
+
+def _build_remediation_strategies(db: Session) -> list:
+    """Build tiered remediation strategies sorted by blast radius."""
+    from db.models import EvaluationRecord, LabMapping
+    from sqlalchemy import func, or_
+    from api.constants import INFORMATIONAL_CLASSES
+    import re as _re
+
+    now = datetime.now(timezone.utc)
+    one_hour = now - timedelta(hours=1)
+    two_hours = now - timedelta(hours=2)
+    strategies: list = []
+
+    LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
+    _lf = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
+
+    # Build per-namespace failure data (last hour)
+    rows = db.query(
+        EvaluationRecord.lab_code, EvaluationRecord.cluster_name,
+        EvaluationRecord.outcome, EvaluationRecord.failure_class,
+        func.count().label("cnt"),
+    ).filter(
+        EvaluationRecord.evaluated_at > one_hour,
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(
+        EvaluationRecord.lab_code, EvaluationRecord.cluster_name,
+        EvaluationRecord.outcome, EvaluationRecord.failure_class,
+    ).all()
+
+    ns_data: Dict[str, Dict] = {}
+    for lab_code, cluster, outcome, fc, cnt in rows:
+        if lab_code not in ns_data:
+            ns_data[lab_code] = {"cluster": cluster or "", "failure_classes": {}}
+        if outcome == "fail" and fc and fc not in INFORMATIONAL_CLASSES:
+            ns_data[lab_code]["failure_classes"][fc] = (
+                ns_data[lab_code]["failure_classes"].get(fc, 0) + cnt
+            )
+
+    # Classify namespaces using existing helpers
+    baselines = _build_catalog_baselines(db)
+    first_eval_map: Dict[str, datetime] = {}
+    try:
+        for lc, fa in db.query(
+            EvaluationRecord.lab_code, func.min(EvaluationRecord.evaluated_at),
+        ).filter(
+            EvaluationRecord.lab_code.in_(list(ns_data.keys())),
+        ).group_by(EvaluationRecord.lab_code).all():
+            first_eval_map[lc] = fa
+    except Exception:
+        pass
+
+    by_namespace = []
+    for ns, d in ns_data.items():
+        if not d["failure_classes"]:
+            continue
+        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
+        cat = m.group(1) if m else ns
+        cl = _classify_namespace(ns, cat, d["failure_classes"], first_eval_map.get(ns), baselines)
+        by_namespace.append({
+            "namespace": ns, "cluster": d["cluster"],
+            "catalog_item": cat, "attention": cl["attention"],
+        })
+
+    # PLATFORM: spiking / spreading failure classes
+    fc_view = _build_failure_class_view(by_namespace, baselines, ns_data, db)
+    for fce in fc_view:
+        if fce["attention"] not in ("spiking", "spreading"):
+            continue
+        clusters = [c["cluster"] for c in fce["affected_clusters"][:3]]
+        ratio = fce["current_rate"] / max(fce["baseline_rate"], 0.001)
+        strategies.append({
+            "level": "platform",
+            "title": f"{fce['failure_class']} {fce['attention']} at {ratio:.1f}x baseline",
+            "blast_radius": fce["affected_namespaces"],
+            "severity": "critical" if fce["affected_namespaces"] >= 10 else "high",
+            "recommendation": f"Investigate {fce['failure_class']} on {', '.join(clusters)}",
+            "action_type": "investigate",
+            "target": clusters[0] if clusters else "",
+            "evidence": (
+                f"{fce['affected_namespaces']} namespaces across "
+                f"{len(fce['affected_clusters'])} clusters, "
+                f"{fce['stuck_count']} stuck > P95 TTR"
+            ),
+            "expected_impact": f"Would resolve ~{fce['affected_namespaces']} namespace failures",
+        })
+
+    # LAB: catalog items with high fail rate (>50%, >=5 ns)
+    guid_info: Dict[str, Dict] = {}
+    for lm in db.query(LabMapping).filter(LabMapping.lab_code.like("guid:%")).all():
+        g = lm.lab_code.replace("guid:", "")
+        guid_info[g] = {
+            "name": lm.ci_name or lm.ci_base or g,
+            "cat": lm.ci_base or "",
+            "agv": lm.agnosticv_path or "",
+        }
+
+    cat_stats: Dict[str, Dict] = {}
+    for ns, d in ns_data.items():
+        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", ns)
+        if not m:
+            continue
+        info = guid_info.get(m.group(1), {})
+        cat = info.get("cat") or m.group(2)
+        cs = cat_stats.setdefault(cat, {
+            "ns": set(), "failing": set(),
+            "agv": info.get("agv", ""), "name": info.get("name", cat),
+        })
+        cs["ns"].add(ns)
+        if d["failure_classes"]:
+            cs["failing"].add(ns)
+
+    for cat, cs in cat_stats.items():
+        t, f = len(cs["ns"]), len(cs["failing"])
+        if t < 5 or f / max(t, 1) <= 0.5:
+            continue
+        pct = round(f / t * 100, 1)
+        agv = f"https://github.com/rhpds/agnosticv/tree/main/{cs['agv']}" if cs["agv"] else None
+        strategies.append({
+            "level": "lab", "title": f"{cs['name']} fail rate {pct}%",
+            "blast_radius": f, "severity": "high" if pct >= 75 else "medium",
+            "recommendation": f"Review AgnosticV config for {cat}",
+            "action_type": "fix_config", "target": cat, "agnosticv_url": agv,
+            "evidence": f"{f}/{t} namespaces failing",
+            "expected_impact": f"Would stabilize ~{f} namespaces",
+        })
+
+    # CLUSTER: disproportionate failures (>2x average)
+    cluster_counts: Dict[str, Dict] = {}
+    for ns, d in ns_data.items():
+        c = d["cluster"] or "unknown"
+        cluster_counts.setdefault(c, {"total": 0, "failing": 0})
+        cluster_counts[c]["total"] += 1
+        if d["failure_classes"]:
+            cluster_counts[c]["failing"] += 1
+    if cluster_counts:
+        avg = sum(v["failing"] for v in cluster_counts.values()) / len(cluster_counts)
+        for c, v in cluster_counts.items():
+            if v["failing"] <= avg * 2 or v["failing"] < 3:
+                continue
+            strategies.append({
+                "level": "cluster",
+                "title": f"{c} has {v['failing']} failures ({v['failing']/max(avg,1):.1f}x avg)",
+                "blast_radius": v["failing"],
+                "severity": "high" if v["failing"] >= 10 else "medium",
+                "recommendation": f"Investigate infrastructure health on {c}",
+                "action_type": "investigate", "target": c,
+                "evidence": f"{v['failing']}/{v['total']} namespaces failing vs avg {avg:.0f}",
+                "expected_impact": f"Would resolve ~{v['failing']} namespace failures on {c}",
+            })
+
+    # NAMESPACE: stuck (>20 consecutive fails, no pass in 2h)
+    stuck = db.query(
+        EvaluationRecord.lab_code, EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class, func.count().label("n"),
+    ).filter(
+        EvaluationRecord.evaluated_at > two_hours, EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).group_by(
+        EvaluationRecord.lab_code, EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class,
+    ).having(func.count() > 20).all()
+
+    passed = {r[0] for r in db.query(EvaluationRecord.lab_code).filter(
+        EvaluationRecord.evaluated_at > two_hours, EvaluationRecord.outcome == "pass",
+        EvaluationRecord.lab_code.isnot(None), _lf,
+    ).distinct().all()}
+
+    for lc, cl, fc, n in stuck:
+        if lc in passed:
+            continue
+        strategies.append({
+            "level": "namespace", "title": f"{lc} stuck with {fc}",
+            "blast_radius": 1, "severity": "high" if n >= 50 else "medium",
+            "recommendation": f"Recycle namespace {lc} on {cl}",
+            "action_type": "recycle", "target": lc,
+            "evidence": f"{n} consecutive failures of {fc} with no recovery in 2h",
+            "expected_impact": "Would recover 1 stuck namespace",
+        })
+
+    strategies.sort(key=lambda s: s["blast_radius"], reverse=True)
+    return strategies
+
+
+@router.get("/admin/remediation-strategies", dependencies=[Depends(require_admin_read)])
+def remediation_strategies(db: Session = Depends(get_db)):
+    """Tiered remediation strategies sorted by blast radius (highest impact first)."""
+    strats = _build_remediation_strategies(db)
+    return {
+        "strategies": strats,
+        "total": len(strats),
+        "by_level": {
+            level: sum(1 for s in strats if s["level"] == level)
+            for level in ("platform", "lab", "cluster", "namespace")
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
 
