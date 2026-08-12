@@ -34,8 +34,8 @@ logger = logging.getLogger("stargate.agent")
 _SAFE_VERBS = frozenset({"get", "describe", "logs", "adm", "api-resources", "whoami"})
 _SAFE_ADM = frozenset({"top"})
 
-MAX_ITERATIONS = 8
-MAX_WALL_SECONDS = 90
+MAX_ITERATIONS = 5
+MAX_WALL_SECONDS = 60
 MAX_OUTPUT_CHARS = 3000
 
 # Shared progress dict — the dashboard endpoint writes a reference here

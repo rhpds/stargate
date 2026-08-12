@@ -370,7 +370,13 @@ function ExpandedRow({ namespace }: { namespace: string }) {
         {/* AI Analysis */}
         <div>
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">AI Analysis</h4>
-          {!aiAnalysis ? (
+          {!aiAnalysis || aiLoading ? (
+            <div>
+            {aiLoading && aiAnalysis?.text && (
+              <div className="bg-[#111] rounded p-2 mb-2 text-[10px] text-[#8A8D90] font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                {aiAnalysis.text}
+              </div>
+            )}
             <div className="flex gap-2">
               <button className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded flex-1 disabled:opacity-50"
                 disabled={aiLoading || !data.issues?.length} onClick={getAiAnalysis}>
@@ -411,6 +417,7 @@ function ExpandedRow({ namespace }: { namespace: string }) {
                 }}>
                 {aiLoading ? 'Investigating...' : 'Deep Investigation'}
               </button>
+            </div>
             </div>
           ) : (
             <div className="space-y-2">
