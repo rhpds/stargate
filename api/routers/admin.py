@@ -3200,6 +3200,35 @@ def admin_cost_analysis(db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# Agent Trust Evaluation
+# ---------------------------------------------------------------------------
+
+@router.get("/admin/agent-trust")
+def agent_trust_report(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
+    """Run the agent evaluation against historical data and return trust scores.
+
+    Uses resolved incidents to build test cases, replays the agent with mocked
+    tool responses, and scores against an 8-dimension rubric.  Falls back to
+    hardcoded test cases when no historical data is available.
+    """
+    from engine.agent_evaluator import (
+        build_test_cases_from_history,
+        evaluate_agent,
+        get_hardcoded_test_cases,
+    )
+
+    cases = build_test_cases_from_history(db, limit=10)
+    source = "historical"
+    if not cases:
+        cases = get_hardcoded_test_cases()
+        source = "hardcoded"
+
+    report = evaluate_agent(cases)
+    report["source"] = source
+    return report
+
+
+# ---------------------------------------------------------------------------
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
 
