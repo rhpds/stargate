@@ -291,6 +291,45 @@ def collect_all_instance_mapping() -> Dict[str, List[Dict]]:
     return by_lab
 
 
+def collect_guid_lab_mapping() -> Dict[str, str]:
+    """Map sandbox GUIDs to catalog item names via ResourceClaims.
+
+    Queries all ResourceClaims on the Babylon control plane and extracts
+    the guid → catalog_item_name mapping. The guid matches the sandbox
+    namespace pattern sandbox-<guid>-<slug>.
+
+    Returns {guid: catalog_item_name} e.g. {"2ggwc": "openshift-days-ops-track"}
+    """
+    raw = _oc(["get", "resourceclaims", "-A", "--no-headers"], timeout=60)
+    if not raw:
+        return {}
+
+    import re
+    guid_map: Dict[str, str] = {}
+    for line in raw.strip().split("\n"):
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+        guid_col = parts[2]  # e.g. "guid-2ggwc"
+        governor = parts[3]  # e.g. "published.openshift-days-ops-track.prod"
+
+        m = re.match(r"^guid-([a-z0-9]+)$", guid_col)
+        if not m:
+            continue
+        guid = m.group(1)
+
+        # Extract catalog item from governor: prefix.item-name.env → item-name
+        gov_parts = governor.split(".")
+        if len(gov_parts) >= 2:
+            catalog_item = gov_parts[1]
+        else:
+            catalog_item = governor
+
+        guid_map[guid] = catalog_item
+
+    return guid_map
+
+
 def run_collection() -> Dict:
     """Run full Babylon control plane collection."""
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
@@ -336,6 +375,37 @@ def run_collection() -> Dict:
     results["summit_mapping"] = collect_summit_namespace_mapping()
     sm = results["summit_mapping"]
     print(f"    {len(sm)} summit labs, {sum(len(v) for v in sm.values())} summit instances")
+
+    print("  Collecting guid → lab mapping from ResourceClaims...")
+    guid_map = collect_guid_lab_mapping()
+    results["guid_lab_mapping"] = guid_map
+    print(f"    {len(guid_map)} guid → lab mappings")
+
+    # Persist guid→lab mappings to StarGate API
+    api_url = os.environ.get("STARGATE_API_URL", "")
+    api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
+    if guid_map and api_url:
+        import urllib.request
+        persisted = 0
+        for guid, catalog_item in guid_map.items():
+            try:
+                payload = json.dumps({
+                    "lab_code": guid,
+                    "ci_name": catalog_item.replace("-", " ").title(),
+                    "ci_base": catalog_item,
+                    "ci_slug": catalog_item,
+                }).encode()
+                req = urllib.request.Request(
+                    f"{api_url}/labs/guid-mapping",
+                    data=payload,
+                    headers={"Content-Type": "application/json", "X-API-Key": api_key},
+                    method="PUT",
+                )
+                urllib.request.urlopen(req, timeout=3)
+                persisted += 1
+            except Exception:
+                continue
+        print(f"    Persisted {persisted} guid mappings to API")
 
     # Labagator (external HTTP — may be slow/unreachable)
     print("  Collecting Labagator data...")
