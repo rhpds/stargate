@@ -646,9 +646,13 @@ def run_investigation(
             }
             all_tool_calls.append(tc_entry)
 
-            # Update progress for polling
-            if job_id and job_id in _investigation_progress:
-                _investigation_progress[job_id]["tool_calls"] = list(all_tool_calls)
+            # Update progress file for cross-pod polling
+            if job_id:
+                try:
+                    from api.routers.dashboard import _save_investigation
+                    _save_investigation(job_id, {"status": "running", "tool_calls": list(all_tool_calls), "analysis": None, "error": None})
+                except Exception:
+                    pass
 
             messages.append({
                 "role": "tool",
