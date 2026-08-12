@@ -4017,8 +4017,12 @@ _BASELINE_DIAGNOSTICS = [
 _SENSITIVE_PATTERNS = re.compile(
     r'('
     r'(?:password|passwd|secret|token|key|auth|credential|api.key|ssh.pass|vault.password|activationkey)'
-    r'\s*[:=]\s*)'
+    r'(?:\s*[:=]\s*|\s*\n\s*value:\s*))'
     r'(\S+)',
+    re.IGNORECASE,
+)
+_YAML_SECRET_VALUE = re.compile(
+    r'((?:PASSWORD|PASSWD|SECRET|TOKEN|KEY|AUTH|CREDENTIAL|VAULT_PASSWORD|ACTIVATIONKEY|ssh.pass)["\s]*\n\s*value:\s*)(\S+)',
     re.IGNORECASE,
 )
 _CERT_BLOCK = re.compile(r'-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----')
@@ -4029,6 +4033,7 @@ _LONG_BASE64 = re.compile(r'[A-Za-z0-9+/=]{60,}')
 def _redact_sensitive(text: str) -> str:
     """Redact passwords, tokens, certificates, and long base64 from command output."""
     text = _CERT_BLOCK.sub('[CERTIFICATE REDACTED]', text)
+    text = _YAML_SECRET_VALUE.sub(r'\1[REDACTED]', text)
     text = _SENSITIVE_PATTERNS.sub(r'\1[REDACTED]', text)
     text = _BEARER_TOKEN.sub(r'\1[REDACTED]', text)
     text = _LONG_BASE64.sub('[REDACTED]', text)
