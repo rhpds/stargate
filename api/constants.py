@@ -4,6 +4,9 @@ import os
 
 WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed", "readiness_probe_failed", "deprecated_api", "datasource_unrecognized"}
 
+# Informational failures — never break the lab, excluded from operational views entirely
+INFORMATIONAL_CLASSES = {"deprecated_api", "guest_agent_not_connected"}
+
 _ECOSYSTEM_DEFAULT = "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-"
 
 ECOSYSTEM_PREFIXES = [
