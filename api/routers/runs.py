@@ -648,6 +648,50 @@ async def upsert_guid_mapping(req: dict):
         db.close()
 
 
+@router.put("/labs/guid-mapping-batch")
+async def upsert_guid_mapping_batch(req: dict):
+    """Batch upsert guid → lab mappings from Babylon worker."""
+    from db.database import get_db
+    from db.models import LabMapping
+    from datetime import datetime, timezone
+    db = next(get_db())
+    try:
+        mappings = req.get("mappings", [])
+        now = datetime.now(timezone.utc)
+        persisted = 0
+        for m in mappings:
+            guid = m.get("lab_code", "")
+            if not guid:
+                continue
+            key = f"guid:{guid}"
+            existing = db.query(LabMapping).filter(LabMapping.lab_code == key).first()
+            if existing:
+                if m.get("ci_name"):
+                    existing.ci_name = m["ci_name"]
+                if m.get("ci_base"):
+                    existing.ci_base = m["ci_base"]
+                if m.get("ci_slug"):
+                    existing.ci_slug = m["ci_slug"]
+                if m.get("agnosticv_path"):
+                    existing.agnosticv_path = m["agnosticv_path"]
+                existing.updated_at = now
+            else:
+                db.add(LabMapping(
+                    lab_code=key,
+                    ci_name=m.get("ci_name"),
+                    ci_base=m.get("ci_base"),
+                    ci_slug=m.get("ci_slug"),
+                    agnosticv_path=m.get("agnosticv_path"),
+                    namespace_pattern=f"sandbox-{guid}-*",
+                    updated_at=now,
+                ))
+            persisted += 1
+        db.commit()
+        return {"status": "ok", "persisted": persisted}
+    finally:
+        db.close()
+
+
 @router.get("/api/failure-classes")
 async def get_failure_classes():
     """Return all failure classes in normalized shared schema for cross-product sync."""
