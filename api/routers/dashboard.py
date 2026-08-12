@@ -3964,6 +3964,64 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     }
 
 
+@router.post("/dashboard/investigate")
+@limiter.limit("5/minute")
+def dashboard_investigate(request: Request, req: dict, db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """AI investigation agent — iterative tool-calling for deep diagnosis.
+
+    Uses read-only tools to investigate sandbox failures across the RHDP stack.
+    The agent decides what to look at, runs commands, reads configs, and produces
+    a specific remediation strategy.
+    """
+    failure_class = req.get("failure_class", "")
+    lab_code = req.get("lab_code", "")
+    cluster = req.get("cluster", "")
+
+    if not lab_code:
+        return {"error": "lab_code required"}
+
+    # Build initial evidence summary for the agent
+    evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
+
+    # Add recent evaluation context
+    from db.models import EvaluationRecord
+    recent = db.query(EvaluationRecord).filter(
+        EvaluationRecord.lab_code == lab_code,
+    ).order_by(EvaluationRecord.id.desc()).limit(5).all()
+    if recent:
+        evidence_lines.append("\nRecent evaluations:")
+        for e in recent:
+            evidence_lines.append(f"  {e.evaluated_at}: {e.outcome} — {e.failure_class or 'none'} | {(e.message or '')[:150]}")
+
+    initial_evidence = "\n".join(evidence_lines)
+
+    # Run the agent
+    from engine.investigation_agent import run_investigation
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+
+    kubeconfig_dir = os.path.dirname(EXECUTOR_KUBECONFIG) if EXECUTOR_KUBECONFIG else ""
+
+    result = run_investigation(
+        namespace=lab_code,
+        cluster=cluster,
+        failure_class=failure_class,
+        initial_evidence=initial_evidence,
+        kubeconfig_dir=kubeconfig_dir,
+        db=db,
+    )
+
+    return {
+        "analysis": result.get("analysis", ""),
+        "tool_calls": result.get("tool_calls", []),
+        "iterations": result.get("iterations", 0),
+        "error": result.get("error"),
+        "fallback": result.get("fallback", False),
+        "lab_code": lab_code,
+        "cluster": cluster,
+        "failure_class": failure_class,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Read-only diagnostic command runner
 # ---------------------------------------------------------------------------
