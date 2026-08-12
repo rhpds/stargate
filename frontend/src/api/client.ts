@@ -316,6 +316,8 @@ export const api = {
   getNamespaceDetail: (ns: string) => request<any>(`/admin/namespace-detail/${encodeURIComponent(ns)}`),
   getCatalogItemHistory: (days?: number) => request<any>(`/admin/catalog-item-history?days=${days || 7}`),
   getResolutions: (hours?: number) => request<any>(`/dashboard/resolutions?hours=${hours || 168}`),
+  investigate: (body: Record<string, string | undefined>) =>
+    request<any>('/dashboard/investigate', { method: 'POST', body: JSON.stringify(body) }),
   getPlatformKpis: () => request<any>('/admin/platform-kpis'),
   getRemediationStrategies: () => request<any>('/admin/remediation-strategies'),
   getCostAnalysis: () => request<any>('/admin/cost-analysis'),
