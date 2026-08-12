@@ -2508,23 +2508,35 @@ def _compute_platform_kpis(db: Session) -> dict:
     _lf = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
 
     # --- Last-hour namespace health ---
-    total_monitored = db.query(func.count(func.distinct(EvaluationRecord.lab_code))).filter(
+    # Total monitored = all sandbox namespaces seen by the scanner (from all evals)
+    # Failing = namespaces with non-informational failures in the last hour
+    # Healthy = total monitored minus failing (namespaces with NO failure evals are healthy)
+    all_ns_rows = db.query(EvaluationRecord.lab_code).filter(
         EvaluationRecord.evaluated_at > one_hour, EvaluationRecord.lab_code.isnot(None), _lf,
-    ).scalar() or 0
+    ).distinct().all()
+    all_ns = {r[0] for r in all_ns_rows}
+    total_monitored = len(all_ns)
 
     failing_rows = db.query(EvaluationRecord.lab_code).filter(
         EvaluationRecord.evaluated_at > one_hour, EvaluationRecord.outcome == "fail",
         EvaluationRecord.failure_class.isnot(None),
         EvaluationRecord.failure_class.notin_(INFORMATIONAL_CLASSES),
+        ~EvaluationRecord.failure_class.in_(WARNING_CLASSES),
         EvaluationRecord.lab_code.isnot(None), _lf,
     ).distinct().all()
     failing_ns = {r[0] for r in failing_rows}
-    readiness = round((total_monitored - len(failing_ns)) / max(total_monitored, 1) * 100, 1)
+    # Use total provisioned (guid mappings) as denominator if larger
+    total_prov_for_readiness = db.query(func.count(LabMapping.lab_code)).filter(
+        LabMapping.lab_code.like("guid:%"),
+    ).scalar() or 0
+    denominator = max(total_prov_for_readiness, total_monitored, 1)
+    readiness = round((denominator - len(failing_ns)) / denominator * 100, 1)
 
     # --- Provisioning (Babylon cache) ---
     babylon = _load_latest_babylon()
     prov = babylon.get("provisioning", {}) if babylon else {}
-    prov_success = round((1 - (prov.get("failure_rate", 0) or 0)) * 100, 1)
+    prov_fail_rate = prov.get("failure_rate", 0) or 0
+    prov_success = round(100.0 - prov_fail_rate, 1)
 
     # --- Mean time to ready (last 24h): first eval -> first pass per ns ---
     fe = {r[0]: r[1] for r in db.query(
