@@ -3964,7 +3964,19 @@ def dashboard_remediation(request: Request, req: dict, db: Session = Depends(get
     }
 
 
-_investigation_results: Dict[str, Dict] = {}
+_INVESTIGATION_DIR = Path(__file__).parent.parent.parent / "scan-history" / "investigations"
+
+
+def _save_investigation(job_id: str, data: Dict):
+    _INVESTIGATION_DIR.mkdir(parents=True, exist_ok=True)
+    (_INVESTIGATION_DIR / f"{job_id}.json").write_text(json.dumps(data))
+
+
+def _load_investigation(job_id: str) -> Optional[Dict]:
+    f = _INVESTIGATION_DIR / f"{job_id}.json"
+    if f.exists():
+        return json.loads(f.read_text())
+    return None
 
 
 @router.post("/dashboard/investigate")
@@ -3985,7 +3997,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
         return {"error": "lab_code required"}
 
     job_id = f"inv-{uuid.uuid4().hex[:8]}"
-    _investigation_results[job_id] = {"status": "running", "tool_calls": [], "analysis": None, "error": None}
+    _save_investigation(job_id, {"status": "running", "tool_calls": [], "analysis": None, "error": None})
 
     def _run():
         try:
@@ -4010,8 +4022,6 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
             from api.routers._shared import EXECUTOR_KUBECONFIG
             kubeconfig_dir = os.path.dirname(EXECUTOR_KUBECONFIG) if EXECUTOR_KUBECONFIG else ""
 
-            _investigation_progress[job_id] = _investigation_results[job_id]
-
             result = run_investigation(
                 namespace=lab_code,
                 cluster=cluster,
@@ -4020,16 +4030,16 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 kubeconfig_dir=kubeconfig_dir,
                 job_id=job_id,
             )
-            _investigation_results[job_id] = {
+            _save_investigation(job_id, {
                 "status": "complete",
                 "analysis": result.get("analysis", ""),
                 "tool_calls": result.get("tool_calls", []),
                 "iterations": result.get("iterations", 0),
                 "error": result.get("error"),
                 "fallback": result.get("fallback", False),
-            }
+            })
         except Exception as e:
-            _investigation_results[job_id] = {"status": "error", "error": str(e)[:500], "tool_calls": [], "analysis": None}
+            _save_investigation(job_id, {"status": "error", "error": str(e)[:500], "tool_calls": [], "analysis": None})
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
@@ -4040,7 +4050,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
 @router.get("/dashboard/investigate/{job_id}")
 def dashboard_investigate_poll(job_id: str):
     """Poll for investigation progress and results."""
-    result = _investigation_results.get(job_id)
+    result = _load_investigation(job_id)
     if not result:
         raise HTTPException(status_code=404, detail="Investigation not found")
     return result
