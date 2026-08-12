@@ -4,6 +4,103 @@ import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
 
+/* ---- KPI Dashboard ---- */
+
+function KpiDashboard() {
+  const { data } = useQuery({ queryKey: ['platform-kpis'], queryFn: () => api.getPlatformKpis(), refetchInterval: 60000 });
+  if (!data) return null;
+
+  const kpis = data.kpis || {};
+  const slos = data.slos || [];
+
+  const SLO_COLORS: Record<string, string> = { met: '#3E8635', at_risk: '#F0AB00', breached: '#C9190B' };
+
+  return (
+    <div className="mb-4">
+      {/* KPI Tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-3">
+        {[
+          { label: 'Lab Readiness', value: `${kpis.lab_readiness_rate?.toFixed(1) || '--'}%`, color: (kpis.lab_readiness_rate || 0) >= 90 ? '#3E8635' : '#F0AB00' },
+          { label: 'Provisioning', value: `${kpis.provisioning_success_rate?.toFixed(1) || '--'}%`, color: (kpis.provisioning_success_rate || 0) >= 99 ? '#3E8635' : '#F0AB00' },
+          { label: 'Time to Ready', value: kpis.mean_time_to_ready_minutes ? `${kpis.mean_time_to_ready_minutes.toFixed(0)}m` : '--', color: (kpis.mean_time_to_ready_minutes || 99) <= 20 ? '#3E8635' : '#F0AB00' },
+          { label: 'Active Sandboxes', value: kpis.active_sandboxes?.toLocaleString() || '--', color: '#4394E5' },
+          { label: 'Utilization', value: `${kpis.platform_utilization_pct?.toFixed(0) || '--'}%`, color: '#4394E5' },
+          { label: 'MTTR', value: kpis.mttr_minutes ? `${kpis.mttr_minutes.toFixed(0)}m` : '--', color: (kpis.mttr_minutes || 99) <= 15 ? '#3E8635' : '#F0AB00' },
+          { label: 'Impacted Owners', value: kpis.developer_impact?.toString() || '0', color: (kpis.developer_impact || 0) === 0 ? '#3E8635' : '#C9190B' },
+        ].map(k => (
+          <div key={k.label} className="bg-[#1a1a1a] rounded-lg border border-[#2e2e2e] p-2.5 text-center">
+            <div className="text-[10px] text-[#8A8D90] uppercase tracking-wider mb-1">{k.label}</div>
+            <div className="text-lg font-bold" style={{ color: k.color }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+      {/* SLO Status */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {slos.map((slo: any) => (
+          <div key={slo.name} className="bg-[#1a1a1a] rounded-lg border border-[#2e2e2e] px-3 py-2 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] text-[#8A8D90]">{slo.name}</div>
+              <div className="text-xs text-white font-medium">{slo.current?.toFixed(1)}{slo.unit} <span className="text-[10px] text-[#555]">/ {slo.target}{slo.unit}</span></div>
+            </div>
+            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+              style={{ backgroundColor: `${SLO_COLORS[slo.status] || '#555'}20`, color: SLO_COLORS[slo.status] || '#555' }}>
+              {slo.status?.replace(/_/g, ' ')}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+/* ---- Remediation Strategies ---- */
+
+function RemediationStrategies() {
+  const { data } = useQuery({ queryKey: ['remediation-strategies'], queryFn: () => api.getRemediationStrategies(), refetchInterval: 60000 });
+  const [expanded, setExpanded] = useState<number | null>(null);
+  if (!data?.strategies?.length) return null;
+
+  const LEVEL_COLORS: Record<string, string> = { platform: '#C9190B', lab: '#F0AB00', cluster: '#4394E5', namespace: '#8A8D90' };
+  const SEV_COLORS: Record<string, string> = { critical: '#C9190B', high: '#F0AB00', medium: '#4394E5', low: '#6A6E73' };
+
+  return (
+    <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
+      <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Remediation Strategies — Highest Impact First</h3>
+      <div className="space-y-1">
+        {data.strategies.slice(0, 10).map((s: any, i: number) => (
+          <div key={i} className="bg-[#1a1a1a] rounded border border-[#2a2a2a]">
+            <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-[#222] transition"
+              onClick={() => setExpanded(expanded === i ? null : i)}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0"
+                  style={{ backgroundColor: `${LEVEL_COLORS[s.level]}20`, color: LEVEL_COLORS[s.level] }}>{s.level}</span>
+                <span className="text-xs text-white truncate">{s.title}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px]" style={{ color: SEV_COLORS[s.severity] }}>{s.blast_radius} ns</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#22222280', color: '#8A8D90' }}>{s.action_type?.replace(/_/g, ' ')}</span>
+              </div>
+            </div>
+            {expanded === i && (
+              <div className="px-3 pb-3 border-t border-[#2e2e2e] pt-2 space-y-1.5">
+                <p className="text-[11px] text-white">{s.recommendation}</p>
+                <p className="text-[10px] text-[#6A6E73]">{s.evidence}</p>
+                {s.expected_impact && <p className="text-[10px] text-[#3E8635]">{s.expected_impact}</p>}
+                {s.agnosticv_url && (
+                  <a href={s.agnosticv_url} target="_blank" rel="noopener noreferrer"
+                    className="text-[10px] text-[#4394E5] hover:underline font-mono block">{s.agnosticv_url.split('/tree/main/')[1] || s.agnosticv_url}</a>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 function Synopsis({ clusterCount, namespaceCount }: { clusterCount: number; namespaceCount: number }) {
   const [open, setOpen] = useState(() => {
     try { return sessionStorage.getItem('sg-synopsis') !== 'closed'; } catch { return true; }
@@ -545,6 +642,7 @@ export default function Operations() {
 
       {data && (
         <>
+          <KpiDashboard />
           <Synopsis clusterCount={data.summary?.total_clusters || 0} namespaceCount={data.summary?.total_monitored || 0} />
           <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
@@ -561,6 +659,7 @@ export default function Operations() {
             </div>
           )}
 
+          <RemediationStrategies />
           <CatalogItemHistory />
 
           <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] min-h-[300px]">
