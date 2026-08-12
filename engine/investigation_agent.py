@@ -35,8 +35,12 @@ _SAFE_VERBS = frozenset({"get", "describe", "logs", "adm", "api-resources", "who
 _SAFE_ADM = frozenset({"top"})
 
 MAX_ITERATIONS = 8
-MAX_WALL_SECONDS = 60
+MAX_WALL_SECONDS = 90
 MAX_OUTPUT_CHARS = 3000
+
+# Shared progress dict — the dashboard endpoint writes a reference here
+# so the agent can update tool_calls in real-time for polling
+_investigation_progress: Dict[str, Dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -528,6 +532,7 @@ def run_investigation(
     kubeconfig_dir: str = "",
     model: str = "",
     db=None,
+    job_id: str = "",
 ) -> Dict[str, Any]:
     """Run the investigation agent loop.
 
@@ -614,12 +619,17 @@ def run_investigation(
             logger.info("Agent tool call: %s(%s)", fn_name, json.dumps(fn_args)[:100])
 
             tool_result = _dispatch_tool(fn_name, fn_args, cluster, kubeconfig_dir)
-            all_tool_calls.append({
+            tc_entry = {
                 "tool": fn_name,
                 "args": fn_args,
                 "result_preview": tool_result[:200],
                 "iteration": iteration,
-            })
+            }
+            all_tool_calls.append(tc_entry)
+
+            # Update progress for polling
+            if job_id and job_id in _investigation_progress:
+                _investigation_progress[job_id]["tool_calls"] = list(all_tool_calls)
 
             messages.append({
                 "role": "tool",

@@ -381,15 +381,31 @@ function ExpandedRow({ namespace }: { namespace: string }) {
                 onClick={() => {
                   if (!data?.issues?.[0]) return;
                   setAiLoading(true);
-                  setAiAnalysis(null);
-                  api.investigate({ failure_class: data.issues[0].failure_class, lab_code: namespace, cluster: data.cluster })
+                  setAiAnalysis({ text: 'Starting investigation...', llmMetricId: undefined });
+                  api.investigateStart({ failure_class: data.issues[0].failure_class, lab_code: namespace, cluster: data.cluster })
                     .then((r: any) => {
-                      const toolSummary = r?.tool_calls?.length ? `\n\n---\n*Agent used ${r.tool_calls.length} tool calls across ${r.iterations} iterations${r.fallback ? ' (fell back to single-shot)' : ''}*` : '';
-                      setAiAnalysis({ text: (r?.analysis || 'No analysis returned') + toolSummary, llmMetricId: undefined });
-                      setAiLoading(false);
+                      const jobId = r?.job_id;
+                      if (!jobId) { setAiAnalysis({ text: 'Failed to start investigation', llmMetricId: undefined }); setAiLoading(false); return; }
+                      const poll = () => {
+                        api.investigatePoll(jobId).then((p: any) => {
+                          const toolLines = (p?.tool_calls || []).map((tc: any) => `  → ${tc.tool}(${JSON.stringify(tc.args).slice(0,60)})`).join('\n');
+                          if (p?.status === 'complete') {
+                            const summary = p.tool_calls?.length ? `\n\n---\n**Investigation used ${p.tool_calls.length} tool calls across ${p.iterations} iterations**\n${toolLines}` : '';
+                            setAiAnalysis({ text: (p?.analysis || 'No analysis') + summary, llmMetricId: undefined });
+                            setAiLoading(false);
+                          } else if (p?.status === 'error') {
+                            setAiAnalysis({ text: `Investigation error: ${p?.error || 'unknown'}`, llmMetricId: undefined });
+                            setAiLoading(false);
+                          } else {
+                            setAiAnalysis({ text: `Investigating... (${p?.tool_calls?.length || 0} tools used)\n${toolLines || 'Starting...'}`, llmMetricId: undefined });
+                            setTimeout(poll, 2000);
+                          }
+                        }).catch(() => { setAiAnalysis({ text: 'Lost connection to investigation', llmMetricId: undefined }); setAiLoading(false); });
+                      };
+                      setTimeout(poll, 2000);
                     })
                     .catch((e: any) => {
-                      setAiAnalysis({ text: `Investigation failed: ${e?.message || 'Request timed out'}`, llmMetricId: undefined });
+                      setAiAnalysis({ text: `Investigation failed: ${e?.message || 'Request failed'}`, llmMetricId: undefined });
                       setAiLoading(false);
                     });
                 }}>
