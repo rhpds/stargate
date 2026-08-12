@@ -1342,7 +1342,8 @@
   allowed_when:
   - failure_class == sync_failed
   commands:
-  - oc logs deployment/{operator} -n {namespace}
+  - oc get events -n {namespace} --field-selector=reason=ReconcileError,reason=SyncFailed --sort-by=.lastTimestamp
+  - oc get pods -n {namespace} -o wide | grep -v Running
   forbidden_when:
   - namespace == openshift-*
 - id: inspect_vault_decryption_failed
