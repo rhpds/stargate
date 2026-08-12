@@ -4158,63 +4158,8 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
         _guid = lab_code.split("-")[1]
         rhdp_lines = []
 
-        # 1. ResourceClaim + AnarchySubject from Babylon control plane
-        try:
-            from api.routers._shared import EXECUTOR_KUBECONFIG
-            import subprocess as _rhdp_sp, os as _rhdp_os
-            _babylon_kc = _rhdp_os.path.join(_rhdp_os.path.dirname(EXECUTOR_KUBECONFIG), "kubeconfig-ocp-us-east-1")
-            if _rhdp_os.path.exists(_babylon_kc):
-                # ResourceClaim — grep for guid to avoid loading all 1600+
-                _rc = _rhdp_sp.run(
-                    f"oc --kubeconfig {_babylon_kc} get resourceclaims -A --no-headers 2>/dev/null | grep 'guid-{_guid}'",
-                    capture_output=True, text=True, timeout=10, shell=True,
-                )
-                for _line in (_rc.stdout or "").strip().split("\n"):
-                    if _line.strip():
-                        _parts = _line.split()
-                        if len(_parts) >= 4:
-                            rhdp_lines.append(f"ResourceClaim: {_parts[1]} in {_parts[0]}, governor: {_parts[3]}")
-
-                # AnarchySubject — grep for guid
-                _as = _rhdp_sp.run(
-                    f"oc --kubeconfig {_babylon_kc} get anarchysubjects -A --no-headers 2>/dev/null | grep '{_guid}'",
-                    capture_output=True, text=True, timeout=10, shell=True,
-                )
-                for _line in (_as.stdout or "").strip().split("\n"):
-                    if _guid in _line:
-                        _parts = _line.split()
-                        if len(_parts) >= 5:
-                            rhdp_lines.append(f"AnarchySubject: {_parts[1]} state={_parts[3]} desired={_parts[4]}")
-
-                # ResourceClaim status summary (AgnosticV path, provision data)
-                if rhdp_lines:
-                    _rc_name = None
-                    _rc_ns = None
-                    for _line in (_rc.stdout or "").strip().split("\n"):
-                        if f"guid-{_guid}" in _line:
-                            _p = _line.split()
-                            if len(_p) >= 2:
-                                _rc_ns, _rc_name = _p[0], _p[1]
-                                break
-                    if _rc_name and _rc_ns:
-                        _summary = _rhdp_sp.run(
-                            ["oc", "--kubeconfig", _babylon_kc, "get", "resourceclaim", _rc_name,
-                             "-n", _rc_ns, "-o", "jsonpath={.status.summary.agnosticv}"],
-                            capture_output=True, text=True, timeout=8,
-                        )
-                        if _summary.returncode == 0 and _summary.stdout:
-                            try:
-                                _agv = json.loads(_summary.stdout)
-                                rhdp_lines.append(f"AgnosticV path: {_agv.get('path', '?')}")
-                                rhdp_lines.append(f"AgnosticV repo: {_agv.get('repo', '?')}")
-                                rhdp_lines.append(f"Catalog item: {_agv.get('short_name', '?')}")
-                                ctx["agnosticv_url"] = f"https://github.com/rhpds/agnosticv/tree/main/{_agv.get('path', '')}"
-                            except Exception:
-                                pass
-        except Exception:
-            pass
-
-        # 2. Lab identity from LabMapping (guid → display name, AgnosticD config)
+        # 1. Lab identity from LabMapping (guid → display name, AgnosticD config, AgnosticV path)
+        #    Uses cached data from Babylon worker — no live queries to control plane
         try:
             from db.models import LabMapping
             _lm = db.query(LabMapping).filter(LabMapping.lab_code == f"guid:{_guid}").first()
