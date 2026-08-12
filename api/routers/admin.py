@@ -3110,20 +3110,21 @@ def admin_cost_analysis(db: Session = Depends(get_db)):
     # Optimization opportunities
     optimization_opportunities = []
     if stuck_count > 0:
-        stuck_monthly = round(stuck_hourly * 730, 2)
         optimization_opportunities.append({
-            "description": f"Recycling {stuck_count} stuck sandboxes would save ${stuck_monthly}/month",
-            "monthly_savings": stuck_monthly,
+            "description": f"{stuck_count} stuck sandboxes are consuming shared cluster capacity with no user value",
+            "action": "Recycle these sandboxes to free cluster capacity",
+            "sandboxes": stuck_count,
+            "type": "capacity_recovery",
         })
 
-    # Find the most expensive dedicated catalog item for quota reduction suggestion
-    dedicated_items = [c for c in by_catalog_item if c["resource_type"] == "dedicated" and c["active_count"] > 0]
-    if dedicated_items:
-        top_dedicated = max(dedicated_items, key=lambda c: c["total_hourly_cost"])
-        quota_savings = round(top_dedicated["total_hourly_cost"] * 0.30 * 730, 2)
+    failing_dedicated = [c for c in by_catalog_item if c["resource_type"] == "dedicated" and c["failing_count"] > 0]
+    if failing_dedicated:
+        top = max(failing_dedicated, key=lambda c: c["failing_count"])
         optimization_opportunities.append({
-            "description": f"Reducing {top_dedicated['catalog_item']} quota by 30% would save ${quota_savings}/month",
-            "monthly_savings": quota_savings,
+            "description": f"{top['failing_count']} failing {top['catalog_item']} sandboxes — each uses ~24 vCPU, 96Gi RAM, 14TB storage on shared cluster",
+            "action": "Investigate root cause to reduce failure rate",
+            "sandboxes": top["failing_count"],
+            "type": "failure_reduction",
         })
 
     waste_pct = round(failure_hourly / max(total_hourly, 0.001) * 100, 1)
@@ -3159,7 +3160,7 @@ def admin_cost_analysis(db: Session = Depends(get_db)):
             "vcpu_hour": COST_VCPU_HOUR,
             "memory_gi_hour": COST_MEMORY_GI_HOUR,
             "storage_gi_hour": COST_STORAGE_GI_HOUR,
-            "note": "Configure via STARGATE_COST_* env vars",
+            "note": "Estimated unit costs — configure via STARGATE_COST_* env vars. On shared clusters, 'cost' represents resource capacity consumed, not direct spend. Actual infrastructure cost is fixed regardless of sandbox count.",
         },
     }
 
