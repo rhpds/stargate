@@ -2203,8 +2203,6 @@ def _build_catalog_baselines(db, hours: int = 168) -> Dict:
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-    # Only count rubric evaluations (exclude event-mined k8s-mine-* run_ids)
-    # so baseline rates reflect actual rubric pass/fail, not event-mined failures
     rows = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.outcome,
@@ -2213,7 +2211,6 @@ def _build_catalog_baselines(db, hours: int = 168) -> Dict:
     ).filter(
         EvaluationRecord.evaluated_at >= cutoff,
         EvaluationRecord.lab_code.isnot(None),
-        ~EvaluationRecord.run_id.like("k8s-mine-%"),
     ).group_by(
         EvaluationRecord.lab_code,
         EvaluationRecord.outcome,
@@ -2514,10 +2511,11 @@ def catalog_item_history(
             "governor": m.ci_slug or "",
         }
 
-    # Two queries: rubric-only for accurate pass/fail ratio, and all (including
-    # event-mined k8s-mine-*) for failure class identification.
-    # Rubric evals (run_id NOT starting with "k8s-mine-") — used for fail_rate_pct
-    rubric_rows = db.query(
+    # Fail rate = distinct namespaces with failures / total distinct namespaces
+    # This avoids the event-miner bias (which only creates fail evals).
+    # A namespace counts as "failing" if it had ANY fail eval in the window,
+    # "healthy" if it only had passes or no evaluations.
+    all_rows = db.query(
         EvaluationRecord.lab_code,
         EvaluationRecord.failure_class,
         EvaluationRecord.outcome,
@@ -2525,27 +2523,10 @@ def catalog_item_history(
     ).filter(
         EvaluationRecord.evaluated_at >= cutoff,
         EvaluationRecord.lab_code.isnot(None),
-        ~EvaluationRecord.run_id.like("k8s-mine-%"),
     ).group_by(
         EvaluationRecord.lab_code,
         EvaluationRecord.failure_class,
         EvaluationRecord.outcome,
-    ).all()
-
-    # Event-mined failures only — used for failure class breakdown enrichment
-    mined_rows = db.query(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.failure_class,
-        func.count().label("cnt"),
-    ).filter(
-        EvaluationRecord.evaluated_at >= cutoff,
-        EvaluationRecord.lab_code.isnot(None),
-        EvaluationRecord.failure_class.isnot(None),
-        EvaluationRecord.outcome == "fail",
-        EvaluationRecord.run_id.like("k8s-mine-%"),
-    ).group_by(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.failure_class,
     ).all()
 
     from api.constants import INFORMATIONAL_CLASSES as _INFO
@@ -2563,8 +2544,9 @@ def catalog_item_history(
         agv_path = info.get("agnosticv_path", "")
         return cat_key, display, agv_path, info
 
-    # Process rubric evaluations — these drive total_evals, total_fails, fail_rate
-    for lab_code, fc, outcome, cnt in rubric_rows:
+    # Process all evaluations — fail rate is computed from distinct namespace
+    # outcomes: a namespace is "failing" if it had ANY fail, "healthy" otherwise
+    for lab_code, fc, outcome, cnt in all_rows:
         if fc and fc in _INFO:
             continue
         cat_key, display, agv_path, info = _resolve_cat(lab_code)
@@ -2579,32 +2561,19 @@ def catalog_item_history(
                 "total_evals": 0,
                 "total_fails": 0,
                 "namespaces": set(),
+                "failing_namespaces": set(),
                 "failure_classes": {},
             }
         d = cat_data[cat_key]
-        d["total_evals"] += cnt
         d["namespaces"].add(lab_code)
         if not d["agnosticv_path"] and agv_path:
             d["agnosticv_path"] = agv_path
         if outcome == "fail" and fc:
             d["total_fails"] += cnt
+            d["failing_namespaces"].add(lab_code)
             d["failure_classes"].setdefault(fc, {"count": 0, "namespaces": set()})
             d["failure_classes"][fc]["count"] += cnt
             d["failure_classes"][fc]["namespaces"].add(lab_code)
-
-    # Enrich failure_classes with event-mined data (classification only, not ratio)
-    for lab_code, fc, cnt in mined_rows:
-        if fc in _INFO:
-            continue
-        cat_key, display, agv_path, info = _resolve_cat(lab_code)
-        if not cat_key:
-            continue
-        if cat_key not in cat_data:
-            continue  # only enrich catalog items we already know about from rubric evals
-        d = cat_data[cat_key]
-        d["failure_classes"].setdefault(fc, {"count": 0, "namespaces": set()})
-        d["failure_classes"][fc]["count"] += cnt
-        d["failure_classes"][fc]["namespaces"].add(lab_code)
 
     # Resolution patterns per catalog item
     res_rows = db.query(
@@ -2640,7 +2609,10 @@ def catalog_item_history(
         if d["total_fails"] == 0:
             continue
 
-        fail_rate = round(d["total_fails"] / max(d["total_evals"], 1) * 100, 1)
+        # Fail rate = % of namespaces that had any failure (not eval count ratio)
+        total_ns = len(d["namespaces"])
+        failing_ns = len(d.get("failing_namespaces", set()))
+        fail_rate = round(failing_ns / max(total_ns, 1) * 100, 1)
         fc_list = []
         for fc, fc_data in sorted(d["failure_classes"].items(), key=lambda x: -x[1]["count"]):
             res = cat_resolutions.get(cat_key, {}).get(fc, {})
@@ -2706,7 +2678,6 @@ def catalog_item_history(
         EvaluationRecord.evaluated_at >= cutoff,
         EvaluationRecord.outcome == 'fail',
         EvaluationRecord.failure_class.isnot(None),
-        ~EvaluationRecord.run_id.like('k8s-mine-%'),
     ).group_by('hour').all()
 
     hourly_distribution = {int(h): cnt for h, cnt in hourly_rows}
@@ -2759,7 +2730,6 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
 
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-    # Rubric evaluations only (exclude event-mined k8s-mine-*) for pass/fail ratio
     LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
     _lab_filter = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
     rows = db.query(
@@ -2772,30 +2742,10 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         EvaluationRecord.evaluated_at > one_hour_ago,
         EvaluationRecord.lab_code.isnot(None),
         _lab_filter,
-        ~EvaluationRecord.run_id.like("k8s-mine-%"),
     ).group_by(
         EvaluationRecord.lab_code,
         EvaluationRecord.cluster_name,
         EvaluationRecord.outcome,
-        EvaluationRecord.failure_class,
-    ).all()
-
-    # Event-mined failures — used to enrich failure_classes dict for classification
-    mined_fc_rows = db.query(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.cluster_name,
-        EvaluationRecord.failure_class,
-        func.count().label("cnt"),
-    ).filter(
-        EvaluationRecord.evaluated_at > one_hour_ago,
-        EvaluationRecord.lab_code.isnot(None),
-        _lab_filter,
-        EvaluationRecord.outcome == "fail",
-        EvaluationRecord.failure_class.isnot(None),
-        EvaluationRecord.run_id.like("k8s-mine-%"),
-    ).group_by(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.cluster_name,
         EvaluationRecord.failure_class,
     ).all()
 
@@ -2820,18 +2770,6 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 d["failure_classes"][fc] = d["failure_classes"].get(fc, 0) + cnt
                 stage = STAGE_MAP.get(fc, "workload")
                 d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
-
-    # Enrich failure_classes with event-mined data (for classification, not ratio)
-    for lab_code, cluster, fc, cnt in mined_fc_rows:
-        if lab_code not in ns_data:
-            # Only enrich namespaces we already know about from rubric evals
-            continue
-        is_warning = fc in WARNING_CLASSES if fc else False
-        if fc and not is_warning:
-            d = ns_data[lab_code]
-            d["failure_classes"][fc] = d["failure_classes"].get(fc, 0) + cnt
-            stage = STAGE_MAP.get(fc, "workload")
-            d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
 
     # Build catalog item baselines and first-eval timestamps for classification
     baselines = _build_catalog_baselines(db)
