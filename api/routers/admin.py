@@ -2573,16 +2573,19 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     }
     catalog_display_names: Dict[str, str] = dict(_BASE_ENV_NAMES)
 
-    # Per-namespace display names from LabMapping (most specific)
+    # Per-namespace display names and owners from LabMapping (most specific)
     ns_display_names: Dict[str, str] = {}
+    ns_owners: Dict[str, str] = {}
     try:
         from db.models import LabMapping
-        lab_mappings_db = db.query(LabMapping).filter(LabMapping.ci_name.isnot(None)).all()
+        lab_mappings_db = db.query(LabMapping).all()
         for m in lab_mappings_db:
             if m.ci_name:
                 ns_display_names[m.lab_code] = m.ci_name
                 if m.ci_base and m.ci_base not in catalog_display_names:
                     catalog_display_names[m.ci_base] = m.ci_name
+            if m.owner:
+                ns_owners[m.lab_code] = m.owner
     except Exception:
         pass
 
@@ -2672,6 +2675,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "cluster": d["cluster"],
             "catalog_item": catalog_item,
             "lab_name": ns_display_names.get(ns) or catalog_display_names.get(catalog_item, catalog_item),
+            "owner": ns_owners.get(ns),
             "pass": d["pass"],
             "fail": d["fail"],
             "total": d["total"],

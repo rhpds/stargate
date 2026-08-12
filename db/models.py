@@ -369,6 +369,7 @@ class LabMapping(Base):
     agnosticv_path = Column(String(255), nullable=True)
     cloud = Column(String(50), nullable=True)
     clusters = Column(JSON, nullable=True)
+    owner = Column(String(255), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True)
 
 

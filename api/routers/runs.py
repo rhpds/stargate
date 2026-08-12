@@ -586,6 +586,10 @@ async def upsert_lab_mapping(req: dict):
                 existing.namespace_pattern = req["namespace_pattern"]
             if req.get("clusters"):
                 existing.clusters = req["clusters"]
+            if req.get("owner"):
+                existing.owner = req["owner"]
+            if req.get("cloud"):
+                existing.cloud = req["cloud"]
             existing.updated_at = datetime.now(timezone.utc)
         else:
             db.add(LabMapping(
@@ -595,6 +599,8 @@ async def upsert_lab_mapping(req: dict):
                 ci_slug=req.get("ci_slug"),
                 namespace_pattern=req.get("namespace_pattern"),
                 clusters=req.get("clusters"),
+                owner=req.get("owner"),
+                cloud=req.get("cloud"),
                 updated_at=datetime.now(timezone.utc),
             ))
         db.commit()
