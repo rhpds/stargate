@@ -4038,7 +4038,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
 
 
 @router.get("/dashboard/investigate/{job_id}")
-def dashboard_investigate_poll(job_id: str, _auth=Depends(require_admin)):
+def dashboard_investigate_poll(job_id: str):
     """Poll for investigation progress and results."""
     result = _investigation_results.get(job_id)
     if not result:

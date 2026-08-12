@@ -400,7 +400,7 @@ function ExpandedRow({ namespace }: { namespace: string }) {
                             setAiAnalysis({ text: `Investigating... (${p?.tool_calls?.length || 0} tools used)\n${toolLines || 'Starting...'}`, llmMetricId: undefined });
                             setTimeout(poll, 2000);
                           }
-                        }).catch(() => { setAiAnalysis({ text: 'Lost connection to investigation', llmMetricId: undefined }); setAiLoading(false); });
+                        }).catch((e: any) => { setAiAnalysis({ text: `Lost connection: ${e?.message || 'poll failed'}`, llmMetricId: undefined }); setAiLoading(false); });
                       };
                       setTimeout(poll, 2000);
                     })
