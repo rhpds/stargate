@@ -254,8 +254,16 @@ function ExpandedRow({ namespace }: { namespace: string }) {
   });
 
   const [cmdOutputs, setCmdOutputs] = useState<Record<string, { output: string; exit_code: number; loading?: boolean }>>({});
-  const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(null);
+  const cacheKey = `sg-ai-${namespace}`;
+  const [aiAnalysis, setAiAnalysis] = useState<{ text: string; llmMetricId?: number } | null>(() => {
+    try { const c = sessionStorage.getItem(cacheKey); return c ? JSON.parse(c) : null; } catch { return null; }
+  });
   const [aiLoading, setAiLoading] = useState(false);
+
+  const setAndCacheAnalysis = (val: { text: string; llmMetricId?: number } | null, loading?: boolean) => {
+    setAiAnalysis(val);
+    if (val && !loading) { try { sessionStorage.setItem(cacheKey, JSON.stringify(val)); } catch {} }
+  };
 
   const runCmd = (cmd: string, key: string) => {
     if (!data) return;
@@ -275,11 +283,11 @@ function ExpandedRow({ namespace }: { namespace: string }) {
     setAiAnalysis(null);
     api.getRemediation({ failure_class: data.issues[0].failure_class, lab_code: namespace, cluster: data.cluster, context_type: 'lab' })
       .then((r: any) => {
-        setAiAnalysis({ text: r?.llm_analysis || r?.analysis || r?.remediation || JSON.stringify(r, null, 2), llmMetricId: r?.llm_metric_id });
+        setAndCacheAnalysis({ text: r?.llm_analysis || r?.analysis || r?.remediation || JSON.stringify(r, null, 2), llmMetricId: r?.llm_metric_id });
         setAiLoading(false);
       })
       .catch((e: any) => {
-        setAiAnalysis({ text: `Analysis failed: ${e?.message || 'Request timed out or failed. The RHDP evidence collection takes ~30 seconds.'}`, llmMetricId: undefined });
+        setAndCacheAnalysis({ text: `Analysis failed: ${e?.message || 'Request timed out or failed. The RHDP evidence collection takes ~30 seconds.'}`, llmMetricId: undefined });
         setAiLoading(false);
       });
   };
@@ -397,10 +405,10 @@ function ExpandedRow({ namespace }: { namespace: string }) {
                           const toolLines = (p?.tool_calls || []).map((tc: any) => `  → ${tc.tool}(${JSON.stringify(tc.args).slice(0,60)})`).join('\n');
                           if (p?.status === 'complete') {
                             const summary = p.tool_calls?.length ? `\n\n---\n**Investigation used ${p.tool_calls.length} tool calls across ${p.iterations} iterations**\n${toolLines}` : '';
-                            setAiAnalysis({ text: (p?.analysis || 'No analysis') + summary, llmMetricId: undefined });
+                            setAndCacheAnalysis({ text: (p?.analysis || 'No analysis') + summary, llmMetricId: undefined });
                             setAiLoading(false);
                           } else if (p?.status === 'error') {
-                            setAiAnalysis({ text: `Investigation error: ${p?.error || 'unknown'}`, llmMetricId: undefined });
+                            setAndCacheAnalysis({ text: `Investigation error: ${p?.error || 'unknown'}`, llmMetricId: undefined });
                             setAiLoading(false);
                           } else {
                             setAiAnalysis({ text: `Investigating... (${p?.tool_calls?.length || 0} tools used)\n${toolLines || 'Starting...'}`, llmMetricId: undefined });
