@@ -2479,6 +2479,167 @@ def _build_failure_class_view(
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
 
+@router.get("/admin/catalog-item-history")
+def catalog_item_history(
+    days: int = 7,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin_read),
+):
+    """Per-catalog-item failure history with remediation patterns.
+
+    Shows which labs consistently fail, what failure classes hit them,
+    how failures resolve, and links to the AgnosticV codebase.
+    """
+    from db.models import EvaluationRecord, LabMapping, ResolutionRecord
+    from sqlalchemy import func
+    import re as _re
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Load guid → lab identity from LabMapping
+    guid_info: Dict[str, Dict] = {}
+    for m in db.query(LabMapping).filter(LabMapping.lab_code.like("guid:%")).all():
+        guid = m.lab_code.replace("guid:", "")
+        guid_info[guid] = {
+            "display_name": m.ci_name or m.ci_base or guid,
+            "catalog_item": m.ci_base or "",
+            "agnosticv_path": m.agnosticv_path or "",
+            "governor": m.ci_slug or "",
+        }
+
+    # Aggregate failures by catalog item (resolved via guid)
+    rows = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.failure_class,
+        EvaluationRecord.outcome,
+        func.count().label("cnt"),
+    ).filter(
+        EvaluationRecord.evaluated_at >= cutoff,
+        EvaluationRecord.lab_code.isnot(None),
+        EvaluationRecord.failure_class.isnot(None),
+    ).group_by(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.failure_class,
+        EvaluationRecord.outcome,
+    ).all()
+
+    cat_data: Dict[str, Dict] = {}
+    for lab_code, fc, outcome, cnt in rows:
+        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", lab_code or "")
+        if not m:
+            continue
+        guid = m.group(1)
+        info = guid_info.get(guid, {})
+        cat_key = info.get("catalog_item") or m.group(2)
+        display = info.get("display_name") or cat_key.replace("-", " ").title()
+        agv_path = info.get("agnosticv_path", "")
+
+        if cat_key not in cat_data:
+            cat_data[cat_key] = {
+                "display_name": display,
+                "agnosticv_path": agv_path,
+                "governor": info.get("governor", ""),
+                "total_evals": 0,
+                "total_fails": 0,
+                "namespaces": set(),
+                "failure_classes": {},
+            }
+        d = cat_data[cat_key]
+        d["total_evals"] += cnt
+        d["namespaces"].add(lab_code)
+        if not d["agnosticv_path"] and agv_path:
+            d["agnosticv_path"] = agv_path
+        if outcome == "fail":
+            d["total_fails"] += cnt
+            d["failure_classes"].setdefault(fc, {"count": 0, "namespaces": set()})
+            d["failure_classes"][fc]["count"] += cnt
+            d["failure_classes"][fc]["namespaces"].add(lab_code)
+
+    # Resolution patterns per catalog item
+    res_rows = db.query(
+        ResolutionRecord.lab_code,
+        ResolutionRecord.failure_class,
+        ResolutionRecord.resolution_type,
+        ResolutionRecord.ttr_seconds,
+    ).filter(
+        ResolutionRecord.resolved_at >= cutoff,
+    ).all()
+
+    cat_resolutions: Dict[str, Dict[str, Dict]] = {}
+    for lab_code, fc, res_type, ttr in res_rows:
+        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", lab_code or "")
+        if not m:
+            continue
+        guid = m.group(1)
+        info = guid_info.get(guid, {})
+        cat_key = info.get("catalog_item") or m.group(2)
+
+        cat_resolutions.setdefault(cat_key, {}).setdefault(fc, {
+            "total": 0, "by_type": {}, "ttr_values": [],
+        })
+        r = cat_resolutions[cat_key][fc]
+        r["total"] += 1
+        r["by_type"][res_type] = r["by_type"].get(res_type, 0) + 1
+        if ttr and ttr > 0:
+            r["ttr_values"].append(ttr / 60.0)
+
+    # Build response
+    items = []
+    for cat_key, d in sorted(cat_data.items(), key=lambda x: x[1]["total_fails"], reverse=True):
+        if d["total_fails"] == 0:
+            continue
+
+        fail_rate = round(d["total_fails"] / max(d["total_evals"], 1) * 100, 1)
+        fc_list = []
+        for fc, fc_data in sorted(d["failure_classes"].items(), key=lambda x: -x[1]["count"]):
+            res = cat_resolutions.get(cat_key, {}).get(fc, {})
+            ttr_vals = sorted(res.get("ttr_values", []))
+            fc_entry = {
+                "failure_class": fc,
+                "count": fc_data["count"],
+                "affected_namespaces": len(fc_data["namespaces"]),
+                "pct_of_failures": round(fc_data["count"] / max(d["total_fails"], 1) * 100),
+            }
+            if res.get("total"):
+                fc_entry["resolutions"] = {
+                    "total": res["total"],
+                    "by_type": res["by_type"],
+                    "self_resolve_pct": round(res["by_type"].get("self_resolved", 0) / max(res["total"], 1) * 100),
+                    "avg_ttr_minutes": round(sum(ttr_vals) / len(ttr_vals), 1) if ttr_vals else None,
+                    "p95_ttr_minutes": round(ttr_vals[int(len(ttr_vals) * 0.95)], 1) if len(ttr_vals) > 1 else None,
+                    "recommendation": (
+                        "watch_and_wait" if res["by_type"].get("self_resolved", 0) > res["total"] * 0.7
+                        else "investigate" if res["by_type"].get("human_remediated", 0) > res["total"] * 0.3
+                        else "candidate_for_automation" if res["total"] >= 10
+                        else "insufficient_data"
+                    ),
+                }
+            fc_list.append(fc_entry)
+
+        agv_url = ""
+        if d["agnosticv_path"]:
+            agv_url = f"https://github.com/rhpds/agnosticv/tree/main/{d['agnosticv_path']}"
+
+        items.append({
+            "catalog_item": cat_key,
+            "display_name": d["display_name"],
+            "agnosticv_path": d["agnosticv_path"],
+            "agnosticv_url": agv_url,
+            "governor": d.get("governor", ""),
+            "total_evals": d["total_evals"],
+            "total_fails": d["total_fails"],
+            "fail_rate_pct": fail_rate,
+            "namespace_count": len(d["namespaces"]),
+            "failure_classes": fc_list[:10],
+        })
+
+    return {
+        "days": days,
+        "total_catalog_items": len(items),
+        "items": items[:50],
+    }
+
+
 @router.get("/admin/lifecycle-matrix")
 def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
     """Namespace lifecycle matrix built from scanner evaluation records.
