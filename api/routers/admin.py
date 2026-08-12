@@ -2139,13 +2139,14 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
                     for cond in entry.get("allowed_when", []):
                         if f"failure_class == {top_fc}" in cond:
                             # Extract pod name from issue message if available
+                            # K8s event format: "pod showroom-5847d87b57-glgkh_namespace(uid)"
                             _pod_name = ""
                             if issues:
                                 import re as _pod_re
                                 _msg = issues[0].get("message", "")
-                                _pm = _pod_re.search(r"pod[/ ]([a-z0-9][\w.-]+)", _msg, _pod_re.IGNORECASE)
+                                _pm = _pod_re.search(r"pod[/ ]([a-z0-9][a-z0-9.-]+)(?:_|\(| |$)", _msg, _pod_re.IGNORECASE)
                                 if _pm:
-                                    _pod_name = _pm.group(1)
+                                    _pod_name = _pm.group(1).rstrip(".")
                             catalog_commands = [
                                 cmd.replace("{namespace}", namespace).replace("{ns}", namespace)
                                    .replace("{pod}", _pod_name) if _pod_name else
@@ -2184,14 +2185,34 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
             "message": (msg or "")[:150],
         })
 
+    # Check if namespace still exists (for stale detection)
+    ns_exists = True
+    if cluster and issues:
+        try:
+            import subprocess as _sp
+            from api.routers._shared import EXECUTOR_KUBECONFIG
+            _kc = EXECUTOR_KUBECONFIG
+            if cluster:
+                _secrets = os.path.dirname(_kc) if _kc else ""
+                _ckc = os.path.join(_secrets, f"kubeconfig-{cluster}")
+                if os.path.exists(_ckc):
+                    _kc = _ckc
+            if _kc and os.path.exists(_kc):
+                _r = _sp.run(["oc", "--kubeconfig", _kc, "get", "ns", namespace, "--no-headers"],
+                             capture_output=True, text=True, timeout=5)
+                ns_exists = _r.returncode == 0
+        except Exception:
+            pass
+
     return {
         "namespace": namespace,
         "cluster": cluster,
+        "namespace_exists": ns_exists,
         "total_evals": total_evals,
         "pass_evals": pass_evals,
         "health_pct": round(pass_evals / max(total_evals, 1) * 100, 1),
         "issues": issues,
-        "catalog_commands": catalog_commands,
+        "catalog_commands": catalog_commands if ns_exists else [],
         "incidents": incident_list,
         "shadow": shadow_entries,
         "eval_history": eval_history,

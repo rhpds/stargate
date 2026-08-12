@@ -284,6 +284,14 @@ function ExpandedRow({ namespace }: { namespace: string }) {
   if (isLoading) return <div className="text-[#6A6E73] py-4 text-center text-xs">Loading...</div>;
   if (!data) return null;
 
+  if (data.namespace_exists === false) {
+    return (
+      <div className="p-4 text-center">
+        <span className="text-[#F0AB00] text-xs">Namespace has been recycled — no longer exists on the cluster. Stale evaluations will clear shortly.</span>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       {/* Left column: Issues + Diagnostics */}
