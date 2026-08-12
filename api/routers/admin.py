@@ -2576,11 +2576,14 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     # Per-namespace display names and owners from LabMapping (most specific)
     ns_display_names: Dict[str, str] = {}
     ns_owners: Dict[str, str] = {}
+    guid_lab_names: Dict[str, str] = {}  # guid → lab display name
     try:
         from db.models import LabMapping
         lab_mappings_db = db.query(LabMapping).all()
         for m in lab_mappings_db:
-            if m.ci_name:
+            if m.lab_code.startswith("guid:") and m.ci_name:
+                guid_lab_names[m.lab_code.replace("guid:", "")] = m.ci_name
+            elif m.ci_name:
                 ns_display_names[m.lab_code] = m.ci_name
                 if m.ci_base and m.ci_base not in catalog_display_names:
                     catalog_display_names[m.ci_base] = m.ci_name
@@ -2674,7 +2677,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "namespace": ns,
             "cluster": d["cluster"],
             "catalog_item": catalog_item,
-            "lab_name": ns_display_names.get(ns) or catalog_display_names.get(catalog_item, catalog_item),
+            "lab_name": ns_display_names.get(ns) or guid_lab_names.get(ns.split("-")[1] if ns.startswith("sandbox-") and len(ns.split("-")) >= 3 else "", "") or catalog_display_names.get(catalog_item, catalog_item),
             "owner": ns_owners.get(ns),
             "pass": d["pass"],
             "fail": d["fail"],
