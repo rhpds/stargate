@@ -371,10 +371,31 @@ function ExpandedRow({ namespace }: { namespace: string }) {
         <div>
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#6A6E73] mb-1.5">AI Analysis</h4>
           {!aiAnalysis ? (
-            <button className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded w-full disabled:opacity-50"
-              disabled={aiLoading || !data.issues?.length} onClick={getAiAnalysis}>
-              {aiLoading ? 'Analyzing...' : 'Get AI Analysis'}
-            </button>
+            <div className="flex gap-2">
+              <button className="bg-[#EE0000] hover:bg-[#A30000] text-white text-xs px-4 py-1.5 rounded flex-1 disabled:opacity-50"
+                disabled={aiLoading || !data.issues?.length} onClick={getAiAnalysis}>
+                {aiLoading ? 'Analyzing...' : 'Quick Analysis'}
+              </button>
+              <button className="bg-[#1a1a1a] hover:bg-[#333] text-[#4394E5] border border-[#4394E5] text-xs px-4 py-1.5 rounded flex-1 disabled:opacity-50"
+                disabled={aiLoading || !data.issues?.length}
+                onClick={() => {
+                  if (!data?.issues?.[0]) return;
+                  setAiLoading(true);
+                  setAiAnalysis(null);
+                  api.investigate({ failure_class: data.issues[0].failure_class, lab_code: namespace, cluster: data.cluster })
+                    .then((r: any) => {
+                      const toolSummary = r?.tool_calls?.length ? `\n\n---\n*Agent used ${r.tool_calls.length} tool calls across ${r.iterations} iterations${r.fallback ? ' (fell back to single-shot)' : ''}*` : '';
+                      setAiAnalysis({ text: (r?.analysis || 'No analysis returned') + toolSummary, llmMetricId: undefined });
+                      setAiLoading(false);
+                    })
+                    .catch((e: any) => {
+                      setAiAnalysis({ text: `Investigation failed: ${e?.message || 'Request timed out'}`, llmMetricId: undefined });
+                      setAiLoading(false);
+                    });
+                }}>
+                {aiLoading ? 'Investigating...' : 'Deep Investigation'}
+              </button>
+            </div>
           ) : (
             <div className="space-y-2">
               <FormattedAnalysis text={aiAnalysis.text} namespace={namespace} cluster={data.cluster} />
