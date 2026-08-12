@@ -137,13 +137,17 @@ function CostAnalysis({ alwaysOpen = false }: { alwaysOpen?: boolean }) {
             <div>
               <div className="text-[10px] text-[#8A8D90] uppercase mb-1.5">Optimization Opportunities</div>
               {fc.optimization_opportunities.map((o: any, i: number) => (
-                <div key={i} className="flex items-center justify-between bg-[#1a1a1a] rounded px-2.5 py-1.5 border border-[#2a2a2a] mb-1">
-                  <span className="text-[11px] text-[#ccc]">{o.description}</span>
-                  <span className="text-[10px] text-[#3E8635] font-medium shrink-0">${o.monthly_savings?.toLocaleString(undefined, {maximumFractionDigits: 0})}/mo</span>
+                <div key={i} className="bg-[#1a1a1a] rounded px-2.5 py-1.5 border border-[#2a2a2a] mb-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[#ccc]">{o.description}</span>
+                    {o.sandboxes && <span className="text-[10px] text-[#F0AB00] shrink-0">{o.sandboxes} sandboxes</span>}
+                  </div>
+                  {o.action && <p className="text-[10px] text-[#4394E5] mt-0.5">{o.action}</p>}
                 </div>
               ))}
             </div>
           )}
+          <p className="text-[9px] text-[#555] mt-2">Cost estimates use default unit rates. On shared clusters, costs represent resource capacity consumed, not direct spend.</p>
         </div>
       )}
     </div>
