@@ -318,6 +318,7 @@ export const api = {
   getResolutions: (hours?: number) => request<any>(`/dashboard/resolutions?hours=${hours || 168}`),
   getPlatformKpis: () => request<any>('/admin/platform-kpis'),
   getRemediationStrategies: () => request<any>('/admin/remediation-strategies'),
+  getCostAnalysis: () => request<any>('/admin/cost-analysis'),
 
   // Pipeline Rubric Matrix
   getPipelineMatrix: () => request<any>('/admin/pipeline/matrix'),

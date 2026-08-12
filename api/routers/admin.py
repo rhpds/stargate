@@ -2843,6 +2843,328 @@ def remediation_strategies(db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
+# Cost Analysis
+# ---------------------------------------------------------------------------
+
+RESOURCE_PROFILES = {
+    "ocp4-cluster": {"vcpu": 24, "memory_gi": 96, "storage_gi": 14000, "type": "dedicated"},
+    "ocp-virt": {"vcpu": 24, "memory_gi": 96, "storage_gi": 14000, "type": "dedicated"},
+    "zt-ansiblebu": {"vcpu": 4, "memory_gi": 16, "storage_gi": 200, "type": "shared"},
+    "zt-rhelbu": {"vcpu": 2, "memory_gi": 8, "storage_gi": 100, "type": "shared"},
+    "_default": {"vcpu": 8, "memory_gi": 32, "storage_gi": 500, "type": "shared"},
+}
+
+_CATALOG_DISPLAY_NAMES = {
+    "ocp4-cluster": "OpenShift 4 Cluster",
+    "ocp-virt": "OpenShift Virtualization",
+    "zt-ansiblebu": "Zero Touch Ansible",
+    "zt-rhelbu": "Zero Touch RHEL",
+}
+
+import os as _cost_os
+
+COST_VCPU_HOUR = float(_cost_os.environ.get("STARGATE_COST_VCPU_HOUR", "0.05"))
+COST_MEMORY_GI_HOUR = float(_cost_os.environ.get("STARGATE_COST_MEMORY_GI_HOUR", "0.01"))
+COST_STORAGE_GI_HOUR = float(_cost_os.environ.get("STARGATE_COST_STORAGE_GI_HOUR", "0.0001"))
+
+
+def _sandbox_hourly_cost(profile: dict) -> float:
+    """Compute hourly cost for a single sandbox given a resource profile."""
+    return (
+        profile["vcpu"] * COST_VCPU_HOUR
+        + profile["memory_gi"] * COST_MEMORY_GI_HOUR
+        + profile["storage_gi"] * COST_STORAGE_GI_HOUR
+    )
+
+
+def _profile_for_catalog_item(catalog_item: str) -> dict:
+    """Look up the resource profile for a catalog item, falling back to _default."""
+    for key in RESOURCE_PROFILES:
+        if key == "_default":
+            continue
+        if catalog_item.startswith(key):
+            return RESOURCE_PROFILES[key]
+    return RESOURCE_PROFILES["_default"]
+
+
+@router.get("/admin/cost-analysis", dependencies=[Depends(require_admin_read)])
+def admin_cost_analysis(db: Session = Depends(get_db)):
+    """Resource footprint and cost estimates from evaluation and provisioning data."""
+    from db.models import EvaluationRecord, LabMapping
+    from sqlalchemy import func, or_
+    from api.constants import WARNING_CLASSES, INFORMATIONAL_CLASSES
+    import re as _re
+
+    now = datetime.now(timezone.utc)
+    one_hour_ago = now - timedelta(hours=1)
+    two_hours_ago = now - timedelta(hours=2)
+
+    LAB_PREFIXES = ("sandbox-", "showroom-", "user-", "ocp4-cluster-")
+    _lf = or_(*[EvaluationRecord.lab_code.like(f"{p}%") for p in LAB_PREFIXES])
+
+    EXCLUDED_CLASSES = WARNING_CLASSES | INFORMATIONAL_CLASSES
+
+    # ------------------------------------------------------------------
+    # 1. All distinct namespaces seen in the last hour (active sandboxes)
+    # ------------------------------------------------------------------
+    all_ns_rows = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+    ).filter(
+        EvaluationRecord.evaluated_at > one_hour_ago,
+        EvaluationRecord.lab_code.isnot(None),
+        _lf,
+    ).distinct().all()
+
+    # ------------------------------------------------------------------
+    # 2. Failing namespaces (non-warning, non-informational)
+    # ------------------------------------------------------------------
+    failing_ns_rows = db.query(
+        EvaluationRecord.lab_code,
+        EvaluationRecord.cluster_name,
+        EvaluationRecord.failure_class,
+    ).filter(
+        EvaluationRecord.evaluated_at > one_hour_ago,
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(EXCLUDED_CLASSES),
+        EvaluationRecord.lab_code.isnot(None),
+        _lf,
+    ).distinct().all()
+
+    failing_ns_set = {r[0] for r in failing_ns_rows}
+
+    # ------------------------------------------------------------------
+    # 3. Stuck sandboxes: > 10 fail evals, no pass in last 2 hours
+    # ------------------------------------------------------------------
+    fail_counts = db.query(
+        EvaluationRecord.lab_code,
+        func.count(EvaluationRecord.id).label("fail_cnt"),
+    ).filter(
+        EvaluationRecord.evaluated_at > two_hours_ago,
+        EvaluationRecord.outcome == "fail",
+        EvaluationRecord.failure_class.isnot(None),
+        EvaluationRecord.failure_class.notin_(EXCLUDED_CLASSES),
+        EvaluationRecord.lab_code.isnot(None),
+        _lf,
+    ).group_by(EvaluationRecord.lab_code).having(
+        func.count(EvaluationRecord.id) > 10,
+    ).all()
+
+    pass_ns_2h = {
+        r[0]
+        for r in db.query(EvaluationRecord.lab_code).filter(
+            EvaluationRecord.evaluated_at > two_hours_ago,
+            EvaluationRecord.outcome == "pass",
+            EvaluationRecord.lab_code.isnot(None),
+            _lf,
+        ).distinct().all()
+    }
+
+    stuck_ns_set = {r[0] for r in fail_counts if r[0] not in pass_ns_2h}
+
+    # ------------------------------------------------------------------
+    # 4. Extract catalog item from namespace name
+    # ------------------------------------------------------------------
+    def _extract_catalog_item(ns: str) -> str:
+        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
+        return m.group(1) if m else ns
+
+    # Build per-namespace info
+    ns_catalog: Dict[str, str] = {}
+    ns_cluster: Dict[str, str] = {}
+    for lab_code, cluster_name in all_ns_rows:
+        ns_catalog[lab_code] = _extract_catalog_item(lab_code)
+        if cluster_name:
+            ns_cluster[lab_code] = cluster_name
+
+    # ------------------------------------------------------------------
+    # 5. Aggregate by catalog item
+    # ------------------------------------------------------------------
+    cat_active: Dict[str, int] = {}
+    cat_failing: Dict[str, int] = {}
+    for ns, cat in ns_catalog.items():
+        cat_active[cat] = cat_active.get(cat, 0) + 1
+        if ns in failing_ns_set:
+            cat_failing[cat] = cat_failing.get(cat, 0) + 1
+
+    # ------------------------------------------------------------------
+    # 6. Aggregate by cluster
+    # ------------------------------------------------------------------
+    cluster_active: Dict[str, int] = {}
+    cluster_failing: Dict[str, int] = {}
+    for ns, cluster_name in ns_cluster.items():
+        cluster_active[cluster_name] = cluster_active.get(cluster_name, 0) + 1
+        if ns in failing_ns_set:
+            cluster_failing[cluster_name] = cluster_failing.get(cluster_name, 0) + 1
+
+    # ------------------------------------------------------------------
+    # 7. Provisioning data from Babylon
+    # ------------------------------------------------------------------
+    babylon = _load_latest_babylon()
+    prov = babylon.get("provisioning", {}) if babylon else {}
+    prov_failed_count = prov.get("failed", 0) or 0
+
+    # Total provisioned from LabMapping guid entries
+    total_provisioned = db.query(func.count(LabMapping.lab_code)).filter(
+        LabMapping.lab_code.like("guid:%"),
+    ).scalar() or 0
+
+    # Display names from LabMapping
+    guid_display: Dict[str, str] = {}
+    for m in db.query(LabMapping).filter(LabMapping.lab_code.like("guid:%")).all():
+        guid = m.lab_code.replace("guid:", "")
+        if m.ci_base:
+            guid_display[m.ci_base] = m.ci_name or m.ci_base
+
+    # ------------------------------------------------------------------
+    # 8. Compute costs
+    # ------------------------------------------------------------------
+    total_active = len(ns_catalog)
+
+    # by_catalog_item
+    by_catalog_item = []
+    total_hourly = 0.0
+    failure_hourly = 0.0
+
+    for cat in sorted(cat_active.keys()):
+        profile = _profile_for_catalog_item(cat)
+        cost_per_hour = _sandbox_hourly_cost(profile)
+        active = cat_active[cat]
+        failing = cat_failing.get(cat, 0)
+        cat_total_hourly = cost_per_hour * active
+        cat_failure_hourly = cost_per_hour * failing
+        healthy = active - failing
+
+        total_hourly += cat_total_hourly
+        failure_hourly += cat_failure_hourly
+
+        display_name = (
+            guid_display.get(cat)
+            or _CATALOG_DISPLAY_NAMES.get(cat)
+            or cat.replace("-", " ").title()
+        )
+
+        by_catalog_item.append({
+            "catalog_item": cat,
+            "display_name": display_name,
+            "resource_type": profile["type"],
+            "active_count": active,
+            "failing_count": failing,
+            "resource_profile": {
+                "vcpu": profile["vcpu"],
+                "memory_gi": profile["memory_gi"],
+                "storage_gi": profile["storage_gi"],
+            },
+            "cost_per_sandbox_hour": round(cost_per_hour, 4),
+            "total_hourly_cost": round(cat_total_hourly, 4),
+            "failure_hourly_cost": round(cat_failure_hourly, 4),
+            "cost_per_successful_session": round(cat_total_hourly / max(healthy, 1), 4),
+        })
+
+    # by_cluster
+    by_cluster = []
+    for cluster_name in sorted(cluster_active.keys()):
+        c_active = cluster_active[cluster_name]
+        c_failing = cluster_failing.get(cluster_name, 0)
+        # Estimate per-cluster cost using the default profile (mix of workloads)
+        c_hourly = 0.0
+        c_fail_hourly = 0.0
+        for ns, cname in ns_cluster.items():
+            if cname != cluster_name:
+                continue
+            cat = ns_catalog.get(ns, "")
+            profile = _profile_for_catalog_item(cat)
+            cost = _sandbox_hourly_cost(profile)
+            c_hourly += cost
+            if ns in failing_ns_set:
+                c_fail_hourly += cost
+
+        by_cluster.append({
+            "cluster": cluster_name,
+            "sandbox_count": c_active,
+            "failing_count": c_failing,
+            "estimated_hourly_cost": round(c_hourly, 4),
+            "failure_cost_hourly": round(c_fail_hourly, 4),
+        })
+
+    # ------------------------------------------------------------------
+    # 9. Failure costs breakdown
+    # ------------------------------------------------------------------
+    stuck_count = len(stuck_ns_set)
+    stuck_hourly = 0.0
+    for ns in stuck_ns_set:
+        cat = ns_catalog.get(ns, _extract_catalog_item(ns))
+        profile = _profile_for_catalog_item(cat)
+        stuck_hourly += _sandbox_hourly_cost(profile)
+
+    # Provisioning failures: assume avg 15 min of wasted resources per failure
+    prov_waste_hourly = 0.0
+    if prov_failed_count > 0:
+        avg_wasted_minutes = 15
+        default_cost = _sandbox_hourly_cost(RESOURCE_PROFILES["_default"])
+        prov_waste_hourly = prov_failed_count * default_cost * (avg_wasted_minutes / 60.0)
+
+    total_waste_hourly = stuck_hourly + prov_waste_hourly
+
+    # Optimization opportunities
+    optimization_opportunities = []
+    if stuck_count > 0:
+        stuck_monthly = round(stuck_hourly * 730, 2)
+        optimization_opportunities.append({
+            "description": f"Recycling {stuck_count} stuck sandboxes would save ${stuck_monthly}/month",
+            "monthly_savings": stuck_monthly,
+        })
+
+    # Find the most expensive dedicated catalog item for quota reduction suggestion
+    dedicated_items = [c for c in by_catalog_item if c["resource_type"] == "dedicated" and c["active_count"] > 0]
+    if dedicated_items:
+        top_dedicated = max(dedicated_items, key=lambda c: c["total_hourly_cost"])
+        quota_savings = round(top_dedicated["total_hourly_cost"] * 0.30 * 730, 2)
+        optimization_opportunities.append({
+            "description": f"Reducing {top_dedicated['catalog_item']} quota by 30% would save ${quota_savings}/month",
+            "monthly_savings": quota_savings,
+        })
+
+    waste_pct = round(failure_hourly / max(total_hourly, 0.001) * 100, 1)
+
+    return {
+        "summary": {
+            "total_sandboxes_active": total_active,
+            "total_provisioned": total_provisioned,
+            "estimated_hourly_cost": round(total_hourly, 4),
+            "estimated_monthly_cost": round(total_hourly * 730, 2),
+            "failure_cost_hourly": round(failure_hourly, 4),
+            "failure_cost_monthly": round(failure_hourly * 730, 2),
+            "waste_pct": waste_pct,
+        },
+        "by_catalog_item": by_catalog_item,
+        "by_cluster": by_cluster,
+        "failure_costs": {
+            "stuck_sandboxes": {
+                "count": stuck_count,
+                "hourly_cost": round(stuck_hourly, 4),
+                "description": "Sandboxes past P95 TTR still consuming resources",
+            },
+            "provisioning_failures": {
+                "count": prov_failed_count,
+                "avg_wasted_minutes": 15,
+                "hourly_cost": round(prov_waste_hourly, 4),
+            },
+            "total_waste_hourly": round(total_waste_hourly, 4),
+            "total_waste_monthly": round(total_waste_hourly * 730, 2),
+            "optimization_opportunities": optimization_opportunities,
+        },
+        "cost_inputs": {
+            "vcpu_hour": COST_VCPU_HOUR,
+            "memory_gi_hour": COST_MEMORY_GI_HOUR,
+            "storage_gi_hour": COST_STORAGE_GI_HOUR,
+            "note": "Configure via STARGATE_COST_* env vars",
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Lifecycle Matrix
 # ---------------------------------------------------------------------------
 

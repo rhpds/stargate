@@ -54,6 +54,91 @@ function KpiDashboard() {
 }
 
 
+/* ---- Cost Analysis ---- */
+
+function CostAnalysis() {
+  const { data } = useQuery({ queryKey: ['cost-analysis'], queryFn: () => api.getCostAnalysis(), refetchInterval: 120000 });
+  const [open, setOpen] = useState(false);
+  if (!data?.summary) return null;
+
+  const s = data.summary;
+  const fc = data.failure_costs || {};
+
+  return (
+    <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#1e1e1e] transition">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider">Cost Analysis</span>
+          <span className="text-xs text-white font-medium">${s.estimated_monthly_cost?.toLocaleString(undefined, {maximumFractionDigits: 0}) || '--'}/mo</span>
+          {s.waste_pct > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#C9190B20', color: '#C9190B' }}>
+              {s.waste_pct.toFixed(1)}% waste
+            </span>
+          )}
+        </div>
+        <span className="text-[#555] text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 border-t border-[#2e2e2e] pt-3">
+          {/* Summary tiles */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            {[
+              { label: 'Active Sandboxes', value: s.total_sandboxes_active, color: '#4394E5' },
+              { label: 'Hourly Cost', value: `$${s.estimated_hourly_cost?.toFixed(0) || '--'}`, color: '#ccc' },
+              { label: 'Failure Cost/mo', value: `$${fc.total_waste_monthly?.toLocaleString(undefined, {maximumFractionDigits: 0}) || '--'}`, color: '#C9190B' },
+              { label: 'Waste', value: `${s.waste_pct?.toFixed(1) || '0'}%`, color: s.waste_pct > 10 ? '#C9190B' : '#3E8635' },
+            ].map(t => (
+              <div key={t.label} className="bg-[#1a1a1a] rounded p-2.5 text-center border border-[#2a2a2a]">
+                <div className="text-[10px] text-[#8A8D90] uppercase mb-0.5">{t.label}</div>
+                <div className="text-sm font-bold" style={{ color: t.color }}>{t.value}</div>
+              </div>
+            ))}
+          </div>
+          {/* Top cost by catalog item */}
+          {data.by_catalog_item?.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[10px] text-[#8A8D90] uppercase mb-1.5">Cost by Lab Type</div>
+              <div className="space-y-1">
+                {data.by_catalog_item.slice(0, 6).map((ci: any) => (
+                  <div key={ci.catalog_item} className="flex items-center justify-between bg-[#1a1a1a] rounded px-2.5 py-1.5 border border-[#2a2a2a]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded shrink-0"
+                        style={{ backgroundColor: ci.resource_type === 'dedicated' ? '#4394E520' : '#3E863520', color: ci.resource_type === 'dedicated' ? '#4394E5' : '#3E8635' }}>
+                        {ci.resource_type}
+                      </span>
+                      <span className="text-xs text-[#ccc] truncate">{ci.display_name}</span>
+                      <span className="text-[10px] text-[#555]">{ci.active_count} active</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] shrink-0">
+                      <span className="text-[#8A8D90]">${ci.total_hourly_cost?.toFixed(1)}/h</span>
+                      {ci.failing_count > 0 && <span className="text-[#C9190B]">{ci.failing_count} failing</span>}
+                      {ci.cost_per_successful_session && <span className="text-[#6A6E73]">${ci.cost_per_successful_session.toFixed(2)}/session</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Optimization opportunities */}
+          {fc.optimization_opportunities?.length > 0 && (
+            <div>
+              <div className="text-[10px] text-[#8A8D90] uppercase mb-1.5">Optimization Opportunities</div>
+              {fc.optimization_opportunities.map((o: any, i: number) => (
+                <div key={i} className="flex items-center justify-between bg-[#1a1a1a] rounded px-2.5 py-1.5 border border-[#2a2a2a] mb-1">
+                  <span className="text-[11px] text-[#ccc]">{o.description}</span>
+                  <span className="text-[10px] text-[#3E8635] font-medium shrink-0">${o.monthly_savings?.toLocaleString(undefined, {maximumFractionDigits: 0})}/mo</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 /* ---- Remediation Strategies ---- */
 
 function RemediationStrategies() {
@@ -643,6 +728,7 @@ export default function Operations() {
       {data && (
         <>
           <KpiDashboard />
+          <CostAnalysis />
           <Synopsis clusterCount={data.summary?.total_clusters || 0} namespaceCount={data.summary?.total_monitored || 0} />
           <SummaryBar health={data.summary?.stages_health || {}} counts={data.summary?.stage_counts || {}} />
 
