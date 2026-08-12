@@ -404,20 +404,7 @@ def run_collection() -> Dict:
     results["workshops"] = collect_workshop_summary()
     print(f"    Workshops: {results['workshops']['workshops']}, MultiWorkshops: {results['workshops']['multiworkshops']}")
 
-    # Save core OCP data immediately so dashboard has provisioning info
-    _save_results(results)
-
-    # Instance mappings (slower — full subject list)
-    print("  Collecting all lab-to-instance mapping...")
-    results["instance_mapping"] = collect_all_instance_mapping()
-    im = results["instance_mapping"]
-    print(f"    {len(im)} labs mapped, {sum(len(v) for v in im.values())} total instances")
-
-    print("  Collecting summit lab-to-namespace mapping...")
-    results["summit_mapping"] = collect_summit_namespace_mapping()
-    sm = results["summit_mapping"]
-    print(f"    {len(sm)} summit labs, {sum(len(v) for v in sm.values())} summit instances")
-
+    # Guid → lab mapping from ResourceClaims (fast tabular query, run early)
     print("  Collecting guid → lab mapping from ResourceClaims...")
     guid_map = collect_guid_lab_mapping()
     results["guid_lab_mapping"] = guid_map
@@ -449,6 +436,20 @@ def run_collection() -> Dict:
             except Exception:
                 continue
         print(f"    Persisted {persisted} guid mappings to API")
+
+    # Save core data + guid mappings immediately
+    _save_results(results)
+
+    # Instance mappings (slower — full subject list, runs after priority data is saved)
+    print("  Collecting all lab-to-instance mapping...")
+    results["instance_mapping"] = collect_all_instance_mapping()
+    im = results["instance_mapping"]
+    print(f"    {len(im)} labs mapped, {sum(len(v) for v in im.values())} total instances")
+
+    print("  Collecting summit lab-to-namespace mapping...")
+    results["summit_mapping"] = collect_summit_namespace_mapping()
+    sm = results["summit_mapping"]
+    print(f"    {len(sm)} summit labs, {sum(len(v) for v in sm.values())} summit instances")
 
     # Labagator (external HTTP — may be slow/unreachable)
     print("  Collecting Labagator data...")
