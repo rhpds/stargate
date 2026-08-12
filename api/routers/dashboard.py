@@ -4164,21 +4164,21 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
             import subprocess as _rhdp_sp, os as _rhdp_os
             _babylon_kc = _rhdp_os.path.join(_rhdp_os.path.dirname(EXECUTOR_KUBECONFIG), "kubeconfig-ocp-us-east-1")
             if _rhdp_os.path.exists(_babylon_kc):
-                # ResourceClaim summary (catalog item, provision state, AgnosticV path)
+                # ResourceClaim — grep for guid to avoid loading all 1600+
                 _rc = _rhdp_sp.run(
-                    ["oc", "--kubeconfig", _babylon_kc, "get", "resourceclaims", "-A", "--no-headers"],
-                    capture_output=True, text=True, timeout=15,
+                    f"oc --kubeconfig {_babylon_kc} get resourceclaims -A --no-headers 2>/dev/null | grep 'guid-{_guid}'",
+                    capture_output=True, text=True, timeout=10, shell=True,
                 )
                 for _line in (_rc.stdout or "").strip().split("\n"):
-                    if f"guid-{_guid}" in _line:
+                    if _line.strip():
                         _parts = _line.split()
                         if len(_parts) >= 4:
                             rhdp_lines.append(f"ResourceClaim: {_parts[1]} in {_parts[0]}, governor: {_parts[3]}")
 
-                # AnarchySubject state (provision lifecycle)
+                # AnarchySubject — grep for guid
                 _as = _rhdp_sp.run(
-                    ["oc", "--kubeconfig", _babylon_kc, "get", "anarchysubjects", "-A", "--no-headers"],
-                    capture_output=True, text=True, timeout=15,
+                    f"oc --kubeconfig {_babylon_kc} get anarchysubjects -A --no-headers 2>/dev/null | grep '{_guid}'",
+                    capture_output=True, text=True, timeout=10, shell=True,
                 )
                 for _line in (_as.stdout or "").strip().split("\n"):
                     if _guid in _line:
