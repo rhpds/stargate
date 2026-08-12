@@ -4153,6 +4153,115 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
             constraint_lines.append(f"  {k}: {v}")
         ctx["constraints"] = "\n".join(constraint_lines)
 
+    # --- RHDP Stack Evidence (AnarchySubject, ResourceClaim, Pool, Sandbox API) ---
+    if lab_code and re.match(r'^sandbox-[a-z0-9]{5}-', lab_code):
+        _guid = lab_code.split("-")[1]
+        rhdp_lines = []
+
+        # 1. ResourceClaim + AnarchySubject from Babylon control plane
+        try:
+            from api.routers._shared import EXECUTOR_KUBECONFIG
+            import subprocess as _rhdp_sp, os as _rhdp_os
+            _babylon_kc = _rhdp_os.path.join(_rhdp_os.path.dirname(EXECUTOR_KUBECONFIG), "kubeconfig-ocp-us-east-1")
+            if _rhdp_os.path.exists(_babylon_kc):
+                # ResourceClaim summary (catalog item, provision state, AgnosticV path)
+                _rc = _rhdp_sp.run(
+                    ["oc", "--kubeconfig", _babylon_kc, "get", "resourceclaims", "-A", "--no-headers"],
+                    capture_output=True, text=True, timeout=15,
+                )
+                for _line in (_rc.stdout or "").strip().split("\n"):
+                    if f"guid-{_guid}" in _line:
+                        _parts = _line.split()
+                        if len(_parts) >= 4:
+                            rhdp_lines.append(f"ResourceClaim: {_parts[1]} in {_parts[0]}, governor: {_parts[3]}")
+
+                # AnarchySubject state (provision lifecycle)
+                _as = _rhdp_sp.run(
+                    ["oc", "--kubeconfig", _babylon_kc, "get", "anarchysubjects", "-A", "--no-headers"],
+                    capture_output=True, text=True, timeout=15,
+                )
+                for _line in (_as.stdout or "").strip().split("\n"):
+                    if _guid in _line:
+                        _parts = _line.split()
+                        if len(_parts) >= 5:
+                            rhdp_lines.append(f"AnarchySubject: {_parts[1]} state={_parts[3]} desired={_parts[4]}")
+
+                # ResourceClaim status summary (AgnosticV path, provision data)
+                if rhdp_lines:
+                    _rc_name = None
+                    _rc_ns = None
+                    for _line in (_rc.stdout or "").strip().split("\n"):
+                        if f"guid-{_guid}" in _line:
+                            _p = _line.split()
+                            if len(_p) >= 2:
+                                _rc_ns, _rc_name = _p[0], _p[1]
+                                break
+                    if _rc_name and _rc_ns:
+                        _summary = _rhdp_sp.run(
+                            ["oc", "--kubeconfig", _babylon_kc, "get", "resourceclaim", _rc_name,
+                             "-n", _rc_ns, "-o", "jsonpath={.status.summary.agnosticv}"],
+                            capture_output=True, text=True, timeout=8,
+                        )
+                        if _summary.returncode == 0 and _summary.stdout:
+                            try:
+                                _agv = json.loads(_summary.stdout)
+                                rhdp_lines.append(f"AgnosticV path: {_agv.get('path', '?')}")
+                                rhdp_lines.append(f"AgnosticV repo: {_agv.get('repo', '?')}")
+                                rhdp_lines.append(f"Catalog item: {_agv.get('short_name', '?')}")
+                                ctx["agnosticv_url"] = f"https://github.com/rhpds/agnosticv/tree/main/{_agv.get('path', '')}"
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+
+        # 2. Lab identity from LabMapping (guid → display name, AgnosticD config)
+        try:
+            from db.models import LabMapping
+            _lm = db.query(LabMapping).filter(LabMapping.lab_code == f"guid:{_guid}").first()
+            if _lm:
+                if _lm.ci_name:
+                    rhdp_lines.append(f"Lab name: {_lm.ci_name}")
+                if _lm.ci_slug:
+                    rhdp_lines.append(f"AgnosticD governor: {_lm.ci_slug}")
+                if _lm.agnosticv_path:
+                    rhdp_lines.append(f"AgnosticV config: {_lm.agnosticv_path}")
+                    rhdp_lines.append(f"Config URL: https://github.com/rhpds/agnosticv/tree/main/{_lm.agnosticv_path}")
+                if _lm.owner:
+                    rhdp_lines.append(f"Owner: {_lm.owner}")
+        except Exception:
+            pass
+
+        # 3. Pool capacity for this catalog item type
+        try:
+            babylon = _load_latest_babylon()
+            if babylon:
+                all_pools = babylon.get("pools", {}).get("all_pools", [])
+                slug = re.sub(r'^sandbox-[a-z0-9]{5}-', '', lab_code)
+                matching_pools = [p for p in all_pools if slug in p.get("name", "").lower()]
+                for p in matching_pools[:2]:
+                    rhdp_lines.append(f"Pool {p.get('name','?')}: {p.get('available',0)} available, {p.get('min_available',0)} min, {p.get('ready',0)} ready")
+                if not matching_pools:
+                    prov = babylon.get("provisioning", {})
+                    rhdp_lines.append(f"Platform provisioning: {prov.get('total',0)} subjects, {prov.get('started',0)} started, {prov.get('failed',0)} failed ({prov.get('failure_rate',0)}%)")
+        except Exception:
+            pass
+
+        # 4. Resolution history for this catalog item
+        try:
+            from db.models import ResolutionRecord
+            _resolutions = db.query(ResolutionRecord).filter(
+                ResolutionRecord.lab_code == lab_code,
+            ).order_by(ResolutionRecord.resolved_at.desc()).limit(5).all()
+            if _resolutions:
+                rhdp_lines.append(f"Resolution history ({len(_resolutions)} recent):")
+                for _r in _resolutions:
+                    rhdp_lines.append(f"  {_r.failure_class}: {_r.resolution_type} — {_r.resolution_action or '?'} (TTR: {round(_r.ttr_seconds/60,1) if _r.ttr_seconds else '?'}m)")
+        except Exception:
+            pass
+
+        if rhdp_lines:
+            ctx["rhdp_stack"] = "\n".join(rhdp_lines)
+
     # --- Context-specific evidence ---
 
     if context_type == "lab":
@@ -4305,6 +4414,18 @@ def _build_remediation_prompt(context_type: str, evidence: Dict, catalog_command
 
     if evidence.get("constraints"):
         sections.append(f"## Declared Constraints\n\n{evidence['constraints']}")
+
+    if evidence.get("rhdp_stack"):
+        sections.append(
+            f"## RHDP Stack Context\n\n"
+            f"This sandbox is part of the Red Hat Demo Platform (RHDP). The following data comes from "
+            f"the Babylon control plane (AnarchySubject, ResourceClaim), AgnosticV catalog, and "
+            f"Poolboy resource pools. Use this to determine whether the issue is in the lab config "
+            f"(AgnosticV/AgnosticD), the provisioning pipeline (Babylon/Poolboy), or the cluster.\n\n"
+            f"{evidence['rhdp_stack']}"
+        )
+        if evidence.get("agnosticv_url"):
+            sections.append(f"AgnosticV config: {evidence['agnosticv_url']}")
 
     task = ""
     if context_type == "lab":
