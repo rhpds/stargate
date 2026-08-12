@@ -291,41 +291,82 @@ def collect_all_instance_mapping() -> Dict[str, List[Dict]]:
     return by_lab
 
 
-def collect_guid_lab_mapping() -> Dict[str, str]:
-    """Map sandbox GUIDs to catalog item names via ResourceClaims.
+def collect_guid_lab_mapping() -> Dict[str, Dict]:
+    """Map sandbox GUIDs to catalog item details via ResourceClaims.
 
-    Queries all ResourceClaims on the Babylon control plane and extracts
-    the guid → catalog_item_name mapping. The guid matches the sandbox
-    namespace pattern sandbox-<guid>-<slug>.
+    Queries ResourceClaims on the Babylon control plane, then fetches
+    the AgnosticV summary for each to get the lab name and repo path.
 
-    Returns {guid: catalog_item_name} e.g. {"2ggwc": "openshift-days-ops-track"}
+    Returns {guid: {catalog_item, display_name, agnosticv_path, governor}}
     """
     raw = _oc(["get", "resourceclaims", "-A", "--no-headers"], timeout=60)
     if not raw:
         return {}
 
     import re
-    guid_map: Dict[str, str] = {}
+
+    # Phase 1: parse tabular output for guid → governor mapping
+    claims: Dict[str, Dict] = {}  # guid → {ns, name, governor}
     for line in raw.strip().split("\n"):
         parts = line.split()
         if len(parts) < 4:
             continue
-        guid_col = parts[2]  # e.g. "guid-2ggwc"
-        governor = parts[3]  # e.g. "published.openshift-days-ops-track.prod"
+        claim_ns = parts[0]
+        claim_name = parts[1]
+        guid_col = parts[2]
+        governor = parts[3]
 
-        m = re.match(r"^guid-([a-z0-9]+)$", guid_col)
+        m = re.match(r"^guid-([a-z0-9]+(?:-\d+)?)$", guid_col)
         if not m:
             continue
         guid = m.group(1)
 
-        # Extract catalog item from governor: prefix.item-name.env → item-name
         gov_parts = governor.split(".")
-        if len(gov_parts) >= 2:
-            catalog_item = gov_parts[1]
-        else:
-            catalog_item = governor
+        catalog_item = gov_parts[1] if len(gov_parts) >= 2 else governor
 
-        guid_map[guid] = catalog_item
+        claims[guid] = {
+            "catalog_item": catalog_item,
+            "governor": governor,
+            "claim_ns": claim_ns,
+            "claim_name": claim_name,
+        }
+
+    # Phase 2: batch fetch AgnosticV summary from a sample of claims
+    # Use jsonpath on individual claims (not -A dump which OOMs)
+    guid_map: Dict[str, Dict] = {}
+    fetched = 0
+    for guid, info in claims.items():
+        base_guid = guid.split("-")[0] if "-" in guid else guid
+        if base_guid in guid_map:
+            continue
+
+        entry = {
+            "catalog_item": info["catalog_item"],
+            "governor": info["governor"],
+        }
+
+        # Fetch AgnosticV summary for this claim (lightweight jsonpath)
+        if fetched < 200:
+            agv = _oc([
+                "get", "resourceclaim", info["claim_name"],
+                "-n", info["claim_ns"],
+                "-o", "jsonpath={.status.summary.agnosticv}",
+            ], timeout=5)
+            if agv:
+                try:
+                    import json as _json
+                    agv_data = _json.loads(agv)
+                    entry["display_name"] = agv_data.get("short_name", "")
+                    entry["agnosticv_path"] = agv_data.get("path", "")
+                    entry["agnosticv_repo"] = agv_data.get("repo", "")
+                except Exception:
+                    pass
+            fetched += 1
+
+        if not entry.get("display_name"):
+            entry["display_name"] = info["catalog_item"].replace("-", " ").title()
+
+        guid_map[base_guid] = entry
 
     return guid_map
 
@@ -387,13 +428,14 @@ def run_collection() -> Dict:
     if guid_map and api_url:
         import urllib.request
         persisted = 0
-        for guid, catalog_item in guid_map.items():
+        for guid, info in guid_map.items():
             try:
                 payload = json.dumps({
                     "lab_code": guid,
-                    "ci_name": catalog_item.replace("-", " ").title(),
-                    "ci_base": catalog_item,
-                    "ci_slug": catalog_item,
+                    "ci_name": info.get("display_name", info["catalog_item"]),
+                    "ci_base": info["catalog_item"],
+                    "ci_slug": info.get("governor", ""),
+                    "agnosticv_path": info.get("agnosticv_path", ""),
                 }).encode()
                 req = urllib.request.Request(
                     f"{api_url}/labs/guid-mapping",

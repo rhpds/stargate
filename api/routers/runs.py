@@ -629,6 +629,8 @@ async def upsert_guid_mapping(req: dict):
                 existing.ci_base = req["ci_base"]
             if req.get("ci_slug"):
                 existing.ci_slug = req["ci_slug"]
+            if req.get("agnosticv_path"):
+                existing.agnosticv_path = req["agnosticv_path"]
             existing.updated_at = datetime.now(timezone.utc)
         else:
             db.add(LabMapping(
@@ -636,6 +638,7 @@ async def upsert_guid_mapping(req: dict):
                 ci_name=req.get("ci_name"),
                 ci_base=req.get("ci_base"),
                 ci_slug=req.get("ci_slug"),
+                agnosticv_path=req.get("agnosticv_path"),
                 namespace_pattern=f"sandbox-{guid}-*",
                 updated_at=datetime.now(timezone.utc),
             ))
