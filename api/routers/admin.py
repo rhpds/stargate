@@ -2347,6 +2347,8 @@ def _build_failure_class_view(
     """
     import re as _re
 
+    from api.constants import INFORMATIONAL_CLASSES
+
     # Aggregate current failure data by failure class
     fc_agg: Dict[str, Dict] = {}
     for entry in by_namespace:
@@ -2357,6 +2359,8 @@ def _build_failure_class_view(
         att = entry.get("attention", "expected")
 
         for fc, cnt in d.get("failure_classes", {}).items():
+            if fc in INFORMATIONAL_CLASSES:
+                continue
             if fc not in fc_agg:
                 fc_agg[fc] = {
                     "namespaces": [], "catalog_items": {}, "clusters": {},
@@ -2523,8 +2527,12 @@ def catalog_item_history(
         EvaluationRecord.outcome,
     ).all()
 
+    from api.constants import INFORMATIONAL_CLASSES as _INFO
+
     cat_data: Dict[str, Dict] = {}
     for lab_code, fc, outcome, cnt in rows:
+        if fc in _INFO:
+            continue
         m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", lab_code or "")
         if not m:
             continue

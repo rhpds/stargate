@@ -379,9 +379,12 @@ def batch_classify_events(events: List[Dict], db=None) -> Dict:
     if db:
         try:
             from db import repository
+            INFORMATIONAL = {"deprecated_api", "guest_agent_not_connected"}
             seen: set = set()
             for parsed in results:
                 if parsed["failure_class"] == "unclassified":
+                    continue
+                if parsed["failure_class"] in INFORMATIONAL:
                     continue
                 # Deduplicate: one evaluation per namespace + failure_class per batch
                 dedup_key = f"{parsed['namespace']}:{parsed['failure_class']}"
