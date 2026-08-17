@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
+from engine.attention_classifier import build_catalog_baselines, classify_namespace
 from api.routers._shared import (
     limiter,
     _scheduler,
@@ -671,6 +672,112 @@ def admin_llm_auto_toggle(req: dict):
     else:
         set_enabled(bool(enabled))
     return {"enabled": is_enabled()}
+
+
+@router.get("/admin/auto-investigate")
+def admin_auto_investigate_status():
+    """Get auto-investigation status (enabled/disabled + current config)."""
+    import os
+    enabled = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
+    return {
+        "enabled": enabled,
+        "max_per_catalog_hour": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3")),
+        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "50")),
+        "dedup_hours": int(os.environ.get("STARGATE_INVESTIGATE_DEDUP_HOURS", "4")),
+        "skip_self_resolve_pct": int(os.environ.get("STARGATE_INVESTIGATE_SKIP_SELF_RESOLVE_PCT", "50")),
+    }
+
+
+@router.post("/admin/auto-investigate", dependencies=[Depends(require_admin)])
+def admin_auto_investigate_toggle(req: dict):
+    """Toggle auto-investigation. Body: {"enabled": true/false}"""
+    import os
+    enabled = req.get("enabled")
+    if enabled is not None:
+        os.environ["STARGATE_AUTO_INVESTIGATE"] = "true" if enabled else "false"
+    else:
+        current = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
+        os.environ["STARGATE_AUTO_INVESTIGATE"] = "false" if current else "true"
+    return admin_auto_investigate_status()
+
+
+@router.get("/admin/investigations", dependencies=[Depends(require_admin_read)])
+def admin_investigations_list(
+    lab_code: Optional[str] = None,
+    cluster: Optional[str] = None,
+    status: Optional[str] = None,
+    trigger_type: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """List recent investigations with optional filters."""
+    from db.repository import list_investigations
+    from db.models import InvestigationRecord
+    q = db.query(InvestigationRecord)
+    if lab_code:
+        q = q.filter(InvestigationRecord.lab_code == lab_code)
+    if cluster:
+        q = q.filter(InvestigationRecord.cluster == cluster)
+    if status:
+        q = q.filter(InvestigationRecord.status == status)
+    if trigger_type:
+        q = q.filter(InvestigationRecord.trigger_type == trigger_type)
+    records = q.order_by(InvestigationRecord.created_at.desc()).limit(limit).all()
+    return {
+        "total": len(records),
+        "investigations": [
+            {
+                "job_id": r.job_id,
+                "lab_code": r.lab_code,
+                "cluster": r.cluster,
+                "failure_class": r.failure_class,
+                "trigger_type": r.trigger_type,
+                "status": r.status,
+                "iterations": r.iterations,
+                "model_used": r.model_used,
+                "cost_estimate": r.cost_estimate,
+                "root_cause": r.root_cause,
+                "has_analysis": bool(r.analysis),
+                "fallback": r.fallback,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "started_at": r.started_at.isoformat() if r.started_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            }
+            for r in records
+        ],
+    }
+
+
+@router.get("/admin/investigations/stats", dependencies=[Depends(require_admin_read)])
+def admin_investigations_stats(db: Session = Depends(get_db)):
+    """Aggregated investigation stats for today."""
+    from db.models import InvestigationRecord
+    from db.repository import count_investigations_today
+    from sqlalchemy import func
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    today_count = count_investigations_today(db)
+    queue_depth = db.query(InvestigationRecord).filter(InvestigationRecord.status == "queued").count()
+
+    by_trigger = db.query(
+        InvestigationRecord.trigger_type, func.count(),
+    ).filter(InvestigationRecord.created_at >= today_start).group_by(
+        InvestigationRecord.trigger_type,
+    ).all()
+
+    avg_cost = db.query(func.avg(InvestigationRecord.cost_estimate)).filter(
+        InvestigationRecord.created_at >= today_start,
+        InvestigationRecord.cost_estimate.isnot(None),
+    ).scalar()
+
+    return {
+        "today": today_count,
+        "queue_depth": queue_depth,
+        "by_trigger_type": {t: c for t, c in by_trigger},
+        "avg_cost_today": round(avg_cost, 4) if avg_cost else None,
+        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "50")),
+    }
 
 
 @router.get("/admin/audit-trail", dependencies=[Depends(require_admin_read)])
@@ -2221,147 +2328,6 @@ def namespace_detail(namespace: str, db: Session = Depends(get_db), _auth=Depend
     }
 
 
-# ---------------------------------------------------------------------------
-# Catalog Item Baselines (for needs-attention classification)
-# ---------------------------------------------------------------------------
-
-def _build_catalog_baselines(db, hours: int = 168) -> Dict:
-    """Build per-catalog-item baseline failure profiles from evaluation history.
-
-    Returns {catalog_item: {failure_class: {rate, p95_ttr_minutes, count}}}
-    Used to distinguish 'expected noise' from 'needs attention'.
-    """
-    from db.models import EvaluationRecord
-    from sqlalchemy import func
-    import re as _re
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-
-    rows = db.query(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.outcome,
-        EvaluationRecord.failure_class,
-        func.count().label("cnt"),
-    ).filter(
-        EvaluationRecord.evaluated_at >= cutoff,
-        EvaluationRecord.lab_code.isnot(None),
-    ).group_by(
-        EvaluationRecord.lab_code,
-        EvaluationRecord.outcome,
-        EvaluationRecord.failure_class,
-    ).all()
-
-    # Group by catalog item
-    cat_data: Dict[str, Dict] = {}
-    for lab_code, outcome, fc, cnt in rows:
-        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", lab_code)
-        cat = m.group(1) if m else lab_code
-        if cat not in cat_data:
-            cat_data[cat] = {"total_evals": 0, "namespaces": set(), "failures": {}}
-        cat_data[cat]["total_evals"] += cnt
-        cat_data[cat]["namespaces"].add(lab_code)
-        if outcome == "fail" and fc:
-            cat_data[cat]["failures"].setdefault(fc, 0)
-            cat_data[cat]["failures"][fc] += cnt
-
-    # Build TTR baselines from resolution records
-    ttr_by_cat: Dict[str, Dict[str, list]] = {}
-    try:
-        from db.models import ResolutionRecord
-        res_rows = db.query(
-            ResolutionRecord.lab_code,
-            ResolutionRecord.failure_class,
-            ResolutionRecord.ttr_seconds,
-        ).filter(
-            ResolutionRecord.resolved_at >= cutoff,
-            ResolutionRecord.ttr_seconds.isnot(None),
-            ResolutionRecord.ttr_seconds > 0,
-        ).all()
-        for lab_code, fc, ttr in res_rows:
-            m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", lab_code)
-            cat = m.group(1) if m else lab_code
-            ttr_by_cat.setdefault(cat, {}).setdefault(fc, []).append(ttr / 60.0)
-    except Exception:
-        pass
-
-    baselines: Dict[str, Dict] = {}
-    for cat, d in cat_data.items():
-        total = d["total_evals"]
-        ns_count = len(d["namespaces"])
-        fc_profiles = {}
-        for fc, fail_cnt in d["failures"].items():
-            rate = round(fail_cnt / max(total, 1), 3)
-            ttr_list = sorted(ttr_by_cat.get(cat, {}).get(fc, []))
-            p95 = ttr_list[int(len(ttr_list) * 0.95)] if len(ttr_list) > 1 else (ttr_list[0] if ttr_list else None)
-            fc_profiles[fc] = {
-                "rate": rate,
-                "count": fail_cnt,
-                "p95_ttr_minutes": round(p95, 1) if p95 else None,
-            }
-        baselines[cat] = {
-            "namespace_count": ns_count,
-            "total_evals": total,
-            "failure_profiles": fc_profiles,
-        }
-    return baselines
-
-
-def _classify_namespace(
-    ns: str, catalog_item: str, failure_classes: Dict[str, int],
-    first_eval_at: Optional[datetime], baselines: Dict,
-) -> Dict:
-    """Classify a failing namespace as: stuck, anomalous, provisioning, or expected.
-
-    - provisioning: namespace < 20 min old, failures are common for this catalog item
-    - stuck: failure duration exceeds P95 TTR for this catalog item + failure class
-    - anomalous: failure class is unusual for this catalog item (< 5% baseline rate)
-    - expected: normal churn — this failure class and rate are typical
-    """
-    now = datetime.now(timezone.utc)
-    age_minutes = None
-    if first_eval_at:
-        first = first_eval_at.replace(tzinfo=timezone.utc) if first_eval_at.tzinfo is None else first_eval_at
-        age_minutes = (now - first).total_seconds() / 60.0
-
-    baseline = baselines.get(catalog_item, {})
-    fc_profiles = baseline.get("failure_profiles", {})
-
-    # Young namespace — likely still provisioning
-    if age_minutes is not None and age_minutes < 20:
-        return {"attention": "provisioning", "reason": f"namespace is {int(age_minutes)}m old"}
-
-    top_fc = max(failure_classes, key=failure_classes.get) if failure_classes else None
-    if not top_fc:
-        return {"attention": "expected", "reason": "no classified failures"}
-
-    profile = fc_profiles.get(top_fc, {})
-    baseline_rate = profile.get("rate", 0)
-    p95_ttr = profile.get("p95_ttr_minutes")
-
-    # Stuck: failing longer than P95 TTR (with a floor of 30 min)
-    if age_minutes is not None and p95_ttr:
-        threshold = max(p95_ttr, 30)
-        if age_minutes > threshold:
-            return {
-                "attention": "stuck",
-                "reason": f"{top_fc} for {int(age_minutes)}m (P95 is {int(p95_ttr)}m)",
-            }
-
-    # Anomalous: failure class is rare for this catalog item
-    if baseline_rate < 0.05 and baseline.get("total_evals", 0) > 50:
-        return {
-            "attention": "anomalous",
-            "reason": f"{top_fc} is unusual for {catalog_item} ({baseline_rate*100:.0f}% baseline)",
-        }
-
-    # Stuck fallback: no TTR data but failing for > 60 min
-    if age_minutes is not None and age_minutes > 60 and not p95_ttr:
-        return {
-            "attention": "stuck",
-            "reason": f"{top_fc} for {int(age_minutes)}m (no baseline TTR)",
-        }
-
-    return {"attention": "expected", "reason": f"{top_fc} is normal for {catalog_item}"}
 
 
 def _build_failure_class_view(
@@ -2716,7 +2682,7 @@ def _build_remediation_strategies(db: Session) -> list:
             )
 
     # Classify namespaces using existing helpers
-    baselines = _build_catalog_baselines(db)
+    baselines = build_catalog_baselines(db)
     first_eval_map: Dict[str, datetime] = {}
     try:
         for lc, fa in db.query(
@@ -2734,7 +2700,7 @@ def _build_remediation_strategies(db: Session) -> list:
             continue
         m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
         cat = m.group(1) if m else ns
-        cl = _classify_namespace(ns, cat, d["failure_classes"], first_eval_map.get(ns), baselines)
+        cl = classify_namespace(ns, cat, d["failure_classes"], first_eval_map.get(ns), baselines)
         by_namespace.append({
             "namespace": ns, "cluster": d["cluster"],
             "catalog_item": cat, "attention": cl["attention"],
@@ -3527,7 +3493,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
 
     # Build catalog item baselines and first-eval timestamps for classification
-    baselines = _build_catalog_baselines(db)
+    baselines = build_catalog_baselines(db)
 
     # Build catalog item slug -> display name map from Labagator
     # Build catalog item slug -> display name map
@@ -3634,7 +3600,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
         catalog_item = m.group(1) if m else ns
 
-        classification = _classify_namespace(
+        classification = classify_namespace(
             ns, catalog_item, d["failure_classes"],
             first_eval_map.get(ns), baselines,
         )
@@ -3654,6 +3620,28 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
             "attention_reason": classification["reason"],
             "stages": stages,
         })
+
+    # Attach investigation skip reasons for stuck/anomalous namespaces
+    try:
+        from engine.attention_classifier import should_auto_investigate
+        from db.models import InvestigationRecord
+        investigated_ns = set(
+            row.lab_code for row in
+            db.query(InvestigationRecord.lab_code).distinct().all()
+        )
+        for entry in by_namespace:
+            if entry["attention"] not in ("stuck", "anomalous"):
+                continue
+            if entry["namespace"] in investigated_ns:
+                continue
+            _, reason, _ = should_auto_investigate(
+                db, entry["namespace"],
+                entry.get("top_failure") or "",
+                entry.get("cluster") or "",
+            )
+            entry["investigation_skip_reason"] = reason
+    except Exception:
+        pass
 
     # Sort by attention: stuck > anomalous > provisioning > expected
     ATTENTION_ORDER = {"stuck": 0, "anomalous": 1, "provisioning": 2, "expected": 3}

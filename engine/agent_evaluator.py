@@ -562,6 +562,66 @@ def build_test_cases_from_history(db, limit: int = 20) -> List[AgentTestCase]:
         return []
 
 
+def build_test_cases_from_investigations(db, limit: int = 20) -> List[AgentTestCase]:
+    """Build test cases from completed investigations that have linked resolutions.
+
+    Pairs InvestigationRecord (agent output) with ResolutionRecord (ground truth)
+    to create evaluation scenarios for the trust framework.
+    """
+    try:
+        from db.models import InvestigationRecord, ResolutionRecord, LabMapping
+
+        records = (
+            db.query(InvestigationRecord)
+            .filter(
+                InvestigationRecord.status == "complete",
+                InvestigationRecord.resolved_by_id.isnot(None),
+            )
+            .order_by(InvestigationRecord.completed_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        cases = []
+        for inv in records:
+            resolution = db.query(ResolutionRecord).filter(
+                ResolutionRecord.id == inv.resolved_by_id
+            ).first()
+            if not resolution:
+                continue
+
+            lm = db.query(LabMapping).filter(
+                LabMapping.lab_code == inv.lab_code
+            ).first()
+            agnosticv_path = lm.agnosticv_path if lm else ""
+
+            recorded = {}
+            if inv.tool_calls:
+                for tc in inv.tool_calls:
+                    tool_name = tc.get("tool", "")
+                    if tool_name and tool_name not in recorded:
+                        recorded[tool_name] = tc.get("result_preview", "")
+
+            cases.append(AgentTestCase(
+                id=f"inv-{inv.job_id}",
+                namespace=inv.lab_code or "",
+                cluster=inv.cluster or "",
+                failure_class=inv.failure_class or "",
+                actual_root_cause=resolution.resolution_action or inv.failure_class or "",
+                actual_layer=_infer_layer(inv.failure_class or "", resolution.resolution_type or ""),
+                actual_component=resolution.resolution_action or "",
+                actual_resolution=f"{resolution.resolution_type} (TTR: {round(resolution.ttr_seconds/60, 1) if resolution.ttr_seconds else '?'}m)",
+                agnosticv_path=agnosticv_path or "",
+                recorded_tools=recorded,
+            ))
+
+        return cases
+
+    except Exception as e:
+        logger.warning("Failed to build test cases from investigations: %s", e)
+        return []
+
+
 def _infer_layer(failure_class: str, resolution_type: str) -> str:
     """Infer the failure layer from failure class and resolution type."""
     if not failure_class:

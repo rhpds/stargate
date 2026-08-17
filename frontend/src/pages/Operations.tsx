@@ -155,52 +155,6 @@ function CostAnalysis({ alwaysOpen = false }: { alwaysOpen?: boolean }) {
 }
 
 
-/* ---- Remediation Strategies ---- */
-
-function RemediationStrategies() {
-  const { data } = useQuery({ queryKey: ['remediation-strategies'], queryFn: () => api.getRemediationStrategies(), refetchInterval: 60000 });
-  const [expanded, setExpanded] = useState<number | null>(null);
-  if (!data?.strategies?.length) return null;
-
-  const LEVEL_COLORS: Record<string, string> = { platform: '#C9190B', lab: '#F0AB00', cluster: '#4394E5', namespace: '#8A8D90' };
-  const SEV_COLORS: Record<string, string> = { critical: '#C9190B', high: '#F0AB00', medium: '#4394E5', low: '#6A6E73' };
-
-  return (
-    <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
-      <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Remediation Strategies — Highest Impact First</h3>
-      <div className="space-y-1">
-        {data.strategies.slice(0, 10).map((s: any, i: number) => (
-          <div key={i} className="bg-[#1a1a1a] rounded border border-[#2a2a2a]">
-            <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-[#222] transition"
-              onClick={() => setExpanded(expanded === i ? null : i)}>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0"
-                  style={{ backgroundColor: `${LEVEL_COLORS[s.level]}20`, color: LEVEL_COLORS[s.level] }}>{s.level}</span>
-                <span className="text-xs text-white truncate">{s.title}</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px]" style={{ color: SEV_COLORS[s.severity] }}>{s.blast_radius} ns</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#22222280', color: '#8A8D90' }}>{s.action_type?.replace(/_/g, ' ')}</span>
-              </div>
-            </div>
-            {expanded === i && (
-              <div className="px-3 pb-3 border-t border-[#2e2e2e] pt-2 space-y-1.5">
-                <p className="text-[11px] text-white">{s.recommendation}</p>
-                <p className="text-[10px] text-[#6A6E73]">{s.evidence}</p>
-                {s.expected_impact && <p className="text-[10px] text-[#3E8635]">{s.expected_impact}</p>}
-                {s.agnosticv_url && (
-                  <a href={s.agnosticv_url} target="_blank" rel="noopener noreferrer"
-                    className="text-[10px] text-[#4394E5] hover:underline font-mono block">{s.agnosticv_url.split('/tree/main/')[1] || s.agnosticv_url}</a>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 
 const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] as const;
 const STAGE_LABELS: Record<string, string> = { health: 'HLT', pods: 'POD', storage: 'STG', network: 'NET', workload: 'WRK', overall: 'ALL' };
@@ -491,94 +445,6 @@ function ExpandedRow({ namespace }: { namespace: string }) {
   );
 }
 
-/* ---- Catalog Item History ---- */
-
-function CatalogItemHistory() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['catalog-item-history'],
-    queryFn: () => api.getCatalogItemHistory(7),
-    refetchInterval: 60000,
-  });
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  if (isLoading || !data?.items?.length) return null;
-
-  const REC_COLORS: Record<string, string> = {
-    watch_and_wait: '#3E8635', investigate: '#F0AB00', candidate_for_automation: '#4394E5', insufficient_data: '#555',
-  };
-
-  return (
-    <div className="bg-[#151515] rounded-lg border border-[#2e2e2e] mb-4 p-4">
-      <h3 className="text-xs font-semibold text-[#8A8D90] uppercase tracking-wider mb-3">Lab Health — 7 Day History</h3>
-      <div className="space-y-1">
-        {data.items.slice(0, 15).map((item: any) => {
-          const isOpen = expanded === item.catalog_item;
-          return (
-            <div key={item.catalog_item} className="bg-[#1a1a1a] rounded border border-[#2a2a2a]">
-              <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-[#222] transition"
-                onClick={() => setExpanded(isOpen ? null : item.catalog_item)}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-[#555] text-xs">{isOpen ? '▼' : '▶'}</span>
-                  <span className="text-xs text-white font-medium truncate">{item.display_name}</span>
-                  <span className="text-[10px] text-[#6A6E73] font-mono shrink-0">{item.catalog_item}</span>
-                </div>
-                <div className="flex items-center gap-3 text-[10px] shrink-0">
-                  <span className="text-[#8A8D90]">{item.namespace_count} ns</span>
-                  <span className="text-[#C9190B]">{item.total_fails.toLocaleString()} fails</span>
-                  <span className="text-[#6A6E73]">{item.fail_rate_pct}%</span>
-                </div>
-              </div>
-              {isOpen && (
-                <div className="px-3 pb-3 border-t border-[#2e2e2e] pt-2">
-                  {item.agnosticv_url && (
-                    <a href={item.agnosticv_url} target="_blank" rel="noopener noreferrer"
-                      className="text-[10px] text-[#4394E5] hover:underline block mb-2 font-mono">
-                      {item.agnosticv_path}
-                    </a>
-                  )}
-                  <div className="space-y-1.5">
-                    {item.failure_classes.map((fc: any) => {
-                      const res = fc.resolutions;
-                      const rec = res?.recommendation;
-                      return (
-                        <div key={fc.failure_class} className="bg-[#111] rounded p-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-mono text-[#ccc]">{fc.failure_class}</span>
-                              <span className="text-[10px] text-[#6A6E73]">{fc.count.toLocaleString()} ({fc.pct_of_failures}%)</span>
-                              <span className="text-[10px] text-[#8A8D90]">{fc.affected_namespaces} ns</span>
-                            </div>
-                            {rec && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                                style={{ backgroundColor: `${REC_COLORS[rec] || '#555'}20`, color: REC_COLORS[rec] || '#555' }}>
-                                {rec.replace(/_/g, ' ')}
-                              </span>
-                            )}
-                          </div>
-                          {res && (
-                            <div className="flex items-center gap-3 text-[10px] text-[#8A8D90]">
-                              <span>{res.self_resolve_pct}% self-resolve</span>
-                              {res.avg_ttr_minutes && <span>{res.avg_ttr_minutes}m avg TTR</span>}
-                              {res.p95_ttr_minutes && <span>P95: {res.p95_ttr_minutes}m</span>}
-                              <span>{res.total} resolutions</span>
-                              {Object.entries(res.by_type || {}).map(([type, count]) => (
-                                <span key={type} className="text-[#6A6E73]">{(type as string).replace(/_/g, ' ')}: {count as number}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 
 /* ---- Main Page ---- */
@@ -677,11 +543,391 @@ function FailureClassCard({ fc, namespaces }: { fc: any; namespaces: any[] }) {
   );
 }
 
+/* ---- Investigations Tab ---- */
+
+function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
+  const [expandedNs, setExpandedNs] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>('needs_attention');
+
+  const { data: investigations } = useQuery({
+    queryKey: ['investigations'],
+    queryFn: () => api.getInvestigations({ limit: 100 }),
+    refetchInterval: 15000,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['investigation-stats'],
+    queryFn: () => api.getInvestigationStats(),
+    refetchInterval: 30000,
+  });
+
+  // Build investigation lookup by namespace
+  const invByNs: Record<string, any[]> = {};
+  const liveNsSet = new Set((liveNamespaces || []).map((ns: any) => ns.namespace));
+  for (const inv of (investigations || [])) {
+    const key = inv.lab_code;
+    if (!invByNs[key]) invByNs[key] = [];
+    invByNs[key].push(inv);
+  }
+
+  // Merge: all live failing namespaces with investigations attached
+  const merged = (liveNamespaces || []).map((ns: any) => ({
+    ...ns,
+    investigations: invByNs[ns.namespace] || [],
+    investigated: (invByNs[ns.namespace] || []).length > 0,
+    live: true,
+  }));
+
+  // Recent findings: investigated namespaces no longer live (recycled/resolved)
+  const recentFindings: any[] = [];
+  const seenNs = new Set<string>();
+  for (const inv of (investigations || [])) {
+    if (liveNsSet.has(inv.lab_code)) continue;
+    if (seenNs.has(inv.lab_code)) continue;
+    seenNs.add(inv.lab_code);
+    const nsInvs = invByNs[inv.lab_code] || [];
+    recentFindings.push({
+      namespace: inv.lab_code,
+      lab_name: inv.lab_name,
+      catalog_item: inv.catalog_item,
+      cluster: inv.cluster,
+      owner: inv.owner,
+      attention: inv.attention,
+      attention_reason: inv.attention_reason,
+      top_failure: inv.failure_class,
+      current_status: inv.current_status,
+      investigations: nsInvs,
+      investigated: true,
+      live: false,
+    });
+  }
+
+  // Filter — only stuck gets auto-investigated, anomalous is background noise
+  const rows = filter === 'needs_attention'
+    ? merged.filter((r: any) => r.attention === 'stuck')
+    : filter === 'investigated'
+    ? merged.filter((r: any) => r.investigated)
+    : filter === 'uninvestigated'
+    ? merged.filter((r: any) => !r.investigated && r.attention === 'stuck')
+    : merged;
+
+  const stuckCount = merged.filter((r: any) => r.attention === 'stuck').length;
+  const investigatedLive = merged.filter((r: any) => r.investigated).length;
+  const investigatedCount = investigatedLive + recentFindings.length;
+
+  return (
+    <div>
+      {/* Stats row */}
+      <div className="grid grid-cols-5 gap-3 mb-4">
+        <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Stuck</div>
+          <div className="text-2xl font-bold" style={{ color: stuckCount > 0 ? '#C9190B' : '#3E8635' }}>{stuckCount}</div>
+          <div className="text-[10px] text-[#555]">namespaces need attention</div>
+        </div>
+        <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Investigated</div>
+          <div className="text-2xl font-bold" style={{ color: '#3E8635' }}>{investigatedCount}</div>
+          <div className="text-[10px] text-[#555]">{investigatedLive} active · {recentFindings.length} resolved</div>
+        </div>
+        <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Today</div>
+          <div className="text-2xl font-bold text-white">{stats?.today ?? '--'}</div>
+          <div className="text-[10px] text-[#555]">investigations run</div>
+        </div>
+        <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Queue</div>
+          <div className="text-2xl font-bold text-white">{stats?.queue_depth ?? 0}</div>
+          <div className="text-[10px] text-[#555]">pending</div>
+        </div>
+        <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1">Auto-Investigate</div>
+          <div className="text-2xl font-bold" style={{ color: stats?.enabled ? '#3E8635' : '#C9190B' }}>
+            {stats?.enabled ? 'ON' : 'OFF'}
+          </div>
+          <div className="text-[10px] text-[#555]">
+            {stats?.enabled ? `${stats?.stuck_today ?? 0} of ${stats?.stuck_max ?? 100} daily budget` : 'disabled'}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex bg-[#1e1e1e] border border-[#333] rounded overflow-hidden text-xs">
+          {[
+            { key: 'needs_attention', label: 'Stuck', count: stuckCount },
+            { key: 'investigated', label: 'Investigated', count: investigatedLive },
+            { key: 'uninvestigated', label: 'Uninvestigated', count: merged.filter((r: any) => !r.investigated && r.attention === 'stuck').length },
+            { key: 'all', label: 'All Failing', count: merged.length },
+          ].map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`px-3 py-1.5 transition ${filter === f.key ? 'bg-[#333] text-white' : 'text-[#8A8D90] hover:text-white'}`}>
+              {f.label} <span className="text-[10px] ml-1 opacity-60">{f.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      {rows.length === 0 && (
+        <div className="text-[#3E8635] py-12 text-center text-sm">All namespaces healthy</div>
+      )}
+
+      {rows.length > 0 && (
+        <div>
+          <div className="grid grid-cols-[20px_1fr_1fr_80px_90px_80px_140px] gap-2 text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold pb-2 border-b border-[#2e2e2e] px-2">
+            <div></div>
+            <div>Lab / Namespace</div>
+            <div>Failure Classes</div>
+            <div>Cluster</div>
+            <div>Owner</div>
+            <div>Classification</div>
+            <div>Investigation</div>
+          </div>
+
+          {rows.map((r: any) => {
+            const isExpanded = expandedNs === r.namespace;
+            const attColor = ATTENTION_COLORS[r.attention] || '#555';
+            const fcs = Object.keys(r.stages || {}).length > 0
+              ? Object.entries(r.stages as Record<string, any>).filter(([, v]) => v.status === 'red').map(([k]) => k)
+              : [];
+            const failureClasses = r.top_failure ? [r.top_failure, ...fcs.filter(f => f !== r.top_failure)] : fcs;
+            const uniqueFCs = [...new Set(failureClasses)].slice(0, 4);
+
+            return (
+              <div key={r.namespace}>
+                <div
+                  className="grid grid-cols-[20px_1fr_1fr_80px_90px_80px_140px] gap-2 items-center py-2 px-2 border-b border-[#1a1a1a] text-xs cursor-pointer hover:bg-[#1a1a1a] transition"
+                  onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
+                >
+                  <div className="text-[#555]">{isExpanded ? '▼' : '▶'}</div>
+                  <div className="truncate">
+                    <div className="text-[#ccc] text-[11px] truncate">{r.lab_name || r.catalog_item || ''}</div>
+                    <div className="text-[#4394E5] font-mono text-[9px] truncate">{r.namespace}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {uniqueFCs.length > 0 ? uniqueFCs.slice(0, 2).map((fc: string) => (
+                      <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/10 text-[#C9190B]">{fc}</span>
+                    )) : r.top_failure ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/10 text-[#C9190B]">{r.top_failure}</span>
+                    ) : null}
+                    {uniqueFCs.length > 2 && <span className="text-[9px] text-[#555]">+{uniqueFCs.length - 2}</span>}
+                  </div>
+                  <div className="text-[#8A8D90] truncate">{r.cluster || '--'}</div>
+                  <div className="text-[10px] text-[#8A8D90] truncate" title={r.owner || ''}>{r.owner ? r.owner.split('@')[0] : ''}</div>
+                  <div>
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: `${attColor}20`, color: attColor }}
+                      title={r.attention_reason}>{r.attention}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {r.investigated ? (
+                      <>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#3E8635]/20 text-[#3E8635]">
+                          {r.investigations.length} finding{r.investigations.length !== 1 ? 's' : ''}
+                        </span>
+                        {(() => {
+                          const v = r.investigations[0]?.verdict;
+                          if (v === 'TRANSIENT') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#6A6E73]/20 text-[#6A6E73]">transient</span>;
+                          if (v === 'ACTIONABLE') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/20 text-[#C9190B]">actionable</span>;
+                          return null;
+                        })()}
+                      </>
+                    ) : (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#555]/20 text-[#555]" title={r.investigation_skip_reason || ''}>{r.investigation_skip_reason ? 'skipped' : 'pending'}</span>
+                    )}
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="bg-[#191919] border-b border-[#333]">
+                    {r.investigated ? (
+                      r.investigations.map((inv: any) => (
+                        <InvestigationDetail key={inv.job_id} jobId={inv.job_id} />
+                      ))
+                    ) : (
+                      <div className="p-4">
+                        <ExpandedRow namespace={r.namespace} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Recent Findings — investigated namespaces no longer live */}
+      {recentFindings.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-semibold text-[#6A6E73] uppercase tracking-wider mb-3">Recent Findings — Resolved / Recycled</h3>
+          <div>
+            {recentFindings.slice(0, 20).map((r: any) => {
+              const isExpanded = expandedNs === r.namespace;
+              const csColor = r.current_status === 'resolved' ? '#3E8635' : r.current_status === 'stale' ? '#6A6E73' : '#555';
+              const csLabel = r.current_status === 'resolved' ? 'resolved' : r.current_status === 'stale' ? 'recycled' : r.current_status || 'unknown';
+              const uniqueFCs = [...new Set((r.investigations || []).map((i: any) => i.failure_class))] as string[];
+              return (
+                <div key={r.namespace}>
+                  <div
+                    className="grid grid-cols-[20px_1fr_1fr_80px_90px_80px_140px_80px] gap-2 items-center py-2 px-2 border-b border-[#1a1a1a] text-xs cursor-pointer hover:bg-[#1a1a1a] transition opacity-70"
+                    onClick={() => setExpandedNs(isExpanded ? null : r.namespace)}
+                  >
+                    <div className="text-[#555]">{isExpanded ? '▼' : '▶'}</div>
+                    <div className="truncate">
+                      <div className="text-[#8A8D90] text-[11px] truncate">{r.lab_name || r.catalog_item || ''}</div>
+                      <div className="text-[#4394E5] font-mono text-[9px] truncate">{r.namespace}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {uniqueFCs.slice(0, 2).map((fc: string) => (
+                        <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded bg-[#555]/10 text-[#8A8D90]">{fc}</span>
+                      ))}
+                      {uniqueFCs.length > 2 && <span className="text-[9px] text-[#555]">+{uniqueFCs.length - 2}</span>}
+                    </div>
+                    <div className="text-[#555] truncate">{r.cluster || '--'}</div>
+                    <div className="text-[10px] text-[#555] truncate">{r.owner ? r.owner.split('@')[0] : ''}</div>
+                    <div>
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: csColor + '20', color: csColor }}>
+                        {csLabel}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#3E8635]/20 text-[#3E8635]">
+                        {r.investigations.length} finding{r.investigations.length !== 1 ? 's' : ''}
+                      </span>
+                      {(() => {
+                        const v = r.investigations[0]?.verdict;
+                        if (v === 'TRANSIENT') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#6A6E73]/20 text-[#6A6E73]">transient</span>;
+                        if (v === 'ACTIONABLE') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/20 text-[#C9190B]">actionable</span>;
+                        return null;
+                      })()}
+                    </div>
+                    <div className="text-[#555]">{relativeTime(r.investigations[0]?.created_at)}</div>
+                  </div>
+                  {isExpanded && (
+                    <div className="bg-[#191919] border-b border-[#333]">
+                      {r.investigations.map((inv: any) => (
+                        <InvestigationDetail key={inv.job_id} jobId={inv.job_id} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InvestigationDetail({ jobId }: { jobId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['investigation-detail', jobId],
+    queryFn: () => api.getInvestigationDetail(jobId),
+    enabled: !!jobId,
+  });
+
+  if (isLoading) return <div className="bg-[#191919] border-b border-[#333] p-4 text-[#6A6E73] text-sm">Loading...</div>;
+  if (!data) return null;
+
+  const analysis = data.analysis || '';
+  const sections = splitAnalysisSections(analysis);
+
+  return (
+    <div className="bg-[#191919] border-b border-[#333] p-4 space-y-3">
+      {sections.diagnosis && (
+        <div>
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1.5">Diagnosis</div>
+          <div className="bg-[#111] rounded p-3 text-[11px] text-[#ccc]">
+            <FormattedAnalysis text={sections.diagnosis} />
+          </div>
+        </div>
+      )}
+
+      {sections.rootCause && (
+        <div>
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1.5">Root Cause</div>
+          <div className="bg-[#111] rounded p-3 text-[11px] text-[#ccc]">
+            <FormattedAnalysis text={sections.rootCause} />
+          </div>
+        </div>
+      )}
+
+      {sections.shadowRemediation ? (
+        <div>
+          <div className="text-[10px] text-[#F0AB00] uppercase tracking-wider font-bold mb-1.5">Recommended Remediation</div>
+          <div className="bg-[#111] rounded p-3 text-[11px] text-[#ccc] border border-[#F0AB00]/20">
+            <FormattedAnalysis text={sections.shadowRemediation} />
+          </div>
+        </div>
+      ) : sections.remaining ? (
+        <div>
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1.5">Remediation</div>
+          <div className="bg-[#111] rounded p-3 text-[11px] text-[#ccc]">
+            <FormattedAnalysis text={sections.remaining} />
+          </div>
+        </div>
+      ) : !sections.diagnosis && analysis ? (
+        <div>
+          <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1.5">Analysis</div>
+          <div className="bg-[#111] rounded p-3 text-[11px] text-[#ccc]">
+            <FormattedAnalysis text={analysis} />
+          </div>
+        </div>
+      ) : null}
+
+      {data.error && (
+        <div className="bg-[#C9190B]/10 border border-[#C9190B]/30 rounded p-2 text-[11px] text-[#C9190B]">
+          {data.error}
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 text-[10px] text-[#555]">
+        {sections.verdict && (
+          sections.verdict === 'TRANSIENT'
+            ? <span className="text-[#6A6E73] font-semibold">TRANSIENT — will self-resolve</span>
+            : sections.verdict === 'ACTIONABLE'
+            ? <span className="text-[#C9190B] font-semibold">ACTIONABLE — needs a fix</span>
+            : <span>{sections.verdict}</span>
+        )}
+        {data.tool_calls?.length > 0 && <span>{data.tool_calls.length} tool calls</span>}
+        {data.iterations != null && <span>{data.iterations} iterations</span>}
+        {data.fallback && <span className="text-[#F0AB00]">fallback mode</span>}
+      </div>
+    </div>
+  );
+}
+
+function splitAnalysisSections(text: string) {
+  const extract = (label: string): string | null => {
+    const patterns = [
+      new RegExp(`\\*\\*${label}\\*\\*[^:]*[:\\s]*(.+?)(?=\\n\\*\\*|\\n###|\\n##|$)`, 's'),
+      new RegExp(`###?\\s*${label}[^\\n]*\\n(.+?)(?=\\n###|\\n##|\\n\\*\\*|$)`, 's'),
+    ];
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m && m[1] && m[1].trim().length > 5) return m[1].trim();
+    }
+    return null;
+  };
+  const verdictMatch = text.match(/\*?\*?Verdict\*?\*?[:\s]*(TRANSIENT|ACTIONABLE|UNKNOWN)/i);
+  return {
+    diagnosis: extract('Diagnosis'),
+    rootCause: extract('Root Cause'),
+    shadowRemediation: extract('Shadow Remediation'),
+    owner: extract('Owner'),
+    remaining: extract('Remediation Strategy'),
+    verdict: verdictMatch && verdictMatch[1] ? verdictMatch[1].toUpperCase() : null,
+  };
+}
+
+
 export default function Operations() {
   const [search, setSearch] = useState('');
   const [expandedNs, setExpandedNs] = useState<string | null>(null);
   const [attentionFilter, setAttentionFilter] = useState<string>('needs_attention');
-  const [tab, setTab] = useState<'operations' | 'cost' | 'labs' | 'strategies'>('operations');
+  const [tab, setTab] = useState<'investigations' | 'operations' | 'cost'>('investigations');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['lifecycle-matrix'],
@@ -738,10 +984,9 @@ export default function Operations() {
           {/* Tab bar */}
           <div className="flex gap-1 mb-4 border-b border-[#333]">
             {[
+              { key: 'investigations', label: 'Investigations' },
               { key: 'operations', label: 'Operations' },
               { key: 'cost', label: 'Cost' },
-              { key: 'labs', label: 'Labs' },
-              { key: 'strategies', label: 'Strategies' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key as any)}
                 className={`px-4 py-2 text-xs font-medium transition ${tab === t.key ? 'text-white border-b-2 border-[#EE0000]' : 'text-[#8A8D90] hover:text-white'}`}>
@@ -844,11 +1089,8 @@ export default function Operations() {
           {/* Tab: Cost */}
           {tab === 'cost' && <CostAnalysis alwaysOpen />}
 
-          {/* Tab: Labs */}
-          {tab === 'labs' && <CatalogItemHistory />}
-
-          {/* Tab: Strategies */}
-          {tab === 'strategies' && <RemediationStrategies />}
+          {/* Tab: Investigations */}
+          {tab === 'investigations' && <InvestigationsTab liveNamespaces={data.by_namespace || []} />}
         </>
       )}
     </div>
