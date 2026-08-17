@@ -1521,6 +1521,7 @@ def get_recent_investigation(
     q = db.query(InvestigationRecord).filter(
         InvestigationRecord.lab_code == lab_code,
         InvestigationRecord.created_at >= cutoff,
+        InvestigationRecord.status.in_(("complete", "running", "error")),
     )
     if failure_class:
         q = q.filter(InvestigationRecord.failure_class == failure_class)
