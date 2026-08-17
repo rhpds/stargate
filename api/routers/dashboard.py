@@ -3988,6 +3988,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
     """
     import threading
     import uuid
+    from db.repository import create_investigation, start_investigation, complete_investigation, fail_investigation
 
     failure_class = req.get("failure_class", "")
     lab_code = req.get("lab_code", "")
@@ -3997,28 +3998,28 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
         return {"error": "lab_code required"}
 
     job_id = f"inv-{uuid.uuid4().hex[:8]}"
+    create_investigation(db, job_id=job_id, lab_code=lab_code, cluster=cluster, failure_class=failure_class, trigger_type="manual")
     _save_investigation(job_id, {"status": "running", "tool_calls": [], "analysis": None, "error": None})
 
     def _run():
+        from db.database import get_session_factory
+        factory = get_session_factory()
+        _db = factory()
         try:
+            start_investigation(_db, job_id)
+
             evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
 
-            from db.database import get_session_factory
             from db.models import EvaluationRecord
-            factory = get_session_factory()
-            _db = factory()
-            try:
-                recent = _db.query(EvaluationRecord).filter(
-                    EvaluationRecord.lab_code == lab_code,
-                ).order_by(EvaluationRecord.id.desc()).limit(5).all()
-                if recent:
-                    evidence_lines.append("\nRecent evaluations:")
-                    for e in recent:
-                        evidence_lines.append(f"  {e.evaluated_at}: {e.outcome} — {e.failure_class or 'none'} | {(e.message or '')[:150]}")
-            finally:
-                _db.close()
+            recent = _db.query(EvaluationRecord).filter(
+                EvaluationRecord.lab_code == lab_code,
+            ).order_by(EvaluationRecord.id.desc()).limit(5).all()
+            if recent:
+                evidence_lines.append("\nRecent evaluations:")
+                for e in recent:
+                    evidence_lines.append(f"  {e.evaluated_at}: {e.outcome} — {e.failure_class or 'none'} | {(e.message or '')[:150]}")
 
-            from engine.investigation_agent import run_investigation, _investigation_progress
+            from engine.investigation_agent import run_investigation
             from api.routers._shared import EXECUTOR_KUBECONFIG
             kubeconfig_dir = os.path.dirname(EXECUTOR_KUBECONFIG) if EXECUTOR_KUBECONFIG else ""
 
@@ -4029,6 +4030,22 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 initial_evidence="\n".join(evidence_lines),
                 kubeconfig_dir=kubeconfig_dir,
                 job_id=job_id,
+                db=_db,
+            )
+
+            from tasks.maintenance import _extract_structured_fields
+            fields = _extract_structured_fields(result.get("analysis", ""))
+
+            complete_investigation(
+                _db, job_id,
+                analysis=result.get("analysis", ""),
+                tool_calls=result.get("tool_calls", []),
+                iterations=result.get("iterations", 0),
+                model_used=os.environ.get("STARGATE_AGENT_MODEL", ""),
+                root_cause=fields.get("root_cause"),
+                remediation_suggestion=fields.get("remediation_suggestion"),
+                fallback=result.get("fallback", False),
+                error=result.get("error"),
             )
             _save_investigation(job_id, {
                 "status": "complete",
@@ -4039,7 +4056,10 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 "fallback": result.get("fallback", False),
             })
         except Exception as e:
+            fail_investigation(_db, job_id, str(e))
             _save_investigation(job_id, {"status": "error", "error": str(e)[:500], "tool_calls": [], "analysis": None})
+        finally:
+            _db.close()
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
@@ -4048,12 +4068,182 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
 
 
 @router.get("/dashboard/investigate/{job_id}")
-def dashboard_investigate_poll(job_id: str):
+def dashboard_investigate_poll(job_id: str, db: Session = Depends(get_db)):
     """Poll for investigation progress and results."""
-    result = _load_investigation(job_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Investigation not found")
+    from db.repository import get_investigation
+    record = get_investigation(db, job_id)
+    if record and record.status in ("complete", "error"):
+        return {
+            "status": record.status,
+            "analysis": record.analysis,
+            "tool_calls": record.tool_calls or [],
+            "iterations": record.iterations,
+            "error": record.error,
+            "fallback": record.fallback,
+            "trigger_type": record.trigger_type,
+        }
+    file_result = _load_investigation(job_id)
+    if file_result:
+        return file_result
+    if record:
+        return {"status": record.status, "tool_calls": [], "analysis": None, "error": None}
+    raise HTTPException(status_code=404, detail="Investigation not found")
+
+
+@router.get("/dashboard/investigations")
+def dashboard_investigations_list(
+    lab_code: Optional[str] = None,
+    cluster: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """List recent investigations with optional filters."""
+    from db.repository import list_investigations
+    from db.models import LabMapping, ResolutionRecord, EvaluationRecord
+    from engine.attention_classifier import extract_catalog_item, classify_namespace, get_cached_baselines
+    from sqlalchemy import func
+
+    records = list_investigations(db, lab_code=lab_code, cluster=cluster, status=status, limit=limit)
+
+    lab_codes = [r.lab_code for r in records if r.lab_code]
+    lab_map = {}
+    if lab_codes:
+        mappings = db.query(LabMapping).filter(LabMapping.lab_code.in_(lab_codes)).all()
+        lab_map = {m.lab_code: m for m in mappings}
+
+    baselines = get_cached_baselines(db)
+
+    result = []
+    for r in records:
+        lm = lab_map.get(r.lab_code)
+        lab_name = lm.ci_name if lm else None
+        catalog_item = extract_catalog_item(r.lab_code) if r.lab_code else None
+        if not lab_name and catalog_item:
+            lab_name = catalog_item.replace("-", " ").title()
+
+        # Live status: check the most recent evaluation for this namespace+failure_class
+        current_status = None
+        if r.lab_code and r.failure_class:
+            latest_eval = (
+                db.query(EvaluationRecord)
+                .filter(
+                    EvaluationRecord.lab_code == r.lab_code,
+                    EvaluationRecord.failure_class == r.failure_class,
+                )
+                .order_by(EvaluationRecord.id.desc())
+                .first()
+            )
+            if latest_eval:
+                if latest_eval.outcome == "pass":
+                    current_status = "resolved"
+                else:
+                    age = (datetime.now(timezone.utc) - (latest_eval.evaluated_at.replace(tzinfo=timezone.utc) if latest_eval.evaluated_at.tzinfo is None else latest_eval.evaluated_at)).total_seconds()
+                    if age > 3600:
+                        current_status = "stale"
+                    else:
+                        current_status = "active"
+            else:
+                current_status = "unknown"
+
+        attention = None
+        attention_reason = None
+        if r.lab_code and r.failure_class and current_status == "active":
+            try:
+                first_eval_at = db.query(
+                    func.min(EvaluationRecord.evaluated_at)
+                ).filter(EvaluationRecord.lab_code == r.lab_code).scalar()
+                cl = classify_namespace(
+                    r.lab_code, catalog_item or "",
+                    {r.failure_class: 1}, first_eval_at, baselines,
+                )
+                attention = cl.get("attention")
+                attention_reason = cl.get("reason")
+            except Exception:
+                pass
+
+        resolved = None
+        if r.resolved_by_id:
+            res = db.query(ResolutionRecord).filter(ResolutionRecord.id == r.resolved_by_id).first()
+            if res:
+                resolved = {
+                    "resolution_type": res.resolution_type,
+                    "ttr_minutes": round(res.ttr_seconds / 60, 1) if res.ttr_seconds else None,
+                }
+
+        result.append({
+            "job_id": r.job_id,
+            "lab_code": r.lab_code,
+            "cluster": r.cluster,
+            "failure_class": r.failure_class,
+            "trigger_type": r.trigger_type,
+            "status": r.status,
+            "iterations": r.iterations,
+            "root_cause": r.root_cause,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            "has_analysis": bool(r.analysis),
+            "lab_name": lab_name,
+            "catalog_item": catalog_item,
+            "owner": lm.owner if lm else None,
+            "cloud": lm.cloud if lm else None,
+            "current_status": current_status,
+            "verdict": (r.trust_dimensions or {}).get("verdict"),
+            "attention": attention,
+            "attention_reason": attention_reason,
+            "resolution": resolved,
+        })
     return result
+
+
+@router.get("/dashboard/investigations/stats")
+def dashboard_investigations_stats(db: Session = Depends(get_db)):
+    """Investigation stats for the dashboard — no admin auth required."""
+    from db.models import InvestigationRecord
+    from db.repository import count_investigations_today
+    from sqlalchemy import func
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    today_count = count_investigations_today(db)
+    queue_depth = db.query(InvestigationRecord).filter(InvestigationRecord.status.in_(("queued", "dispatched"))).count()
+
+    stuck_today = db.query(InvestigationRecord).filter(
+        InvestigationRecord.created_at >= today_start,
+        InvestigationRecord.trigger_type == "auto_stuck",
+    ).count()
+    anomalous_today = db.query(InvestigationRecord).filter(
+        InvestigationRecord.created_at >= today_start,
+        InvestigationRecord.trigger_type == "auto_anomalous",
+    ).count()
+
+    by_trigger = db.query(
+        InvestigationRecord.trigger_type, func.count(),
+    ).filter(InvestigationRecord.created_at >= today_start).group_by(
+        InvestigationRecord.trigger_type,
+    ).all()
+
+    avg_cost = db.query(func.avg(InvestigationRecord.cost_estimate)).filter(
+        InvestigationRecord.created_at >= today_start,
+        InvestigationRecord.cost_estimate.isnot(None),
+    ).scalar()
+
+    enabled = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
+    max_stuck = int(os.environ.get("STARGATE_INVESTIGATE_MAX_STUCK_PER_DAY", "100"))
+    max_anomalous = int(os.environ.get("STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY", "50"))
+
+    return {
+        "today": today_count,
+        "queue_depth": queue_depth,
+        "stuck_today": stuck_today,
+        "stuck_max": max_stuck,
+        "anomalous_today": anomalous_today,
+        "anomalous_max": max_anomalous,
+        "by_trigger_type": {t: c for t, c in by_trigger},
+        "avg_cost_today": round(avg_cost, 4) if avg_cost else None,
+        "enabled": enabled,
+        "max_per_catalog_hour": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3")),
+    }
 
 
 # ---------------------------------------------------------------------------

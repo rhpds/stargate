@@ -1,6 +1,6 @@
 """Database repository — CRUD operations for StarGate persistence."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from db.models import (
     AuditLog,
     EvaluationRecord,
     EvidenceRecord,
+    InvestigationRecord,
     LabRemediationConfig,
     RemediationRecord,
     ResolutionRecord,
@@ -295,7 +296,7 @@ def _check_for_resolution(db: Session, passing_eval: EvaluationRecord) -> None:
         return
 
     try:
-        record_resolution(
+        resolution = record_resolution(
             db=db,
             lab_code=passing_eval.lab_code,
             cluster=passing_eval.cluster_name or "",
@@ -310,8 +311,34 @@ def _check_for_resolution(db: Session, passing_eval: EvaluationRecord) -> None:
             passing_eval.lab_code, passing_eval.failure_class,
             prev.id, passing_eval.id,
         )
+        if resolution:
+            _link_recent_investigation(db, passing_eval, resolution, log)
     except Exception:
         log.exception("Failed to record resolution for %s", passing_eval.lab_code)
+
+
+def _link_recent_investigation(db, passing_eval, resolution, log):
+    """Link a completed investigation to its resolution for ground truth."""
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        inv = (
+            db.query(InvestigationRecord)
+            .filter(
+                InvestigationRecord.lab_code == passing_eval.lab_code,
+                InvestigationRecord.failure_class == passing_eval.failure_class,
+                InvestigationRecord.status == "complete",
+                InvestigationRecord.completed_at >= cutoff,
+                InvestigationRecord.resolved_by_id.is_(None),
+            )
+            .order_by(InvestigationRecord.completed_at.desc())
+            .first()
+        )
+        if inv:
+            inv.resolved_by_id = resolution.id
+            db.commit()
+            log.info("Linked investigation %s to resolution %d", inv.job_id, resolution.id)
+    except Exception:
+        log.debug("No investigation to link for %s/%s", passing_eval.lab_code, passing_eval.failure_class)
 
 
 def list_evaluations(
@@ -1394,3 +1421,179 @@ def record_resolution(
     db.add(rec)
     db.commit()
     return rec
+
+
+# --- Investigations ---
+
+def create_investigation(
+    db: Session,
+    job_id: str,
+    lab_code: str,
+    cluster: str,
+    failure_class: str,
+    trigger_type: str = "manual",
+    triggering_eval_id: Optional[int] = None,
+) -> InvestigationRecord:
+    record = InvestigationRecord(
+        job_id=job_id,
+        lab_code=lab_code,
+        cluster=cluster,
+        namespace=lab_code,
+        failure_class=failure_class,
+        trigger_type=trigger_type,
+        status="queued",
+        triggering_eval_id=triggering_eval_id,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def start_investigation(db: Session, job_id: str) -> None:
+    record = db.query(InvestigationRecord).filter(
+        InvestigationRecord.job_id == job_id
+    ).first()
+    if record:
+        record.status = "running"
+        record.started_at = datetime.now(timezone.utc)
+        db.commit()
+
+
+def complete_investigation(
+    db: Session,
+    job_id: str,
+    analysis: str,
+    tool_calls: Optional[list] = None,
+    iterations: Optional[int] = None,
+    model_used: Optional[str] = None,
+    cost_estimate: Optional[float] = None,
+    root_cause: Optional[str] = None,
+    remediation_suggestion: Optional[str] = None,
+    codebase_link: Optional[str] = None,
+    trust_dimensions: Optional[dict] = None,
+    fallback: bool = False,
+    error: Optional[str] = None,
+) -> None:
+    record = db.query(InvestigationRecord).filter(
+        InvestigationRecord.job_id == job_id
+    ).first()
+    if not record:
+        return
+    record.status = "complete"
+    record.completed_at = datetime.now(timezone.utc)
+    record.analysis = analysis
+    record.tool_calls = tool_calls
+    record.iterations = iterations
+    record.model_used = model_used
+    record.cost_estimate = cost_estimate
+    record.root_cause = root_cause
+    record.remediation_suggestion = remediation_suggestion
+    record.codebase_link = codebase_link
+    record.trust_dimensions = trust_dimensions
+    record.fallback = fallback
+    record.error = error
+    db.commit()
+
+
+def fail_investigation(db: Session, job_id: str, error: str) -> None:
+    record = db.query(InvestigationRecord).filter(
+        InvestigationRecord.job_id == job_id
+    ).first()
+    if record:
+        record.status = "error"
+        record.error = error[:500] if error else None
+        record.completed_at = datetime.now(timezone.utc)
+        db.commit()
+
+
+def get_investigation(db: Session, job_id: str) -> Optional[InvestigationRecord]:
+    return db.query(InvestigationRecord).filter(
+        InvestigationRecord.job_id == job_id
+    ).first()
+
+
+def get_recent_investigation(
+    db: Session, lab_code: str, failure_class: Optional[str] = None, hours: int = 4,
+) -> Optional[InvestigationRecord]:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    q = db.query(InvestigationRecord).filter(
+        InvestigationRecord.lab_code == lab_code,
+        InvestigationRecord.created_at >= cutoff,
+    )
+    if failure_class:
+        q = q.filter(InvestigationRecord.failure_class == failure_class)
+    return q.order_by(InvestigationRecord.created_at.desc()).first()
+
+
+def count_investigations_for_catalog_item(
+    db: Session, catalog_item: str, hours: int = 1,
+) -> int:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    return (
+        db.query(InvestigationRecord)
+        .filter(
+            InvestigationRecord.lab_code.contains(catalog_item),
+            InvestigationRecord.created_at >= cutoff,
+        )
+        .count()
+    )
+
+
+def count_investigations_today(db: Session) -> int:
+    today_start = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0,
+    )
+    return (
+        db.query(InvestigationRecord)
+        .filter(InvestigationRecord.created_at >= today_start)
+        .count()
+    )
+
+
+def get_queued_investigations(
+    db: Session, limit: int = 5,
+) -> List[InvestigationRecord]:
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+    return (
+        db.query(InvestigationRecord)
+        .filter(
+            (InvestigationRecord.status == "queued")
+            | (
+                (InvestigationRecord.status == "dispatched")
+                & (InvestigationRecord.created_at < cutoff)
+            )
+        )
+        .order_by(InvestigationRecord.created_at.asc())
+        .limit(limit)
+        .all()
+    )
+
+
+def list_investigations(
+    db: Session,
+    lab_code: Optional[str] = None,
+    cluster: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+) -> List[InvestigationRecord]:
+    q = db.query(InvestigationRecord)
+    if lab_code:
+        q = q.filter(InvestigationRecord.lab_code == lab_code)
+    if cluster:
+        q = q.filter(InvestigationRecord.cluster == cluster)
+    if status:
+        q = q.filter(InvestigationRecord.status == status)
+    return q.order_by(InvestigationRecord.created_at.desc()).limit(limit).all()
+
+
+def link_investigation_to_resolution(
+    db: Session, investigation_id: int, resolution_id: int,
+) -> None:
+    record = db.query(InvestigationRecord).filter(
+        InvestigationRecord.id == investigation_id
+    ).first()
+    if record:
+        record.resolved_by_id = resolution_id
+        db.commit()

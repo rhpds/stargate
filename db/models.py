@@ -472,3 +472,37 @@ class LabRemediationConfig(Base):
     enabled_by = Column(String(255), nullable=True)
     enabled_at = Column(DateTime(timezone=True), nullable=True)
     notes = Column(Text, nullable=True)
+
+
+class InvestigationRecord(Base):
+    """Persists agent investigation results — replaces transient file storage."""
+    __tablename__ = "investigations"
+    __table_args__ = (
+        Index("idx_inv_lab_fc", "lab_code", "failure_class"),
+        Index("idx_inv_status", "status"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    job_id = Column(String(255), unique=True, nullable=False, index=True)
+    lab_code = Column(String(255), nullable=False, index=True)
+    cluster = Column(String(100), nullable=True, index=True)
+    namespace = Column(String(255), nullable=True)
+    failure_class = Column(String(255), nullable=True, index=True)
+    trigger_type = Column(String(50), nullable=False, default="manual")
+    status = Column(String(50), nullable=False, default="queued")
+    triggering_eval_id = Column(Integer, nullable=True)
+    analysis = Column(Text, nullable=True)
+    tool_calls = Column(JSON, nullable=True)
+    iterations = Column(Integer, nullable=True)
+    model_used = Column(String(255), nullable=True)
+    cost_estimate = Column(Float, nullable=True)
+    root_cause = Column(String(500), nullable=True)
+    remediation_suggestion = Column(Text, nullable=True)
+    codebase_link = Column(String(500), nullable=True)
+    trust_dimensions = Column(JSON, nullable=True)
+    resolved_by_id = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)
+    fallback = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)

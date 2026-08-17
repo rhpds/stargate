@@ -127,6 +127,7 @@ def call_llm(
     context: Optional[Dict] = None,
     db: Optional[Session] = None,
     prompt_version: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> Dict:
     ctx = context or {}
 
@@ -147,13 +148,14 @@ def call_llm(
             "finish_reason": None, "error": "Circuit open — LLM temporarily unavailable",
         }
 
+    use_model = model or LLM_MODEL
     payload: Dict = {
-        "model": LLM_MODEL,
+        "model": use_model,
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    if "qwen" in LLM_MODEL.lower():
+    if "qwen" in use_model.lower():
         payload["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
     body = json.dumps(payload).encode()
 

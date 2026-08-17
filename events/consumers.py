@@ -230,12 +230,13 @@ class GeoLuxConsumer(EventConsumer):
     """
     name = "geolux"
 
-    _FORWARD_TYPES = {"evaluation.passed", "evaluation.failed", "evaluation.warned"}
+    _FORWARD_TYPES = {"evaluation.passed", "evaluation.failed", "evaluation.warned", "investigation.completed"}
 
     _EVENT_TYPE_MAP = {
         "evaluation.passed": "stargate_evaluation_passed",
         "evaluation.failed": "stargate_evaluation_failed",
         "evaluation.warned": "stargate_evaluation_warned",
+        "investigation.completed": "stargate_investigation_completed",
     }
 
     def __init__(self, url: Optional[str] = None):
@@ -259,22 +260,46 @@ class GeoLuxConsumer(EventConsumer):
                 event.event_type, "stargate_evaluation_failed"
             )
 
+            event_payload = {
+                "run_id": event.run_id,
+                "stage_id": event.stage_id,
+                "lab_code": event.lab_code,
+                "cluster": event.cluster_name or "",
+                "outcome": event.outcome,
+                "failure_class": event.failure_class,
+                "message": getattr(event, 'message', ''),
+                "priority": getattr(event, 'priority', 0.0),
+                "systemic": getattr(event, 'systemic', False),
+            }
+
+            job_id = (event.metadata or {}).get("job_id")
+            if job_id and event.event_type == "investigation.completed":
+                try:
+                    from db.database import get_db
+                    gen = get_db()
+                    _db = next(gen)
+                    try:
+                        from db.repository import get_investigation
+                        inv = get_investigation(_db, job_id)
+                        if inv:
+                            event_payload["investigation"] = {
+                                "job_id": inv.job_id,
+                                "analysis": (inv.analysis or "")[:2000],
+                                "root_cause": inv.root_cause,
+                                "iterations": inv.iterations,
+                                "trigger_type": inv.trigger_type,
+                            }
+                    finally:
+                        gen.close()
+                except Exception:
+                    pass
+
             payload = {
                 "source": "stargate",
                 "event_type": geolux_event_type,
                 "event_id": event.event_id,
                 "timestamp": event.timestamp,
-                "payload": {
-                    "run_id": event.run_id,
-                    "stage_id": event.stage_id,
-                    "lab_code": event.lab_code,
-                    "cluster": event.cluster_name or "",
-                    "outcome": event.outcome,
-                    "failure_class": event.failure_class,
-                    "message": getattr(event, 'message', ''),
-                    "priority": getattr(event, 'priority', 0.0),
-                    "systemic": getattr(event, 'systemic', False),
-                },
+                "payload": event_payload,
             }
 
             endpoint = f"{self.url.rstrip('/')}/integration/events"
@@ -303,3 +328,66 @@ class GeoLuxConsumer(EventConsumer):
                         raise
         except Exception as e:
             logger.warning("GeoLux delivery failed after 3 attempts: %s", e)
+
+
+class InvestigationConsumer(EventConsumer):
+    """Queues auto-investigations for stuck or anomalous failures.
+
+    Only active when STARGATE_AUTO_INVESTIGATE is 'true'. Never runs
+    investigations inline — only creates queued InvestigationRecord rows
+    for the Celery worker to pick up.
+    """
+    name = "investigation"
+
+    _TRIGGER_TYPES = {"evaluation.failed", "evaluation.warned"}
+
+    def __init__(self):
+        self._enabled = os.environ.get(
+            "STARGATE_AUTO_INVESTIGATE", "false"
+        ).lower() == "true"
+
+    def should_receive(self, event: Event) -> bool:
+        if not self._enabled:
+            return False
+        if event.filtered:
+            return False
+        if event.event_type not in self._TRIGGER_TYPES:
+            return False
+        return bool(event.lab_code and event.failure_class)
+
+    def deliver(self, event: Event):
+        try:
+            from db.database import get_db
+            gen = get_db()
+            db = next(gen)
+            try:
+                from engine.attention_classifier import should_auto_investigate
+                should, reason, att = should_auto_investigate(
+                    db, event.lab_code, event.failure_class,
+                    event.cluster_name or "",
+                )
+                if should:
+                    from db.repository import create_investigation
+                    import uuid
+                    job_id = f"auto-{uuid.uuid4().hex[:8]}"
+                    create_investigation(
+                        db,
+                        job_id=job_id,
+                        lab_code=event.lab_code,
+                        cluster=event.cluster_name or "",
+                        failure_class=event.failure_class,
+                        trigger_type=f"auto_{att}" if att else "auto",
+                    )
+                    logger.info(
+                        "Auto-investigation queued: %s for %s/%s (%s)",
+                        job_id, event.lab_code, event.failure_class, reason,
+                    )
+                else:
+                    logger.debug(
+                        "Auto-investigate skipped for %s/%s: %s",
+                        event.lab_code, event.failure_class, reason,
+                    )
+            finally:
+                gen.close()
+        except Exception as e:
+            logger.error("InvestigationConsumer error: %s", e)

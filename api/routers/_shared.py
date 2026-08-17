@@ -113,12 +113,15 @@ PIPELINE_STAGES = [
 # Event bus — singleton
 from events.bus import EventBus
 from events.nanoagents import create_default_pipeline
-from events.consumers import LogConsumer
+from events.consumers import LogConsumer, InvestigationConsumer
 
 _event_bus = EventBus()
 for _agent in create_default_pipeline():
     _event_bus.register_nanoagent(_agent)
 _event_bus.register_consumer(LogConsumer())
+_inv_consumer = InvestigationConsumer()
+if _inv_consumer._enabled:
+    _event_bus.register_consumer(_inv_consumer)
 
 # Scheduler
 _scheduler = None

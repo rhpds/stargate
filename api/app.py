@@ -129,7 +129,7 @@ def _register_event_consumers():
     logger = logging.getLogger("stargate")
     try:
         from api.routers._shared import _event_bus
-        from events.consumers import DeepFieldConsumer, GeoLuxConsumer
+        from events.consumers import DeepFieldConsumer, GeoLuxConsumer, InvestigationConsumer
         consumer = DeepFieldConsumer()
         if consumer.url:
             _event_bus.register_consumer(consumer)
@@ -142,6 +142,12 @@ def _register_event_consumers():
             logger.info("GeoLux event consumer registered → %s", geolux.url)
         else:
             logger.info("GeoLux consumer skipped — STARGATE_GEOLUX_URL not set")
+        inv_consumer = InvestigationConsumer()
+        if inv_consumer._enabled:
+            _event_bus.register_consumer(inv_consumer)
+            logger.info("Investigation consumer registered — auto-investigation enabled")
+        else:
+            logger.info("Investigation consumer skipped — STARGATE_AUTO_INVESTIGATE not set")
     except Exception as e:
         logger.warning("Failed to register event consumers: %s", e)
 
@@ -165,6 +171,9 @@ def on_startup():
     tb.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
+    if os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true":
+        ti = threading.Thread(target=_investigation_queue_loop, daemon=True)
+        ti.start()
 
 
 def _shadow_mode_loop():
@@ -342,6 +351,122 @@ def _auto_resolve_incidents(db):
         db.commit()
         import logging
         logging.getLogger("stargate").info("Auto-resolved %d Deepfield incidents", resolved_count)
+
+
+def _investigation_queue_loop():
+    """Scan for stuck/anomalous RHDP namespaces and run queued investigations."""
+    import time as _ti
+    import uuid
+    logger = logging.getLogger("stargate.investigations")
+    _ti.sleep(45)
+    logger.info("Investigation queue loop starting")
+    _scan_counter = 0
+    while not _shutdown_event.is_set():
+        try:
+            from db.database import get_session_factory
+            from db import repository
+            factory = get_session_factory()
+            db = factory()
+            try:
+                # Every 5th tick (~5 min): scan for sandbox namespaces that need investigation
+                _scan_counter += 1
+                if _scan_counter % 5 == 0:
+                    _scan_for_investigations(db, logger)
+
+                # Fail any investigations stuck in 'running' for > 5 minutes
+                from db.models import InvestigationRecord as _IR
+                from datetime import datetime, timedelta, timezone
+                stuck_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+                stuck = db.query(_IR).filter(_IR.status == "running", _IR.started_at < stuck_cutoff).all()
+                for s in stuck:
+                    repository.fail_investigation(db, s.job_id, "Stuck: exceeded 5 minute wall time")
+                    logger.warning("Failed stuck investigation %s", s.job_id)
+
+                # Process queued investigations (one at a time with hard timeout)
+                queued = repository.get_queued_investigations(db, limit=1)
+                for record in queued:
+                    import threading as _thr
+                    result_holder = [None]
+                    def _run_with_timeout():
+                        try:
+                            from tasks.maintenance import _run_single_investigation
+                            _run_single_investigation(record, db)
+                            result_holder[0] = "ok"
+                        except Exception as e:
+                            result_holder[0] = str(e)
+                    t = _thr.Thread(target=_run_with_timeout, daemon=True)
+                    t.start()
+                    t.join(timeout=240)
+                    if t.is_alive():
+                        repository.fail_investigation(db, record.job_id, "Hard timeout: investigation exceeded 4 minutes")
+                        logger.warning("Investigation %s hard-timed out", record.job_id)
+                    elif result_holder[0] == "ok":
+                        logger.info("Investigation %s completed", record.job_id)
+                    else:
+                        repository.fail_investigation(db, record.job_id, result_holder[0] or "unknown error")
+                        logger.warning("Investigation %s failed: %s", record.job_id, result_holder[0])
+            finally:
+                db.close()
+        except Exception as e:
+            logger.debug("Investigation queue tick failed: %s", e)
+        _ti.sleep(60)
+
+
+def _scan_for_investigations(db, logger):
+    """Find currently-failing sandbox namespaces and queue one investigation per lab."""
+    import uuid
+    from datetime import datetime, timedelta, timezone
+    from db.models import EvaluationRecord, LabMapping, InvestigationRecord
+    from db import repository
+    from engine.attention_classifier import should_auto_investigate, extract_catalog_item
+    from sqlalchemy import func
+
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
+        dedup_hours = int(os.environ.get("STARGATE_INVESTIGATE_DEDUP_HOURS", "4"))
+        dedup_cutoff = datetime.now(timezone.utc) - timedelta(hours=dedup_hours)
+
+        # Find sandbox namespaces with recent failures, grouped by namespace
+        rows = db.query(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+            func.string_agg(EvaluationRecord.failure_class.distinct(), ','),
+        ).filter(
+            EvaluationRecord.outcome == "fail",
+            EvaluationRecord.failure_class.isnot(None),
+            EvaluationRecord.lab_code.isnot(None),
+            EvaluationRecord.lab_code.like("sandbox-%"),
+            EvaluationRecord.evaluated_at >= cutoff,
+        ).group_by(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+        ).limit(100).all()
+
+        queued = 0
+        for lab_code, cluster, failure_classes_str in rows:
+            failure_classes = (failure_classes_str or "").split(",")
+            top_fc = failure_classes[0] if failure_classes else ""
+
+            # Check attention + dedup (should_auto_investigate handles namespace-level dedup)
+            should, reason, att = should_auto_investigate(db, lab_code, top_fc, cluster or "")
+            if not should:
+                continue
+
+            job_id = f"auto-{uuid.uuid4().hex[:8]}"
+            all_fcs = ", ".join(failure_classes[:5])
+            repository.create_investigation(
+                db, job_id=job_id, lab_code=lab_code,
+                cluster=cluster or "", failure_class=all_fcs,
+                trigger_type=f"auto_{att}" if att else "auto",
+            )
+            queued += 1
+            logger.info("Auto-investigation queued: %s for %s [%s] (%s)", job_id, lab_name, all_fcs, reason)
+            if queued >= 3:
+                break
+        if queued:
+            logger.info("Scan queued %d investigations", queued)
+    except Exception as e:
+        logger.debug("Investigation scan failed: %s", e)
 
 
 def _babylon_collection_loop():

@@ -35,7 +35,7 @@ _SAFE_VERBS = frozenset({"get", "describe", "logs", "adm", "api-resources", "who
 _SAFE_ADM = frozenset({"top"})
 
 MAX_ITERATIONS = 8
-MAX_WALL_SECONDS = 120
+MAX_WALL_SECONDS = 300
 MAX_OUTPUT_CHARS = 3000
 
 # Shared progress dict — the dashboard endpoint writes a reference here
@@ -529,14 +529,27 @@ Failure-class playbooks:
 Your final analysis MUST include:
 1. **Diagnosis**: What is failing and why (quote specific error messages)
 2. **Root Cause**: Name the specific component — container image, Ansible role, config file
-3. **Remediation Strategy**: One of:
+3. **Remediation Strategy**: What should be done to fix this — one of:
    a. A link to the code that needs changing: "Fix in https://github.com/rhpds/agnosticv/tree/main/<path>"
-   b. An exact oc command to fix it: "oc patch ... -n <namespace>"
-   c. "Watch and wait — this self-resolves in X minutes based on history"
-4. **Owner**: Who should fix this (from the lab identity owner field)
+   b. "Watch and wait — this self-resolves in X minutes based on history"
+   c. "Escalate to platform team — cluster-level issue"
+4. **Shadow Remediation** (what I would do if allowed):
+   List the exact commands to fix this NOW, step by step. Include:
+   - The specific oc/kubectl commands (patch, delete, scale, apply, etc.)
+   - What each command does and why
+   - The expected outcome after execution
+   - Any risks or blast radius concerns
+   Format each command as a code block so operators can copy-paste.
+   If the fix requires a code change (not a cluster command), describe the exact file edit in the AgnosticV/AgnosticD repo.
+   This section is for human review only — these commands are NOT executed automatically.
+5. **Owner**: Who should fix this (from the lab identity owner field)
+6. **Verdict**: Exactly one of these words:
+   - TRANSIENT — this failure self-resolves during normal provisioning, no action needed
+   - ACTIONABLE — this is a real bug that needs a human fix
+   - UNKNOWN — insufficient evidence to determine
 
 Rules:
-- NEVER suggest commands that modify the cluster (no create, delete, patch, apply, scale)
+- Your investigation tools are read-only. The Shadow Remediation section documents what a human operator COULD run to fix the issue — these are never auto-executed.
 - NEVER echo passwords, tokens, or credentials — they are automatically redacted
 - NEVER suggest oc commands for Babylon CRDs (resourceclaim, anarchysubject) — those don't exist on workload clusters
 - ALWAYS include the AgnosticV config URL when available — that's where lab developers fix issues
@@ -587,18 +600,26 @@ def run_investigation(
             model=use_model,
             max_tokens=2400,
             temperature=0.2,
-            timeout=30,
+            timeout=60,
         )
 
         if not result.get("success"):
-            # If tool calling fails (model doesn't support it), fall back to single-shot
-            logger.info("Tool calling not supported or failed, falling back to single-shot")
+            # Retry once before falling back
+            logger.info("Tool call failed (%s), retrying...", result.get("error", "")[:100])
+            time.sleep(2)
+            result = _call_llm_with_tools(
+                messages=messages, tools=TOOLS, model=use_model,
+                max_tokens=2400, temperature=0.2, timeout=45,
+            )
+        if not result.get("success"):
+            logger.info("Tool calling failed after retry, falling back to single-shot with %s", use_model)
             fallback = call_llm(
                 endpoint="agent-investigation",
                 messages=messages,
-                max_tokens=2400,
+                model=use_model,
+                max_tokens=4000,
                 temperature=0.2,
-                timeout=30,
+                timeout=45,
                 db=db,
             )
             return {
@@ -661,13 +682,14 @@ def run_investigation(
             })
 
     # Max iterations reached — ask for final summary
-    messages.append({"role": "user", "content": "You've used all your investigation steps. Based on everything you've found, provide your final analysis: Diagnosis, Root Cause, and Remediation Strategy."})
+    messages.append({"role": "user", "content": "You've used all your investigation steps. Based on everything you've found, provide your final analysis: Diagnosis, Root Cause, Remediation Strategy, and Shadow Remediation (the exact commands you would run if allowed to fix this)."})
     final = call_llm(
         endpoint="agent-investigation-final",
         messages=messages,
-        max_tokens=2400,
+        model=use_model,
+        max_tokens=4000,
         temperature=0.2,
-        timeout=30,
+        timeout=90,
         db=db,
     )
     return {

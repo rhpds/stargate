@@ -55,6 +55,10 @@ app.conf.beat_schedule = {
         "task": "tasks.maintenance.babylon_collect",
         "schedule": 180.0,
     },
+    "investigation-queue": {
+        "task": "tasks.maintenance.process_investigation_queue",
+        "schedule": 60.0,
+    },
 }
 
 app.autodiscover_tasks(["tasks"])

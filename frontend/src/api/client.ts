@@ -320,6 +320,19 @@ export const api = {
     request<any>('/dashboard/investigate', { method: 'POST', body: JSON.stringify(body) }),
   investigatePoll: (jobId: string) =>
     request<any>(`/dashboard/investigate/${jobId}`),
+  getInvestigations: (params?: { lab_code?: string; status?: string; trigger_type?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.lab_code) q.set('lab_code', params.lab_code);
+    if (params?.status) q.set('status', params.status);
+    if (params?.trigger_type) q.set('trigger_type', params.trigger_type);
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return request<any>(`/dashboard/investigations${qs ? '?' + qs : ''}`);
+  },
+  getInvestigationDetail: (jobId: string) =>
+    request<any>(`/dashboard/investigate/${jobId}`),
+  getInvestigationStats: () => request<any>('/dashboard/investigations/stats'),
+  getAutoInvestigateStatus: () => request<any>('/dashboard/investigations/stats'),
   getPlatformKpis: () => request<any>('/admin/platform-kpis'),
   getRemediationStrategies: () => request<any>('/admin/remediation-strategies'),
   getCostAnalysis: () => request<any>('/admin/cost-analysis'),

@@ -1,10 +1,10 @@
 {
   "type": "workflow-matrix",
-  "generated_at": "2026-07-17T18:10:12.799506+00:00",
+  "generated_at": "2026-08-12T19:20:56.952555+00:00",
   "total_workflows": 9,
-  "passing": 9,
-  "failing": 0,
-  "total_tests": 0,
+  "passing": 8,
+  "failing": 1,
+  "total_tests": 1,
   "workflows": [
     {
       "workflow": "scanner",
@@ -36,11 +36,11 @@
     {
       "workflow": "geolux",
       "test_file": "tests/workflows/test_wf_geolux.py",
-      "status": "PASS",
+      "status": "FAIL",
       "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "summary": "============================== 6 passed in 0.38s ==============================="
+      "failed": 1,
+      "total": 1,
+      "summary": "========================= 1 failed, 5 passed in 0.39s =========================="
     },
     {
       "workflow": "deepfield",
@@ -49,7 +49,7 @@
       "passed": 0,
       "failed": 0,
       "total": 0,
-      "summary": "============================== 3 passed in 3.32s ==============================="
+      "summary": "============================== 3 passed in 3.37s ==============================="
     },
     {
       "workflow": "demolition",
@@ -58,7 +58,7 @@
       "passed": 0,
       "failed": 0,
       "total": 0,
-      "summary": "============================== 2 passed in 0.33s ==============================="
+      "summary": "============================== 2 passed in 0.32s ==============================="
     },
     {
       "workflow": "labagator",
@@ -67,7 +67,7 @@
       "passed": 0,
       "failed": 0,
       "total": 0,
-      "summary": "============================== 2 passed in 0.31s ==============================="
+      "summary": "============================== 2 passed in 0.36s ==============================="
     },
     {
       "workflow": "corpus_mining",
@@ -85,7 +85,7 @@
       "passed": 0,
       "failed": 0,
       "total": 0,
-      "summary": "============================== 4 passed in 0.34s ==============================="
+      "summary": "============================== 4 passed in 0.31s ==============================="
     }
   ]
 }

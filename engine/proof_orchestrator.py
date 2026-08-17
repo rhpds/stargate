@@ -484,6 +484,33 @@ def _update_geolux_hypotheses(failure_class: str, proof_passed: bool):
 
     outcome = "validated" if proof_passed else "falsified"
 
+    # Enrich with investigation analysis if available
+    investigation_analysis = None
+    try:
+        from db.database import get_db
+        gen = get_db()
+        _db = next(gen)
+        try:
+            from db.models import InvestigationRecord
+            from datetime import datetime, timedelta, timezone as tz
+            cutoff = datetime.now(tz.utc) - timedelta(hours=24)
+            inv = (
+                _db.query(InvestigationRecord)
+                .filter(
+                    InvestigationRecord.failure_class == failure_class,
+                    InvestigationRecord.status == "complete",
+                    InvestigationRecord.completed_at >= cutoff,
+                )
+                .order_by(InvestigationRecord.completed_at.desc())
+                .first()
+            )
+            if inv and inv.analysis:
+                investigation_analysis = inv.analysis[:1000]
+        finally:
+            gen.close()
+    except Exception:
+        pass
+
     try:
         search_url = f"{geolux_url.rstrip('/')}/hypotheses/search?failure_class={failure_class}&validation=pending&limit=50"
         req = urllib.request.Request(search_url, headers=headers)
@@ -498,7 +525,10 @@ def _update_geolux_hypotheses(failure_class: str, proof_passed: bool):
                 continue
             try:
                 validate_url = f"{geolux_url.rstrip('/')}/hypotheses/{hid}/validate"
-                body = json.dumps({"outcome": outcome, "source": "stargate-proof-system"}).encode()
+                validate_payload = {"outcome": outcome, "source": "stargate-proof-system"}
+                if investigation_analysis:
+                    validate_payload["investigation_analysis"] = investigation_analysis
+                body = json.dumps(validate_payload).encode()
                 vreq = urllib.request.Request(validate_url, data=body, headers=headers, method="POST")
                 urllib.request.urlopen(vreq, timeout=5)
                 updated += 1
