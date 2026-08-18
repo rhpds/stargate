@@ -459,6 +459,7 @@ def _scan_for_investigations(db, logger):
             # Check attention + dedup (should_auto_investigate handles namespace-level dedup)
             should, reason, att = should_auto_investigate(db, lab_code, top_fc, cluster or "")
             if not should:
+                logger.info("Scan skip %s/%s: %s", lab_code, top_fc, reason)
                 continue
 
             job_id = f"auto-{uuid.uuid4().hex[:8]}"
@@ -475,7 +476,7 @@ def _scan_for_investigations(db, logger):
         if queued:
             logger.info("Scan queued %d investigations", queued)
     except Exception as e:
-        logger.debug("Investigation scan failed: %s", e)
+        logger.warning("Investigation scan failed: %s", e)
 
 
 def _babylon_collection_loop():
