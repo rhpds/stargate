@@ -178,6 +178,20 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_storage_diagnosis",
+            "description": "Deep storage diagnostic for a namespace. Returns all PVCs with status, bound PVs, events related to storage (FailedMount, ProvisioningFailed, FailedAttachVolume), and available StorageClasses. Use this for claim_misbound, pvc_binding_failed, and volume_mount_failed investigations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "namespace": {"type": "string", "description": "The sandbox namespace"},
+                },
+                "required": ["namespace"],
+            },
+        },
+    },
 ]
 
 
@@ -475,6 +489,35 @@ def tool_get_sandbox_placement(namespace: str) -> str:
         return f"ERROR: {str(e)[:200]}"
 
 
+def tool_get_storage_diagnosis(namespace: str, cluster: str = "", kubeconfig_dir: str = "") -> str:
+    """Deep storage diagnostic — PVCs, PVs, events, StorageClasses."""
+    sections = []
+    def _oc(cmd: str) -> str:
+        return tool_oc_read(f"oc {cmd}", cluster, kubeconfig_dir)
+
+    sections.append("=== PVCs ===")
+    sections.append(_oc(f"get pvc -n {namespace} -o wide"))
+
+    pvc_out = _oc(f"get pvc -n {namespace} -o jsonpath='{{range .items[*]}}{{.metadata.name}} {{.status.phase}}{{\"\\n\"}}{{end}}'")
+    for line in pvc_out.strip().split("\n"):
+        parts = line.strip().split()
+        if len(parts) >= 1 and parts[0]:
+            pvc_name = parts[0]
+            sections.append(f"\n=== describe pvc/{pvc_name} ===")
+            sections.append(_oc(f"describe pvc/{pvc_name} -n {namespace}"))
+
+    sections.append("\n=== Storage Events ===")
+    sections.append(_oc(f"get events -n {namespace} --field-selector reason!=Scheduled,reason!=Pulling,reason!=Pulled,reason!=Created,reason!=Started --sort-by=.lastTimestamp"))
+
+    sections.append("\n=== StorageClasses ===")
+    sections.append(_oc("get storageclass"))
+
+    result = "\n".join(sections)
+    if len(result) > MAX_OUTPUT_CHARS * 2:
+        result = result[:MAX_OUTPUT_CHARS * 2] + "\n... (truncated)"
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Tool dispatch
 # ---------------------------------------------------------------------------
@@ -499,6 +542,8 @@ def _dispatch_tool(name: str, args: Dict, cluster: str, kubeconfig_dir: str) -> 
         return tool_get_labagator_info(args.get("catalog_item", ""))
     elif name == "get_sandbox_placement":
         return tool_get_sandbox_placement(args.get("namespace", ""))
+    elif name == "get_storage_diagnosis":
+        return tool_get_storage_diagnosis(args.get("namespace", ""), cluster, kubeconfig_dir)
     else:
         return f"Unknown tool: {name}"
 
@@ -517,14 +562,23 @@ Investigation strategy:
 5. Check resolution history to see if this is a known pattern
 6. Check pool status if the issue might be capacity-related
 
-Failure-class playbooks:
+Failure-class playbooks (follow EVERY step — do not stop early):
 - pods_crashlooping: Check which container is failing (init or main), get its logs, find the GIT_REPO_URL env var — that's where the fix goes
 - quota_exceeded: Check oc get resourcequota -n <namespace>, identify which resource is exhausted, check if the lab config requests too much
-- pvc_binding_failed / claim_misbound: Check oc get pvc -n <namespace>, look for Pending PVCs, check storage class availability
+- pvc_binding_failed / claim_misbound:
+  1. oc get pvc -n <namespace> — find Pending/Lost PVCs
+  2. oc describe pvc/<name> -n <namespace> — read events for scheduling/binding errors
+  3. oc get events -n <namespace> --sort-by=.lastTimestamp — look for ProvisioningFailed, FailedAttachVolume, FailedMount
+  4. oc get storageclass — check if the requested StorageClass exists and is default
+  5. oc get pv | grep <pvc-name> — check if a PV was provisioned but stuck
+  6. get_lab_identity + fetch_github_file — read the lab config to see what storage it requests
+  7. get_resolution_history — check if this is a known self-resolving pattern
 - scheduling_failed: Check oc get events for FailedScheduling, look at resource requests vs node capacity
 - sync_failed: Check oc get events for ReconcileError, look at operator status
 - readiness_probe_failed: Usually transient during provisioning — check namespace age and whether the pod eventually becomes ready
 - image_pull_backoff: Check image name and pull secret configuration
+
+IMPORTANT: You must use at least 5 tool calls before producing your final analysis. Shallow investigations (< 5 tool calls) miss root causes. If you think you have the answer early, verify it with additional tools before concluding.
 
 Your final analysis MUST include:
 1. **Diagnosis**: What is failing and why (quote specific error messages)
