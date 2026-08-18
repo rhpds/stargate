@@ -383,7 +383,7 @@ class InvestigationConsumer(EventConsumer):
                         job_id, event.lab_code, event.failure_class, reason,
                     )
                 else:
-                    logger.debug(
+                    logger.info(
                         "Auto-investigate skipped for %s/%s: %s",
                         event.lab_code, event.failure_class, reason,
                     )
