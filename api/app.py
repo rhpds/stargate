@@ -382,29 +382,38 @@ def _investigation_queue_loop():
                     repository.fail_investigation(db, s.job_id, "Stuck: exceeded 5 minute wall time")
                     logger.warning("Failed stuck investigation %s", s.job_id)
 
-                # Process queued investigations (one at a time with hard timeout)
-                queued = repository.get_queued_investigations(db, limit=1)
-                for record in queued:
-                    import threading as _thr
-                    result_holder = [None]
-                    def _run_with_timeout():
+                # Process queued investigations in parallel
+                queued = repository.get_queued_investigations(db, limit=5)
+                if queued:
+                    import concurrent.futures
+                    def _run_one(rec):
+                        from db.database import get_session_factory as _gsf
+                        _db = _gsf()()
                         try:
                             from tasks.maintenance import _run_single_investigation
-                            _run_single_investigation(record, db)
-                            result_holder[0] = "ok"
+                            _run_single_investigation(rec, _db)
+                            return rec.job_id, "ok", None
                         except Exception as e:
-                            result_holder[0] = str(e)
-                    t = _thr.Thread(target=_run_with_timeout, daemon=True)
-                    t.start()
-                    t.join(timeout=240)
-                    if t.is_alive():
-                        repository.fail_investigation(db, record.job_id, "Hard timeout: investigation exceeded 4 minutes")
-                        logger.warning("Investigation %s hard-timed out", record.job_id)
-                    elif result_holder[0] == "ok":
-                        logger.info("Investigation %s completed", record.job_id)
-                    else:
-                        repository.fail_investigation(db, record.job_id, result_holder[0] or "unknown error")
-                        logger.warning("Investigation %s failed: %s", record.job_id, result_holder[0])
+                            return rec.job_id, "error", str(e)
+                        finally:
+                            _db.close()
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(queued), 4)) as pool:
+                        futures = {pool.submit(_run_one, r): r for r in queued}
+                        for f in concurrent.futures.as_completed(futures, timeout=300):
+                            rec = futures[f]
+                            try:
+                                job_id, status, err = f.result()
+                                if status == "ok":
+                                    logger.info("Investigation %s completed", job_id)
+                                else:
+                                    repository.fail_investigation(db, job_id, err or "unknown error")
+                                    logger.warning("Investigation %s failed: %s", job_id, err)
+                            except concurrent.futures.TimeoutError:
+                                repository.fail_investigation(db, rec.job_id, "Hard timeout: exceeded 5 minutes")
+                                logger.warning("Investigation %s hard-timed out", rec.job_id)
+                            except Exception as e:
+                                repository.fail_investigation(db, rec.job_id, str(e))
+                                logger.warning("Investigation %s exception: %s", rec.job_id, e)
             finally:
                 db.close()
         except Exception as e:
