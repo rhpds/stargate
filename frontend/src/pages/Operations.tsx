@@ -687,11 +687,10 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
           {rows.map((r: any) => {
             const isExpanded = expandedNs === r.namespace;
             const attColor = ATTENTION_COLORS[r.attention] || '#555';
-            const fcs = Object.keys(r.stages || {}).length > 0
-              ? Object.entries(r.stages as Record<string, any>).filter(([, v]) => v.status === 'red').map(([k]) => k)
+            const redStages = Object.keys(r.stages || {}).length > 0
+              ? Object.entries(r.stages as Record<string, any>).filter(([k, v]) => v.status === 'red' && k !== 'overall').map(([k]) => k)
               : [];
-            const failureClasses = r.top_failure ? [r.top_failure, ...fcs.filter(f => f !== r.top_failure)] : fcs;
-            const uniqueFCs = [...new Set(failureClasses)].slice(0, 4);
+            const uniqueFCs = r.top_failure ? [r.top_failure] : [];
 
             return (
               <div key={r.namespace}>
@@ -704,13 +703,13 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                     <div className="text-[#ccc] text-[11px] truncate">{r.lab_name || r.catalog_item || ''}</div>
                     <div className="text-[#4394E5] font-mono text-[9px] truncate">{r.namespace}</div>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {uniqueFCs.length > 0 ? uniqueFCs.slice(0, 2).map((fc: string) => (
+                  <div className="flex flex-wrap gap-1 items-center">
+                    {uniqueFCs.map((fc: string) => (
                       <span key={fc} className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/10 text-[#C9190B]">{fc}</span>
-                    )) : r.top_failure ? (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9190B]/10 text-[#C9190B]">{r.top_failure}</span>
-                    ) : null}
-                    {uniqueFCs.length > 2 && <span className="text-[9px] text-[#555]">+{uniqueFCs.length - 2}</span>}
+                    ))}
+                    {redStages.length > 0 && redStages.map((s: string) => (
+                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-[#4394E5]/15 text-[#4394E5]">{s}</span>
+                    ))}
                   </div>
                   <div className="text-[#8A8D90] truncate">{r.cluster || '--'}</div>
                   <div className="text-[10px] text-[#8A8D90] truncate" title={r.owner || ''}>{r.owner ? r.owner.split('@')[0] : ''}</div>
