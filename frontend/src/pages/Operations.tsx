@@ -733,7 +733,20 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                         })()}
                       </>
                     ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#555]/20 text-[#555]" title={r.investigation_skip_reason || ''}>{r.investigation_skip_reason ? 'skipped' : 'pending'}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#555]/20 text-[#555]" title={r.investigation_skip_reason || ''}>
+                        {(() => {
+                          const s = r.investigation_skip_reason || '';
+                          if (!s) return 'pending';
+                          if (s.includes('TRANSIENT')) return 'learned: transient';
+                          if (s.startsWith('attention=expected')) return 'expected';
+                          if (s.startsWith('attention=provisioning')) return 'provisioning';
+                          if (s.includes('already investigated')) return 'recent';
+                          if (s.includes('rate limit')) return 'rate limited';
+                          if (s.includes('daily')) return 'daily limit';
+                          if (s.includes('watch_and_wait')) return 'self-resolves';
+                          return 'skipped';
+                        })()}
+                      </span>
                     )}
                   </div>
                 </div>
