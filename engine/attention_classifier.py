@@ -297,8 +297,9 @@ def should_auto_investigate(
         logger.debug("resolution profile check skipped: %s", exc)
 
     # 7. Learned suppression — skip if past investigations consistently say TRANSIENT
+    #    BUT override if this namespace has been failing continuously for >4h with no passes
     try:
-        from db.models import InvestigationRecord
+        from db.models import InvestigationRecord, EvaluationRecord
         past = db.query(InvestigationRecord).filter(
             InvestigationRecord.status == "complete",
             InvestigationRecord.failure_class.contains(failure_class) if failure_class else False,
@@ -309,6 +310,19 @@ def should_auto_investigate(
             verdicts = [(p.trust_dimensions or {}).get("verdict") for p in past]
             transient_count = sum(1 for v in verdicts if v == "TRANSIENT")
             if transient_count >= 3:
+                persistent_hours = int(os.environ.get("STARGATE_INVESTIGATE_PERSISTENT_HOURS", "4"))
+                persistent_cutoff = datetime.now(timezone.utc) - timedelta(hours=persistent_hours)
+                recent_pass = db.query(EvaluationRecord).filter(
+                    EvaluationRecord.lab_code == lab_code,
+                    EvaluationRecord.outcome == "pass",
+                    EvaluationRecord.evaluated_at >= persistent_cutoff,
+                ).first()
+                if not recent_pass:
+                    return True, (
+                        f"override learned suppression: {lab_code} has had 0 passes "
+                        f"in {persistent_hours}h despite {failure_class} being TRANSIENT "
+                        f"for {catalog_item} generally"
+                    ), attention
                 return False, (
                     f"learned: {failure_class} on {catalog_item} was TRANSIENT "
                     f"in {transient_count}/{len(past)} past investigations"
