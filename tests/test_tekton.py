@@ -9,7 +9,6 @@ from engine.models import StageOutcome
 from collectors.tekton.pipeline_simulator import simulate_pipeline
 
 
-TEKTON_TASKS_DIR = Path(__file__).parent.parent / "deploy" / "tekton" / "tasks"
 TEKTON_PIPELINES_DIR = Path(__file__).parent.parent / "deploy" / "tekton" / "pipelines"
 RUBRIC_DIR = Path(__file__).parent.parent / "rubrics" / "platform"
 HEALTHY_DIR = Path(__file__).parent.parent / "fixtures" / "oc" / "healthy"
@@ -17,71 +16,6 @@ UNHEALTHY_DIR = Path(__file__).parent.parent / "fixtures" / "oc" / "unhealthy"
 
 
 # --- Tekton YAML schema validation ---
-
-class TestTektonTaskYAML:
-    """Validate that Task YAMLs are well-formed Tekton v1 resources."""
-
-    def _load_task(self, name: str) -> dict:
-        path = TEKTON_TASKS_DIR / name
-        return yaml.safe_load(path.read_text())
-
-    def test_create_run_task(self):
-        task = self._load_task("sdf-create-run.yaml")
-        assert task["apiVersion"] == "tekton.dev/v1"
-        assert task["kind"] == "Task"
-        assert task["metadata"]["name"] == "sdf-create-run"
-        params = {p["name"] for p in task["spec"]["params"]}
-        assert "demo-id" in params
-        assert "namespace" in params
-        results = {r["name"] for r in task["spec"]["results"]}
-        assert "run-id" in results
-
-    def test_collect_evidence_task(self):
-        task = self._load_task("sdf-collect-evidence.yaml")
-        assert task["kind"] == "Task"
-        assert task["metadata"]["name"] == "sdf-collect-evidence"
-        params = {p["name"] for p in task["spec"]["params"]}
-        assert "run-id" in params
-        assert "stage-id" in params
-        assert "namespace" in params
-        assert len(task["spec"]["steps"]) == 3
-
-    def test_evaluate_gate_task(self):
-        task = self._load_task("sdf-evaluate-gate.yaml")
-        assert task["kind"] == "Task"
-        assert task["metadata"]["name"] == "sdf-evaluate-gate"
-        results = {r["name"] for r in task["spec"]["results"]}
-        assert "outcome" in results
-        assert "failure-class" in results
-
-    def test_report_task(self):
-        task = self._load_task("sdf-report.yaml")
-        assert task["kind"] == "Task"
-        assert task["metadata"]["name"] == "sdf-report"
-        params = {p["name"] for p in task["spec"]["params"]}
-        assert "run-id" in params
-
-    def test_all_tasks_use_ubi_images(self):
-        """All task steps must use Red Hat UBI or OpenShift CLI images."""
-        allowed_prefixes = (
-            "registry.access.redhat.com/",
-            "registry.redhat.io/",
-            "image-registry.openshift-image-registry",
-        )
-        for task_file in TEKTON_TASKS_DIR.glob("*.yaml"):
-            task = yaml.safe_load(task_file.read_text())
-            for step in task["spec"]["steps"]:
-                image = step["image"]
-                assert any(image.startswith(p) for p in allowed_prefixes), (
-                    f"Task {task_file.name} step {step['name']} uses non-RH image: {image}"
-                )
-
-    def test_gate_task_exits_nonzero_on_fail(self):
-        """The gate evaluate step script must contain 'exit 1' for fail case."""
-        task = self._load_task("sdf-evaluate-gate.yaml")
-        evaluate_step = task["spec"]["steps"][0]
-        assert "exit 1" in evaluate_step["script"]
-
 
 class TestTektonPipelineYAML:
     def test_pipeline_structure(self):

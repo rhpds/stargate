@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import logging
 import os
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from engine.failure_class_loader import classify_by_pattern
+from engine.oc_runner import run_oc
 
 logger = logging.getLogger("stargate.infra_miner")
 
@@ -26,11 +26,7 @@ def _run_oc(args: List[str], kubeconfig: str, timeout: int = 15) -> str:
     if not os.path.exists(kc):
         return ""
     try:
-        result = subprocess.run(
-            ["oc", f"--kubeconfig={kc}"] + args,
-            capture_output=True, text=True, timeout=timeout,
-        )
-        return result.stdout.strip()
+        return run_oc(args, kubeconfig=kc, timeout=timeout)
     except Exception:
         return ""
 

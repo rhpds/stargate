@@ -2616,11 +2616,12 @@ def _compute_platform_kpis(db: Session) -> dict:
         mttr = {"overall_mttr_minutes": None, "by_class": []}
 
     # --- Developer impact ---
+    from engine.namespace import extract_guid, strip_sandbox_prefix, extract_sandbox_parts
     guids = set()
     for ns in failing_ns:
-        m = _re.match(r"^sandbox-([a-z0-9]+)-", ns)
-        if m:
-            guids.add(f"guid:{m.group(1)}")
+        _g = extract_guid(ns)
+        if _g:
+            guids.add(f"guid:{_g}")
     dev_impact = 0
     if guids:
         dev_impact = db.query(func.count(func.distinct(LabMapping.owner))).filter(
@@ -2744,8 +2745,7 @@ def _build_remediation_strategies(db: Session) -> list:
     for ns, d in ns_data.items():
         if not d["failure_classes"]:
             continue
-        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
-        cat = m.group(1) if m else ns
+        cat = strip_sandbox_prefix(ns)
         cl = classify_namespace(ns, cat, d["failure_classes"], first_eval_map.get(ns), baselines)
         by_namespace.append({
             "namespace": ns, "cluster": d["cluster"],
@@ -2787,11 +2787,11 @@ def _build_remediation_strategies(db: Session) -> list:
 
     cat_stats: Dict[str, Dict] = {}
     for ns, d in ns_data.items():
-        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", ns)
-        if not m:
+        parts = extract_sandbox_parts(ns)
+        if not parts:
             continue
-        info = guid_info.get(m.group(1), {})
-        cat = info.get("cat") or m.group(2)
+        info = guid_info.get(parts[0], {})
+        cat = info.get("cat") or parts[1]
         cs = cat_stats.setdefault(cat, {
             "ns": set(), "failing": set(),
             "agv": info.get("agv", ""), "name": info.get("name", cat),
@@ -3013,8 +3013,7 @@ def admin_cost_analysis(db: Session = Depends(get_db)):
     # 4. Extract catalog item from namespace name
     # ------------------------------------------------------------------
     def _extract_catalog_item(ns: str) -> str:
-        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
-        return m.group(1) if m else ns
+        return strip_sandbox_prefix(ns)
 
     # Build per-namespace info
     ns_catalog: Dict[str, str] = {}
@@ -3295,12 +3294,12 @@ def catalog_item_history(
     cat_data: Dict[str, Dict] = {}
 
     def _resolve_cat(lab_code):
-        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", lab_code or "")
-        if not m:
+        parts = extract_sandbox_parts(lab_code or "")
+        if not parts:
             return None, None, None, None
-        guid = m.group(1)
+        guid, slug = parts
         info = guid_info.get(guid, {})
-        cat_key = info.get("catalog_item") or m.group(2)
+        cat_key = info.get("catalog_item") or slug
         display = info.get("display_name") or cat_key.replace("-", " ").title()
         agv_path = info.get("agnosticv_path", "")
         return cat_key, display, agv_path, info
@@ -3348,12 +3347,12 @@ def catalog_item_history(
 
     cat_resolutions: Dict[str, Dict[str, Dict]] = {}
     for lab_code, fc, res_type, ttr in res_rows:
-        m = _re.match(r"^sandbox-([a-z0-9]+)-(.+)$", lab_code or "")
-        if not m:
+        parts = extract_sandbox_parts(lab_code or "")
+        if not parts:
             continue
-        guid = m.group(1)
+        guid, slug = parts
         info = guid_info.get(guid, {})
-        cat_key = info.get("catalog_item") or m.group(2)
+        cat_key = info.get("catalog_item") or slug
 
         cat_resolutions.setdefault(cat_key, {}).setdefault(fc, {
             "total": 0, "by_type": {}, "ttr_values": [],
@@ -3589,8 +3588,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
 
     # Resolve multi-cluster variants (e.g., 1-ocp4-cluster -> ocp4-cluster)
     for _cat_slug in list(ns_data.keys()):
-        _m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", _cat_slug)
-        _ci_slug = _m.group(1) if _m else _cat_slug
+        _ci_slug = strip_sandbox_prefix(_cat_slug)
         if _ci_slug not in catalog_display_names:
             _base = _re.sub(r"^\d+-", "", _ci_slug)
             if _base in catalog_display_names:
@@ -3643,8 +3641,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
         top_fc = max(d["failure_classes"], key=d["failure_classes"].get) if d["failure_classes"] else None
 
         # Extract catalog item name from sandbox namespace
-        m = _re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", ns)
-        catalog_item = m.group(1) if m else ns
+        catalog_item = strip_sandbox_prefix(ns)
 
         classification = classify_namespace(
             ns, catalog_item, d["failure_classes"],

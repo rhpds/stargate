@@ -51,3 +51,6 @@ backups/
 stargate-synthetic-client-emulator/
 code.txt
 podman-compose.local.yml
+
+# Captured production state — large, not needed in repo
+fixtures/live-*/

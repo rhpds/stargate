@@ -41,9 +41,8 @@ def build_resolution_profiles() -> Dict:
         fc = entry.get("failure_class", "unknown")
         catalog_item = entry.get("catalog_item", entry.get("namespace", "unknown"))
         # Extract catalog item from sandbox namespace
-        m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", catalog_item)
-        if m:
-            catalog_item = m.group(1)
+        from engine.namespace import strip_sandbox_prefix
+        catalog_item = strip_sandbox_prefix(catalog_item)
 
         key = f"{catalog_item}:{fc}"
         profiles[key]["total"] += 1

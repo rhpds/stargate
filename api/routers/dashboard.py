@@ -4466,9 +4466,8 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
     # --- AgnosticV constraints (all context types with a lab/namespace) ---
     # Sandbox namespaces follow the pattern sandbox-XXXXX-<catalog-item>.
     # Extract the catalog item name to look up AgnosticV specs.
-    agnosticv_lookup = lab_code
-    if lab_code and re.match(r'^sandbox-[a-z0-9]{5}-', lab_code):
-        agnosticv_lookup = re.sub(r'^sandbox-[a-z0-9]{5}-', '', lab_code)
+    from engine.namespace import strip_sandbox_prefix, is_sandbox
+    agnosticv_lookup = strip_sandbox_prefix(lab_code) if lab_code else lab_code
     constraints = _load_agnosticv_constraints(agnosticv_lookup) if agnosticv_lookup else None
     if not constraints and lab_code != agnosticv_lookup:
         constraints = _load_agnosticv_constraints(lab_code)
@@ -4479,8 +4478,9 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
         ctx["constraints"] = "\n".join(constraint_lines)
 
     # --- RHDP Stack Evidence (AnarchySubject, ResourceClaim, Pool, Sandbox API) ---
-    if lab_code and re.match(r'^sandbox-[a-z0-9]{5}-', lab_code):
-        _guid = lab_code.split("-")[1]
+    if lab_code and is_sandbox(lab_code):
+        from engine.namespace import extract_guid
+        _guid = extract_guid(lab_code)
         rhdp_lines = []
 
         # 1. Lab identity from LabMapping (guid → display name, AgnosticD config, AgnosticV path)
@@ -4506,7 +4506,7 @@ def _build_evidence_context(context_type: str, lab_code: str, cluster: str, pool
             babylon = _load_latest_babylon()
             if babylon:
                 all_pools = babylon.get("pools", {}).get("all_pools", [])
-                slug = re.sub(r'^sandbox-[a-z0-9]{5}-', '', lab_code)
+                slug = strip_sandbox_prefix(lab_code)
                 matching_pools = [p for p in all_pools if slug in p.get("name", "").lower()]
                 for p in matching_pools[:2]:
                     rhdp_lines.append(f"Pool {p.get('name','?')}: {p.get('available',0)} available, {p.get('min_available',0)} min, {p.get('ready',0)} ready")
