@@ -17,12 +17,12 @@ GeoLux (Hypothesis Engine)
   191K+ hypotheses generated
       |
 StarGate (Operations + Remediation)
-  Rubric-based readiness scoring (10 rubric files, 31 condition-based classes)
-  Failure classification (81 pattern-based classes across 6 YAML sources)
-  Sub-classification (30 sub-classes for granular root cause)
-  AI investigation pipeline (Granite 3.2 8B via LiteLLM)
+  Rubric-based readiness scoring (32 rubric files)
+  Failure classification (84 pattern-based classes across 7 YAML sources)
+  Sub-classification (17 sub-classes for granular root cause)
+  AI investigation pipeline (configurable LLM via LiteLLM)
   Policy engine (deterministic recommendations)
-  Remediation catalog (90+ entries with risk levels)
+  Remediation catalog (140 entries with risk levels)
   Action executor (5 independent gates)
   Proof Lab (synthetic testing of remediation)
 ```
@@ -68,7 +68,7 @@ The pipeline processes 60-85+ investigations/day with a clean completion rate. S
 
 When we explored synthetic testing, three parallel agents searched the codebase and found the infrastructure was already built:
 
-- **20 failure injectors** (`engine/failure_injector.py`) -- create real broken K8s resources in `stargate-test`
+- **21 failure injectors** (`engine/failure_injector.py`) -- create real broken K8s resources in `stargate-test`
 - **Proof orchestrator** (`engine/proof_orchestrator.py`) -- full inject -> detect -> HITL gate -> remediate -> verify -> cleanup cycle
 - **Proof tracker** (`engine/proof_tracker.py`) -- UNTESTED -> PROVEN gate progression (3 consecutive passes)
 - **5 API endpoints** wired in `api/routers/admin.py`
@@ -86,7 +86,7 @@ When we explored synthetic testing, three parallel agents searched the codebase 
 - `stargate proof run/status/history` CLI commands
 
 **Phase 2 -- Investigation-mode tracking:**
-- 19 of 20 injectors create root-cause failures (e.g. `/bin/false` entrypoint) that catalog restarts can't fix. The tracker was treating these as FAILED -- misleading.
+- 20 of 21 injectors create root-cause failures (e.g. `/bin/false` entrypoint) that catalog restarts can't fix. The tracker was treating these as FAILED -- misleading.
 - Added `record_investigation_verified()` -- for investigation-type proofs, success = correct detection (not remediation fix). Gate progresses to `investigation_proven` after 3 passes.
 - Fixed three race conditions in the orchestrator around Phase 1/Phase 2 result merging
 - Fixed `_cleanup_scan_history()` deleting `proof-matrix.json` (matched `*.json` glob)

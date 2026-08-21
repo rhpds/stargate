@@ -1,5 +1,7 @@
 # StarGate: Go-to-Market Strategy
 
+> **Note (Aug 2026):** Policy rules are now YAML-driven (`engine/policy_loader.py`), not Python code as shown in examples below. The "Agentic" section describes the roadmap vision — the investigation agent is operational but the full supervisor architecture is not yet implemented.
+
 ## Bring Your Own Infrastructure. Bring Your Own Policy. Bring Your Own Model.
 
 ---

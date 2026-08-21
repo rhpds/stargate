@@ -4,6 +4,8 @@
 
 StarGate is currently read-only against all four systems. To move from monitoring to execution (Phase D), we need specific permissions and integration points with each layer.
 
+> **Note (Aug 2026):** Poolboy read access has been resolved — pool data is now collected via the Babylon worker and displayed on the dashboard. Write access asks for Babylon/Anarchy/Poolboy remain open. Cluster names updated from ocp-us-east-1 to ocpv05-09.
+
 ---
 
 ## Current State (During Summit)
