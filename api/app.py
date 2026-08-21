@@ -711,7 +711,8 @@ def _cleanup_scan_history(max_files: int = 500):
     scan_dir = _P(__file__).parent.parent / "scan-history"
     if not scan_dir.exists():
         return
-    files = sorted(scan_dir.glob("*.json"))
+    _KEEP = {"proof-matrix.json", "shadow-state.json", "pipeline-rubric.json"}
+    files = sorted(f for f in scan_dir.glob("*.json") if f.name not in _KEEP)
     if len(files) > max_files:
         for f in files[:-max_files]:
             try:
