@@ -4314,6 +4314,8 @@ _LONG_BASE64 = re.compile(r'[A-Za-z0-9+/=]{60,}')
 
 def _redact_sensitive(text: str) -> str:
     """Redact passwords, tokens, certificates, and long base64 from command output."""
+    if not text:
+        return text or ""
     text = _CERT_BLOCK.sub('[CERTIFICATE REDACTED]', text)
     text = _YAML_SECRET_VALUE.sub(r'\1[REDACTED]', text)
     text = _SENSITIVE_PATTERNS.sub(r'\1[REDACTED]', text)

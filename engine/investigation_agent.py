@@ -201,11 +201,12 @@ TOOLS = [
 
 def _redact(text: str) -> str:
     """Import and apply the dashboard's redaction function."""
+    if not text:
+        return text or ""
     try:
         from api.routers.dashboard import _redact_sensitive
         return _redact_sensitive(text)
     except ImportError:
-        # Fallback inline redaction
         text = re.sub(r'(password|secret|token|key)\s*[:=]\s*\S+', r'\1: [REDACTED]', text, flags=re.IGNORECASE)
         text = re.sub(r'-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----', '[CERTIFICATE REDACTED]', text)
         return text
@@ -677,7 +678,7 @@ def run_investigation(
                 db=db,
             )
             return {
-                "analysis": _redact(fallback.get("content", "")),
+                "analysis": _redact(fallback.get("content") or ""),
                 "tool_calls": all_tool_calls,
                 "iterations": iteration + 1,
                 "error": None if fallback.get("success") else fallback.get("error"),
@@ -689,7 +690,7 @@ def run_investigation(
 
         if not tool_calls_in_response:
             # No tool calls — LLM produced final answer
-            final_text = response_message.get("content", "")
+            final_text = response_message.get("content") or ""
             return {
                 "analysis": _redact(final_text),
                 "tool_calls": all_tool_calls,
@@ -747,7 +748,7 @@ def run_investigation(
         db=db,
     )
     return {
-        "analysis": _redact(final.get("content", "")),
+        "analysis": _redact(final.get("content") or ""),
         "tool_calls": all_tool_calls,
         "iterations": MAX_ITERATIONS,
         "error": None if final.get("success") else final.get("error"),
