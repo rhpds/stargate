@@ -1,5 +1,7 @@
 # RHDP Integration Findings — StarGate Validation Layer
 
+> **Note (Aug 2026):** Several gaps identified here have since been addressed — StarGate now feeds cluster state, pool data, and AgnosticV specs to the LLM via `_build_evidence_context()`. Connectivity percentages below are from the initial integration phase and have improved significantly with the Babylon worker and ZeroTouch collector.
+
 ## The Problem
 
 The Red Hat Demo Platform runs on multiple independent systems that each hold a piece of the operational picture but don't share it. Labagator knows the schedule. Demolition knows whether a lab runs. AgnosticV defines what should be deployed. Poolboy manages the resource pool. Anarchy tracks provisioning state. Cluster-scheduler scores infrastructure health.

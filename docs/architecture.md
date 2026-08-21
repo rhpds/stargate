@@ -6,11 +6,13 @@ StarGate is a centralized validation layer for the Red Hat Demo Platform (RHDP).
 It continuously collects evidence from live OpenShift clusters, evaluates that
 evidence against YAML-defined rubrics, classifies failures, generates
 provisioning recommendations via a policy engine, and surfaces the results
-through a React dashboard and REST API. An LLM (Granite 3.2 8B on Intel Gaudi,
-routed through LiteLLM) provides failure classification and executive summaries
-when deterministic rules are insufficient.
+through a React dashboard and REST API. An LLM (configurable via
+`STARGATE_LLM_MODEL`, default Granite 3.2 8B, routed through LiteLLM) provides
+failure classification and executive summaries when deterministic rules are
+insufficient.
 
-The system monitors 6 scanner clusters from a deployment on ocpv-infra01 and
+The system monitors 5+ scanner clusters (ocpv05-09 by default, configurable via
+`STARGATE_CLUSTERS`) from a deployment on ocpv-infra01 and
 integrates with the Babylon control plane (Poolboy, Anarchy, AgnosticV),
 Labagator, and Demolition to produce a unified view of lab readiness.
 
@@ -21,7 +23,7 @@ Labagator, and Demolition to produce a unified view of lab readiness.
 ```
                           +--------------------------+
                           |      React Frontend      |
-                          |    (Vite / PatternFly)   |
+                          |   (Vite / Tailwind 4)    |
                           +------------+-------------+
                                        |
                                        | HTTP
@@ -61,11 +63,6 @@ Labagator, and Demolition to produce a unified view of lab readiness.
               |  7 scenarios, feedback loop, substrate    |
               +-------------------------------------------+
 
-              +-------------------------------------------+
-              |     Mock Cluster                          |
-              |  (stargate-mock-cluster/)                 |
-              |  Phase B command validation               |
-              +-------------------------------------------+
 ```
 
 ---
@@ -205,8 +202,10 @@ stargate-platform/
     metrics.py          Prometheus metrics
     schemas.py          Pydantic request/response schemas
     routers/
-      admin.py          Scheduler, scan history, LLM admin, synthetic toggle
-      dashboard.py      Dashboard data aggregation, summit readiness
+      admin/            Admin package (6 sub-routers: scheduler, llm,
+                        approval, proof, monitoring, analytics)
+      dashboard/        Dashboard package (7 sub-routers: deployments,
+                        infra, ops, classification, llm, remediation, views)
       health.py         /health and /metrics
       integration.py    External evidence, HITL feedback, lab status
       runs.py           Run lifecycle: create, start stage, evidence, evaluate
@@ -221,6 +220,8 @@ stargate-platform/
     feedback_loop.py    Signal-Decision-Action-Verify-Learn cycle
     action_simulator.py Simulated action state transforms
     rollback.py         Rollback capture and restore
+    oc_runner.py        Shared oc command runner (run_oc, run_oc_traced, run_oc_stdin)
+    namespace.py        Sandbox namespace parsing (extract_catalog_item, extract_guid)
   cli/
     scan.py             One-shot cluster scanner
     worker.py           Per-cluster evidence worker (tiered)
@@ -230,7 +231,7 @@ stargate-platform/
     api_client.py       HTTP client for API persistence
   db/
     database.py         SQLAlchemy engine, session, init
-    models.py           ORM models (17 tables)
+    models.py           ORM models (28 tables)
     repository.py       Data access layer
   events/
     bus.py              Event bus with nanoagent pipeline
@@ -255,7 +256,7 @@ stargate-platform/
     classify.yaml       LLM failure classification prompt
     remediation.yaml    LLM remediation prompt
     executive-summary.yaml  LLM executive summary prompt
-  frontend/             React + Vite + PatternFly dashboard
+  frontend/             React 19 + Vite + Tailwind 4 dashboard
   deploy/
     helm/stargate/      Helm chart for infra01
     openshift/          Raw OpenShift manifests
@@ -288,14 +289,6 @@ Each scenario implements `generate_state()`, `generate_evidence()`,
 uses these to run closed-loop tests: generate before-state, evaluate rubrics,
 apply simulated actions, evaluate after-state, verify resolution.
 
-### Mock Cluster
-
-Location: `stargate-mock-cluster/`
-
-Simulated cluster API for Phase B gate testing. Validates that `oc apply`,
-`oc scale`, and `oc delete` commands produce correct state changes. Maintains
-an audit log and tracks state diffs.
-
 ---
 
 ## Infrastructure
@@ -308,7 +301,7 @@ an audit log and tracks state diffs.
 - **API**: `https://stargate-api.apps.cluster.example.com`
 - **Internal registry**: `image-registry.openshift-image-registry.svc:5000/stargate`
 
-### Scanner Clusters (8)
+### Scanner Clusters (configurable, default ocpv05-09)
 
 | Cluster       | Kubeconfig file      | Role                     |
 |---------------|----------------------|--------------------------|
@@ -332,10 +325,12 @@ Scanner service accounts have `cluster-reader` (read-only) access.
 
 ### Database
 
-PostgreSQL 15, 20Gi PVC. 17 ORM tables:
+PostgreSQL 15, 20Gi PVC. 28 ORM tables (managed by Alembic migrations):
 
 - `runs`, `stages`, `evidence` -- Run lifecycle
 - `evaluations` -- Rubric evaluation results
+- `investigations` -- AI investigation records
+- `resolution_records` -- Failure resolution tracking
 - `event_log` -- Persistent event history
 - `proposed_classifications` -- LLM proposals awaiting review
 - `audit_log` -- Action audit trail
@@ -345,17 +340,26 @@ PostgreSQL 15, 20Gi PVC. 17 ORM tables:
 - `llm_feedback` -- Human feedback on LLM responses
 - `llm_metrics` -- LLM call instrumentation
 - `remediations` -- Remediation tracking
+- `lab_mappings` -- Babylon guid-to-lab-code mapping
+- `lab_remediation_config` -- Per-lab execution mode
+- `pool_snapshots` -- Poolboy capacity snapshots
+- `provisioning_snapshots` -- Provisioning state snapshots
+- `aap_job_metrics` -- AAP job statistics
+- `sandbox_api_metrics` -- Sandbox API health metrics
+- `receipts` -- Phase gate structured receipts
 - `mv_cluster_summary` -- Materialized view: cluster health
 - `mv_pipeline_stages` -- Materialized view: stage pass rates
 - `mv_lab_eval_summary` -- Materialized view: lab evaluation health
+- `mv_evaluation_trends` -- Materialized view: trend buckets
+- `mv_mttr_by_class` -- Materialized view: MTTR by failure class
+- `mv_overview_snapshot` -- Materialized view: platform overview
 
 Materialized views are refreshed every 60 seconds by a background thread.
 
 ### LLM
 
-- **Model**: Granite 3.2 8B Instruct
-- **Hardware**: Intel Gaudi accelerator
-- **Proxy**: LiteLLM (`litellm.example.com`)
+- **Model**: Configurable via `STARGATE_LLM_MODEL` (default: Granite 3.2 8B Instruct)
+- **Proxy**: LiteLLM (configurable via `STARGATE_LLM_URL`)
 - **Circuit breaker**: 5 failures = 60s cooldown
 
 ---
@@ -428,6 +432,6 @@ recommendations for operator visibility.
 | stargate-scanner      | Containerfile.scanner    | Scanner CLI + oc binary           |
 | stargate-frontend     | Containerfile.frontend   | React dev server (node:22-alpine) |
 
-The combined image is a multi-stage build: Node 22 for frontend, UBI9 Python 3.9
-for the backend, with the `oc` 4.20 client baked in. Production deployment uses
-this combined image.
+The combined image is a multi-stage build: Node 22 Alpine for frontend, UBI9
+Python 3.11 for the backend, with the `oc` client baked in. Production
+deployment uses this combined image.
