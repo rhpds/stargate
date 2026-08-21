@@ -322,7 +322,8 @@ def run_proof_cycle(
         result["proof_status"] = phase2.get("proof_status")
 
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
-    tracker.record_cycle_result(failure_class, result)
+    if mode == "manual" or not result.get("proof_mode"):
+        tracker.record_cycle_result(failure_class, result)
     return result
 
 
