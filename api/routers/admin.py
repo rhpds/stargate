@@ -1621,6 +1621,52 @@ def run_proof(req: dict, db: Session = Depends(get_db), _auth=Depends(require_ad
     return {"status": "started", "failure_class": failure_class, "message": "Proof cycle running — poll the matrix for updates."}
 
 
+@router.post("/admin/proof/run-batch")
+def run_proof_batch(req: dict, _auth=Depends(require_admin)):
+    """Run proof cycles for multiple failure classes sequentially.
+
+    Accepts {"failure_classes": ["pods_crashlooping", ...]} or {"failure_classes": "all"}.
+    Runs sequentially because the shared test namespace can't handle parallel injections.
+    """
+    import threading
+    from engine.proof_orchestrator import run_proof_cycle
+    from engine.failure_injector import INJECTORS
+    from api.routers._shared import EXECUTOR_KUBECONFIG
+    from engine.proof_tracker import ProofTracker
+
+    requested = req.get("failure_classes", [])
+    mode = req.get("mode", "manual")
+
+    if requested == "all":
+        requested = list(INJECTORS.keys())
+    elif requested == "untested":
+        tracker = ProofTracker()
+        matrix = tracker.get_matrix()
+        fc_map = matrix.get("failure_classes", {})
+        requested = [fc for fc in INJECTORS if fc_map.get(fc, {}).get("status", "UNTESTED") == "UNTESTED"]
+
+    if not requested:
+        return {"status": "nothing_to_run", "count": 0}
+
+    def _run_batch():
+        import logging
+        logger = logging.getLogger("stargate.proof")
+        for i, fc in enumerate(requested):
+            logger.info("Proof batch %d/%d: %s", i + 1, len(requested), fc)
+            try:
+                from db.database import get_db as _get_db
+                bg_db = next(_get_db())
+                run_proof_cycle(failure_class=fc, kubeconfig=EXECUTOR_KUBECONFIG, mode=mode, db=bg_db)
+                bg_db.close()
+            except Exception as e:
+                logger.error("Proof batch %s failed: %s", fc, e)
+
+    thread = threading.Thread(target=_run_batch, daemon=True)
+    thread.start()
+
+    return {"status": "started", "count": len(requested), "failure_classes": requested}
+
+
 @router.get("/admin/proof/matrix")
 def get_proof_matrix(_auth=Depends(require_admin_read)):
     """Get the current proof matrix — all failure classes and their gate status."""
