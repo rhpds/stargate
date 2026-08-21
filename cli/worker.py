@@ -502,8 +502,8 @@ class ClusterWorker:
                     )
                     owner = annotations.get("owner") or annotations.get("owner_email") or ""
 
-                    m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", namespace)
-                    ci_base = m.group(1) if m else namespace
+                    from engine.namespace import strip_sandbox_prefix
+                    ci_base = strip_sandbox_prefix(namespace)
 
                     # Persist to LabMapping via API
                     payload = json.dumps({

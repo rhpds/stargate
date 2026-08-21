@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Tuple
+
+from engine.namespace import strip_sandbox_prefix
 
 logger = logging.getLogger("stargate.attention")
 
@@ -25,8 +26,7 @@ def extract_catalog_item(lab_code: str) -> str:
     E.g. 'sandbox-ab12c-ocp4-cluster' -> 'ocp4-cluster'
     Returns lab_code unchanged if the pattern doesn't match.
     """
-    m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", lab_code)
-    return m.group(1) if m else lab_code
+    return strip_sandbox_prefix(lab_code)
 
 
 # ---------------------------------------------------------------------------

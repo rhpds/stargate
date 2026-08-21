@@ -27,10 +27,8 @@ MINING_CACHE_FILE = _PERSISTENT_DIR / "mining-cache.json" if _PERSISTENT_DIR.is_
 def _extract_catalog_item(namespace: str) -> str:
     if not namespace:
         return "unknown"
-    m = re.match(r"^sandbox-[a-z0-9]{5}-(.+)$", namespace)
-    if m:
-        return m.group(1)
-    return namespace
+    from engine.namespace import strip_sandbox_prefix
+    return strip_sandbox_prefix(namespace)
 
 
 def mine_failure_patterns(db, limit: int = 20) -> Dict:
