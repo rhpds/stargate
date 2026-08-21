@@ -9,8 +9,8 @@ class TestModelStringsDynamic:
 
     def test_no_hardcoded_granite_in_response_bodies(self):
         """dashboard.py must not embed literal model names in API response dicts."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
-        text = src.read_text()
+        dashboard_dir = Path(__file__).parent.parent / "api" / "routers" / "dashboard"
+        text = "\n".join(p.read_text() for p in dashboard_dir.glob("*.py"))
         hits = []
         for i, line in enumerate(text.splitlines(), 1):
             if "granite-3-2-8b-instruct" in line:
@@ -26,8 +26,8 @@ class TestModelStringsDynamic:
 
     def test_no_hardcoded_hardware_in_response_bodies(self):
         """dashboard.py must not embed literal hardware references in API response dicts."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
-        text = src.read_text()
+        dashboard_dir = Path(__file__).parent.parent / "api" / "routers" / "dashboard"
+        text = "\n".join(p.read_text() for p in dashboard_dir.glob("*.py"))
         hits = []
         for i, line in enumerate(text.splitlines(), 1):
             if "Intel Xeon 6 / Gaudi" in line or "Xeon 6 / Gaudi" in line:
@@ -49,8 +49,8 @@ class TestModelStringsDynamic:
 
     def test_classify_proposal_uses_llm_model(self):
         """Classification proposal must reference LLM_MODEL, not a literal string."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
-        text = src.read_text()
+        dashboard_dir = Path(__file__).parent.parent / "api" / "routers" / "dashboard"
+        text = "\n".join(p.read_text() for p in dashboard_dir.glob("*.py"))
         pattern = re.compile(r'llm_model\s*=.*"granite', re.IGNORECASE)
         matches = pattern.findall(text)
         assert not matches, (

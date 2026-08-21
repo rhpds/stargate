@@ -11,8 +11,8 @@ class TestJoinReliability:
 
     def test_demolition_join_word_boundary(self):
         """Demolition matching must use word boundaries, not substring."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
-        text = src.read_text()
+        dashboard_dir = Path(__file__).parent.parent / "api" / "routers" / "dashboard"
+        text = "\n".join(p.read_text() for p in dashboard_dir.glob("*.py"))
         # Find the demolition matching section
         in_demolition = False
         uses_word_boundary = False
@@ -43,8 +43,8 @@ class TestJoinReliability:
     @pytest.mark.skip(reason="Pool join refactor pending — lb_num extraction used instead of ci_name")
     def test_pool_join_uses_ci_name_prefix(self):
         """Pool matching should use ci_name prefix, not just lab code extraction."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
-        text = src.read_text()
+        dashboard_dir = Path(__file__).parent.parent / "api" / "routers" / "dashboard"
+        text = "\n".join(p.read_text() for p in dashboard_dir.glob("*.py"))
         # Find lab_pool_data section
         pool_section = ""
         capture = False
