@@ -426,7 +426,8 @@ def continue_proof_cycle(
             ],
             "clean": clean,
         }
-        tracker.record_verification(failure_class, clean, {"pods": pods_output[:500]})
+        if clean:
+            tracker.record_verification(failure_class, True, {"pods": pods_output[:500]})
     else:
         result["steps"]["verify"] = {"status": "skipped", "commands": [], "reason": "remediation failed"}
 
