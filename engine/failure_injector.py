@@ -17,9 +17,9 @@ Two categories:
 import json
 import logging
 import os
-import subprocess
-import time
 from typing import Dict, List
+
+from engine.oc_runner import run_oc_traced
 
 logger = logging.getLogger("stargate.failure_injector")
 
@@ -32,17 +32,8 @@ def _validate_namespace(namespace: str):
 
 
 def _run_oc(args: List[str], kubeconfig: str = "") -> Dict:
-    cmd_str = "oc " + " ".join(args)
-    env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
-    start = time.time()
-    r = subprocess.run(["oc"] + args, capture_output=True, text=True, timeout=30, env=env)
-    duration_ms = int((time.time() - start) * 1000)
-    output = r.stdout.strip() if r.returncode == 0 else r.stderr.strip()
-    if r.returncode != 0 and "not found" not in output and "No resources" not in output:
-        logger.warning("oc %s failed: %s", " ".join(args[:3]), output[:200])
-    return {"command": cmd_str, "output": output, "exit_code": r.returncode, "duration_ms": duration_ms}
+    _, trace = run_oc_traced(args, kubeconfig=kubeconfig, timeout=30)
+    return trace
 
 
 def _apply_manifest(manifest: dict, namespace: str, kubeconfig: str = "") -> Dict:

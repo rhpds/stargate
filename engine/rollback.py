@@ -7,62 +7,12 @@ if the action fails or verification doesn't pass.
 import json
 import logging
 import os
-import subprocess
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine.oc_runner import run_oc as _run_oc, run_oc_traced as _run_oc_traced, run_oc_stdin as _run_oc_stdin
+
 logger = logging.getLogger("stargate.rollback")
-
-
-def _run_oc(args: List[str], kubeconfig: str = "", timeout: int = 30) -> str:
-    """Run an oc command with the given kubeconfig. Empty kubeconfig uses in-cluster auth."""
-    cmd = ["oc"] + args
-    env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
-    if result.returncode != 0 and "not found" not in result.stderr.lower() and "no resources" not in result.stderr.lower():
-        if "cannot" in result.stderr.lower() or "forbidden" in result.stderr.lower():
-            return result.stderr.strip()
-        if result.stderr.strip():
-            logger.warning(f"oc {' '.join(args)}: {result.stderr.strip()}")
-    return result.stdout.strip() or result.stderr.strip()
-
-
-def _run_oc_traced(args: List[str], kubeconfig: str = "", timeout: int = 30) -> Tuple[str, Dict[str, Any]]:
-    """Run an oc command and return (output_string, trace_dict).
-
-    Same output logic as _run_oc, but also captures exit code and duration
-    for proof-system command traces.
-    """
-    cmd = ["oc"] + args
-    cmd_str = " ".join(cmd)
-    env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
-    t0 = time.time()
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
-    duration_ms = int((time.time() - t0) * 1000)
-
-    # Match _run_oc output logic exactly
-    if result.returncode != 0 and "not found" not in result.stderr.lower() and "no resources" not in result.stderr.lower():
-        if "cannot" in result.stderr.lower() or "forbidden" in result.stderr.lower():
-            output = result.stderr.strip()
-        else:
-            if result.stderr.strip():
-                logger.warning(f"oc {' '.join(args)}: {result.stderr.strip()}")
-            output = result.stdout.strip() or result.stderr.strip()
-    else:
-        output = result.stdout.strip() or result.stderr.strip()
-
-    trace = {
-        "command": cmd_str,
-        "output": output[:2000],
-        "exit_code": result.returncode,
-        "duration_ms": duration_ms,
-    }
-    return output, trace
 
 
 def capture_state(namespace: str, kubeconfig: str) -> Dict[str, Any]:
@@ -102,18 +52,6 @@ def capture_state(namespace: str, kubeconfig: str) -> Dict[str, Any]:
         pass
 
     return snapshot
-
-
-def _run_oc_stdin(args: List[str], input_data: str, kubeconfig: str = "", timeout: int = 30) -> str:
-    """Run an oc command with stdin input."""
-    cmd = ["oc"] + args
-    env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
-    result = subprocess.run(cmd, input=input_data, capture_output=True, text=True, timeout=timeout, env=env)
-    if result.returncode != 0:
-        logger.warning(f"oc {' '.join(args)}: {result.stderr.strip()}")
-    return result.stdout.strip() or result.stderr.strip()
 
 
 def restore_state(snapshot: Dict[str, Any], namespace: str, kubeconfig: str) -> Dict[str, Any]:
