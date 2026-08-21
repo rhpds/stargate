@@ -312,6 +312,7 @@ def run_proof_cycle(
         result["awaiting_approval"] = True
         result["pending_id"] = pending.id
     elif mode != "manual":
+        tracker.record_cycle_result(failure_class, result)
         phase2 = continue_proof_cycle(failure_class, kubeconfig, db, pipeline=pipeline)
         result["steps"]["remediate"] = phase2["steps"].get("remediate", {})
         result["steps"]["verify"] = phase2["steps"].get("verify", {})
