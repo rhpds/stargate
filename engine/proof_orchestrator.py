@@ -317,6 +317,8 @@ def run_proof_cycle(
         result["steps"]["verify"] = phase2["steps"].get("verify", {})
         result["steps"]["cleanup"] = phase2["steps"].get("cleanup", {})
         result["success"] = phase2.get("success", False)
+        result["proof_mode"] = phase2.get("proof_mode", "unknown")
+        result["proof_status"] = phase2.get("proof_status")
 
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
     tracker.record_cycle_result(failure_class, result)
