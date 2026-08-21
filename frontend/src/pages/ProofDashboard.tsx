@@ -18,6 +18,7 @@ const GATE_COLORS: Record<string, string> = {
   manual: 'bg-[#333] text-[#8A8D90]',
   low_risk_auto: 'bg-[#F0AB00] text-black',
   full_auto: 'bg-[#3E8635] text-white',
+  investigation_proven: 'bg-[#4394E5] text-white',
 };
 
 const STEP_ORDER = ['inject', 'detect', 'remediate', 'verify', 'cleanup'] as const;
@@ -446,6 +447,7 @@ export default function ProofDashboard() {
   });
 
   const [runError, setRunError] = useState<string | null>(null);
+  const [batchStatus, setBatchStatus] = useState<{ running: boolean; count?: number } | null>(null);
   const runProof = useMutation({
     mutationFn: (failureClass: string) => api.runProof(failureClass, 'manual'),
     onSuccess: () => {
@@ -454,6 +456,18 @@ export default function ProofDashboard() {
     },
     onError: (err: any) => {
       setRunError(err.message || 'Failed to run proof');
+    },
+  });
+  const runBatch = useMutation({
+    mutationFn: (target: string[] | string) => api.runProofBatch(target),
+    onSuccess: (data: any) => {
+      setRunError(null);
+      setBatchStatus({ running: true, count: data.count });
+      queryClient.invalidateQueries({ queryKey: ['proof-matrix'] });
+    },
+    onError: (err: any) => {
+      setRunError(err.message || 'Failed to start batch run');
+      setBatchStatus(null);
     },
   });
 
@@ -509,6 +523,27 @@ export default function ProofDashboard() {
           Test auto-remediation against injected failures in the stargate-test namespace.
           Each failure class progresses through gates: Untested &rarr; Injected &rarr; Detected &rarr; Remediated &rarr; Verified &rarr; Proven.
         </p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => runBatch.mutate('untested')}
+            disabled={runBatch.isPending || batchStatus?.running}
+            className="px-3 py-1.5 rounded text-sm font-medium bg-[#4394E5] text-white hover:bg-[#3a7fd0] disabled:opacity-50"
+          >
+            {runBatch.isPending ? 'Starting...' : 'Run All Untested'}
+          </button>
+          <button
+            onClick={() => runBatch.mutate('all')}
+            disabled={runBatch.isPending || batchStatus?.running}
+            className="px-3 py-1.5 rounded text-sm font-medium bg-[#333] text-[#8A8D90] hover:bg-[#444] hover:text-white disabled:opacity-50"
+          >
+            Run All
+          </button>
+          {batchStatus?.running && (
+            <span className="text-sm text-[#F0AB00] self-center">
+              Batch running ({batchStatus.count} classes)...
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Summary stats */}

@@ -65,6 +65,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_cd.add_argument("--lab-code", help="Lab code (e.g. LB1088) for evidence bundle tracking")
     p_cd.add_argument("--cluster-name", help="Cluster name for evidence bundle tracking")
 
+    # proof
+    p_pf = sub.add_parser("proof", help="Synthetic remediation proof system")
+    pf_sub = p_pf.add_subparsers(dest="proof_command")
+    pf_run = pf_sub.add_parser("run", help="Run a proof cycle for a failure class")
+    pf_run.add_argument("failure_class", help="Failure class to test (or 'all')")
+    pf_run.add_argument("--mode", default="manual", choices=["manual", "auto"])
+    pf_sub.add_parser("status", help="Show proof matrix summary")
+    pf_hist = pf_sub.add_parser("history", help="Show cycle history for a failure class")
+    pf_hist.add_argument("failure_class", help="Failure class to inspect")
+
     args = parser.parse_args(argv)
 
     if args.command == "validate-rubric":
@@ -75,6 +85,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_collect(args)
     elif args.command == "collect-dir":
         return _cmd_collect_dir(args)
+    elif args.command == "proof":
+        return _cmd_proof(args)
     else:
         parser.print_help()
         return 0
@@ -468,6 +480,67 @@ def _outcome_icon(outcome: StageOutcome) -> str:
     elif outcome == StageOutcome.WARN:
         return "[~]"
     return "[X]"
+
+
+def _cmd_proof(args) -> int:
+    from engine.proof_tracker import ProofTracker
+
+    if args.proof_command == "status":
+        tracker = ProofTracker()
+        matrix = tracker.get_matrix()
+        fc_map = matrix.get("failure_classes", {})
+        if not fc_map:
+            print("No proof data yet. Run a proof cycle first.")
+            return 0
+        print(f"{'Failure Class':<35} {'Status':<12} {'Cycles':<8} {'Consecutive':<13} {'Gate':<15} {'Last Run'}")
+        print("-" * 110)
+        for name, data in sorted(fc_map.items()):
+            print(f"{name:<35} {data.get('status', 'UNTESTED'):<12} {data.get('cycles_completed', 0):<8} "
+                  f"{data.get('consecutive_passes', 0):<13} {data.get('gate', 'manual'):<15} {data.get('last_run', '--') or '--'}")
+        summary = matrix.get("summary", {})
+        if summary:
+            print(f"\nTotal: {summary.get('total', 0)} | Proven: {summary.get('proven', 0)} | "
+                  f"Verified: {summary.get('verified', 0)} | Untested: {summary.get('untested', 0)}")
+        return 0
+
+    elif args.proof_command == "run":
+        from engine.proof_orchestrator import run_proof_cycle
+        from engine.failure_injector import INJECTORS
+        import os
+
+        kubeconfig = os.environ.get("STARGATE_EXECUTOR_KUBECONFIG", "")
+        if not kubeconfig:
+            print("Error: STARGATE_EXECUTOR_KUBECONFIG not set", file=sys.stderr)
+            return 1
+
+        targets = list(INJECTORS.keys()) if args.failure_class == "all" else [args.failure_class]
+
+        for i, fc in enumerate(targets):
+            if fc not in INJECTORS:
+                print(f"Unknown failure class: {fc}. Available: {', '.join(sorted(INJECTORS.keys()))}", file=sys.stderr)
+                return 1
+            print(f"[{i+1}/{len(targets)}] Running proof cycle: {fc}")
+            try:
+                result = run_proof_cycle(failure_class=fc, kubeconfig=kubeconfig, mode=args.mode)
+                status = result.get("status", "unknown")
+                print(f"  Result: {status}")
+            except Exception as e:
+                print(f"  Error: {e}", file=sys.stderr)
+        return 0
+
+    elif args.proof_command == "history":
+        tracker = ProofTracker()
+        matrix = tracker.get_matrix()
+        fc_data = matrix.get("failure_classes", {}).get(args.failure_class)
+        if not fc_data:
+            print(f"No proof data for {args.failure_class}")
+            return 1
+        print(json.dumps(fc_data, indent=2, default=str))
+        return 0
+
+    else:
+        print("Usage: stargate proof {run|status|history}")
+        return 0
 
 
 if __name__ == "__main__":

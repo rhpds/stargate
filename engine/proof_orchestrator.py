@@ -440,7 +440,26 @@ def continue_proof_cycle(
         result["steps"]["cleanup"] = {"status": "failed", "commands": [], "error": str(e)}
 
     result["completed_at"] = datetime.now(timezone.utc).isoformat()
-    result["success"] = result["steps"].get("verify", {}).get("clean", False)
+    verify_clean = result["steps"].get("verify", {}).get("clean", False)
+
+    if verify_clean:
+        result["success"] = True
+        result["proof_mode"] = "remediation"
+    else:
+        phase1_detect = result.get("steps", {}).get("detect", {})
+        detection_correct = phase1_detect.get("correct", False)
+        if detection_correct and not verify_clean:
+            tracker.record_investigation_verified(failure_class, True, {
+                "detection_correct": True,
+                "remediation_insufficient": True,
+                "note": "Detection correct but catalog remediation does not fix root cause — investigation-type proof.",
+            })
+            result["success"] = True
+            result["proof_mode"] = "investigation"
+        else:
+            result["success"] = False
+            result["proof_mode"] = "failed"
+
     result["proof_status"] = tracker.get_status(failure_class)
 
     # Evaluate pipeline rubric — prove stage
