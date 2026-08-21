@@ -24,7 +24,7 @@ class TestExecSummaryEvidence:
 
     def test_exec_summary_has_aap_reference(self):
         """Executive summary endpoint code must reference AAP data."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
+        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard" / "ops.py"
         text = src.read_text()
         # Find the executive summary function
         in_exec = False
@@ -56,7 +56,7 @@ class TestRemediationEvidence:
 
     def test_remediation_has_aap(self):
         """Remediation evidence builder must include AAP data for labs."""
-        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard.py"
+        src = Path(__file__).parent.parent / "api" / "routers" / "dashboard" / "remediation.py"
         text = src.read_text()
         in_evidence = False
         has_aap = False
