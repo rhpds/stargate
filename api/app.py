@@ -373,6 +373,10 @@ def _investigation_queue_loop():
                 if _scan_counter % 5 == 0:
                     _scan_for_investigations(db, logger)
 
+                # Every 360th tick (~6 hours): run one proof cycle for the stalest failure class
+                if _scan_counter % 360 == 0:
+                    _run_proof_sweep(db, logger)
+
                 # Fail any investigations stuck in 'running' for > 5 minutes
                 from db.models import InvestigationRecord as _IR
                 from datetime import datetime, timedelta, timezone
@@ -477,6 +481,41 @@ def _scan_for_investigations(db, logger):
             logger.info("Scan queued %d investigations", queued)
     except Exception as e:
         logger.warning("Investigation scan failed: %s", e)
+
+
+def _run_proof_sweep(db, logger):
+    """Run one proof cycle for the stalest untested/oldest failure class."""
+    try:
+        from engine.proof_tracker import ProofTracker
+        from engine.failure_injector import INJECTORS
+        from engine.proof_orchestrator import run_proof_cycle
+        from api.routers._shared import EXECUTOR_KUBECONFIG
+
+        if not EXECUTOR_KUBECONFIG:
+            return
+
+        tracker = ProofTracker()
+        matrix = tracker.get_matrix()
+        fc_map = matrix.get("failure_classes", {})
+
+        untested = [fc for fc in INJECTORS if fc_map.get(fc, {}).get("status", "UNTESTED") == "UNTESTED"]
+        if untested:
+            target = untested[0]
+        else:
+            by_age = sorted(
+                ((fc, fc_map.get(fc, {}).get("last_run")) for fc in INJECTORS),
+                key=lambda x: x[1] or "",
+            )
+            target = by_age[0][0] if by_age else None
+
+        if not target:
+            return
+
+        logger.info("Proof sweep: running cycle for %s", target)
+        run_proof_cycle(failure_class=target, kubeconfig=EXECUTOR_KUBECONFIG, mode="manual", db=db)
+        logger.info("Proof sweep: %s completed", target)
+    except Exception as e:
+        logger.warning("Proof sweep failed: %s", e)
 
 
 def _babylon_collection_loop():

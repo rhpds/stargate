@@ -352,4 +352,8 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ failure_class: failureClass }),
   }),
+  runProofBatch: (failureClasses: string[] | string, mode = 'manual') => request<any>('/admin/proof/run-batch', {
+    method: 'POST',
+    body: JSON.stringify({ failure_classes: failureClasses, mode }),
+  }),
 };

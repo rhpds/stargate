@@ -46,6 +46,7 @@ class ProofTracker:
         if failure_class not in self._data["failure_classes"]:
             self._data["failure_classes"][failure_class] = {
                 "status": "UNTESTED",
+                "proof_type": "remediation",
                 "cycles_completed": 0,
                 "cycles_failed": 0,
                 "consecutive_passes": 0,
@@ -99,6 +100,27 @@ class ProofTracker:
         fc["history"].append({
             "event": "verified", "ts": datetime.now(timezone.utc).isoformat(),
             "clean": clean, "evidence": evidence,
+        })
+        self._save()
+
+    def record_investigation_verified(self, failure_class: str, detection_correct: bool, evidence: Dict):
+        """For investigation-type proofs: success = correct detection, not remediation fix."""
+        fc = self._get_fc(failure_class)
+        fc["proof_type"] = "investigation"
+        if detection_correct:
+            fc["status"] = "VERIFIED"
+            fc["cycles_completed"] += 1
+            fc["consecutive_passes"] += 1
+            if fc["consecutive_passes"] >= PROVEN_THRESHOLD:
+                fc["status"] = "PROVEN"
+                fc["gate"] = "investigation_proven"
+        else:
+            fc["status"] = "FAILED"
+            fc["cycles_failed"] += 1
+            fc["consecutive_passes"] = 0
+        fc["history"].append({
+            "event": "investigation_verified", "ts": datetime.now(timezone.utc).isoformat(),
+            "detection_correct": detection_correct, "evidence": evidence,
         })
         self._save()
 

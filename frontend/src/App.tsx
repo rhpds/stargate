@@ -58,6 +58,7 @@ const navItems = [
   { to: '/', label: 'Operations', end: true },
   { to: '/deepfield', label: 'Deepfield' },
   { to: '/geolux', label: 'GeoLux' },
+  { to: '/proof', label: 'Proof Lab' },
 ];
 
 export default function App() {
