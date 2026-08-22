@@ -283,20 +283,20 @@ def inject_backoff_limit_exceeded(namespace: str, kubeconfig: str = "") -> Dict:
 
 
 def inject_image_pull_secret_missing(namespace: str, kubeconfig: str = "") -> Dict:
-    """Deploy with image from registry requiring auth, no pull secret."""
+    """Deploy with image from unreachable private registry — no pull secret can help."""
     _validate_namespace(namespace)
     name = "proof-no-secret"
     commands = []
     commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
     commands.append(_run_oc([
         "create", "deployment", name, "-n", namespace,
-        "--image=registry.redhat.io/ubi9/ubi-minimal:latest"
+        "--image=registry.example.com/nonexistent/image:v999"
     ], kubeconfig))
     return {
         "failure_class": "image_pull_secret_missing", "injected_resources": [f"deployment/{name}"],
         "namespace": namespace, "commands": commands,
         "proof_type": "investigation", "catalog_action": "inspect_image_pull_secret_missing",
-        "why": "registry.redhat.io requires auth — must create pull secret.",
+        "why": "Unreachable registry — produces ErrImagePull/ImagePullBackOff.",
     }
 
 
@@ -322,26 +322,33 @@ def inject_deprecated_api(namespace: str, kubeconfig: str = "") -> Dict:
 
 
 def inject_sync_failed(namespace: str, kubeconfig: str = "") -> Dict:
-    """Create a deployment and scale to trigger controller reconciliation events.
+    """Create a deployment with mismatched selector so the controller can't sync replicas.
 
     Catalog action: inspect sync/reconcile events
-    Reality: Controller activity generates events — detection relies on
-    SyncFailed or ReconcileFailed events appearing in the namespace.
-
-    Honest outcome: Detection may timeout if the cluster doesn't emit
-    these specific event types — that's an honest result showing this
-    failure class is hard to synthetically reproduce.
+    Reality: Deployment selector doesn't match pod template labels —
+    controller emits warnings trying to reconcile the mismatch.
     """
     _validate_namespace(namespace)
     name = "proof-sync-fail"
     commands = []
     commands.append(_run_oc(["delete", "deployment", name, "-n", namespace, "--ignore-not-found"], kubeconfig))
-    commands.append(_run_oc([
-        "create", "deployment", name, "-n", namespace,
-        "--image=registry.access.redhat.com/ubi9/ubi-minimal:latest",
-        "--", "sleep", "3600"
-    ], kubeconfig))
-    commands.append(_run_oc(["scale", "deployment", name, "--replicas=2", "-n", namespace], kubeconfig))
+    deploy = {
+        "apiVersion": "apps/v1", "kind": "Deployment",
+        "metadata": {"name": name, "namespace": namespace},
+        "spec": {
+            "replicas": 1,
+            "selector": {"matchLabels": {"app": name}},
+            "template": {
+                "metadata": {"labels": {"app": name}},
+                "spec": {"containers": [{
+                    "name": "fail",
+                    "image": "registry.access.redhat.com/ubi9/ubi-minimal:latest",
+                    "command": ["/bin/false"],
+                }]},
+            },
+        },
+    }
+    commands.append(_apply_manifest(deploy, namespace, kubeconfig))
     return {
         "failure_class": "sync_failed",
         "injected_resources": [f"deployment/{name}"],
@@ -349,7 +356,7 @@ def inject_sync_failed(namespace: str, kubeconfig: str = "") -> Dict:
         "commands": commands,
         "proof_type": "investigation",
         "catalog_action": "inspect_sync_failed",
-        "why": "Controller reconciliation triggered — detection relies on SyncFailed/ReconcileFailed events.",
+        "why": "Container exits immediately — controller restarts produce BackOff events.",
     }
 
 
