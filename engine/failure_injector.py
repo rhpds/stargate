@@ -19,7 +19,7 @@ import logging
 import os
 from typing import Dict, List
 
-from engine.oc_runner import run_oc_traced
+from engine.oc_runner import run_oc_traced, run_oc_stdin
 
 logger = logging.getLogger("stargate.failure_injector")
 
@@ -37,16 +37,8 @@ def _run_oc(args: List[str], kubeconfig: str = "") -> Dict:
 
 
 def _apply_manifest(manifest: dict, namespace: str, kubeconfig: str = "") -> Dict:
-    cmd_str = f"oc apply -f - -n {namespace}"
-    env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
-    start = time.time()
-    r = subprocess.run(
-        ["oc", "apply", "-f", "-", "-n", namespace],
-        input=json.dumps(manifest), capture_output=True, text=True, timeout=30, env=env,
-    )
-    return {"command": cmd_str, "output": r.stdout.strip() or r.stderr.strip(), "exit_code": r.returncode, "duration_ms": int((time.time() - start) * 1000)}
+    output = run_oc_stdin(["apply", "-f", "-", "-n", namespace], json.dumps(manifest), kubeconfig=kubeconfig, timeout=30)
+    return {"command": f"oc apply -f - -n {namespace}", "output": output, "exit_code": 0 if "created" in output or "configured" in output or "unchanged" in output else 1, "duration_ms": 0}
 
 
 # ---------------------------------------------------------------------------
