@@ -165,12 +165,16 @@ def on_startup():
     if os.environ.get("STARGATE_INLINE_SCANNER", "false").lower() == "true":
         ts = threading.Thread(target=_auto_start_scanner, daemon=True)
         ts.start()
-    tc = threading.Thread(target=_corpus_mining_loop, daemon=True)
-    tc.start()
-    tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
-    tb.start()
+    if os.environ.get("STARGATE_API_CORPUS_MINING", "false").lower() == "true":
+        tc = threading.Thread(target=_corpus_mining_loop, daemon=True)
+        tc.start()
+    if os.environ.get("STARGATE_API_BABYLON_COLLECTION", "false").lower() == "true":
+        tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
+        tb.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
+    tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
+    tf.start()
     if os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true":
         ti = threading.Thread(target=_investigation_queue_loop, daemon=True)
         ti.start()
@@ -195,6 +199,45 @@ def _shadow_mode_loop():
             import logging
             logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
         _ts.sleep(300)
+
+
+def _functional_alignment_loop():
+    """Run feature-gated durable ingestion, delivery, and trend processing."""
+    import time as _fa_time
+    _fa_time.sleep(75)
+    while not _shutdown_event.is_set():
+        db = None
+        try:
+            from collectors.aap.collect_aap import collect_aap_jobs
+            from db.database import get_session_factory
+            from db.models import NotificationDelivery
+            from engine.functional_alignment import (
+                deliver_slack, detect_trends, gate_enabled, ingest_aap_collection_status, ingest_aap_failures,
+            )
+            db = get_session_factory()()
+            if gate_enabled("source_ingestion"):
+                data = collect_aap_jobs(hours=24)
+                result = ingest_aap_failures(db, data.get("recent_events", data.get("recent_failures", [])))
+                ingest_aap_collection_status(db, data.get("collection_status", []))
+                logging.getLogger("stargate.functional").info("AAP source ingestion: %s", result)
+            if gate_enabled("slack_delivery"):
+                due = db.query(NotificationDelivery).filter(
+                    NotificationDelivery.status.in_(("pending", "retry")),
+                    (NotificationDelivery.next_attempt_at.is_(None)) |
+                    (NotificationDelivery.next_attempt_at <= datetime.now(timezone.utc)),
+                ).order_by(NotificationDelivery.id).limit(10).all()
+                for delivery in due:
+                    deliver_slack(db, delivery.id)
+            if gate_enabled("trend_detection"):
+                detect_trends(db)
+        except Exception as exc:
+            if db:
+                db.rollback()
+            logging.getLogger("stargate.functional").warning("Functional alignment cycle failed: %s", exc)
+        finally:
+            if db:
+                db.close()
+        _shutdown_event.wait(300)
 
 
 def _record_gap_detections(db):
@@ -265,6 +308,45 @@ def _record_gap_detections(db):
             evaluated_at=now,
         )
         db.add(ev)
+        recorded += 1
+
+    # WorkshopProvision health. Query failures are findings too: zero is only
+    # healthy when the Babylon API explicitly returned a successful empty list.
+    provisions = babylon.get("workshops", {}).get("workshop_provisions", {})
+    query = provisions.get("query", {})
+    if query and not query.get("ok", False):
+        db.add(EvaluationRecord(
+            run_id=run_id,
+            stage_id="provisioning",
+            lab_code="babylon-prod",
+            cluster_name="babylon",
+            outcome="fail",
+            failure_class="workshop_provision_crd_unavailable",
+            message=f"WorkshopProvision collection failed: {query.get('error', 'unknown error')}",
+            evaluated_at=now,
+        ))
+        recorded += 1
+    for finding in provisions.get("findings", []):
+        name = finding.get("name", "")
+        namespace = finding.get("namespace", "")
+        reason = finding.get("reason", "")
+        detail = finding.get("message", "")
+        db.add(EvaluationRecord(
+            run_id=run_id,
+            stage_id="provisioning",
+            lab_code=finding.get("catalog_item") or finding.get("owner") or name or "babylon-prod",
+            cluster_name="babylon",
+            outcome="fail",
+            failure_class=finding.get("failure_class", "workshop_provision_failed"),
+            message=(
+                f"WorkshopProvision {namespace}/{name}: {reason} {detail} "
+                f"(generation={finding.get('generation')}, "
+                f"observedGeneration={finding.get('observed_generation')}, "
+                f"age={finding.get('age_hours')}h)"
+            ).strip(),
+            criteria_results={"workshop_provision": finding},
+            evaluated_at=now,
+        ))
         recorded += 1
 
     if recorded > 0:
@@ -353,6 +435,63 @@ def _auto_resolve_incidents(db):
         logging.getLogger("stargate").info("Auto-resolved %d Deepfield incidents", resolved_count)
 
 
+_INVESTIGATION_SCAN_LOCK_ID = 1398032201
+_INVESTIGATION_WORKER_LOCK_ID = 1398032202
+
+
+def _try_acquire_investigation_scan_lock(db):
+    """Acquire a PostgreSQL lock on a dedicated connection for the scan."""
+    if db.bind.dialect.name != "postgresql":
+        return True
+    from sqlalchemy import text
+    connection = db.get_bind().connect()
+    acquired = bool(connection.execute(
+        text("SELECT pg_try_advisory_lock(:lock_id)"),
+        {"lock_id": _INVESTIGATION_SCAN_LOCK_ID},
+    ).scalar())
+    if not acquired:
+        connection.close()
+        return None
+    return connection
+
+
+def _release_investigation_lock(lock_connection, lock_id: int) -> None:
+    if lock_connection is True:
+        return
+    from sqlalchemy import text
+    try:
+        lock_connection.execute(
+            text("SELECT pg_advisory_unlock(:lock_id)"),
+            {"lock_id": lock_id},
+        )
+    finally:
+        lock_connection.close()
+
+
+def _release_investigation_scan_lock(db, lock_connection) -> None:
+    _release_investigation_lock(lock_connection, _INVESTIGATION_SCAN_LOCK_ID)
+
+
+def _release_investigation_worker_lock(db, lock_connection) -> None:
+    _release_investigation_lock(lock_connection, _INVESTIGATION_WORKER_LOCK_ID)
+
+
+def _try_acquire_investigation_worker_lock(db):
+    """Elect one API replica to process the investigation queue for this tick."""
+    if db.bind.dialect.name != "postgresql":
+        return True
+    from sqlalchemy import text
+    connection = db.get_bind().connect()
+    acquired = bool(connection.execute(
+        text("SELECT pg_try_advisory_lock(:lock_id)"),
+        {"lock_id": _INVESTIGATION_WORKER_LOCK_ID},
+    ).scalar())
+    if not acquired:
+        connection.close()
+        return None
+    return connection
+
+
 def _investigation_queue_loop():
     """Scan for stuck/anomalous RHDP namespaces and run queued investigations."""
     import time as _ti
@@ -367,11 +506,23 @@ def _investigation_queue_loop():
             from db import repository
             factory = get_session_factory()
             db = factory()
+            worker_lock = _try_acquire_investigation_worker_lock(db)
+            if not worker_lock:
+                db.close()
+                _shutdown_event.wait(60)
+                continue
             try:
                 # Every 5th tick (~5 min): scan for sandbox namespaces that need investigation
                 _scan_counter += 1
                 if _scan_counter % 5 == 0:
-                    _scan_for_investigations(db, logger)
+                    lock_connection = _try_acquire_investigation_scan_lock(db)
+                    if lock_connection:
+                        try:
+                            _scan_for_investigations(db, logger)
+                        finally:
+                            _release_investigation_scan_lock(db, lock_connection)
+                    else:
+                        logger.info("Investigation scan skipped: another replica holds the scan lock")
 
                 # Every 360th tick (~6 hours): run one proof cycle for the stalest failure class
                 if _scan_counter % 360 == 0:
@@ -419,6 +570,7 @@ def _investigation_queue_loop():
                                 repository.fail_investigation(db, rec.job_id, str(e))
                                 logger.warning("Investigation %s exception: %s", rec.job_id, e)
             finally:
+                _release_investigation_worker_lock(db, worker_lock)
                 db.close()
         except Exception as e:
             logger.debug("Investigation queue tick failed: %s", e)
@@ -437,6 +589,7 @@ def _scan_for_investigations(db, logger):
     try:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
         dedup_hours = int(os.environ.get("STARGATE_INVESTIGATE_DEDUP_HOURS", "4"))
+        max_per_scan = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_SCAN", "10"))
         dedup_cutoff = datetime.now(timezone.utc) - timedelta(hours=dedup_hours)
 
         # Find sandbox namespaces with recent failures, grouped by namespace
@@ -474,8 +627,8 @@ def _scan_for_investigations(db, logger):
                 trigger_type=f"auto_{att}" if att else "auto",
             )
             queued += 1
-            logger.info("Auto-investigation queued: %s for %s [%s] (%s)", job_id, lab_name, all_fcs, reason)
-            if queued >= 3:
+            logger.info("Auto-investigation queued: %s for %s [%s] (%s)", job_id, lab_code, all_fcs, reason)
+            if queued >= max_per_scan:
                 break
         if queued:
             logger.info("Scan queued %d investigations", queued)
@@ -609,6 +762,15 @@ def _warm_caches():
             _shared._aap_cache = {"data": {}, "ts": 0.0}
         _shared._aap_cache["data"] = collect_aap_jobs()
         _shared._aap_cache["ts"] = _tc.time()
+        from engine.functional_alignment import gate_enabled, ingest_aap_collection_status, ingest_aap_failures
+        if gate_enabled("source_ingestion"):
+            from db.database import get_session_factory
+            _db = get_session_factory()()
+            try:
+                ingest_aap_failures(_db, _shared._aap_cache["data"].get("recent_events", _shared._aap_cache["data"].get("recent_failures", [])))
+                ingest_aap_collection_status(_db, _shared._aap_cache["data"].get("collection_status", []))
+            finally:
+                _db.close()
         logger.info("Cache warm: AAP")
     except Exception as e:
         logger.debug(f"Cache warm AAP failed: {e}")
@@ -640,6 +802,7 @@ def _mv_refresh_loop():
         return
     from datetime import datetime, timezone
     logger = _stargate_logger
+    last_snapshot_cleanup = 0.0
     while not _shutdown_event.is_set():
         db = None
         try:
@@ -676,6 +839,15 @@ def _mv_refresh_loop():
                 check_and_notify(db)
             except Exception as e:
                 logger.debug(f"Notifications skipped: {e}")
+            if _time.monotonic() - last_snapshot_cleanup >= 3600:
+                retention_days = int(os.environ.get("STARGATE_SCAN_SNAPSHOT_RETENTION_DAYS", "7"))
+                batch_size = int(os.environ.get("STARGATE_SCAN_SNAPSHOT_CLEANUP_BATCH", "1000"))
+                deleted = repository.cleanup_old_scan_snapshots(
+                    db, days=retention_days, batch_size=batch_size,
+                )
+                last_snapshot_cleanup = _time.monotonic()
+                if deleted:
+                    logger.info("Expired scan snapshots deleted: %d", deleted)
             logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")

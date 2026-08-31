@@ -86,6 +86,88 @@ class TestClassifyNamespace:
 
 
 class TestShouldAutoInvestigate:
+    def test_skips_covered_pattern_on_same_cluster(self, db):
+        from db.repository import complete_investigation, create_investigation
+        create_investigation(
+            db, job_id="inv-pattern01", lab_code="sandbox-first-ocp4",
+            cluster="east", failure_class="new_failure",
+        )
+        complete_investigation(db, "inv-pattern01", analysis="representative finding")
+
+        baselines = {
+            "ocp4": {
+                "total_evals": 100,
+                "failure_profiles": {
+                    "new_failure": {"rate": 0.01, "count": 1, "p95_ttr_minutes": None},
+                },
+            }
+        }
+
+        from engine.attention_classifier import should_auto_investigate
+        with patch("engine.attention_classifier.get_cached_baselines", return_value=baselines):
+            should, reason, _att = should_auto_investigate(
+                db, "sandbox-second-ocp4", "new_failure", "east"
+            )
+        assert not should
+        assert "pattern covered" in reason
+
+    def test_pattern_dedup_does_not_cross_clusters(self, db):
+        from db.repository import complete_investigation, create_investigation
+        create_investigation(
+            db, job_id="inv-pattern02", lab_code="sandbox-first-ocp4",
+            cluster="east", failure_class="new_failure",
+        )
+        complete_investigation(db, "inv-pattern02", analysis="representative finding")
+
+        baselines = {
+            "ocp4": {
+                "total_evals": 100,
+                "failure_profiles": {
+                    "new_failure": {"rate": 0.01, "count": 1, "p95_ttr_minutes": None},
+                },
+            }
+        }
+
+        from engine.attention_classifier import should_auto_investigate
+        with patch("engine.attention_classifier.get_cached_baselines", return_value=baselines), \
+             patch.dict(os.environ, {"STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR": "0"}):
+            should, _reason, _att = should_auto_investigate(
+                db, "sandbox-second-ocp4", "new_failure", "west"
+            )
+        assert should
+
+    def test_skips_daily_limit(self, db):
+        from db.repository import create_investigation
+        for i in range(2):
+            create_investigation(
+                db,
+                job_id=f"inv-daily{i}",
+                lab_code=f"sandbox-daily{i}-ocp4",
+                cluster="east",
+                failure_class="fc1",
+            )
+
+        baselines = {
+            "ocp4": {
+                "total_evals": 100,
+                "failure_profiles": {
+                    "new_failure": {"rate": 0.01, "count": 1, "p95_ttr_minutes": None},
+                },
+            }
+        }
+
+        from engine.attention_classifier import should_auto_investigate
+        with patch("engine.attention_classifier.get_cached_baselines", return_value=baselines), \
+             patch.dict(os.environ, {
+                 "STARGATE_INVESTIGATE_MAX_PER_DAY": "2",
+                 "STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR": "10",
+             }):
+            should, reason, _att = should_auto_investigate(
+                db, "sandbox-zz99z-ocp4", "new_failure", "east"
+            )
+        assert not should
+        assert "daily investigation budget: 2/2" in reason
+
     def test_skips_expected(self, db):
         from engine.attention_classifier import should_auto_investigate
         with patch("engine.attention_classifier.get_cached_baselines", return_value={}):
@@ -133,3 +215,29 @@ class TestShouldAutoInvestigate:
             should, reason, _att = should_auto_investigate(db, "sandbox-zz99z-ocp4", "new_failure", "east")
         assert not should
         assert "rate limit" in reason
+
+    def test_zero_disables_rate_limit(self, db):
+        from db.repository import create_investigation
+        for i in range(5):
+            create_investigation(db, job_id=f"inv-unlimited{i}", lab_code=f"sandbox-unlimited{i}-ocp4", cluster="east", failure_class="fc1")
+
+        baselines = {
+            "ocp4": {
+                "total_evals": 100,
+                "failure_profiles": {
+                    "new_failure": {"rate": 0.01, "count": 1, "p95_ttr_minutes": None},
+                },
+            }
+        }
+
+        from engine.attention_classifier import should_auto_investigate
+        with patch("engine.attention_classifier.get_cached_baselines", return_value=baselines), \
+             patch.dict(os.environ, {
+                 "STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR": "0",
+                 "STARGATE_INVESTIGATE_MAX_PER_DAY": "200",
+             }):
+            should, reason, _att = should_auto_investigate(
+                db, "sandbox-zz99z-ocp4", "new_failure", "east"
+            )
+        assert should
+        assert "attention=" in reason

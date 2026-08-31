@@ -13,7 +13,10 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
     Boolean,
+    ForeignKey,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSON
 
@@ -95,6 +98,7 @@ class EvaluationRecord(Base):
     # Stage 3: bundle context
     lab_code = Column(String(255), nullable=True, index=True)
     cluster_name = Column(String(255), nullable=True, index=True)
+    source_event_id = Column(Integer, ForeignKey("source_events.id"), nullable=True, index=True)
 
     # Stage 5: HITL feedback
     human_confirmed = Column(Boolean, nullable=True)
@@ -170,7 +174,7 @@ class Receipt(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     receipt_type = Column(String(100), nullable=False, index=True)
-    phase = Column(String(10), nullable=True, index=True)
+    phase = Column(String(100), nullable=True, index=True)
     data = Column(JSON, nullable=False)
     passed = Column(Boolean, nullable=False)
     generated_at = Column(DateTime(timezone=True), nullable=False)
@@ -506,3 +510,143 @@ class InvestigationRecord(Base):
     created_at = Column(DateTime(timezone=True), nullable=False)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    diagnosis_version = Column(Integer, nullable=False, default=1)
+    evidence_hash = Column(String(64), nullable=True, index=True)
+    review_state = Column(String(30), nullable=False, default="unreviewed")
+    reviewed_by = Column(String(255), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    knowledge_match = Column(JSON, nullable=True)
+
+
+class SourceEvent(Base):
+    """Durable, idempotent external failure event used by investigations."""
+    __tablename__ = "source_events"
+    __table_args__ = (
+        UniqueConstraint("source_system", "source_instance", "source_event_id", name="uq_source_event_identity"),
+        Index("idx_source_event_state_seen", "state", "last_seen_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source_system = Column(String(50), nullable=False)
+    source_instance = Column(String(255), nullable=False)
+    source_event_id = Column(String(255), nullable=False)
+    evidence_hash = Column(String(64), nullable=False, index=True)
+    outcome = Column(String(30), nullable=False, default="fail", index=True)
+    state = Column(String(30), nullable=False, default="new", index=True)
+    job_id = Column(String(255), nullable=True, index=True)
+    controller_url = Column(String(500), nullable=True)
+    job_url = Column(String(500), nullable=True)
+    task = Column(Text, nullable=True)
+    play = Column(Text, nullable=True)
+    role = Column(Text, nullable=True)
+    guid = Column(String(255), nullable=True, index=True)
+    catalog_item = Column(String(255), nullable=True, index=True)
+    stage = Column(String(100), nullable=True)
+    action = Column(String(100), nullable=True)
+    provider = Column(String(100), nullable=True)
+    cluster = Column(String(100), nullable=True, index=True)
+    failure_class = Column(String(255), nullable=True, index=True)
+    normalized_error = Column(Text, nullable=False)
+    raw_evidence = Column(JSON, nullable=True)
+    occurred_at = Column(DateTime(timezone=True), nullable=True)
+    first_seen_at = Column(DateTime(timezone=True), nullable=False)
+    last_seen_at = Column(DateTime(timezone=True), nullable=False)
+    claimed_at = Column(DateTime(timezone=True), nullable=True)
+    claim_expires_at = Column(DateTime(timezone=True), nullable=True)
+    diagnosed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class InvestigationSourceEvent(Base):
+    __tablename__ = "investigation_source_events"
+    __table_args__ = (UniqueConstraint("investigation_id", "source_event_id", name="uq_inv_source_event"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id"), nullable=False, index=True)
+    source_event_id = Column(Integer, ForeignKey("source_events.id"), nullable=False, index=True)
+    evidence_hash = Column(String(64), nullable=False)
+    diagnosis_version = Column(Integer, nullable=False, default=1)
+    claimed_at = Column(DateTime(timezone=True), nullable=False)
+    diagnosed_at = Column(DateTime(timezone=True), nullable=True)
+    released_at = Column(DateTime(timezone=True), nullable=True)
+    release_reason = Column(String(255), nullable=True)
+
+
+class NotificationDelivery(Base):
+    __tablename__ = "notification_deliveries"
+    __table_args__ = (UniqueConstraint("channel", "dedup_key", name="uq_notification_channel_key"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    channel = Column(String(50), nullable=False)
+    dedup_key = Column(String(255), nullable=False)
+    payload_hash = Column(String(64), nullable=False)
+    investigation_id = Column(Integer, ForeignKey("investigations.id"), nullable=True, index=True)
+    diagnosis_version = Column(Integer, nullable=False, default=1)
+    status = Column(String(30), nullable=False, default="pending", index=True)
+    attempt_count = Column(Integer, nullable=False, default=0)
+    external_message_id = Column(String(255), nullable=True)
+    last_error = Column(Text, nullable=True)
+    next_attempt_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ExternalTicket(Base):
+    __tablename__ = "external_tickets"
+    __table_args__ = (
+        Index("uq_active_ticket_signature", "system", "dedup_signature", unique=True,
+              postgresql_where=text("active = true"), sqlite_where=text("active = 1")),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    system = Column(String(30), nullable=False, default="jira")
+    dedup_signature = Column(String(255), nullable=False, index=True)
+    active = Column(Boolean, nullable=False, default=True)
+    ticket_key = Column(String(100), nullable=True, index=True)
+    ticket_url = Column(String(500), nullable=True)
+    status = Column(String(50), nullable=False, default="draft", index=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id"), nullable=True)
+    diagnosis_version = Column(Integer, nullable=False, default=1)
+    source_event_ids = Column(JSON, nullable=False, default=list)
+    draft_payload = Column(JSON, nullable=False)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class KnowledgeEntry(Base):
+    __tablename__ = "knowledge_entries"
+    __table_args__ = (UniqueConstraint("signature", "version", name="uq_knowledge_signature_version"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signature = Column(String(255), nullable=False, index=True)
+    version = Column(Integer, nullable=False, default=1)
+    active = Column(Boolean, nullable=False, default=True, index=True)
+    root_cause = Column(Text, nullable=False)
+    remediation = Column(Text, nullable=False)
+    metadata_json = Column(JSON, nullable=True)
+    provenance = Column(JSON, nullable=False)
+    confidence = Column(Float, nullable=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id"), nullable=False)
+    reviewed_by = Column(String(255), nullable=False)
+    reviewed_at = Column(DateTime(timezone=True), nullable=False)
+    retired_at = Column(DateTime(timezone=True), nullable=True)
+    acceptance_count = Column(Integer, nullable=False, default=0)
+    rejection_count = Column(Integer, nullable=False, default=0)
+
+
+class TrendSignal(Base):
+    __tablename__ = "trend_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_key = Column(String(255), unique=True, nullable=False, index=True)
+    signal_type = Column(String(100), nullable=False, index=True)
+    catalog_item = Column(String(255), nullable=True, index=True)
+    failure_class = Column(String(255), nullable=True, index=True)
+    current_rate = Column(Float, nullable=True)
+    baseline_rate = Column(Float, nullable=True)
+    failure_count = Column(Integer, nullable=False)
+    evidence = Column(JSON, nullable=False)
+    status = Column(String(30), nullable=False, default="open", index=True)
+    detected_at = Column(DateTime(timezone=True), nullable=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)

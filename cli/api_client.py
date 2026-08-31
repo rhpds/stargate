@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
@@ -13,25 +14,33 @@ from urllib.error import URLError
 class StarGateClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
+        self.timeout = int(os.environ.get("STARGATE_API_CLIENT_TIMEOUT", "60"))
+
+    def _headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
+        if api_key:
+            headers["X-API-Key"] = api_key
+        return headers
 
     def _post(self, path: str, data: dict) -> dict:
         url = f"{self.base_url}{path}"
         body = json.dumps(data).encode("utf-8")
-        req = Request(url, data=body, headers={"Content-Type": "application/json"})
+        req = Request(url, data=body, headers=self._headers())
         try:
-            with urlopen(req, timeout=15) as resp:
+            with urlopen(req, timeout=self.timeout) as resp:
                 return json.loads(resp.read())
-        except URLError as e:
+        except (URLError, OSError, TimeoutError) as e:
             print(f"  API error: {e}", file=sys.stderr)
             return {"error": str(e)}
 
     def _get(self, path: str) -> dict:
         url = f"{self.base_url}{path}"
-        req = Request(url)
+        req = Request(url, headers=self._headers())
         try:
-            with urlopen(req, timeout=15) as resp:
+            with urlopen(req, timeout=self.timeout) as resp:
                 return json.loads(resp.read())
-        except URLError as e:
+        except (URLError, OSError, TimeoutError) as e:
             return {"error": str(e)}
 
     def create_run(

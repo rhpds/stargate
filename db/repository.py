@@ -746,6 +746,37 @@ def save_scan_snapshot(db: Session, scan_type: str, data: dict) -> None:
     db.commit()
 
 
+def cleanup_old_scan_snapshots(db: Session, days: int = 7, batch_size: int = 1000) -> int:
+    """Delete one bounded batch of expired scan snapshots.
+
+    Callers should repeat until this returns zero. Batching keeps transactions and
+    WAL growth controlled when a deployment has accumulated a large backlog.
+    """
+    from db.models import ScanSnapshot
+    from datetime import datetime, timedelta, timezone
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    expired_ids = [
+        row[0]
+        for row in (
+            db.query(ScanSnapshot.id)
+            .filter(ScanSnapshot.scanned_at < cutoff)
+            .order_by(ScanSnapshot.id)
+            .limit(max(1, batch_size))
+            .all()
+        )
+    ]
+    if not expired_ids:
+        return 0
+    deleted = (
+        db.query(ScanSnapshot)
+        .filter(ScanSnapshot.id.in_(expired_ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return deleted
+
+
 def get_latest_scan_snapshot(db: Session, scan_type: str) -> Optional[dict]:
     """Get the most recent scan snapshot of a given type."""
     from db.models import ScanSnapshot
@@ -1459,6 +1490,16 @@ def start_investigation(db: Session, job_id: str) -> None:
         record.status = "running"
         record.started_at = datetime.now(timezone.utc)
         db.commit()
+        try:
+            from engine.functional_alignment import claim_source_events, find_knowledge, gate_enabled
+            if gate_enabled("diagnosis_claims"):
+                claim_source_events(db, record)
+            if gate_enabled("knowledge_retrieval"):
+                matches = find_knowledge(db, record.lab_code, record.failure_class or "")
+                record.knowledge_match = {"matches": matches} if matches else None
+                db.commit()
+        except Exception:
+            db.rollback()
 
 
 def complete_investigation(
@@ -1495,6 +1536,19 @@ def complete_investigation(
     record.fallback = fallback
     record.error = error
     db.commit()
+    try:
+        from engine.functional_alignment import (
+            create_jira_draft, finish_source_event_claims, gate_enabled,
+            queue_slack_delivery,
+        )
+        if gate_enabled("diagnosis_claims"):
+            finish_source_event_claims(db, record, success=not bool(error), reason=error or "")
+        if not error and gate_enabled("slack_delivery"):
+            queue_slack_delivery(db, record)
+        if not error and gate_enabled("jira_drafting"):
+            create_jira_draft(db, record)
+    except Exception:
+        db.rollback()
 
 
 def fail_investigation(db: Session, job_id: str, error: str) -> None:
@@ -1506,6 +1560,12 @@ def fail_investigation(db: Session, job_id: str, error: str) -> None:
         record.error = error[:500] if error else None
         record.completed_at = datetime.now(timezone.utc)
         db.commit()
+        try:
+            from engine.functional_alignment import finish_source_event_claims, gate_enabled
+            if gate_enabled("diagnosis_claims"):
+                finish_source_event_claims(db, record, success=False, reason=error)
+        except Exception:
+            db.rollback()
 
 
 def get_investigation(db: Session, job_id: str) -> Optional[InvestigationRecord]:

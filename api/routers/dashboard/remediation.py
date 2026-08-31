@@ -504,6 +504,10 @@ def dashboard_investigate_poll(job_id: str, db: Session = Depends(get_db)):
     from db.repository import get_investigation
     record = get_investigation(db, job_id)
     if record and record.status in ("complete", "error"):
+        from db.models import ExternalTicket, InvestigationSourceEvent, NotificationDelivery
+        links = db.query(InvestigationSourceEvent).filter_by(investigation_id=record.id).all()
+        delivery = db.query(NotificationDelivery).filter_by(investigation_id=record.id).order_by(NotificationDelivery.id.desc()).first()
+        ticket = db.query(ExternalTicket).filter_by(investigation_id=record.id, active=True).order_by(ExternalTicket.id.desc()).first()
         return {
             "status": record.status,
             "analysis": record.analysis,
@@ -512,6 +516,13 @@ def dashboard_investigate_poll(job_id: str, db: Session = Depends(get_db)):
             "error": record.error,
             "fallback": record.fallback,
             "trigger_type": record.trigger_type,
+            "source_event_ids": [link.source_event_id for link in links],
+            "evidence_hash": record.evidence_hash,
+            "diagnosis_version": record.diagnosis_version,
+            "review_state": record.review_state,
+            "slack_delivery": ({"id": delivery.id, "status": delivery.status} if delivery else None),
+            "jira_ticket": ({"id": ticket.id, "key": ticket.ticket_key, "url": ticket.ticket_url, "status": ticket.status} if ticket else None),
+            "knowledge_match": record.knowledge_match,
         }
     file_result = _load_investigation(job_id)
     if file_result:
@@ -622,6 +633,10 @@ def dashboard_investigations_list(
             "attention": attention,
             "attention_reason": attention_reason,
             "resolution": resolved,
+            "evidence_hash": r.evidence_hash,
+            "diagnosis_version": r.diagnosis_version,
+            "review_state": r.review_state,
+            "knowledge_match": r.knowledge_match,
         })
     return result
 
@@ -659,16 +674,16 @@ def dashboard_investigations_stats(db: Session = Depends(get_db)):
     ).scalar()
 
     enabled = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
-    max_stuck = int(os.environ.get("STARGATE_INVESTIGATE_MAX_STUCK_PER_DAY", "100"))
-    max_anomalous = int(os.environ.get("STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY", "50"))
+    max_per_day = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200"))
 
     return {
         "today": today_count,
         "queue_depth": queue_depth,
         "stuck_today": stuck_today,
-        "stuck_max": max_stuck,
+        "stuck_max": max_per_day,
         "anomalous_today": anomalous_today,
-        "anomalous_max": max_anomalous,
+        "anomalous_max": max_per_day,
+        "max_per_day": max_per_day,
         "by_trigger_type": {t: c for t, c in by_trigger},
         "avg_cost_today": round(avg_cost, 4) if avg_cost else None,
         "enabled": enabled,

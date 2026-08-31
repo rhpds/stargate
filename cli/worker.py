@@ -449,7 +449,13 @@ class ClusterWorker:
                 result["service_uuid"] = service_uuid
             return result
         except Exception as e:
-            logger.warning("Namespace collection parse failed: %s", e)
+            stderr = (r.stderr or "").strip()
+            logger.warning(
+                "Namespace collection parse failed for %s: %s%s",
+                namespace,
+                e,
+                f"; stderr={stderr[-1000:]}" if stderr else "",
+            )
             return None
 
     def _get_lab_mappings(self) -> list:
