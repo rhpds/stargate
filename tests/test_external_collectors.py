@@ -216,6 +216,18 @@ class TestScheduler:
         s._shutdown = __import__("threading").Event()
         assert Scheduler.STAGGER_SECONDS == 30
 
+    def test_scheduler_can_leave_babylon_to_dedicated_worker(self, monkeypatch):
+        from cli.scheduler import Scheduler
+
+        scheduler = Scheduler(clusters={}, include_babylon=False)
+        monkeypatch.setattr(__import__("threading").Thread, "start", lambda self: None)
+
+        available, unavailable = scheduler.start()
+
+        assert "babylon-control-plane" not in available
+        assert unavailable == []
+        assert scheduler._babylon_running is False
+
     def test_worker_thread_init(self):
         from cli.scheduler import WorkerThread
         from cli.worker import ClusterWorker

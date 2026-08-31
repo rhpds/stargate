@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -34,6 +34,28 @@ def _oc(args: List[str], timeout: int = 30) -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+def _oc_json_with_status(args: List[str], timeout: int = 30) -> tuple[Optional[Dict], Dict]:
+    """Run an oc JSON query without turning API/RBAC failures into an empty list."""
+    env = {**os.environ, "KUBECONFIG": KUBECONFIG}
+    checked_at = datetime.now(timezone.utc).isoformat()
+    try:
+        r = subprocess.run(
+            ["oc"] + args, capture_output=True, text=True, timeout=timeout, env=env,
+        )
+    except subprocess.TimeoutExpired:
+        return None, {"ok": False, "checked_at": checked_at, "error": "query timed out"}
+    except Exception as exc:
+        return None, {"ok": False, "checked_at": checked_at, "error": str(exc)[:500]}
+
+    if r.returncode != 0:
+        error = (r.stderr or r.stdout or f"oc exited {r.returncode}").strip()
+        return None, {"ok": False, "checked_at": checked_at, "error": error[:500]}
+    try:
+        return json.loads(r.stdout), {"ok": True, "checked_at": checked_at, "error": None}
+    except json.JSONDecodeError as exc:
+        return None, {"ok": False, "checked_at": checked_at, "error": f"invalid JSON: {exc}"}
 
 
 def collect_pool_summary() -> Dict:
@@ -171,19 +193,122 @@ def collect_catalog_items() -> List[Dict]:
     return items
 
 
+def _parse_timestamp(value: str) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def collect_workshop_provisions() -> Dict:
+    """Collect actionable WorkshopProvision state from the Babylon control plane."""
+    namespaces = [
+        value.strip() for value in os.environ.get(
+            "STARGATE_WORKSHOP_PROVISION_NAMESPACES", "babylon-catalog-prod",
+        ).split(",") if value.strip()
+    ]
+    items = []
+    namespace_queries = {}
+    for namespace in namespaces:
+        data, status = _oc_json_with_status(
+            ["get", "workshopprovisions", "-n", namespace, "-o", "json"], timeout=60,
+        )
+        namespace_queries[namespace] = status
+        if data is not None:
+            items.extend(data.get("items", []))
+    failed_queries = {
+        namespace: status for namespace, status in namespace_queries.items()
+        if not status.get("ok", False)
+    }
+    query = {
+        "ok": not failed_queries,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "namespaces": namespace_queries,
+        "error": "; ".join(
+            f"{namespace}: {status.get('error', 'unknown error')}"
+            for namespace, status in failed_queries.items()
+        ) or None,
+    }
+    if failed_queries:
+        return {"query": query, "total": None, "findings": []}
+
+    now = datetime.now(timezone.utc)
+    stall_hours = int(os.environ.get("STARGATE_WORKSHOP_PROVISION_STALL_HOURS", "1"))
+    findings = []
+    state_counts: Dict[str, int] = {}
+    for item in items:
+        metadata = item.get("metadata", {})
+        spec = item.get("spec", {})
+        status = item.get("status", {})
+        conditions = status.get("conditions", []) or []
+        by_type = {str(c.get("type", "")).lower(): c for c in conditions}
+        generation = metadata.get("generation")
+        observed_generation = status.get("observedGeneration")
+        created_at = _parse_timestamp(metadata.get("creationTimestamp", ""))
+        age_hours = round((now - created_at).total_seconds() / 3600, 1) if created_at else None
+
+        failed = next((c for k, c in by_type.items() if "fail" in k and c.get("status") == "True"), None)
+        ready = by_type.get("ready")
+        progressing = next((c for k, c in by_type.items() if "progress" in k), None)
+        last_transition = max(
+            (_parse_timestamp(c.get("lastTransitionTime", "")) for c in conditions),
+            default=None,
+            key=lambda value: value or datetime.min.replace(tzinfo=timezone.utc),
+        )
+        transition_age = (now - last_transition) if last_transition else None
+
+        failure_class = None
+        condition = failed or ready or progressing or {}
+        if failed:
+            failure_class = "workshop_provision_failed"
+        elif generation is not None and observed_generation is not None and generation > observed_generation:
+            failure_class = "workshop_provision_controller_lag"
+        elif ready and ready.get("status") == "False" and transition_age and transition_age >= timedelta(hours=stall_hours):
+            failure_class = "workshop_provision_stalled"
+        elif not ready and age_hours is not None and age_hours >= stall_hours:
+            failure_class = "workshop_provision_stalled"
+
+        state = "failed" if failed else "ready" if ready and ready.get("status") == "True" else "pending"
+        state_counts[state] = state_counts.get(state, 0) + 1
+        if failure_class:
+            labels = metadata.get("labels", {}) or {}
+            owner_refs = metadata.get("ownerReferences", []) or []
+            findings.append({
+                "name": metadata.get("name", ""),
+                "namespace": metadata.get("namespace", ""),
+                "failure_class": failure_class,
+                "reason": condition.get("reason", ""),
+                "message": str(condition.get("message", ""))[:1000],
+                "generation": generation,
+                "observed_generation": observed_generation,
+                "age_hours": age_hours,
+                "last_transition_time": condition.get("lastTransitionTime", ""),
+                "owner": owner_refs[0].get("name", "") if owner_refs else "",
+                "catalog_item": labels.get("babylon.gpte.redhat.com/catalogItemName", spec.get("catalogItem", "")),
+                "conditions": conditions,
+            })
+
+    return {
+        "query": query,
+        "total": len(items),
+        "state_counts": state_counts,
+        "finding_count": len(findings),
+        "stall_threshold_hours": stall_hours,
+        "findings": findings,
+    }
+
+
 def collect_workshop_summary() -> Dict:
-    """Collect Workshop/MultiWorkshop status."""
-    raw = _oc(["get", "workshops", "-A", "--no-headers"])
-    workshops = 0
-    if raw:
-        workshops = len([l for l in raw.strip().split("\n") if l])
-
-    raw_mw = _oc(["get", "multiworkshops", "-A", "--no-headers"])
-    multiworkshops = 0
-    if raw_mw:
-        multiworkshops = len([l for l in raw_mw.strip().split("\n") if l])
-
-    return {"workshops": workshops, "multiworkshops": multiworkshops}
+    """Collect legacy counts plus first-class WorkshopProvision health."""
+    result = {"workshops": 0, "multiworkshops": 0}
+    for resource, key in (("workshops", "workshops"), ("multiworkshops", "multiworkshops")):
+        data, query = _oc_json_with_status(["get", resource, "-A", "-o", "json"])
+        result[key] = len(data.get("items", [])) if data is not None else None
+        result[f"{key}_query"] = query
+    result["workshop_provisions"] = collect_workshop_provisions()
+    return result
 
 
 _SUBJECT_COLUMNS = (
@@ -402,7 +527,12 @@ def run_collection() -> Dict:
 
     print("  Collecting workshop summary...")
     results["workshops"] = collect_workshop_summary()
-    print(f"    Workshops: {results['workshops']['workshops']}, MultiWorkshops: {results['workshops']['multiworkshops']}")
+    wp = results["workshops"]["workshop_provisions"]
+    print(
+        f"    Workshops: {results['workshops']['workshops']}, "
+        f"MultiWorkshops: {results['workshops']['multiworkshops']}, "
+        f"WorkshopProvisions: {wp.get('total')} ({wp.get('finding_count', 0)} findings)"
+    )
 
     # Guid → lab mapping from ResourceClaims (fast tabular query, run early)
     print("  Collecting guid → lab mapping from ResourceClaims...")

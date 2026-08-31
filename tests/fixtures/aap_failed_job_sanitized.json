@@ -1,0 +1,18 @@
+{
+  "controller": "event-0",
+  "event_id": 42001,
+  "job_id": 7301,
+  "controller_url": "https://aap.example.invalid",
+  "job_url": "https://aap.example.invalid/#/jobs/7301/output",
+  "failing_task": "Create workshop resources",
+  "play": "Provision workshop",
+  "role": "workshop_provision",
+  "lab_code": "guid-example",
+  "catalog_item": "ocp4-cluster",
+  "type": "provision",
+  "provider": "openshift",
+  "cluster": "ocpv09",
+  "failure_class": "workshop_provision_failed",
+  "error": "Controller rejected WorkshopProvision generation 4",
+  "finished": "2026-08-25T15:00:00Z"
+}

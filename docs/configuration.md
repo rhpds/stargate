@@ -358,29 +358,15 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
-| Default     | `50`                                                        |
+| Default     | `200`                                                       |
 | Description | Maximum total investigations per day                        |
-
-### STARGATE_INVESTIGATE_MAX_STUCK_PER_DAY
-
-| Property    | Value                                                      |
-|-------------|-------------------------------------------------------------|
-| Default     | `100`                                                       |
-| Description | Maximum stuck-namespace investigations per day              |
-
-### STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY
-
-| Property    | Value                                                      |
-|-------------|-------------------------------------------------------------|
-| Default     | `50`                                                        |
-| Description | Maximum anomalous-namespace investigations per day          |
 
 ### STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR
 
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
 | Default     | `3`                                                         |
-| Description | Maximum investigations per catalog item per hour (rate limit) |
+| Description | Maximum investigations per catalog item per hour (rate limit); set to `0` to disable |
 
 ### STARGATE_INVESTIGATE_DEDUP_HOURS
 
@@ -388,6 +374,20 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 |-------------|-------------------------------------------------------------|
 | Default     | `4`                                                         |
 | Description | Hours to deduplicate investigations for the same lab+failure_class |
+
+### STARGATE_INVESTIGATE_MAX_PER_SCAN
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `10`                                                        |
+| Description | Maximum investigations queued during each five-minute scan cycle |
+
+### STARGATE_INVESTIGATE_PATTERN_DEDUP_HOURS
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `2`                                                         |
+| Description | Hours to reuse a representative investigation for the same catalog item, primary failure class, and cluster; set to `0` to disable |
 
 ### STARGATE_INVESTIGATE_PERSISTENT_HOURS
 
@@ -616,7 +616,7 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_CLUSTERS_FILE`                 | Not set                 | No          |
 | `STARGATE_AUTO_INVESTIGATE`              | `false`                 | No          |
 | `STARGATE_AGENT_MODEL`                   | `STARGATE_LLM_MODEL`   | No          |
-| `STARGATE_INVESTIGATE_MAX_PER_DAY`       | `50`                    | No          |
+| `STARGATE_INVESTIGATE_MAX_PER_DAY`       | `200`                   | No          |
 | `STARGATE_DEEPFIELD_URL`                 | `""`                    | No          |
 | `STARGATE_GEOLUX_URL`                    | in-cluster default      | No          |
 | `STARGATE_GEOLUX_API_KEY`               | `STARGATE_ADMIN_API_KEY`| No          |
@@ -635,6 +635,8 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_SLACK_WEBHOOK_URL`             | Not set                 | No          |
 | `STARGATE_COST_VCPU_HOUR`               | `0.05`                  | No          |
 | `STARGATE_INLINE_SCANNER`               | `false`                 | No          |
+| `STARGATE_API_BABYLON_COLLECTION`       | `false`                 | No          |
+| `STARGATE_API_CORPUS_MINING`             | `false`                 | No          |
 
 "Required" column indicates:
 - **Yes (prod)**: Must be set in production deployments

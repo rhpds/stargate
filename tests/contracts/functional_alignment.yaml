@@ -1,0 +1,24 @@
+contract: functional-alignment-v1
+producer: stargate
+consumers: [operations-ui, investigation-agent, slack, jira, knowledge-retrieval, trend-detector]
+source_event:
+  identity: [source_system, source_instance, source_event_id]
+  required: [evidence_hash, outcome, state, normalized_error, first_seen_at, last_seen_at]
+  states: [new, claimed, diagnosed, reviewed, suppressed, reopened]
+investigation:
+  required: [diagnosis_version, evidence_hash, review_state, source_event_ids]
+notification:
+  identity: [channel, dedup_key]
+  terminal_states: [sent, failed_permanent]
+jira:
+  execution_requires: [operator_approval, jira_execution_gate, service_configuration]
+knowledge:
+  publication_requires: [reviewed_diagnosis, root_cause, remediation, provenance]
+trend:
+  source: source_events
+  thresholds:
+    minimum_failures: 5
+    relative_increase: 2.0
+    absolute_percentage_points: 5
+    regression_consecutive_failures: 3
+    prior_success_percent: 90

@@ -102,9 +102,13 @@ class Scheduler:
         tier2: int = 300,
         tier3: int = 300,
         tier3_batch: int = 150,
+        include_babylon: bool = True,
     ):
         self.workers: List[WorkerThread] = []
         self._shutdown = threading.Event()
+        self._include_babylon = include_babylon
+        self._babylon_running = False
+        self._babylon_result = None
 
         for i, (name, kubeconfig) in enumerate(clusters.items()):
             kc_path = str(SECRETS_DIR / kubeconfig)
@@ -132,16 +136,15 @@ class Scheduler:
             else:
                 unavailable.append(wt.worker.state.name)
 
-        # Start Babylon control plane worker
-        self._babylon_thread = threading.Thread(
-            target=self._run_babylon_worker,
-            name="worker-babylon",
-            daemon=True,
-        )
-        self._babylon_running = True
-        self._babylon_result = None
-        self._babylon_thread.start()
-        available.append("babylon-control-plane")
+        if self._include_babylon:
+            self._babylon_thread = threading.Thread(
+                target=self._run_babylon_worker,
+                name="worker-babylon",
+                daemon=True,
+            )
+            self._babylon_running = True
+            self._babylon_thread.start()
+            available.append("babylon-control-plane")
 
         # Start scan-history writer
         self._history_thread = threading.Thread(
@@ -374,6 +377,11 @@ def main():
     parser.add_argument("--tier2", type=int, default=900, help="Tier 2 interval (pod delta, default 900s)")
     parser.add_argument("--tier3", type=int, default=3600, help="Tier 3 interval (namespace evidence, default 3600s)")
     parser.add_argument("--batch", type=int, default=5, help="Tier 3 namespace batch size (default 5)")
+    parser.add_argument(
+        "--no-babylon",
+        action="store_true",
+        help="Disable the embedded Babylon collector when a dedicated worker owns it",
+    )
     parser.add_argument("--dashboard", type=int, default=60, help="Dashboard refresh interval in seconds (default 60)")
     args = parser.parse_args()
 
@@ -392,6 +400,7 @@ def main():
         tier2=args.tier2,
         tier3=args.tier3,
         tier3_batch=args.batch,
+        include_babylon=not args.no_babylon,
     )
 
     # Handle Ctrl+C

@@ -28,6 +28,7 @@ htmlcov/
 # IDE
 .vscode/
 .idea/
+/AGENTS.md
 
 # OS
 .DS_Store
@@ -43,6 +44,7 @@ receipts/
 
 # Runtime artifacts
 *.db
+uv.lock
 scheduler.log
 test-receipts/*.json
 !test-receipts/.gitkeep
