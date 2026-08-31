@@ -406,7 +406,7 @@ def admin_auto_investigate_status():
     return {
         "enabled": enabled,
         "max_per_catalog_hour": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3")),
-        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "50")),
+        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200")),
         "dedup_hours": int(os.environ.get("STARGATE_INVESTIGATE_DEDUP_HOURS", "4")),
         "skip_self_resolve_pct": int(os.environ.get("STARGATE_INVESTIGATE_SKIP_SELF_RESOLVE_PCT", "50")),
     }
@@ -498,7 +498,7 @@ def admin_investigations_stats(db: Session = Depends(get_db)):
         "queue_depth": queue_depth,
         "by_trigger_type": {t: c for t, c in by_trigger},
         "avg_cost_today": round(avg_cost, 4) if avg_cost else None,
-        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "50")),
+        "max_per_day": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200")),
     }
 
 
@@ -605,14 +605,20 @@ def approve_action(action_id: int, db: Session = Depends(get_db)):
 
     execution_result = None
     try:
-        from api.action_executor import execute_action
-        execution_result = execute_action(
-            action_type=action.action_type,
-            target=action.target,
-            parameters=action.parameters or {},
-            confidence=1.0,
-            db=db,
-        )
+        if action.action_type in ("create_jira_ticket", "update_jira_ticket"):
+            from engine.functional_alignment import execute_jira_ticket
+            execution_result = execute_jira_ticket(db, (action.parameters or {}).get("external_ticket_id"))
+            action.status = "executed" if execution_result.get("created") or execution_result.get("updated") else "approved"
+            db.commit()
+        else:
+            from api.action_executor import execute_action
+            execution_result = execute_action(
+                action_type=action.action_type,
+                target=action.target,
+                parameters=action.parameters or {},
+                confidence=1.0,
+                db=db,
+            )
     except Exception as e:
         execution_result = {"error": str(e)}
 

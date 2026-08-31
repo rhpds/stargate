@@ -547,7 +547,7 @@ function FailureClassCard({ fc, namespaces }: { fc: any; namespaces: any[] }) {
 
 function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
   const [expandedNs, setExpandedNs] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>('needs_attention');
+  const [filter, setFilter] = useState<string>('investigated');
 
   const { data: investigations } = useQuery({
     queryKey: ['investigations'],
@@ -645,7 +645,7 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
             {stats?.enabled ? 'ON' : 'OFF'}
           </div>
           <div className="text-[10px] text-[#555]">
-            {stats?.enabled ? `${stats?.stuck_today ?? 0} of ${stats?.stuck_max ?? 100} daily budget` : 'disabled'}
+            {stats?.enabled ? `${stats?.today ?? 0} of ${stats?.max_per_day ?? 200} daily budget` : 'disabled'}
           </div>
         </div>
       </div>
@@ -669,7 +669,15 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
 
       {/* Table */}
       {rows.length === 0 && (
-        <div className="text-[#3E8635] py-12 text-center text-sm">All namespaces healthy</div>
+        <div className="text-[#6A6E73] py-12 text-center text-sm">
+          {filter === 'needs_attention'
+            ? 'No stuck namespaces'
+            : filter === 'investigated'
+            ? 'No active investigated namespaces'
+            : filter === 'uninvestigated'
+            ? 'No uninvestigated stuck namespaces'
+            : 'No currently failing namespaces'}
+        </div>
       )}
 
       {rows.length > 0 && (
@@ -686,6 +694,7 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
 
           {rows.map((r: any) => {
             const isExpanded = expandedNs === r.namespace;
+            const patternCoverage = parsePatternCoverage(r.investigation_skip_reason || '');
             const attColor = ATTENTION_COLORS[r.attention] || '#555';
             const redStages = Object.keys(r.stages || {}).length > 0
               ? Object.entries(r.stages as Record<string, any>).filter(([k, v]) => v.status === 'red' && k !== 'overall').map(([k]) => k)
@@ -743,6 +752,8 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                           if (s.includes('rate limit')) return 'rate limited';
                           if (s.includes('daily')) return 'daily limit';
                           if (s.includes('watch_and_wait')) return 'self-resolves';
+                          if (patternCoverage) return `covered by ${patternCoverage.namespace}`;
+                          if (s.startsWith('attention=stuck') || s.startsWith('attention=anomalous')) return 'eligible';
                           return 'skipped';
                         })()}
                       </span>
@@ -756,6 +767,13 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                       r.investigations.map((inv: any) => (
                         <InvestigationDetail key={inv.job_id} jobId={inv.job_id} />
                       ))
+                    ) : patternCoverage ? (
+                      <div>
+                        <div className="px-4 pt-3 text-[10px] text-[#6A6E73]">
+                          Shared finding from <span className="font-mono text-[#4394E5]">{patternCoverage.namespace}</span>
+                        </div>
+                        <InvestigationDetail jobId={patternCoverage.jobId} />
+                      </div>
                     ) : (
                       <div className="p-4">
                         <ExpandedRow namespace={r.namespace} />
@@ -833,11 +851,22 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
   );
 }
 
+function parsePatternCoverage(reason: string): { namespace: string; jobId: string } | null {
+  const match = reason.match(/pattern covered for \S+ by (\S+) \(([^)]+)\)/);
+  const namespace = match?.[1];
+  const jobId = match?.[2];
+  return namespace && jobId ? { namespace, jobId } : null;
+}
+
 function InvestigationDetail({ jobId }: { jobId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['investigation-detail', jobId],
     queryFn: () => api.getInvestigationDetail(jobId),
     enabled: !!jobId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'complete' || status === 'error' ? false : 2000;
+    },
   });
 
   if (isLoading) return <div className="bg-[#191919] border-b border-[#333] p-4 text-[#6A6E73] text-sm">Loading...</div>;
@@ -848,6 +877,9 @@ function InvestigationDetail({ jobId }: { jobId: string }) {
 
   return (
     <div className="bg-[#191919] border-b border-[#333] p-4 space-y-3">
+      {!analysis && data.status !== 'error' && (
+        <div className="text-[11px] text-[#6A6E73]">Investigation {data.status || 'pending'} — waiting for findings…</div>
+      )}
       {sections.diagnosis && (
         <div>
           <div className="text-[10px] text-[#6A6E73] uppercase tracking-wider font-bold mb-1.5">Diagnosis</div>
@@ -912,16 +944,30 @@ function InvestigationDetail({ jobId }: { jobId: string }) {
 }
 
 function splitAnalysisSections(text: string) {
+  const labels = [
+    'Diagnosis', 'Root Cause', 'Remediation Strategy', 'Shadow Remediation',
+    'Owner', 'Verdict', 'Additional Recommendations',
+  ];
+  const headingPattern = (label: string) => new RegExp(
+    `^(?:#{1,6}\\s*(?:\\d+\\.\\s*)?|\\*\\*)${label}(?:\\*\\*)?\\s*:?[ \\t]*(.*)$`,
+    'im',
+  );
   const extract = (label: string): string | null => {
-    const patterns = [
-      new RegExp(`\\*\\*${label}\\*\\*[^:]*[:\\s]*(.+?)(?=\\n\\*\\*|\\n###|\\n##|$)`, 's'),
-      new RegExp(`###?\\s*${label}[^\\n]*\\n(.+?)(?=\\n###|\\n##|\\n\\*\\*|$)`, 's'),
-    ];
-    for (const p of patterns) {
-      const m = text.match(p);
-      if (m && m[1] && m[1].trim().length > 5) return m[1].trim();
+    const match = headingPattern(label).exec(text);
+    if (!match || match.index == null) return null;
+
+    const bodyStart = match.index + match[0].length;
+    const remainder = text.slice(bodyStart);
+    let bodyEnd = remainder.length;
+    for (const nextLabel of labels) {
+      if (nextLabel === label) continue;
+      const next = headingPattern(nextLabel).exec(remainder);
+      if (next?.index != null) bodyEnd = Math.min(bodyEnd, next.index);
     }
-    return null;
+    const inline = match[1]?.trim() || '';
+    const body = remainder.slice(0, bodyEnd).trim();
+    const content = [inline, body].filter(Boolean).join('\n\n');
+    return content.length > 5 ? content : null;
   };
   const verdictMatch = text.match(/\*?\*?Verdict\*?\*?[:\s]*(TRANSIENT|ACTIONABLE|UNKNOWN)/i);
   return {

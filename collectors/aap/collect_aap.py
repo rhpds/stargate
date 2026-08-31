@@ -13,6 +13,9 @@ import os
 import re
 import ssl
 import time
+from pathlib import Path
+
+import yaml
 
 
 def _make_ssl_ctx():
@@ -29,20 +32,62 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("stargate.aap")
 
-AAP_CONTROLLERS = [
-    {
-        "name": "event0",
-        "url": os.environ.get("STARGATE_AAP_EVENT0_URL", ""),
-        "user": os.environ.get("STARGATE_AAP_EVENT0_USER", "monitor"),
-        "password": os.environ.get("STARGATE_AAP_EVENT0_PASS", ""),
-    },
-    {
-        "name": "event1",
-        "url": os.environ.get("STARGATE_AAP_EVENT1_URL", ""),
-        "user": os.environ.get("STARGATE_AAP_EVENT1_USER", "monitor"),
-        "password": os.environ.get("STARGATE_AAP_EVENT1_PASS", ""),
-    },
-]
+_DEFAULT_INVENTORY_PATH = "/var/run/secrets/stargate-aap/controllers.yaml"
+
+
+def load_aap_controllers() -> List[Dict[str, str]]:
+    """Load controller inventory, preferring the mounted production Secret.
+
+    Inventory entries support ``token`` (preferred) or legacy ``username`` and
+    ``password``. Fixed event controller environment variables remain as a
+    compatibility fallback, but are not mixed into an explicit inventory.
+    """
+    path = Path(os.environ.get("STARGATE_AAP_CONTROLLERS_FILE", _DEFAULT_INVENTORY_PATH))
+    if path.is_file():
+        raw = yaml.safe_load(path.read_text()) or {}
+        entries = raw.get("controllers", raw.get("clusters", raw))
+        if isinstance(entries, dict):
+            entries = [{"name": name, **(config or {})} for name, config in entries.items()]
+        if not isinstance(entries, list):
+            raise ValueError("AAP controller inventory must contain a controllers list or mapping")
+        controllers = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            controller = {
+                "name": str(entry.get("name", "")).strip(),
+                "url": str(entry.get("url", "")).rstrip("/"),
+                "token": str(entry.get("token", "")),
+                "user": str(entry.get("username", entry.get("user", ""))),
+                "password": str(entry.get("password", "")),
+                "scope": str(entry.get("scope", "production")),
+            }
+            if controller["name"] and controller["url"] and (controller["token"] or controller["password"]):
+                controllers.append(controller)
+        return controllers
+
+    controllers = []
+    for name in ("event0", "event1"):
+        prefix = f"STARGATE_AAP_{name.upper()}"
+        url = os.environ.get(f"{prefix}_URL", "")
+        token = os.environ.get(f"{prefix}_TOKEN", "")
+        password = os.environ.get(f"{prefix}_PASS", "")
+        if url and (token or password):
+            controllers.append({
+                "name": name, "url": url.rstrip("/"), "token": token,
+                "user": os.environ.get(f"{prefix}_USER", "monitor"),
+                "password": password, "scope": "event",
+            })
+    return controllers
+
+
+def _authorization_header(controller: Dict) -> str:
+    if controller.get("token"):
+        return f"Bearer {controller['token']}"
+    auth = base64.b64encode(
+        f"{controller.get('user', '')}:{controller.get('password', '')}".encode()
+    ).decode()
+    return f"Basic {auth}"
 
 _cache: Dict[str, Any] = {"data": None, "ts": 0}
 _CACHE_TTL = 300
@@ -99,6 +144,7 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
 
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
     all_failures = []
+    recent_events = []
     total_jobs = 0
     successful = 0
     failed = 0
@@ -108,9 +154,8 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
 
     _event_cache: Dict[str, Dict] = {}
 
-    for controller in AAP_CONTROLLERS:
-        if not controller["url"] or not controller["password"]:
-            continue
+    collection_status = []
+    for controller in load_aap_controllers():
         try:
             failed_jobs = _fetch_jobs(controller, f"status=failed&finished__gt={cutoff}&page_size=200")
             for job in failed_jobs:
@@ -123,6 +168,9 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
 
                 failing_task = ""
                 error_msg = ""
+                job_event_id = None
+                failing_play = ""
+                failing_role = ""
                 result_traceback = job.get("result_traceback", "") or ""
                 if result_traceback:
                     lines = result_traceback.strip().split("\n")
@@ -150,7 +198,10 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                             events = _fetch_job_events(controller, job_id)
                             if events:
                                 ev = events[0]
+                                job_event_id = ev.get("id")
                                 task = ev.get("task", "") or ""
+                                failing_play = ev.get("play", "") or ev.get("event_data", {}).get("play", "") or ""
+                                failing_role = ev.get("role", "") or ev.get("event_data", {}).get("role", "") or ""
                                 res = ev.get("event_data", {}).get("res", {})
                                 msg = (res.get("msg", "") or "")[:200] or ""
                                 _event_cache[catalog_key] = {"task": task, "error": msg}
@@ -185,19 +236,48 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                     except Exception as e:
                         logger.debug("extra_vars parse failed: %s", e)
 
-                all_failures.append({
+                failure_event = {
                     "job_id": job.get("id"),
+                    "event_id": job_event_id,
                     "controller": controller["name"],
+                    "controller_url": controller["url"],
                     "type": job_type,
                     "name": name,
                     "lab_code": lab_code,
                     "catalog_item": catalog_item,
                     "cluster": cluster,
                     "failing_task": failing_task,
+                    "play": failing_play,
+                    "role": failing_role,
+                    "outcome": "fail",
+                    "failure_class": "unclassified",
                     "error": error_msg,
                     "finished": job.get("finished"),
                     "duration_minutes": round((job.get("elapsed", 0) or 0) / 60, 1),
                     "job_url": f"{controller['url']}/#/jobs/{job.get('id')}/output",
+                    "raw": {
+                        "job_id": job.get("id"), "event_id": job_event_id,
+                        "name": name, "status": job.get("status"),
+                        "finished": job.get("finished"), "task": failing_task,
+                        "play": failing_play, "role": failing_role, "error": error_msg,
+                    },
+                }
+                all_failures.append(failure_event)
+                recent_events.append(failure_event)
+
+            successful_jobs = _fetch_jobs(controller, f"status=successful&finished__gt={cutoff}&page_size=200")
+            for job in successful_jobs:
+                name = job.get("name", "")
+                catalog_parts = name.split(".")
+                recent_events.append({
+                    "job_id": job.get("id"), "controller": controller["name"],
+                    "controller_url": controller["url"],
+                    "job_url": f"{controller['url']}/#/jobs/{job.get('id')}/output",
+                    "name": name, "lab_code": extract_lab_code(name),
+                    "catalog_item": ".".join(catalog_parts[:2]) if len(catalog_parts) >= 2 else name,
+                    "type": "provision" if "provision" in name else "destroy" if "destroy" in name else "other",
+                    "outcome": "success", "status": "successful", "failure_class": None,
+                    "error": "", "finished": job.get("finished"),
                 })
 
             counts = _fetch_job_counts(controller, cutoff)
@@ -207,9 +287,15 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
             running += counts.get("running", 0)
             provision_total += counts.get("provision_total", 0)
             provision_success += counts.get("provision_success", 0)
+            collection_status.append({"controller": controller["name"], "scope": controller.get("scope"),
+                                      "status": "ok", "error_type": None})
 
         except Exception as e:
             logger.warning(f"AAP collection failed for {controller['name']}: {e}")
+            error_type = "authentication" if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403) else \
+                "timeout" if isinstance(e, (TimeoutError, urllib.error.URLError)) else "api"
+            collection_status.append({"controller": controller["name"], "scope": controller.get("scope"),
+                                      "status": "collection-unavailable", "error_type": error_type})
 
     by_error = group_failures(all_failures)
 
@@ -258,6 +344,8 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
         "by_cluster": by_cluster,
         "by_lab": by_lab,
         "recent_failures": sorted(all_failures, key=lambda x: x.get("finished") or "", reverse=True)[:50],
+        "recent_events": sorted(recent_events, key=lambda x: x.get("finished") or "", reverse=True)[:400],
+        "collection_status": collection_status,
         "collected_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -275,14 +363,13 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
     """Fetch jobs from AAP API."""
     ctx = _make_ssl_ctx()
 
-    auth = base64.b64encode(f"{controller['user']}:{controller['password']}".encode()).decode()
     url = f"{controller['url']}/api/v2/jobs/?{query}"
     from urllib.parse import urlparse
     orig_host = urlparse(controller['url']).hostname
 
     all_results = []
     while url and len(all_results) < 500:
-        req = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
+        req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
         resp = urllib.request.urlopen(req, timeout=30, context=ctx)
         data = json.loads(resp.read())
         all_results.extend(data.get("results", []))
@@ -300,10 +387,9 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
 def _fetch_job_events(controller: Dict, job_id: int) -> List[Dict]:
     """Fetch failed task events for a specific job."""
     ctx = _make_ssl_ctx()
-    auth = base64.b64encode(f"{controller['user']}:{controller['password']}".encode()).decode()
     url = f"{controller['url']}/api/v2/jobs/{job_id}/job_events/?event=runner_on_failed&page_size=3"
     try:
-        req = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
+        req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
         resp = urllib.request.urlopen(req, timeout=10, context=ctx)
         data = json.loads(resp.read())
         return data.get("results", [])
@@ -315,7 +401,6 @@ def _fetch_job_events(controller: Dict, job_id: int) -> List[Dict]:
 def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
     """Fetch job count summaries from AAP API."""
     ctx = _make_ssl_ctx()
-    auth = base64.b64encode(f"{controller['user']}:{controller['password']}".encode()).decode()
 
     counts = {"total": 0, "successful": 0, "failed": 0, "running": 0, "provision_total": 0, "provision_success": 0}
     for status in ["successful", "failed", "running"]:
@@ -323,7 +408,7 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
             url = f"{controller['url']}/api/v2/jobs/?status={status}&finished__gt={cutoff}&page_size=1"
             if status == "running":
                 url = f"{controller['url']}/api/v2/jobs/?status=running&page_size=1"
-            req = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
+            req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
             resp = urllib.request.urlopen(req, timeout=15, context=ctx)
             data = json.loads(resp.read())
             count = data.get("count", 0)
@@ -334,13 +419,13 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
 
     try:
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&page_size=1"
-        req = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
+        req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
         resp = urllib.request.urlopen(req, timeout=15, context=ctx)
         data = json.loads(resp.read())
         counts["provision_total"] = data.get("count", 0)
 
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&status=successful&page_size=1"
-        req = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
+        req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
         resp = urllib.request.urlopen(req, timeout=15, context=ctx)
         data = json.loads(resp.read())
         counts["provision_success"] = data.get("count", 0)

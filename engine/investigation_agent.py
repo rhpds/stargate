@@ -605,6 +605,7 @@ Your final analysis MUST include:
 
 Rules:
 - Your investigation tools are read-only. The Shadow Remediation section documents what a human operator COULD run to fix the issue — these are never auto-executed.
+- If the target namespace no longer exists, treat the evidence as stale. Do not infer an active cluster-wide fault or recommend destructive cluster/PVC/controller changes without current corroborating evidence. The verdict must be TRANSIENT when teardown/provisioning explains it, otherwise UNKNOWN — never ACTIONABLE solely from a deleted namespace.
 - NEVER echo passwords, tokens, or credentials — they are automatically redacted
 - NEVER suggest oc commands for Babylon CRDs (resourceclaim, anarchysubject) — those don't exist on workload clusters
 - ALWAYS include the AgnosticV config URL when available — that's where lab developers fix issues
@@ -747,11 +748,49 @@ def run_investigation(
         timeout=90,
         db=db,
     )
+    final_text = final.get("content") or ""
+    final_error = None if final.get("success") else final.get("error")
+    finalization_retry = False
+    if not final_text.strip():
+        # Some OpenAI-compatible backends return finish_reason=tool_calls with
+        # no text after a tool-heavy conversation, even when no tools are
+        # offered on the final call. Retry with a compact, text-only transcript.
+        finalization_retry = True
+        full_tool_results = [
+            message.get("content", "")
+            for message in messages
+            if message.get("role") == "tool" and message.get("content")
+        ]
+        evidence_summary = "\n\n--- Tool result ---\n".join(full_tool_results)
+        # Keep the retry within common model context windows while preserving
+        # substantially more evidence than the UI-oriented result previews.
+        evidence_summary = evidence_summary[-60000:]
+        retry = call_llm(
+            endpoint="agent-investigation-final-retry",
+            messages=[
+                {"role": "system", "content": AGENT_SYSTEM_PROMPT},
+                {"role": "user", "content": (
+                    f"Produce the final investigation report now. Do not call tools.\n\n"
+                    f"Initial evidence:\n{initial_evidence}\n\n"
+                    f"Collected tool evidence:\n{evidence_summary}"
+                )},
+            ],
+            model=use_model,
+            max_tokens=4000,
+            temperature=0.2,
+            timeout=90,
+            db=db,
+        )
+        final_text = retry.get("content") or ""
+        final_error = None if retry.get("success") else retry.get("error")
+        if not final_text.strip() and not final_error:
+            final_error = "LLM returned an empty final analysis"
     return {
-        "analysis": _redact(final.get("content") or ""),
+        "analysis": _redact(final_text),
         "tool_calls": all_tool_calls,
         "iterations": MAX_ITERATIONS,
-        "error": None if final.get("success") else final.get("error"),
+        "error": final_error,
+        "fallback": finalization_retry,
     }
 
 

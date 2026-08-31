@@ -1,0 +1,23 @@
+id: functional-alignment
+version: "1.0"
+promotion_threshold: 90
+critical_must_pass: true
+gates:
+  gate-0-workshop-provision:
+    critical: [rbac_readable, query_health_distinguished, classifications_emitted, worker_stable]
+  gate-1-source-ingestion:
+    critical: [source_identity_unique, evidence_sanitized, upsert_idempotent, backfill_bounded]
+  gate-2-diagnosis-claims:
+    critical: [claim_exclusive, stale_claim_released, evidence_versioned, pattern_coverage_recorded]
+  gate-3-slack:
+    critical: [post_diagnosis_only, durable_dedup, permanent_errors_bounded, transient_suppressed]
+  gate-4-jira:
+    critical: [operator_approval_required, active_ticket_dedup, credentials_externalized, execution_gate_off_by_default]
+  gate-5-knowledge:
+    critical: [review_required, provenance_present, immutable_versions, inactive_prior_version]
+  gate-6-trends:
+    critical: [durable_events_only, threshold_enforced, signal_idempotent, correlation_marked_as_evidence]
+global_acceptance:
+  severity_one_open: 0
+  duplicate_count: 0
+  rollback_verified: true
