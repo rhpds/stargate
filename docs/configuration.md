@@ -338,6 +338,10 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 
 ## Investigation Pipeline
 
+Investigation capacity and functional delivery gates are different controls.
+Budgets limit enabled investigation work; gates determine whether a durable
+pipeline stage is eligible to run. Increasing a budget does not enable a gate.
+
 ### STARGATE_AUTO_INVESTIGATE
 
 | Property    | Value                                                      |
@@ -360,6 +364,7 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 |-------------|-------------------------------------------------------------|
 | Default     | `200`                                                       |
 | Description | Maximum total investigations per day                        |
+| When to change | Set an explicit deployment value for the approved operating budget; production may override the source default. |
 
 ### STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR
 
@@ -402,6 +407,38 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 |-------------|-------------------------------------------------------------|
 | Default     | `50`                                                        |
 | Description | Skip investigation for failure classes with self-resolve rate above this percentage (learned suppression) |
+
+### Functional-alignment gates
+
+All gates default to `false`: `STARGATE_GATE_SOURCE_INGESTION`,
+`STARGATE_GATE_DIAGNOSIS_CLAIMS`, `STARGATE_GATE_SLACK_DELIVERY`,
+`STARGATE_GATE_JIRA_DRAFTING`, `STARGATE_GATE_JIRA_EXECUTION`,
+`STARGATE_GATE_KNOWLEDGE_RETRIEVAL`, and `STARGATE_GATE_TREND_DETECTION`.
+Enable them independently and in sequence only after recording a passing receipt
+through the functional-alignment admin API. Jira execution also requires its
+service URL, token, project, and issue type; Slack requires its webhook secret.
+
+### WorkshopProvision collection
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STARGATE_WORKSHOP_PROVISION_NAMESPACES` | `babylon-catalog-prod` | Comma-separated namespaces queried by the dedicated Babylon worker |
+| `STARGATE_WORKSHOP_PROVISION_STALL_HOURS` | `1` | Age threshold for stalled provision classification |
+| `STARGATE_API_BABYLON_COLLECTION` | `false` | Enables collection inside the API process; leave false when a dedicated worker owns collection |
+| `STARGATE_API_CLIENT_TIMEOUT` | `60` | Worker-to-API request timeout in seconds |
+
+Collection credentials must be read-only and supplied by the deployment secret;
+never place tokens or kubeconfig contents in values files or documentation.
+
+### Scan snapshot retention
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STARGATE_SCAN_SNAPSHOT_RETENTION_DAYS` | `7` | Number of days of database scan snapshots to retain |
+| `STARGATE_SCAN_SNAPSHOT_CLEANUP_BATCH` | `1000` | Maximum rows removed in one cleanup batch |
+
+Cleanup reclaims rows for PostgreSQL reuse. It does not shrink the physical
+database file; shrinking requires a separately planned maintenance operation.
 
 ---
 

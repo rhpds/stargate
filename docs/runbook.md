@@ -518,7 +518,8 @@ oc get pvc -n stargate
 
 **Common causes**:
 
-- **PVC full**: The 20Gi PVC is full. Backup, prune old data, or expand PVC.
+- **PVC full**: Persistent storage is full. Verify retention, take a backup, and
+  expand the claim through the approved infrastructure change process if needed.
 - **Connection pool exhausted**: Pool size is 20 with overflow 10. If >30
   concurrent connections are needed, increase `pool_size` in `db/database.py`.
 - **Migration failure**: `alembic upgrade head` failed on startup. Check API
@@ -553,6 +554,53 @@ du -sh scan-history/
 # Prune files older than 3 days
 find scan-history/ -name "*.json" -mtime +3 -delete
 ```
+
+---
+
+## Investigation operations
+
+### Finding is complete but details are missing
+
+1. Confirm the investigation response has a diagnosis version, evidence hash,
+   review state, and covered source-event IDs.
+2. Query `/admin/functional/source-events/{id}/diagnosis` to confirm the event is
+   linked to the completed investigation.
+3. Check for a stale claim or a failed investigation before re-running it. Do not
+   create a second investigation for unchanged evidence merely to refresh the UI.
+4. If the API contains the finding but Operations does not, treat it as a display
+   problem and inspect the frontend/API response contract.
+
+### Skipped or rate-limited investigations
+
+The daily budget, per-catalog hourly budget, per-scan queue cap, evidence
+deduplication, pattern reuse, transient classification, and learned suppression
+are separate reasons. Inspect the recorded release/suppression reason before
+changing a limit. A shared-pattern result must list every covered source event.
+
+Changing the daily budget affects future claims only; it does not reopen old,
+reviewed, suppressed, or unchanged evidence. Reopen only for changed evidence, a
+newer failed source event, or an explicit operator re-diagnosis request.
+
+### WorkshopProvision collection gap
+
+An empty successful result is not an error. Verify query health separately:
+RBAC denial, unavailable API, timeout, or missing CRD must appear as a
+non-actionable collection-unavailable evaluation. Then verify failed, stalled,
+controller-lagged, and generation-stale fixtures produce Operations entries.
+
+### Snapshot retention and database growth
+
+Confirm snapshots older than the configured retention period are removed in
+bounded batches. Normal PostgreSQL vacuum makes deleted space reusable but does
+not reduce the volume's apparent file size. Do not use a full blocking vacuum
+without a maintenance window and rollback plan.
+
+### Operational boundary
+
+StarGate deployment and recovery work is scoped to its designated infrastructure
+cluster. Scanner access to workload clusters is observational unless a separately
+approved remediation explicitly targets a namespace. Do not restore, restart, or
+otherwise operate a workload cluster merely because its telemetry is stale.
 
 ---
 

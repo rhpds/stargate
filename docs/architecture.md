@@ -30,7 +30,7 @@ Labagator, and Demolition to produce a unified view of lab readiness.
                                        v
 +------------------+          +--------+--------+         +-----------------+
 |   LLM Service    | <------> |   FastAPI API   | <-----> |   PostgreSQL    |
-| Granite 3.2 8B   |  REST    |   (api/app.py)  |  SQL    |   (15, 20Gi)    |
+| Granite 3.2 8B   |  REST    |   (api/app.py)  |  SQL    | (15, persistent)|
 |  via LiteLLM     |          +--+-----------+--+         +-----------------+
 +------------------+             |           |
                                  |           |
@@ -90,8 +90,35 @@ The Babylon worker runs every 3 minutes and collects: ResourcePool capacity
 status, summit lab-to-namespace mapping, Labagator lab and session data, and
 Demolition smoke test results.
 
-All scan results are written to `scan-history/` as timestamped JSON files and
-persisted to the `scan_snapshots` database table.
+Scan results may be written to `scan-history/` as timestamped JSON files and are
+persisted to `scan_snapshots`. Database snapshots have bounded retention; cleanup
+runs in batches so history cannot grow without limit.
+
+WorkshopProvision collection reports query health independently from query
+results. An empty successful query is healthy; RBAC, API, timeout, and missing-CRD
+failures become non-actionable `collection_unavailable` evaluations. Failed,
+stalled, controller-lagged, and generation-stale provisions retain their
+condition, reason, owner, catalog item, age, and observed-generation evidence.
+
+### Durable failure-to-trend flow
+
+AAP failures enter an idempotent `source_events` ledger. Evidence is sanitized,
+bounded to 64 KiB, hashed, and identified by controller plus job-event ID (or a
+stable fallback). Repeated collection updates observation time without creating
+duplicate events or evaluations.
+
+```
+AAP/Babylon failure -> source event -> diagnosis claim -> reviewed finding
+                    -> deduplicated Slack -> approved Jira
+                    -> reviewed knowledge -> trend signal
+```
+
+The functional stages are independently disabled by default. Transactional
+claims prevent two API replicas from diagnosing or delivering the same evidence.
+Evidence changes, newer failed events, and explicit operator requests can reopen
+an event. A representative investigation records every source event it covers.
+Slack, Jira, knowledge retrieval, and trends are promoted only after a persisted
+stage-gate receipt passes.
 
 ### 2. Rubric Evaluation
 
@@ -325,11 +352,18 @@ Scanner service accounts have `cluster-reader` (read-only) access.
 
 ### Database
 
-PostgreSQL 15, 20Gi PVC. 28 ORM tables (managed by Alembic migrations):
+PostgreSQL 15 with deployment-configured persistent storage. ORM tables are
+managed by Alembic migrations and include:
 
 - `runs`, `stages`, `evidence` -- Run lifecycle
 - `evaluations` -- Rubric evaluation results
 - `investigations` -- AI investigation records
+- `source_events` -- Idempotent sanitized external failure ledger
+- `investigation_source_events` -- Diagnosis claims and covered-event links
+- `notification_deliveries` -- Deduplicated Slack delivery attempts
+- `external_tickets` -- Jira drafts, approved tickets, and synchronization state
+- `knowledge_entries` -- Versioned operator-reviewed diagnoses
+- `trend_signals` -- Durable rate and catalog-regression signals
 - `resolution_records` -- Failure resolution tracking
 - `event_log` -- Persistent event history
 - `proposed_classifications` -- LLM proposals awaiting review

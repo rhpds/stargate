@@ -1,13 +1,17 @@
-# Functional alignment coverage matrix
+# Functional alignment delivery status
 
-| Gate | Unit/TDD | Evidence/EDD | Contract/CDD | Behavior/BDD | Component/CBT | Promotion default |
-|---|---|---|---|---|---|---|
-| 0 WorkshopProvision | collector status/class tests | CRD condition fixtures | snapshot query-health shape | failure vs empty scenarios | live worker + DB snapshot | blocked on Babylon RBAC/stability |
-| 1 AAP ingestion | sanitization/upsert tests | sanitized failed-job fixture | source-event contract | repeated collection | SQLite/Postgres migration | disabled |
-| 2 Diagnosis claims | claim/reopen tests | evidence hashes | investigation source links | two competing workers | repository lifecycle | disabled |
-| 3 Slack | suppression/dedup tests | enriched finding payload | notification ledger | retry/restart | mocked HTTP delivery | disabled |
-| 4 Jira | draft/approval tests | reviewed diagnosis | REST adapter payload | approval required | mocked Jira REST | disabled |
-| 5 Knowledge | review/version tests | approved diagnosis | provenance/version shape | correction retires prior | retrieval match | disabled |
-| 6 Trends | threshold tests | durable success/failure events | trend signal shape | regression/rate increase | routed evaluation/investigation | disabled |
+“Implemented” means source and durable contracts exist. It does not mean the
+feature is deployed or enabled. Deployment and promotion are separate decisions;
+all feature gates default off until a passing receipt and canary are recorded.
+
+| Gate | Functional status | Automated evidence | Deployment status | Promotion status |
+|---|---|---|---|---|
+| 0 WorkshopProvision | Implemented | Collector status, condition, empty-result, and failure fixtures | RBAC/worker changes held for separate review | Not promoted |
+| 1 AAP ingestion | Implemented | Sanitization, idempotent upsert, sanitized failed-job fixture, API contract | Source committed; runtime configuration required | Disabled |
+| 2 Diagnosis claims | Implemented | Claim, reopen, evidence-hash, association, and concurrency behavior | Source committed | Disabled |
+| 3 Slack | Implemented behind gate | Suppression, deduplication, payload, retry, and delivery-ledger tests | Webhook secret required | Disabled |
+| 4 Jira | Implemented behind approval gate | Draft, deduplication, approval, and mocked REST behavior | Service configuration required | Disabled |
+| 5 Knowledge | Implemented behind review gate | Review/version/provenance and retrieval-match tests | Source committed | Disabled |
+| 6 Trends | Implemented behind gate | Durable event-rate and catalog-regression threshold tests | Source committed | Disabled |
 
 Promotion requires a persisted receipt with all critical criteria passing, score at least 90, zero severity-one defects, zero duplicates, and verified rollback.
