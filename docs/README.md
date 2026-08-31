@@ -7,6 +7,7 @@
 | [Architecture](architecture.md) | System design, component interactions, data flow |
 | [Configuration](configuration.md) | Environment variables, tuning, deployment options |
 | [Runbook](runbook.md) | Operational procedures, troubleshooting, common tasks |
+| [Functional Alignment](functional-alignment-coverage.md) | Gate-by-gate implementation, test, deployment, and promotion status |
 | [Proof Lab Ecosystem](proof-lab-ecosystem.md) | Detection-to-proven auto-remediation pipeline |
 | [Production Plan](stargate-production-plan.md) | Deployment architecture, scaling, monitoring |
 

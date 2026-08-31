@@ -9,6 +9,8 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 - **Cluster Scanning** — Monitors 8+ OpenShift clusters for node health, pod failures, VM status, and namespace readiness on a tiered schedule (5m/15m/1h)
 - **Rubric Evaluation** — Evaluates each lab namespace against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, etc.)
 - **AI Classification** — Unclassified failures are sent to an LLM (Granite 3.2 8B via LiteLLM) for automated failure class proposals
+- **Durable Investigations** — Idempotent source events are claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
+- **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures
 - **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging
 - **Provisioning Intelligence** — Aggregates data from Babylon (AnarchySubjects, ResourcePools), Labagator (session schedule), AAP (provisioning jobs), Demolition (smoke tests), and AgnosticV (deployment constraints)
 - **Capacity Forecasting** — Projects resource demand based on upcoming session schedules
@@ -16,7 +18,7 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 ## Architecture
 
 ```
-Frontend (React + PatternFly 6)
+Frontend (React 19 + Vite + Tailwind 4)
     |
     OAuth Proxy (Red Hat SSO)
     |
@@ -101,6 +103,10 @@ All configuration via environment variables:
 | `STARGATE_EVENT_PREFIX` | Filter to event-specific pools (e.g., `summit-2026`) | (empty = continuous ops) |
 | `STARGATE_EXECUTION_TARGET` | Remediation target: `mock`, `test`, `production` | `mock` |
 
+The complete configuration reference, including investigation budgets, retention,
+WorkshopProvision collection, and functional-alignment feature gates, is in
+[docs/configuration.md](docs/configuration.md).
+
 ## Data Sources
 
 | Source | What | How |
@@ -124,7 +130,7 @@ db/                     SQLAlchemy models and repository
 deploy/                 Helm charts, Tekton pipelines, OpenShift manifests
 engine/                 Core logic: rubric evaluation, policy, remediation, LLM
 events/                 Event bus and nano-agent pipeline
-frontend/               React + PatternFly 6 dashboard
+frontend/               React 19 + Vite + Tailwind 4 dashboard
 normalizers/            Data normalization across sources
 prompts/                LLM prompt templates (YAML)
 proposals/              AI proposal models and rubric proposer
@@ -195,7 +201,8 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 ### Intelligence (Medium-Term)
 
 - [ ] **Close the feedback loop** — Review pending LLM proposals, promote accurate ones to deterministic rules.
-- [ ] **Watch mode with alerting** — PASS→FAIL state transitions trigger Slack/PagerDuty via event bus consumers.
+- [x] **Durable source-event and investigation foundation** — Idempotent AAP events, diagnosis claims, covered-event links, delivery ledgers, reviewed knowledge, and trend records are implemented behind promotion gates.
+- [ ] **Promote enriched Slack delivery** — Enable post-diagnosis delivery only after its stage-gate receipt and canary pass.
 - [ ] **Remediation effectiveness tracking** — Measure success rates by action type. Auto-promote proven remediations from `manual_approval` to `auto_execute`.
 
 ### Platform (Longer-Term)
@@ -203,7 +210,7 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - [ ] **Multi-tenant RBAC** — Team leads see only their labs.
 - [ ] **Prometheus /metrics** — API latency, scan cycles, failure rates, remediation success %, LLM cost.
 - [ ] **AgnosticV webhook sync** — Auto-detect new lab configs without restart.
-- [ ] **Capacity planning** — Weekly/monthly trends, pool exhaustion prediction.
+- [ ] **Promote functional trend detection** — Validate durable event-rate and catalog-regression signals before enabling the gate.
 
 ## License
 
