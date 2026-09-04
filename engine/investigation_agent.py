@@ -602,6 +602,9 @@ Your final analysis MUST include:
    - TRANSIENT — this failure self-resolves during normal provisioning, no action needed
    - ACTIONABLE — this is a real bug that needs a human fix
    - UNKNOWN — insufficient evidence to determine
+7. **Confidence**: A calibrated integer from 0 to 100 reflecting confidence in
+   the diagnosis. Use a lower score when evidence is stale, incomplete, or only
+   indirectly supports the conclusion.
 
 Rules:
 - Your investigation tools are read-only. The Shadow Remediation section documents what a human operator COULD run to fix the issue — these are never auto-executed.
@@ -738,7 +741,7 @@ def run_investigation(
             })
 
     # Max iterations reached — ask for final summary
-    messages.append({"role": "user", "content": "You've used all your investigation steps. Based on everything you've found, provide your final analysis: Diagnosis, Root Cause, Remediation Strategy, and Shadow Remediation (the exact commands you would run if allowed to fix this)."})
+    messages.append({"role": "user", "content": "You've used all your investigation steps. Provide the required final analysis with these explicit markdown headings: Diagnosis, Root Cause, Remediation Strategy, Shadow Remediation, Owner, Verdict, and Confidence. Confidence must be an integer from 0 to 100. Do not omit any heading."})
     final = call_llm(
         endpoint="agent-investigation-final",
         messages=messages,

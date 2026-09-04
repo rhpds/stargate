@@ -475,6 +475,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 model_used=os.environ.get("STARGATE_AGENT_MODEL", ""),
                 root_cause=fields.get("root_cause"),
                 remediation_suggestion=fields.get("remediation_suggestion"),
+                trust_dimensions={"verdict": fields.get("verdict"), "confidence": fields.get("confidence")},
                 fallback=result.get("fallback", False),
                 error=result.get("error"),
             )
@@ -520,6 +521,10 @@ def dashboard_investigate_poll(job_id: str, db: Session = Depends(get_db)):
             "evidence_hash": record.evidence_hash,
             "diagnosis_version": record.diagnosis_version,
             "review_state": record.review_state,
+            "root_cause": record.root_cause,
+            "remediation_suggestion": record.remediation_suggestion,
+            "verdict": (record.trust_dimensions or {}).get("verdict"),
+            "confidence": (record.trust_dimensions or {}).get("confidence"),
             "slack_delivery": ({"id": delivery.id, "status": delivery.status} if delivery else None),
             "jira_ticket": ({"id": ticket.id, "key": ticket.ticket_key, "url": ticket.ticket_url, "status": ticket.status} if ticket else None),
             "knowledge_match": record.knowledge_match,
@@ -630,6 +635,7 @@ def dashboard_investigations_list(
             "cloud": lm.cloud if lm else None,
             "current_status": current_status,
             "verdict": (r.trust_dimensions or {}).get("verdict"),
+            "confidence": (r.trust_dimensions or {}).get("confidence"),
             "attention": attention,
             "attention_reason": attention_reason,
             "resolution": resolved,
@@ -672,6 +678,17 @@ def dashboard_investigations_stats(db: Session = Depends(get_db)):
         InvestigationRecord.created_at >= today_start,
         InvestigationRecord.cost_estimate.isnot(None),
     ).scalar()
+    reviewed = db.query(InvestigationRecord).filter(
+        InvestigationRecord.review_state == "reviewed",
+    ).count()
+    confidence_values = [
+        dimensions.get("confidence")
+        for (dimensions,) in db.query(InvestigationRecord.trust_dimensions).filter(
+            InvestigationRecord.trust_dimensions.isnot(None),
+            InvestigationRecord.created_at >= datetime.now(timezone.utc) - timedelta(days=30),
+        ).all()
+        if isinstance(dimensions, dict) and dimensions.get("confidence") is not None
+    ]
 
     enabled = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
     max_per_day = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200"))
@@ -686,6 +703,10 @@ def dashboard_investigations_stats(db: Session = Depends(get_db)):
         "max_per_day": max_per_day,
         "by_trigger_type": {t: c for t, c in by_trigger},
         "avg_cost_today": round(avg_cost, 4) if avg_cost else None,
+        "reviewed": reviewed,
+        "confidence_samples": len(confidence_values),
+        "avg_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
+        "quality_window_days": 30,
         "enabled": enabled,
         "max_per_catalog_hour": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3")),
     }
