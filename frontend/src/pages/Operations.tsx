@@ -569,14 +569,21 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
     if (!invByNs[key]) invByNs[key] = [];
     invByNs[key].push(inv);
   }
+  for (const values of Object.values(invByNs)) {
+    values.sort((a: any, b: any) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
+  }
 
   // Merge: all live failing namespaces with investigations attached
-  const merged = (liveNamespaces || []).map((ns: any) => ({
-    ...ns,
-    investigations: invByNs[ns.namespace] || [],
-    investigated: (invByNs[ns.namespace] || []).length > 0,
-    live: true,
-  }));
+  const merged = (liveNamespaces || []).map((ns: any) => {
+    const history = invByNs[ns.namespace] || [];
+    return {
+      ...ns,
+      investigations: history.slice(0, 1),
+      investigationHistoryCount: Math.max(0, history.length - 1),
+      investigated: history.length > 0,
+      live: true,
+    };
+  });
 
   // Recent findings: investigated namespaces no longer live (recycled/resolved)
   const recentFindings: any[] = [];
@@ -596,7 +603,8 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
       attention_reason: inv.attention_reason,
       top_failure: inv.failure_class,
       current_status: inv.current_status,
-      investigations: nsInvs,
+      investigations: nsInvs.slice(0, 1),
+      investigationHistoryCount: Math.max(0, nsInvs.length - 1),
       investigated: true,
       live: false,
     });
@@ -731,8 +739,11 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                     {r.investigated ? (
                       <>
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#3E8635]/20 text-[#3E8635]">
-                          {r.investigations.length} finding{r.investigations.length !== 1 ? 's' : ''}
+                          1 current finding
                         </span>
+                        {r.investigationHistoryCount > 0 && (
+                          <span className="text-[9px] text-[#6A6E73]">{r.investigationHistoryCount} prior</span>
+                        )}
                         {(() => {
                           const v = r.investigations[0]?.verdict;
                           if (v === 'TRANSIENT') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#6A6E73]/20 text-[#6A6E73]">transient</span>;
@@ -823,8 +834,11 @@ function InvestigationsTab({ liveNamespaces }: { liveNamespaces: any[] }) {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#3E8635]/20 text-[#3E8635]">
-                        {r.investigations.length} finding{r.investigations.length !== 1 ? 's' : ''}
+                        1 current finding
                       </span>
+                      {r.investigationHistoryCount > 0 && (
+                        <span className="text-[9px] text-[#555]">{r.investigationHistoryCount} prior</span>
+                      )}
                       {(() => {
                         const v = r.investigations[0]?.verdict;
                         if (v === 'TRANSIENT') return <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#6A6E73]/20 text-[#6A6E73]">transient</span>;
@@ -935,6 +949,7 @@ function InvestigationDetail({ jobId }: { jobId: string }) {
             ? <span className="text-[#C9190B] font-semibold">ACTIONABLE — needs a fix</span>
             : <span>{sections.verdict}</span>
         )}
+        {data.confidence != null && <span>confidence {Math.round(data.confidence * 100)}%</span>}
         {data.tool_calls?.length > 0 && <span>{data.tool_calls.length} tool calls</span>}
         {data.iterations != null && <span>{data.iterations} iterations</span>}
         {data.fallback && <span className="text-[#F0AB00]">fallback mode</span>}
@@ -946,7 +961,7 @@ function InvestigationDetail({ jobId }: { jobId: string }) {
 function splitAnalysisSections(text: string) {
   const labels = [
     'Diagnosis', 'Root Cause', 'Remediation Strategy', 'Shadow Remediation',
-    'Owner', 'Verdict', 'Additional Recommendations',
+    'Owner', 'Verdict', 'Confidence', 'Additional Recommendations',
   ];
   const headingPattern = (label: string) => new RegExp(
     `^(?:#{1,6}\\s*(?:\\d+\\.\\s*)?|\\*\\*)${label}(?:\\*\\*)?\\s*:?[ \\t]*(.*)$`,
