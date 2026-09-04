@@ -223,7 +223,7 @@ def _run_single_investigation(record, db):
         model_used=model_used,
         root_cause=fields.get("root_cause"),
         remediation_suggestion=fields.get("remediation_suggestion"),
-        trust_dimensions={"verdict": fields.get("verdict")},
+        trust_dimensions={"verdict": fields.get("verdict"), "confidence": fields.get("confidence")},
         fallback=result.get("fallback", False),
         error=result.get("error"),
     )
@@ -248,24 +248,38 @@ def _run_single_investigation(record, db):
 
 
 def _extract_structured_fields(analysis: str) -> dict:
-    """Extract Root Cause, Shadow Remediation, and Verdict from markdown analysis."""
+    """Extract quality fields from common markdown heading variants."""
     import re
     if not analysis:
-        return {"root_cause": None, "remediation_suggestion": None, "verdict": None}
-    root_cause = None
-    remediation = None
+        return {"root_cause": None, "remediation_suggestion": None, "verdict": None, "confidence": None}
+
+    heading = r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\d+\.\s*)?(?:\*\*)?%s(?:\*\*)?\s*:?[ \t]*\n?"
+    next_heading = r"(?=\n\s*(?:#{1,6}\s*|(?:\d+\.\s*)?\*\*)|\Z)"
+
+    def section(name: str, limit=None):
+        match = re.search((heading % name) + r"(.+?)" + next_heading, analysis, re.IGNORECASE | re.DOTALL)
+        value = match.group(1).strip() if match else None
+        return value[:limit] if value and limit else value
+
+    root_cause = section(r"Root Cause", 500)
+    remediation = section(r"(?:Recommended |Shadow )?Remediation(?: Strategy)?")
     verdict = None
-
-    rc_match = re.search(r'\*\*Root Cause\*\*[:\s]*(.+?)(?=\n\*\*|\Z)', analysis, re.DOTALL)
-    if rc_match:
-        root_cause = rc_match.group(1).strip()[:500]
-
-    sr_match = re.search(r'\*\*Shadow Remediation\*\*[^:]*[:\s]*(.+?)(?=\n\*\*|\Z)', analysis, re.DOTALL)
-    if sr_match:
-        remediation = sr_match.group(1).strip()
 
     v_match = re.search(r'(?:verdict|Verdict)[:\s*]*\*?\*?(TRANSIENT|ACTIONABLE|UNKNOWN)\*?\*?', analysis, re.IGNORECASE)
     if v_match:
         verdict = v_match.group(1).upper()
 
-    return {"root_cause": root_cause, "remediation_suggestion": remediation, "verdict": verdict}
+    confidence = None
+    c_match = re.search(
+        r"confidence(?:\*\*)?\s*:?\s*(?:\*\*)?([01](?:\.\d+)?|\d{1,3})(?:\s*%)?",
+        analysis,
+        re.IGNORECASE,
+    )
+    if c_match:
+        confidence = float(c_match.group(1))
+        if confidence > 1:
+            confidence /= 100
+        confidence = max(0.0, min(confidence, 1.0))
+
+    return {"root_cause": root_cause, "remediation_suggestion": remediation,
+            "verdict": verdict, "confidence": confidence}
