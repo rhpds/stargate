@@ -58,3 +58,27 @@ def test_empty_analysis_has_no_quality_claims():
         "verdict": None,
         "confidence": None,
     }
+
+
+def test_usage_canary_assignment_is_stable(monkeypatch):
+    from engine.investigation_agent import _usage_optimization_enabled
+
+    monkeypatch.setenv("STARGATE_INVESTIGATION_USAGE_CANARY_PERCENT", "100")
+    assert _usage_optimization_enabled("job-1") is True
+    monkeypatch.setenv("STARGATE_INVESTIGATION_USAGE_CANARY_PERCENT", "0")
+    assert _usage_optimization_enabled("job-1") is False
+
+
+def test_evidence_sufficiency_requires_breadth_and_storage_diagnosis():
+    from engine.investigation_agent import _evidence_sufficient
+
+    common = [
+        {"tool": "oc_read"},
+        {"tool": "query_evaluations"},
+        {"tool": "get_lab_identity"},
+        {"tool": "get_resolution_history"},
+        {"tool": "get_pool_status"},
+    ]
+    assert _evidence_sufficient("readiness_probe_failed", common) is True
+    assert _evidence_sufficient("pvc_binding_failed", common) is False
+    assert _evidence_sufficient("pvc_binding_failed", common + [{"tool": "get_storage_diagnosis"}]) is True
