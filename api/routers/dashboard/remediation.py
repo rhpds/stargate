@@ -475,7 +475,12 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 model_used=os.environ.get("STARGATE_AGENT_MODEL", ""),
                 root_cause=fields.get("root_cause"),
                 remediation_suggestion=fields.get("remediation_suggestion"),
-                trust_dimensions={"verdict": fields.get("verdict"), "confidence": fields.get("confidence")},
+                trust_dimensions={
+                    "verdict": fields.get("verdict"),
+                    "confidence": fields.get("confidence"),
+                    "usage_optimized": bool(result.get("usage_optimized")),
+                    "evidence_sufficient": bool(result.get("evidence_sufficient")),
+                },
                 fallback=result.get("fallback", False),
                 error=result.get("error"),
             )
@@ -681,14 +686,21 @@ def dashboard_investigations_stats(db: Session = Depends(get_db)):
     reviewed = db.query(InvestigationRecord).filter(
         InvestigationRecord.review_state == "reviewed",
     ).count()
-    confidence_values = [
-        dimensions.get("confidence")
-        for (dimensions,) in db.query(InvestigationRecord.trust_dimensions).filter(
+    quality_rows = db.query(
+        InvestigationRecord.trust_dimensions, InvestigationRecord.iterations,
+    ).filter(
             InvestigationRecord.trust_dimensions.isnot(None),
             InvestigationRecord.created_at >= datetime.now(timezone.utc) - timedelta(days=30),
         ).all()
+    confidence_values = [
+        dimensions.get("confidence")
+        for dimensions, _ in quality_rows
         if isinstance(dimensions, dict) and dimensions.get("confidence") is not None
     ]
+    optimized_iterations = [iterations for dimensions, iterations in quality_rows
+                            if isinstance(dimensions, dict) and dimensions.get("usage_optimized") and iterations]
+    control_iterations = [iterations for dimensions, iterations in quality_rows
+                          if isinstance(dimensions, dict) and not dimensions.get("usage_optimized") and iterations]
 
     enabled = os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true"
     max_per_day = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200"))
@@ -707,6 +719,10 @@ def dashboard_investigations_stats(db: Session = Depends(get_db)):
         "confidence_samples": len(confidence_values),
         "avg_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
         "quality_window_days": 30,
+        "usage_canary_percent": int(os.environ.get("STARGATE_INVESTIGATION_USAGE_CANARY_PERCENT", "10")),
+        "usage_canary_samples": len(optimized_iterations),
+        "usage_canary_avg_iterations": round(sum(optimized_iterations) / len(optimized_iterations), 2) if optimized_iterations else None,
+        "usage_control_avg_iterations": round(sum(control_iterations) / len(control_iterations), 2) if control_iterations else None,
         "enabled": enabled,
         "max_per_catalog_hour": int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3")),
     }

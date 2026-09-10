@@ -21,6 +21,7 @@ Safety:
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import re
@@ -37,6 +38,35 @@ _SAFE_ADM = frozenset({"top"})
 MAX_ITERATIONS = 8
 MAX_WALL_SECONDS = 300
 MAX_OUTPUT_CHARS = 3000
+FINAL_REPORT_REQUEST = (
+    "Provide the required final analysis with these explicit markdown headings: "
+    "Diagnosis, Root Cause, Remediation Strategy, Shadow Remediation, Owner, Verdict, "
+    "and Confidence. Confidence must be an integer from 0 to 100. Do not omit any heading."
+)
+
+
+def _usage_optimization_enabled(job_id: str) -> bool:
+    """Select a stable percentage of investigations for the usage canary."""
+    percent = max(0, min(100, int(os.environ.get("STARGATE_INVESTIGATION_USAGE_CANARY_PERCENT", "10"))))
+    if percent == 0:
+        return False
+    identity = job_id or "unidentified-investigation"
+    bucket = int(hashlib.sha256(identity.encode()).hexdigest()[:8], 16) % 100
+    return bucket < percent
+
+
+def _required_evidence_tools(failure_class: str) -> set:
+    required = {"oc_read", "query_evaluations", "get_lab_identity", "get_resolution_history"}
+    normalized = (failure_class or "").lower()
+    if any(term in normalized for term in ("pvc", "volume", "storage", "claim_misbound", "datavolume")):
+        required.add("get_storage_diagnosis")
+    return required
+
+
+def _evidence_sufficient(failure_class: str, tool_calls: List[Dict]) -> bool:
+    """Require both breadth and the failure-class evidence checklist."""
+    names = {call.get("tool") for call in tool_calls}
+    return len(tool_calls) >= 5 and _required_evidence_tools(failure_class).issubset(names)
 
 # Shared progress dict — the dashboard endpoint writes a reference here
 # so the agent can update tool_calls in real-time for polling
@@ -638,6 +668,10 @@ def run_investigation(
         kubeconfig_dir = str(os.path.dirname(os.path.dirname(__file__))) + "/secrets"
 
     use_model = model or os.environ.get("STARGATE_AGENT_MODEL", LLM_MODEL)
+    usage_optimized = _usage_optimization_enabled(job_id)
+    max_iterations = 6 if usage_optimized else MAX_ITERATIONS
+    selection_max_tokens = 1600 if usage_optimized else 2400
+    final_max_tokens = 3000 if usage_optimized else 4000
 
     messages: List[Dict] = [
         {"role": "system", "content": AGENT_SYSTEM_PROMPT},
@@ -647,7 +681,7 @@ def run_investigation(
     all_tool_calls = []
     start_time = time.time()
 
-    for iteration in range(MAX_ITERATIONS):
+    for iteration in range(max_iterations):
         if time.time() - start_time > MAX_WALL_SECONDS:
             logger.warning("Agent hit wall time limit (%ds)", MAX_WALL_SECONDS)
             break
@@ -657,7 +691,7 @@ def run_investigation(
             messages=messages,
             tools=TOOLS,
             model=use_model,
-            max_tokens=2400,
+            max_tokens=selection_max_tokens,
             temperature=0.2,
             timeout=60,
         )
@@ -668,7 +702,7 @@ def run_investigation(
             time.sleep(2)
             result = _call_llm_with_tools(
                 messages=messages, tools=TOOLS, model=use_model,
-                max_tokens=2400, temperature=0.2, timeout=45,
+                max_tokens=selection_max_tokens, temperature=0.2, timeout=45,
             )
         if not result.get("success"):
             logger.info("Tool calling failed after retry, falling back to single-shot with %s", use_model)
@@ -676,7 +710,7 @@ def run_investigation(
                 endpoint="agent-investigation",
                 messages=messages,
                 model=use_model,
-                max_tokens=4000,
+                max_tokens=final_max_tokens,
                 temperature=0.2,
                 timeout=45,
                 db=db,
@@ -687,6 +721,7 @@ def run_investigation(
                 "iterations": iteration + 1,
                 "error": None if fallback.get("success") else fallback.get("error"),
                 "fallback": True,
+                "usage_optimized": usage_optimized,
             }
 
         response_message = result.get("message", {})
@@ -700,6 +735,7 @@ def run_investigation(
                 "tool_calls": all_tool_calls,
                 "iterations": iteration + 1,
                 "error": None,
+                "usage_optimized": usage_optimized,
             }
 
         # Process tool calls
@@ -734,19 +770,44 @@ def run_investigation(
                 except Exception:
                     pass
 
+            context_result = tool_result
+            if usage_optimized and len(context_result) > 1500:
+                context_result = context_result[:1500] + "\n... (context compacted)"
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc_id,
-                "content": tool_result,
+                "content": context_result,
             })
 
+        if usage_optimized and _evidence_sufficient(failure_class, all_tool_calls):
+            messages.append({"role": "user", "content": FINAL_REPORT_REQUEST})
+            final = call_llm(
+                endpoint="agent-investigation-final-canary",
+                messages=messages,
+                model=use_model,
+                max_tokens=final_max_tokens,
+                temperature=0.2,
+                timeout=90,
+                db=db,
+            )
+            final_text = final.get("content") or ""
+            if final_text.strip():
+                return {
+                    "analysis": _redact(final_text),
+                    "tool_calls": all_tool_calls,
+                    "iterations": iteration + 1,
+                    "error": None,
+                    "usage_optimized": True,
+                    "evidence_sufficient": True,
+                }
+
     # Max iterations reached — ask for final summary
-    messages.append({"role": "user", "content": "You've used all your investigation steps. Provide the required final analysis with these explicit markdown headings: Diagnosis, Root Cause, Remediation Strategy, Shadow Remediation, Owner, Verdict, and Confidence. Confidence must be an integer from 0 to 100. Do not omit any heading."})
+    messages.append({"role": "user", "content": "You've used all your investigation steps. " + FINAL_REPORT_REQUEST})
     final = call_llm(
         endpoint="agent-investigation-final",
         messages=messages,
         model=use_model,
-        max_tokens=4000,
+        max_tokens=final_max_tokens,
         temperature=0.2,
         timeout=90,
         db=db,
@@ -779,7 +840,7 @@ def run_investigation(
                 )},
             ],
             model=use_model,
-            max_tokens=4000,
+            max_tokens=final_max_tokens,
             temperature=0.2,
             timeout=90,
             db=db,
@@ -791,9 +852,10 @@ def run_investigation(
     return {
         "analysis": _redact(final_text),
         "tool_calls": all_tool_calls,
-        "iterations": MAX_ITERATIONS,
+        "iterations": max_iterations,
         "error": final_error,
         "fallback": finalization_retry,
+        "usage_optimized": usage_optimized,
     }
 
 

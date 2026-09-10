@@ -223,7 +223,12 @@ def _run_single_investigation(record, db):
         model_used=model_used,
         root_cause=fields.get("root_cause"),
         remediation_suggestion=fields.get("remediation_suggestion"),
-        trust_dimensions={"verdict": fields.get("verdict"), "confidence": fields.get("confidence")},
+        trust_dimensions={
+            "verdict": fields.get("verdict"),
+            "confidence": fields.get("confidence"),
+            "usage_optimized": bool(result.get("usage_optimized")),
+            "evidence_sufficient": bool(result.get("evidence_sufficient")),
+        },
         fallback=result.get("fallback", False),
         error=result.get("error"),
     )
