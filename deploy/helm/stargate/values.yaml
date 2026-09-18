@@ -12,14 +12,27 @@ api:
   env:
     STARGATE_DATABASE_URL: ""  # Set via Helm --set or template referencing secrets
     STARGATE_SSL_VERIFY: "false"
+    STARGATE_GATE_SOURCE_INGESTION: "false"
+    STARGATE_GATE_DIAGNOSIS_CLAIMS: "false"
+    STARGATE_GATE_SLACK_DELIVERY: "false"
+    STARGATE_GATE_JIRA_DRAFTING: "false"
+    STARGATE_GATE_JIRA_EXECUTION: "false"
+    STARGATE_GATE_KNOWLEDGE_RETRIEVAL: "false"
+    STARGATE_GATE_TREND_DETECTION: "false"
+    STARGATE_SCAN_SNAPSHOT_RETENTION_DAYS: "7"
+    STARGATE_SCAN_SNAPSHOT_CLEANUP_BATCH: "1000"
 
 scanner:
   image: stargate-scanner:latest
+  apiUrl: http://stargate-api:8090
+  sandboxApiUrl: http://sandbox-api.babylon-sandbox-api.svc:8080
+  labagatorUrl: ""
+  demolitionUrl: ""
   clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
   tier1: 300
   tier2: 900
-  tier3: 3600
-  batch: 5
+  tier3: 600
+  batch: 25
   resources:
     requests:
       cpu: 500m
@@ -34,10 +47,10 @@ babylonWorker:
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 2Gi
 
 frontend:
   image: stargate-frontend:latest

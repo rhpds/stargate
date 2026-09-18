@@ -49,13 +49,53 @@ spec:
             - name: STARGATE_LITELLM_URL
               value: {{ .Values.api.env.STARGATE_LITELLM_URL | default "" | quote }}
             - name: STARGATE_INLINE_SCANNER
-              value: {{ .Values.api.env.STARGATE_INLINE_SCANNER | default "true" | quote }}
+              value: {{ .Values.api.env.STARGATE_INLINE_SCANNER | default "false" | quote }}
+            - name: STARGATE_API_BABYLON_COLLECTION
+              value: {{ .Values.api.env.STARGATE_API_BABYLON_COLLECTION | default "false" | quote }}
+            - name: STARGATE_API_CORPUS_MINING
+              value: {{ .Values.api.env.STARGATE_API_CORPUS_MINING | default "false" | quote }}
+            - name: STARGATE_INVESTIGATE_MAX_PER_DAY
+              value: {{ .Values.api.env.STARGATE_INVESTIGATE_MAX_PER_DAY | default "200" | quote }}
+            - name: STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR
+              value: {{ .Values.api.env.STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR | default "3" | quote }}
+            - name: STARGATE_INVESTIGATE_MAX_PER_SCAN
+              value: {{ .Values.api.env.STARGATE_INVESTIGATE_MAX_PER_SCAN | default "10" | quote }}
+            - name: STARGATE_INVESTIGATE_PATTERN_DEDUP_HOURS
+              value: {{ .Values.api.env.STARGATE_INVESTIGATE_PATTERN_DEDUP_HOURS | default "2" | quote }}
+            - name: STARGATE_GATE_SOURCE_INGESTION
+              value: {{ .Values.api.env.STARGATE_GATE_SOURCE_INGESTION | default "false" | quote }}
+            - name: STARGATE_GATE_DIAGNOSIS_CLAIMS
+              value: {{ .Values.api.env.STARGATE_GATE_DIAGNOSIS_CLAIMS | default "false" | quote }}
+            - name: STARGATE_GATE_SLACK_DELIVERY
+              value: {{ .Values.api.env.STARGATE_GATE_SLACK_DELIVERY | default "false" | quote }}
+            - name: STARGATE_GATE_JIRA_DRAFTING
+              value: {{ .Values.api.env.STARGATE_GATE_JIRA_DRAFTING | default "false" | quote }}
+            - name: STARGATE_GATE_JIRA_EXECUTION
+              value: {{ .Values.api.env.STARGATE_GATE_JIRA_EXECUTION | default "false" | quote }}
+            - name: STARGATE_GATE_KNOWLEDGE_RETRIEVAL
+              value: {{ .Values.api.env.STARGATE_GATE_KNOWLEDGE_RETRIEVAL | default "false" | quote }}
+            - name: STARGATE_GATE_TREND_DETECTION
+              value: {{ .Values.api.env.STARGATE_GATE_TREND_DETECTION | default "false" | quote }}
+            - name: STARGATE_JIRA_URL
+              value: {{ .Values.api.env.STARGATE_JIRA_URL | default "" | quote }}
+            - name: STARGATE_JIRA_PROJECT
+              value: {{ .Values.api.env.STARGATE_JIRA_PROJECT | default "" | quote }}
+            - name: STARGATE_JIRA_ISSUE_TYPE
+              value: {{ .Values.api.env.STARGATE_JIRA_ISSUE_TYPE | default "Task" | quote }}
+            - name: STARGATE_JIRA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: jira-token
+                  optional: true
             - name: STARGATE_CLUSTERS
               value: {{ .Values.scanner.clusters | quote }}
             - name: STARGATE_EXECUTOR_KUBECONFIG
               value: {{ .Values.secrets.mountPath }}/kubeconfig-executor
             - name: STARGATE_API_URL
               value: "http://localhost:{{ .Values.api.port }}"
+            - name: STARGATE_AAP_CONTROLLERS_FILE
+              value: /var/run/secrets/stargate-aap/controllers.yaml
             - name: STARGATE_TRUST_PROXY_AUTH
               value: {{ .Values.oauth.enabled | ternary "true" "false" | quote }}
           volumeMounts:
@@ -63,6 +103,9 @@ spec:
               mountPath: /opt/app-root/src/scan-history
             - name: secrets
               mountPath: {{ .Values.secrets.mountPath }}
+              readOnly: true
+            - name: aap-controllers
+              mountPath: /var/run/secrets/stargate-aap
               readOnly: true
           resources:
             {{- toYaml .Values.api.resources | nindent 12 }}
@@ -119,6 +162,10 @@ spec:
         - name: secrets
           secret:
             secretName: stargate-kubeconfigs
+        - name: aap-controllers
+          secret:
+            secretName: stargate-aap-controllers
+            optional: true
 ---
 apiVersion: v1
 kind: Service

@@ -10,6 +10,22 @@ from engine.functional_alignment import (
 )
 
 
+def test_missing_aap_inventory_is_reported_as_collection_outage(monkeypatch):
+    from collectors.aap import collect_aap
+
+    monkeypatch.setattr(collect_aap, "load_aap_controllers", lambda: [])
+    monkeypatch.setattr(collect_aap, "_cache", {"data": None, "ts": 0})
+
+    result = collect_aap.collect_aap_jobs()
+
+    assert result["collection_status"] == [{
+        "controller": "production-inventory",
+        "scope": "production",
+        "status": "collection-unavailable",
+        "error_type": "configuration",
+    }]
+
+
 def failure(**overrides):
     value = {
         "controller": "event-0", "event_id": 42, "job_id": 7,

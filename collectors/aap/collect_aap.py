@@ -155,7 +155,20 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
     _event_cache: Dict[str, Dict] = {}
 
     collection_status = []
-    for controller in load_aap_controllers():
+    controllers = load_aap_controllers()
+    if not controllers:
+        # An empty controller inventory is a monitoring outage, not a healthy
+        # zero-result collection. Keep this explicit so the durable ingestion
+        # pipeline and Operations UI can surface the coverage gap.
+        collection_status.append({
+            "controller": "production-inventory",
+            "scope": "production",
+            "status": "collection-unavailable",
+            "error_type": "configuration",
+        })
+        logger.warning("AAP collection unavailable: no production controllers configured")
+
+    for controller in controllers:
         try:
             failed_jobs = _fetch_jobs(controller, f"status=failed&finished__gt={cutoff}&page_size=200")
             for job in failed_jobs:
