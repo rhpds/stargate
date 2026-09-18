@@ -592,7 +592,21 @@ class ClusterWorker:
         if not self.api_url or not self.state.node_data:
             return
 
+        import urllib.error as urllib_error
         import urllib.request as urllib_req
+
+        def send(req, *, attempts: int = 3):
+            """Retry transient API failures without duplicating a scan run."""
+            for attempt in range(attempts):
+                try:
+                    return urllib_req.urlopen(req, timeout=10)
+                except urllib_error.HTTPError as exc:
+                    if exc.code < 500 or attempt == attempts - 1:
+                        raise
+                except (TimeoutError, urllib_error.URLError):
+                    if attempt == attempts - 1:
+                        raise
+                time.sleep(0.25 * (2 ** attempt))
 
         n = self.state.node_data
         evidence = {
@@ -604,7 +618,7 @@ class ClusterWorker:
         }
 
         try:
-            run_id = f"cluster-health-{self.state.name}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+            run_id = f"cluster-health-{self.state.name}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-%f')}"
             body = json.dumps({
                 "run_id": run_id,
                 "demo_id": "cluster-health",
@@ -618,14 +632,14 @@ class ClusterWorker:
                 data=body,
                 headers=self._api_headers(),
             )
-            urllib_req.urlopen(req, timeout=10)
+            send(req)
 
             req = urllib_req.Request(
                 f"{self.api_url}/runs/{run_id}/stages/cluster-health/start",
                 method="POST",
                 headers=self._api_headers(),
             )
-            urllib_req.urlopen(req, timeout=10)
+            send(req)
 
             for key, val in evidence.items():
                 ev_body = json.dumps({
@@ -639,7 +653,7 @@ class ClusterWorker:
                     data=ev_body,
                     headers=self._api_headers(),
                 )
-                urllib_req.urlopen(req, timeout=10)
+                send(req)
 
             body = json.dumps({"evidence": evidence}).encode()
             req = urllib_req.Request(
@@ -647,7 +661,7 @@ class ClusterWorker:
                 data=body,
                 headers=self._api_headers(),
             )
-            urllib_req.urlopen(req, timeout=10)
+            send(req)
         except Exception as e:
             logger.warning("Failed to persist cluster health: %s", e)
 

@@ -7,24 +7,49 @@ api:
     STARGATE_SSL_VERIFY: "false"
     STARGATE_CORS_ORIGINS: ""  # Set at deploy time: --set api.env.STARGATE_CORS_ORIGINS=https://<frontend>,https://<api>
     STARGATE_LITELLM_URL: "https://litellm.example.com/v1/chat/completions"
+    STARGATE_INVESTIGATE_MAX_PER_DAY: "200"
+    STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR: "0"
+    STARGATE_INVESTIGATE_MAX_PER_SCAN: "10"
+    STARGATE_INVESTIGATE_PATTERN_DEDUP_HOURS: "2"
+    STARGATE_SCAN_SNAPSHOT_RETENTION_DAYS: "7"
+    STARGATE_SCAN_SNAPSHOT_CLEANUP_BATCH: "1000"
+    STARGATE_GATE_SOURCE_INGESTION: "false"
+    STARGATE_GATE_DIAGNOSIS_CLAIMS: "false"
+    STARGATE_GATE_SLACK_DELIVERY: "false"
+    STARGATE_GATE_JIRA_DRAFTING: "false"
+    STARGATE_GATE_JIRA_EXECUTION: "false"
+    STARGATE_GATE_KNOWLEDGE_RETRIEVAL: "false"
+    STARGATE_GATE_TREND_DETECTION: "false"
 
 scanner:
   image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
+  apiUrl: http://stargate-api:8090
+  sandboxApiUrl: http://sandbox-api.babylon-sandbox-api.svc:8080
+  labagatorUrl: http://labagator-backend.labagator-prod.svc:8080/api/v1
+  demolitionUrl: http://coordinator-api.demolition-prod.svc:8000/api/v1
   clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
   tier1: 300
   tier2: 900
-  tier3: 3600
+  tier3: 600
+  batch: 25
 
 babylonWorker:
   image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
   interval: 180
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
 
 frontend:
   image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-frontend:latest
   replicas: 1
 
 postgres:
-  storage: 20Gi
+  storage: 40Gi
 
 scanHistory:
   storage: 10Gi
