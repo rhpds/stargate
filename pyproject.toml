@@ -15,12 +15,17 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "celery>=5.4",
+    "httpx2>=2.0",
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "ruff>=0.5",
 ]
 api = [
     "fastapi>=0.109",
+    "prometheus-client>=0.20",
+    "python-multipart>=0.0.18",
+    "slowapi>=0.1.9",
     "uvicorn>=0.25",
     "psycopg2-binary>=2.9",
     "sqlalchemy>=2.0",

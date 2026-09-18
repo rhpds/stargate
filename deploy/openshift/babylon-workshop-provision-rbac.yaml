@@ -1,0 +1,28 @@
+# Apply on the Babylon control-plane cluster. This grants only read access to
+# WorkshopProvision health in the production catalog namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stargate-workshop-provision-reader
+  namespace: babylon-catalog-prod
+rules:
+  - apiGroups: ["babylon.gpte.redhat.com"]
+    resources: ["workshopprovisions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stargate-workshop-provision-reader
+  namespace: babylon-catalog-prod
+subjects:
+  - kind: ServiceAccount
+    name: stargate-scanner
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: stargate-workshop-provision-reader

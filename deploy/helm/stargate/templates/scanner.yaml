@@ -29,8 +29,26 @@ spec:
         - name: scheduler
           image: {{ .Values.scanner.image }}
           command: ["python3", "-m", "cli.scheduler", "--clusters", {{ .Values.scanner.clusters | quote }},
+                    "--api-url", {{ .Values.scanner.apiUrl | quote }}, "--no-babylon",
                     "--tier1", {{ .Values.scanner.tier1 | quote }}, "--tier2", {{ .Values.scanner.tier2 | quote }},
                     "--tier3", {{ .Values.scanner.tier3 | quote }}, "--batch", {{ .Values.scanner.batch | quote }}]
+          env:
+            - name: STARGATE_ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: admin-api-key
+            - name: STARGATE_SANDBOX_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: sandbox-api-token
+            - name: STARGATE_SANDBOX_API_URL
+              value: {{ .Values.scanner.sandboxApiUrl | quote }}
+            - name: STARGATE_LABAGATOR_URL
+              value: {{ .Values.scanner.labagatorUrl | quote }}
+            - name: STARGATE_DEMOLITION_URL
+              value: {{ .Values.scanner.demolitionUrl | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -77,6 +95,20 @@ spec:
         - name: babylon-worker
           image: {{ .Values.babylonWorker.image }}
           command: ["python3", "-m", "cli.babylon_worker", "--interval", {{ .Values.babylonWorker.interval | quote }}]
+          env:
+            - name: STARGATE_API_URL
+              value: {{ .Values.scanner.apiUrl | quote }}
+            - name: STARGATE_ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: admin-api-key
+            - name: STARGATE_SSL_VERIFY
+              value: "false"
+            - name: STARGATE_LABAGATOR_URL
+              value: {{ .Values.scanner.labagatorUrl | quote }}
+            - name: STARGATE_DEMOLITION_URL
+              value: {{ .Values.scanner.demolitionUrl | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
