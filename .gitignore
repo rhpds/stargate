@@ -56,3 +56,4 @@ podman-compose.local.yml
 
 # Captured production state — large, not needed in repo
 fixtures/live-*/
+runs/
