@@ -35,12 +35,38 @@ Z = 1.96
 TRIAL_TIMEOUT = 30
 
 CARD_SCHEMA = json.loads(CARD_SCHEMA_PATH.read_text())
-CONSTRUCT = {
-    "workload": "stargate-failure-classification",
-    "statement": "Whether StarGate's failure classifier - the production LLM judge that proposes a failure class from scan evidence - correctly identifies the taxonomy class of a failure case, compared against the deterministic taxonomy pattern baseline on the same frozen cases.",
-    "metric": "Exact proposed_class match per case against authored taxonomy references, repeated k times per case at production temperature 0.1 and max_tokens 500, reported as single-attempt rate, pass@k and pass-all-k with Wilson 95% intervals, per system including the regex baseline.",
-    "gaming_analysis": "Cases 1-8 are authored from the taxonomy's own regex patterns, so a pure pattern-matcher scores on them; cases 9-12 paraphrase the same failure modes so literal matching fails and semantic classification is required - the LLM's value is measured as the delta on those cases. An LLM could inflate its score by echoing the most frequent class; temperature 0.1 with repeated trials exposes inconsistency as pass-at-k versus pass-all-k divergence. References are authored diagnostic expectations from the taxonomy, not independent human ground truth, and a passing score does not establish classification quality on novel failure modes outside this frozen set.",
+CONSTRUCTS = {
+    "production": {
+        "workload": "stargate-failure-classification",
+        "statement": "Whether StarGate's failure classifier - the production LLM judge that proposes a failure class from scan evidence with the known class list and similar past classifications in context - correctly identifies the taxonomy class of a failure case, compared against the deterministic taxonomy pattern baseline on the same frozen cases.",
+        "metric": "Exact proposed_class match per case against authored taxonomy references with the known-class list injected into the evidence, repeated k times per case at production temperature 0.1 and max_tokens 500, reported as single-attempt rate, pass@k and pass-all-k with Wilson 95% intervals, per system including the regex baseline.",
+        "gaming_analysis": "Cases 1-8 are authored from the taxonomy's own regex patterns, so a pure pattern-matcher scores on them; cases 9-12 paraphrase the same failure modes so literal matching fails and semantic classification is required. With the class list in context, an LLM could still score by echoing frequent classes rather than reading the failure; temperature 0.1 with repeated trials exposes inconsistency as pass-at-k versus pass-all-k divergence. References are authored diagnostic expectations from the taxonomy, not independent human ground truth.",
+    },
+    "ablation": {
+        "workload": "stargate-failure-classification-ablation",
+        "statement": "Whether StarGate's failure classifier can name taxonomy classes when run WITHOUT the known-class list and similar-past-classification context that the production pipeline injects - measuring how load-bearing the context injection is.",
+        "metric": "Exact proposed_class match per case against authored taxonomy references with the failure message only (no class list, no past classifications), repeated k times per case, reported as single-attempt rate, pass@k and pass-all-k with Wilson 95% intervals, per system including the regex baseline.",
+        "gaming_analysis": "The judge is prompted to propose a class from a known list it cannot see; without context it must invent names, so a low score demonstrates context-dependence rather than model incapacity. The prompt explicitly permits novel class names when none fit, so semantically correct but differently-formatted answers score RED by the exact-match rule - this is the production grading contract, applied honestly. The regex baseline is unaffected by the ablation and serves as the control.",
+    },
 }
+
+
+def format_evidence(case: dict, context_mode: str, taxonomy=None) -> str:
+    """Build the evidence block. Production mode mirrors the pipeline's
+    context injection (known class list + exemplar past classifications);
+    ablation mode passes the failure message alone."""
+    evidence = case["evidence"]
+    if context_mode != "production":
+        return evidence
+    taxonomy = taxonomy if taxonomy is not None else load_taxonomy()
+    class_list = ", ".join(name for name, _ in taxonomy)
+    exemplars = [
+        "Failure message: pod api-5f9c restarted 3 times with exit code 137. Classification: oom_killed",
+        "Failure message: route console returning HTTP 503 after backend rollout. Classification: ingress_5xx_spike",
+    ]
+    return (evidence + "\n\n## Similar past classifications\n"
+            + "\n".join(exemplars)
+            + "\n\n## Known failure classes\n" + class_list)
 
 
 def canonical(value) -> bytes:
@@ -154,7 +180,7 @@ def parse_proposed_class(content: str):
 # ---------- run ----------
 
 
-def run_qualification(models: list, trials: int, output_dir: Path) -> dict:
+def run_qualification(models: list, trials: int, output_dir: Path, context_mode: str = "production") -> dict:
     cases = json.loads(CASES_PATH.read_text())["cases"]
     taxonomy = load_taxonomy()
     api_key = os.environ.get("STARGATE_LITELLM_API_KEY", "")
@@ -166,6 +192,7 @@ def run_qualification(models: list, trials: int, output_dir: Path) -> dict:
     for system_id, model in systems:
         rows = []
         for case in cases:
+            evidence = format_evidence(case, context_mode, taxonomy)
             for trial in range(1, trials + 1):
                 row = {"system_id": system_id, "case_id": case["id"], "trial": trial,
                        "expected": case["expected_class"], "outcome": "completed", "quality": "RED"}
@@ -176,11 +203,12 @@ def run_qualification(models: list, trials: int, output_dir: Path) -> dict:
                     if not api_key:
                         raise SystemExit("STARGATE_LITELLM_API_KEY is required for live model trials")
                     try:
-                        result = call_llm(case["evidence"], model, api_key=api_key, api_url=api_url)
+                        result = call_llm(evidence, model, api_key=api_key, api_url=api_url)
                         predicted = parse_proposed_class(result["content"])
                         row.update(predicted=predicted, latency=result["latency"],
                                    fingerprint=result.get("fingerprint"), model_calls=1,
-                                   finish_reason=result.get("finish_reason"))
+                                   finish_reason=result.get("finish_reason"),
+                                   raw_reply=result["content"][:2000])
                     except Exception as error:
                         row.update(outcome="adapter_failure", error_type=type(error).__name__,
                                    predicted=None, latency=TRIAL_TIMEOUT, fingerprint=None, model_calls=1)
@@ -195,6 +223,7 @@ def run_qualification(models: list, trials: int, output_dir: Path) -> dict:
         "started_namespace": "stargate",
         "cases_sha256": digest(cases),
         "prompt_id": "classify",
+        "context_mode": context_mode,
         "models": models,
         "trials_per_case": trials,
         "finished_at": datetime.now(timezone.utc).isoformat(),
@@ -269,15 +298,10 @@ def build_card(run_dir: Path) -> dict:
         "schema_version": "fabric.evaluation-card/v1",
         "issued_at": datetime.now(timezone.utc).isoformat(),
         "mode": "workload-pipeline",
-        "construct": {
-            "statement": CONSTRUCT["statement"],
-            "metric": CONSTRUCT["metric"],
-            "gaming_analysis": CONSTRUCT["gaming_analysis"],
-            "construct_sha256": digest(CONSTRUCT),
-        },
+        "construct": None,  # replaced below
         "evaluation": {
             "source_schema_version": "stargate.classifier-qualification/v1",
-            "source_id": "stargate-failure-classification-v1",
+            "source_id": "stargate-failure-classification-" + run.get("context_mode", "production"),
             "binding_sha256": run["cases_sha256"],
             "measured_sha256": digest(rows),
             "split": "development",
@@ -301,6 +325,13 @@ def build_card(run_dir: Path) -> dict:
         "limits": "StarGate classifier qualification on frozen authored cases. Measures agreement with taxonomy expectations, "
                   "not classification quality on novel operational failures. No authorization, no remediation authority.",
     }
+    construct = CONSTRUCTS[run.get("context_mode", "production")]
+    card["construct"] = {
+        "statement": construct["statement"],
+        "metric": construct["metric"],
+        "gaming_analysis": construct["gaming_analysis"],
+        "construct_sha256": digest(construct),
+    }
     card["card_sha256"] = digest(card)
     Draft202012Validator(CARD_SCHEMA).validate(card)
     return card
@@ -312,6 +343,7 @@ def main() -> int:
     run_parser = sub.add_parser("run")
     run_parser.add_argument("--models", default="llama-scout-17b,granite-3-2-8b-instruct-cpu")
     run_parser.add_argument("--trials", type=int, default=3)
+    run_parser.add_argument("--context-mode", choices=("production", "ablation"), default="production")
     run_parser.add_argument("--output-dir", type=Path, required=True)
     emit_parser = sub.add_parser("emit-card")
     emit_parser.add_argument("--run-dir", type=Path, required=True)
@@ -320,8 +352,9 @@ def main() -> int:
 
     if args.command == "run":
         models = [m.strip() for m in args.models.split(",") if m.strip()]
-        result = run_qualification(models, args.trials, args.output_dir)
-        print(json.dumps({"models": result["models"], "trials": result["trials_per_case"]}))
+        result = run_qualification(models, args.trials, args.output_dir, context_mode=args.context_mode)
+        print(json.dumps({"models": result["models"], "trials": result["trials_per_case"],
+                          "context_mode": result["context_mode"]}))
         return 0
 
     card = build_card(args.run_dir)
