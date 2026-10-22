@@ -34,6 +34,13 @@ def source_events(state: Optional[str] = None, limit: int = Query(100, ge=1, le=
     return {"items": [_row(item, fields) for item in rows]}
 
 
+@router.get("/diagnosis-candidates", dependencies=[Depends(require_admin_read)])
+def diagnosis_candidates(hours: int = Query(24, ge=1, le=48),
+                         limit: int = Query(50, ge=1, le=500), db: Session = Depends(get_db)):
+    from engine.functional_alignment import source_diagnosis_candidates
+    return source_diagnosis_candidates(db, hours=hours, limit=limit)
+
+
 @router.get("/source-events/{event_id}/diagnosis", dependencies=[Depends(require_admin_read)])
 def event_diagnosis(event_id: int, db: Session = Depends(get_db)):
     from db.models import InvestigationRecord, InvestigationSourceEvent, SourceEvent
@@ -80,7 +87,10 @@ def review_investigation(investigation_id: int, body: dict, db: Session = Depend
     inv.review_state, inv.reviewed_by, inv.reviewed_at = state, body.get("reviewed_by", "admin"), datetime.now(timezone.utc)
     for link in db.query(InvestigationSourceEvent).filter_by(investigation_id=inv.id).all():
         event = db.query(SourceEvent).filter_by(id=link.source_event_id).first()
-        if event:
+        if (event and link.diagnosed_at is not None and link.released_at is None
+                and event.evidence_hash == link.evidence_hash
+                and event.diagnosed_at == link.diagnosed_at
+                and event.state in ("diagnosed", "reviewed", "suppressed")):
             event.state = "reviewed" if state == "reviewed" else "suppressed"
             event.reviewed_at = inv.reviewed_at
     db.commit()

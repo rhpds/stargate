@@ -1485,15 +1485,26 @@ def create_investigation(
 def start_investigation(db: Session, job_id: str) -> None:
     record = db.query(InvestigationRecord).filter(
         InvestigationRecord.job_id == job_id
-    ).first()
+    ).with_for_update().first()
     if record:
-        record.status = "running"
-        record.started_at = datetime.now(timezone.utc)
-        db.commit()
+        from engine.functional_alignment import claim_source_events, find_knowledge, gate_enabled
         try:
-            from engine.functional_alignment import claim_source_events, find_knowledge, gate_enabled
+            if record.status != "queued":
+                raise ValueError("Investigation is not queued")
+            record.status = "running"
+            record.started_at = datetime.now(timezone.utc)
             if gate_enabled("diagnosis_claims"):
-                claim_source_events(db, record)
+                source_id = (db.query(EvaluationRecord.source_event_id).filter(
+                    EvaluationRecord.id == record.triggering_eval_id,
+                ).scalar() if record.triggering_eval_id else None)
+                if source_id:
+                    if not claim_source_events(db, record):
+                        raise ValueError("Source evidence claim unavailable; diagnosis not started")
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        try:
             if gate_enabled("knowledge_retrieval"):
                 matches = find_knowledge(db, record.lab_code, record.failure_class or "")
                 record.knowledge_match = {"matches": matches} if matches else None
@@ -1541,8 +1552,8 @@ def complete_investigation(
             create_jira_draft, finish_source_event_claims, gate_enabled,
             queue_slack_delivery,
         )
-        if gate_enabled("diagnosis_claims"):
-            finish_source_event_claims(db, record, success=not bool(error), reason=error or "")
+        finish_source_event_claims(db, record, success=bool(analysis) and not bool(error),
+                                   reason=error or ("" if analysis else "empty diagnosis"))
         if not error and gate_enabled("slack_delivery"):
             queue_slack_delivery(db, record)
         if not error and gate_enabled("jira_drafting"):
@@ -1561,9 +1572,8 @@ def fail_investigation(db: Session, job_id: str, error: str) -> None:
         record.completed_at = datetime.now(timezone.utc)
         db.commit()
         try:
-            from engine.functional_alignment import finish_source_event_claims, gate_enabled
-            if gate_enabled("diagnosis_claims"):
-                finish_source_event_claims(db, record, success=False, reason=error)
+            from engine.functional_alignment import finish_source_event_claims
+            finish_source_event_claims(db, record, success=False, reason=error)
         except Exception:
             db.rollback()
 

@@ -20,6 +20,20 @@ def test_source_event_read_api(client, db):
     assert response.json()["items"][0]["source_event_id"] == "42"
 
 
+def test_diagnosis_candidates_api_is_read_only_and_requires_live_verification(client, db):
+    now = datetime.now(timezone.utc)
+    db.add(SourceEvent(source_system="aap", source_instance="prod0", source_event_id="42",
+        evidence_hash="a" * 64, state="new", outcome="fail", guid="abc12", action="provision",
+        normalized_error="Missing DNS variable", catalog_item="agd-v2.ocp-cluster",
+        occurred_at=now, first_seen_at=now, last_seen_at=now))
+    db.commit()
+    response = client.get("/admin/functional/diagnosis-candidates")
+    assert response.status_code == 200
+    assert response.json()["eligible_total"] == 1
+    assert response.json()["live_verification_required"] is True
+    assert db.query(SourceEvent).one().state == "new"
+
+
 def test_stage_receipt_requires_all_promotion_evidence(client):
     response = client.post("/admin/functional/gates/gate-1/receipt", json={"rubric_score": 100})
     assert response.status_code == 422
