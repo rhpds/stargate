@@ -2,6 +2,53 @@
 
 import re
 import textwrap
+import json
+
+
+def test_durable_collection_keeps_all_jobs_and_each_jobs_own_evidence(monkeypatch):
+    from collectors.aap import collect_aap as collector
+
+    monkeypatch.setattr(collector, "_cache", {"data": None, "ts": 0})
+    monkeypatch.setattr(collector, "load_aap_controllers", lambda: [
+        {"name": "prod0", "url": "https://aap.example", "scope": "production"},
+    ])
+    jobs = [{"id": n, "name": "catalog.same.prod-test-provision", "status": "failed",
+             "finished": "2026-10-14T12:00:00Z"} for n in range(601)]
+    monkeypatch.setattr(collector, "_fetch_jobs", lambda c, query: jobs if "status=failed" in query else [])
+    monkeypatch.setattr(collector, "_fetch_job_events", lambda c, job: [
+        {"id": job + 1000, "task": f"Task {job}", "event_data": {"res": {"msg": f"Error {job}"}}},
+    ])
+    monkeypatch.setattr(collector, "_fetch_job_counts", lambda *a: {"failed": 601, "total": 601})
+    result = collector.collect_aap_jobs()
+    assert len(result["recent_events"]) == 601
+    assert len(result["recent_failures"]) == 50
+    for event in result["recent_events"]:
+        assert event["failing_task"] == f'Task {event["job_id"]}'
+        assert event["error"] == f'Error {event["job_id"]}'
+
+
+def test_job_pagination_does_not_stop_after_500(monkeypatch):
+    from collectors.aap import collect_aap as collector
+
+    class Response:
+        def __init__(self, data):
+            self.data = data
+
+        def read(self):
+            return json.dumps(self.data).encode()
+
+    pages = iter([
+        {"results": [{"id": n, "artifacts": {"large": "x" * 10000},
+                       "extra_vars": '{"password":"do-not-retain","target_host":"host.example"}'}
+                      for n in range(600)], "next": "/api/v2/jobs/?page=2"},
+        {"results": [{"id": 600}], "next": None},
+    ])
+    monkeypatch.setattr(collector.urllib.request, "urlopen", lambda *a, **kw: Response(next(pages)))
+    result = collector._fetch_jobs({"url": "https://aap.example", "token": "test"}, "page_size=200")
+    assert [job["id"] for job in result] == list(range(601))
+    assert all("artifacts" not in job for job in result)
+    assert "do-not-retain" not in json.dumps(result)
+    assert json.loads(result[0]["extra_vars"])["target_host"] == "host.example"
 
 
 class TestAAPCollector:
