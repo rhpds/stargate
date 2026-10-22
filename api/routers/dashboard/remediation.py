@@ -441,6 +441,10 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
             start_investigation(_db, job_id)
 
             evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
+            from engine.functional_alignment import investigation_source_evidence
+            source_evidence = investigation_source_evidence(_db, job_id)
+            if source_evidence:
+                evidence_lines.append(source_evidence)
 
             from db.models import EvaluationRecord
             recent = _db.query(EvaluationRecord).filter(

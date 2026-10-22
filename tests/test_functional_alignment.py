@@ -7,6 +7,7 @@ from engine.functional_alignment import (
     bounded_evidence, claim_source_events, create_jira_draft, detect_trends,
     evidence_hash, ingest_aap_failures, publish_reviewed_knowledge,
     queue_slack_delivery,
+    finish_source_event_claims,
 )
 
 
@@ -66,6 +67,17 @@ def test_aap_ingestion_is_idempotent(db):
     assert db.query(SourceEvent).count() == 1
 
 
+def test_normalized_error_and_task_are_redacted_before_storage(db):
+    from db.models import EvaluationRecord
+
+    ingest_aap_failures(db, [failure(error="password=private-value", failing_task="token=private-token")])
+    event = db.query(SourceEvent).one()
+    evaluation = db.query(EvaluationRecord).one()
+    assert "private-value" not in event.normalized_error
+    assert "private-token" not in event.task
+    assert "private-value" not in evaluation.message
+
+
 def test_changed_evidence_reopens_diagnosed_event(db):
     ingest_aap_failures(db, [failure()])
     event = db.query(SourceEvent).one(); event.state = "diagnosed"; db.commit()
@@ -79,6 +91,175 @@ def test_claim_is_durable_and_exclusive(db):
     inv2 = investigation(db, job_id="inv-2", status="running")
     assert claim_source_events(db, inv1) == [db.query(SourceEvent.id).scalar()]
     assert claim_source_events(db, inv2) == []
+
+
+def test_expired_claim_is_reclaimed_and_old_completion_cannot_overwrite_owner(db):
+    ingest_aap_failures(db, [failure()])
+    old = investigation(db, job_id="old", status="running")
+    new = investigation(db, job_id="new", status="running")
+    claim_source_events(db, old)
+    event = db.query(SourceEvent).one()
+    event.claim_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    assert claim_source_events(db, new) == [event.id]
+    finish_source_event_claims(db, old, success=True)
+    assert db.query(SourceEvent).one().state == "claimed"
+    finish_source_event_claims(db, new, success=True)
+    assert db.query(SourceEvent).one().state == "diagnosed"
+
+
+def test_changed_evidence_during_diagnosis_is_not_marked_diagnosed(db):
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="running")
+    claim_source_events(db, inv)
+    ingest_aap_failures(db, [failure(error="Different evidence")])
+    finish_source_event_claims(db, inv, success=True)
+    assert db.query(SourceEvent).one().state == "reopened"
+
+
+def test_completion_after_lease_expiry_reopens_event(db):
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="running")
+    claim_source_events(db, inv)
+    event = db.query(SourceEvent).one()
+    event.claim_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    finish_source_event_claims(db, inv, success=True)
+    assert db.query(SourceEvent).one().state == "reopened"
+
+
+def test_released_claim_can_be_retried_by_same_investigation(db):
+    from db.models import InvestigationSourceEvent
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="running")
+    claim_source_events(db, inv)
+    finish_source_event_claims(db, inv, success=False, reason="transport failure")
+    assert claim_source_events(db, inv) == [db.query(SourceEvent).one().id]
+    assert db.query(InvestigationSourceEvent).count() == 1
+    assert db.query(InvestigationSourceEvent).one().released_at is None
+
+
+def test_legacy_evaluation_does_not_claim_unrelated_source_events(db):
+    from db.models import EvaluationRecord
+    ingest_aap_failures(db, [failure()])
+    legacy = EvaluationRecord(run_id="legacy", stage_id="platform", outcome="fail",
+                              evaluated_at=datetime.now(timezone.utc))
+    db.add(legacy); db.commit()
+    inv = investigation(db, triggering_eval_id=legacy.id)
+    assert claim_source_events(db, inv) == []
+
+
+def test_repository_refuses_source_investigation_without_claim(db, monkeypatch):
+    from db.models import EvaluationRecord
+    from db.repository import start_investigation
+    ingest_aap_failures(db, [failure()])
+    evaluation = db.query(EvaluationRecord).one()
+    owner = investigation(db, job_id="owner", status="running", triggering_eval_id=evaluation.id)
+    claim_source_events(db, owner)
+    contender = investigation(db, job_id="contender", status="queued", triggering_eval_id=evaluation.id)
+    monkeypatch.setenv("STARGATE_GATE_DIAGNOSIS_CLAIMS", "true")
+    with pytest.raises(ValueError, match="claim"):
+        start_investigation(db, contender.job_id)
+    db.refresh(contender)
+    assert contender.status == "queued"
+
+
+def test_agent_source_context_contains_owned_links_and_rejects_changed_evidence(db):
+    from engine.functional_alignment import investigation_source_evidence
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="running")
+    claim_source_events(db, inv)
+    context = investigation_source_evidence(db, inv.job_id)
+    assert "https://aap.example/jobs/7" in context
+    assert "Create workshop" in context
+    assert "covered_source_event_ids" in context
+    ingest_aap_failures(db, [failure(error="Changed after claim")])
+    with pytest.raises(ValueError, match="claim changed"):
+        investigation_source_evidence(db, inv.job_id)
+
+
+def test_claim_error_does_not_start_investigation(db, monkeypatch):
+    from db.models import EvaluationRecord
+    from db.repository import start_investigation
+    import engine.functional_alignment as alignment
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="queued", triggering_eval_id=db.query(EvaluationRecord).one().id)
+    monkeypatch.setenv("STARGATE_GATE_DIAGNOSIS_CLAIMS", "true")
+    def broken_claim(*args):
+        raise RuntimeError("database unavailable")
+    monkeypatch.setattr(alignment, "claim_source_events", broken_claim)
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        start_investigation(db, inv.job_id)
+    db.refresh(inv)
+    assert inv.status == "queued"
+
+
+def test_inflight_claim_is_released_when_gate_disabled_before_failure(db, monkeypatch):
+    from db.models import EvaluationRecord
+    from db.repository import start_investigation, fail_investigation
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db, status="queued", triggering_eval_id=db.query(EvaluationRecord).one().id)
+    monkeypatch.setenv("STARGATE_GATE_DIAGNOSIS_CLAIMS", "true")
+    start_investigation(db, inv.job_id)
+    assert db.query(SourceEvent).one().state == "claimed"
+    monkeypatch.setenv("STARGATE_GATE_DIAGNOSIS_CLAIMS", "false")
+    fail_investigation(db, inv.job_id, "worker failure during rollback")
+    assert db.query(SourceEvent).one().state == "reopened"
+
+
+def test_source_candidates_exclude_later_success_and_recycled_workloads(db):
+    from engine.functional_alignment import source_diagnosis_candidates
+    now = datetime.now(timezone.utc)
+    base = {"name": "RHPDS agd-v2.ocp-cluster.prod-abc12-provision-test", "catalog_item": "agd-v2.ocp-cluster"}
+    ingest_aap_failures(db, [failure(**base, event_id=1, finished=(now-timedelta(hours=2)).isoformat()),
+        failure(**base, event_id=2, outcome="success", finished=(now-timedelta(hours=1)).isoformat())])
+    assert source_diagnosis_candidates(db)["eligible_total"] == 0
+    ingest_aap_failures(db, [failure(**base, event_id=3, finished=now.isoformat())])
+    result = source_diagnosis_candidates(db)
+    assert result["eligible_total"] == 1
+    assert result["items"][0]["guid"] == "abc12"
+    ingest_aap_failures(db, [failure(**{**base, "name": "RHPDS agd-v2.ocp-cluster.prod-abc12-destroy-test"},
+        event_id=4, outcome="success", type="destroy", finished=(now+timedelta(seconds=1)).isoformat())])
+    assert source_diagnosis_candidates(db)["eligible_total"] == 0
+
+
+def test_source_candidates_exclude_stale_and_missing_evidence(db):
+    from engine.functional_alignment import source_diagnosis_candidates
+    ingest_aap_failures(db, [failure(event_id=1, finished=(datetime.now(timezone.utc)-timedelta(days=2)).isoformat()),
+        failure(event_id=2, error="Unknown error")])
+    result = source_diagnosis_candidates(db)
+    assert result["eligible_total"] == 0
+    assert result["excluded"]["insufficient_evidence"] == 1
+
+
+def test_source_candidates_do_not_group_different_controllers(db):
+    from engine.functional_alignment import source_diagnosis_candidates
+    name = "RHPDS agd-v2.ocp-cluster.prod-abc12-provision-test"
+    ingest_aap_failures(db, [failure(name=name, type="provision", controller="prod0", event_id=1),
+        failure(name=name, type="provision", controller="prod1", event_id=2, outcome="success")])
+    result = source_diagnosis_candidates(db)
+    assert result["eligible_total"] == 1
+    assert result["items"][0]["controller"] == "prod0"
+
+
+def test_source_candidates_recognize_explicit_shortened_job_operations(db):
+    from engine.functional_alignment import source_diagnosis_candidates
+    ingest_aap_failures(db, [failure(name="RHPDS agd-v2.ocp-cluster.dev-abc12-1-provisxyz", type="other")])
+    result = source_diagnosis_candidates(db)
+    assert result["eligible_total"] == 1
+    assert result["items"][0]["action"] == "provision"
+    assert result["items"][0]["guid"] == "abc12-1"
+
+
+def test_review_of_old_diagnosis_does_not_review_changed_source(db):
+    from api.routers.admin.functional import review_investigation
+    ingest_aap_failures(db, [failure()])
+    inv = investigation(db)
+    claim_source_events(db, inv)
+    finish_source_event_claims(db, inv, success=True)
+    ingest_aap_failures(db, [failure(error="New failure after previous diagnosis")])
+    review_investigation(inv.id, {"state": "reviewed"}, db)
+    assert db.query(SourceEvent).one().state == "reopened"
 
 
 def test_notification_delivery_deduplicates(db):

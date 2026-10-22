@@ -181,6 +181,10 @@ def _run_single_investigation(record, db):
         f"Cluster: {record.cluster}",
         f"Trigger: {record.trigger_type}",
     ]
+    from engine.functional_alignment import investigation_source_evidence
+    source_evidence = investigation_source_evidence(db, record.job_id)
+    if source_evidence:
+        evidence_lines.append(source_evidence)
     from db.models import EvaluationRecord
     recent = (
         db.query(EvaluationRecord)
