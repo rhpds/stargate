@@ -418,6 +418,48 @@ Enable them independently and in sequence only after recording a passing receipt
 through the functional-alignment admin API. Jira execution also requires its
 service URL, token, project, and issue type; Slack requires its webhook secret.
 
+For production AAP collection, mount the `stargate-aap-controllers` Secret at
+`/var/run/secrets/stargate-aap` with a `controllers.yaml` key. Each controller
+entry supplies `name`, `url`, `scope: production`, and either a read-scoped
+`token` or a dedicated auditor account's `username` and `password`. Keep these
+values in Secrets, never in source control. The API deployment must mount this
+inventory; the Babylon worker's kubeconfig mount does not provide AAP access.
+
+With `STARGATE_GATE_SOURCE_INGESTION=true`, each API replica collects a rolling
+24-hour window and waits five minutes between cycles. Pagination and durable events are uncapped;
+the dashboard's `recent_failures` preview remains limited to 50. Failed jobs use
+their own task events, fetched with at most eight concurrent requests per
+collection. PostgreSQL transaction locks serialize each event's ledger and
+evaluation writes across replicas. Recollection updates observation timestamps
+without creating another evaluation for the same source event.
+
+Collections within an API process are serialized. Job pages retain only the
+fields needed by ingestion; bulky artifacts and unrelated extra variables are
+discarded before accumulation. This keeps historical backfills within the API
+memory limit while preserving each failed job's task evidence.
+
+Disable `STARGATE_GATE_SOURCE_INGESTION` to stop automatic persistence while
+retaining the ledger. This gate does not enable diagnosis claims, Slack, Jira,
+knowledge retrieval, trends, or automatic infrastructure remediation. An initial
+backfill can use a longer collection window before returning to the rolling
+24-hour schedule.
+
+Diagnosis claims require a separate promotion. Source-bound investigations must
+acquire evidence before model execution; claim errors prevent execution. Claims
+record the evidence hash and lease timestamp. Expired leases are recoverable,
+older owners cannot finish a newer lease, and changed evidence reopens instead
+of inheriting an obsolete diagnosis or review. In-flight claims are released on
+completion or failure even if the gate was disabled during the investigation.
+
+After deployment, `/admin/functional/diagnosis-candidates` provides an admin-only,
+read-only preview. It groups observations by controller, workload identity, and
+operation, excludes failures followed by success or teardown, and requires fresh
+collection and usable evidence. Shortened explicit provision/destroy job-name
+prefixes are recognized; ambiguous identities or operations remain excluded.
+The preview does not queue investigations. Its candidates still require live AAP
+verification and trusted target identity before any automatic diagnosis queue is
+promoted. Complete the ingestion canary before enabling the diagnosis gate.
+
 ### WorkshopProvision collection
 
 | Variable | Default | Purpose |
