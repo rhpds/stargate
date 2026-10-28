@@ -39,22 +39,13 @@ class TestEmulatorImportable:
         assert expected.issubset(set(scenarios.keys()))
 
     def test_validate_endpoint_no_syspath_hack(self):
-        """admin.py validate endpoint must not use sys.path.insert for emulator."""
-        from pathlib import Path
-        src = Path(__file__).parent.parent / "api" / "routers" / "admin.py"
-        text = src.read_text()
-        # The validate endpoint should use try/import, not sys.path.insert
-        # Find the validate_scenarios function
-        in_validate = False
-        syspath_in_validate = False
-        for line in text.splitlines():
-            if "def validate_scenarios" in line:
-                in_validate = True
-            elif in_validate and line.strip().startswith("def "):
-                break
-            elif in_validate and "sys.path.insert" in line:
-                syspath_in_validate = True
-        assert not syspath_in_validate, (
+        """Inspect the actual endpoint, independent of router file layout."""
+        import inspect
+        from api.routers.admin.llm import validate_scenarios
+
+        text = inspect.getsource(validate_scenarios)
+        assert "def validate_scenarios" in text
+        assert "sys.path.insert" not in text, (
             "validate_scenarios() still uses sys.path.insert — "
             "emulator should be pip-installed or on PYTHONPATH"
         )

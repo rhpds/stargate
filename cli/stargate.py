@@ -179,9 +179,14 @@ def _cmd_evaluate(args) -> int:
         summary = f"\n{passed} passed, {failed} failed"
         if warned:
             summary += f", {warned} warned"
+        unobserved = sum(1 for r in results if r["outcome"] == "indeterminate")
+        if unobserved:
+            summary += f", {unobserved} indeterminate"
         print(summary)
 
-    return 1 if any_failed else 0
+    if any_failed:
+        return 1
+    return 2 if any(r["outcome"] == "indeterminate" for r in results) else 0
 
 
 def _cmd_collect(args) -> int:
@@ -280,9 +285,14 @@ def _cmd_collect(args) -> int:
         summary = f"\n{passed} passed, {failed} failed"
         if warned:
             summary += f", {warned} warned"
+        unobserved = sum(1 for r in results if r["outcome"] == "indeterminate")
+        if unobserved:
+            summary += f", {unobserved} indeterminate"
         print(summary)
 
-    return 1 if any_failed else 0
+    if any_failed:
+        return 1
+    return 2 if any(r["outcome"] == "indeterminate" for r in results) else 0
 
 
 def _cmd_collect_dir(args) -> int:
@@ -362,9 +372,14 @@ def _cmd_collect_dir(args) -> int:
         summary = f"\n{passed} passed, {failed} failed"
         if warned:
             summary += f", {warned} warned"
+        unobserved = sum(1 for r in results if r["outcome"] == "indeterminate")
+        if unobserved:
+            summary += f", {unobserved} indeterminate"
         print(summary)
 
-    return 1 if any_failed else 0
+    if any_failed:
+        return 1
+    return 2 if any(r["outcome"] == "indeterminate" for r in results) else 0
 
 
 # --- API Persistence ---
@@ -417,10 +432,8 @@ def _persist_to_api(
                 result=r["outcome"],
             )
 
-        client.evaluate_stage(run_id, stage_id, evidence={
-            k: v for ev in collected
-            for k, v in ev.observed.items()
-        })
+        # Preserve the same unobserved/null criteria used by local evaluation.
+        client.evaluate_stage(run_id, stage_id, evidence=normalize_evidence(stage_id, collected))
 
     if out_format == "text":
         print(f"  Persisted {len(results)} stages with {len(collected)} evidence items each.")
@@ -479,6 +492,8 @@ def _outcome_icon(outcome: StageOutcome) -> str:
         return "[+]"
     elif outcome == StageOutcome.WARN:
         return "[~]"
+    elif outcome == StageOutcome.INDETERMINATE:
+        return "[?]"
     return "[X]"
 
 

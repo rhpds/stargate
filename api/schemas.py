@@ -84,7 +84,7 @@ class EvaluateRequest(BaseModel):
 class CriterionResult(BaseModel):
     name: str
     required: bool
-    passed: bool
+    passed: Optional[bool]
 
 
 class EvaluateResponse(BaseModel):

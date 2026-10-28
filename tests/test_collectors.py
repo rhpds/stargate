@@ -234,12 +234,13 @@ class TestCollectorToRubricPipeline:
         result = evaluate_rubric(rubrics["deployment-ready"], normalized)
         assert result.outcome == StageOutcome.PASS
 
-    def test_healthy_route_passes_rubric(self):
+    def test_healthy_route_without_http_probe_is_indeterminate(self):
         rubrics = self._load_rubrics()
         evidence_list = collect_namespace_state(HEALTHY_DIR)
         normalized = normalize_evidence("route-ready", evidence_list)
         result = evaluate_rubric(rubrics["route-ready"], normalized)
-        assert result.outcome == StageOutcome.PASS
+        assert result.outcome == StageOutcome.INDETERMINATE
+        assert result.failure_class is None
 
     def test_unhealthy_deployment_fails_rubric(self):
         rubrics = self._load_rubrics()

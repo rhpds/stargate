@@ -19,23 +19,27 @@ logger = logging.getLogger("stargate.failure_classes")
 FAILURE_CLASSES_DIR = Path(__file__).parent.parent / "failure-classes"
 
 _cache: Dict[str, Dict] = {}
+_source_cache: Dict[str, Dict[str, Dict]] = {}
 _cache_loaded = False
 
 
 def _load_all() -> None:
-    global _cache, _cache_loaded
+    global _cache, _source_cache, _cache_loaded
     if _cache_loaded:
         return
     _cache = {}
+    _source_cache = {}
     for yaml_file in sorted(FAILURE_CLASSES_DIR.glob("*.yaml")):
         try:
             with open(yaml_file) as f:
                 data = yaml.safe_load(f)
             source = data.get("source", yaml_file.stem)
             for cls_name, cls_data in data.get("classes", {}).items():
-                cls_data["_source_file"] = yaml_file.name
-                cls_data["_source"] = source
-                _cache[cls_name] = cls_data
+                definition = {**cls_data, "_source_file": yaml_file.name, "_source": source}
+                # Preserve source-scoped definitions even when a later catalog
+                # supplies the same global name. Canonical precedence is unchanged.
+                _source_cache.setdefault(source, {})[cls_name] = definition
+                _cache[cls_name] = definition
         except Exception as e:
             logger.warning("Failed to load %s: %s", yaml_file, e)
     _cache_loaded = True
@@ -55,7 +59,7 @@ def get_class(name: str) -> Optional[Dict]:
 
 def get_classes_by_source(source: str) -> Dict[str, Dict]:
     _load_all()
-    return {k: v for k, v in _cache.items() if v.get("_source") == source}
+    return dict(_source_cache.get(source, {}))
 
 
 def classify_by_pattern(text: str, source: str = None) -> Tuple[str, Dict]:

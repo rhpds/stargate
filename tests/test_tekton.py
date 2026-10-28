@@ -70,6 +70,7 @@ class TestTektonPipelineYAML:
 # --- Pipeline simulation tests ---
 
 SMOKE_TEST_EVIDENCE = {
+    "route-ready": {"health_endpoint_returns_200": True},
     "smoke-test-ready": {
         "smoke_test_passed": True,
         "expected_response_received": True,
@@ -104,15 +105,29 @@ class TestPipelineSimulation:
                 f"Gate {gate.stage_id} should pass but got {gate.outcome}"
             )
 
-    def test_healthy_pipeline_fails_without_smoke_test(self):
+    def test_unrun_smoke_blocks_pipeline(self):
         result = simulate_pipeline(
             demo_id="demo-simple-container",
             namespace="summit-demo-001",
             oc_fixture_dir=HEALTHY_DIR,
             rubric_dir=RUBRIC_DIR,
+            extra_evidence={"route-ready": {"health_endpoint_returns_200": True}},
         )
-        assert result.status == "failed"
+        assert result.status == "blocked"
         assert result.blocked_by == "smoke-test-ready"
+
+    def test_unobserved_http_check_does_not_promote_pipeline(self):
+        result = simulate_pipeline(
+            demo_id="synthetic", namespace="synthetic", oc_fixture_dir=HEALTHY_DIR,
+            rubric_dir=RUBRIC_DIR,
+        )
+        assert result.status == "blocked"
+        assert result.blocked_by == "route-ready"
+        route = next(g for g in result.gates if g.stage_id == "route-ready")
+        assert route.outcome == StageOutcome.INDETERMINATE
+        assert route.failure_class is None
+        assert route.gate_passed is False
+        assert next(t for t in result.tasks if t.task_name == "gate-smoke-test-ready").status == "skipped"
 
     def test_unhealthy_pipeline_fails(self):
         result = simulate_pipeline(

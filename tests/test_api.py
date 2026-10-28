@@ -4,7 +4,11 @@ import pytest
 
 
 class TestHealth:
-    def test_health(self, client):
+    def test_health(self, client, monkeypatch):
+        from api.routers import health
+
+        monkeypatch.setattr(health, "_check_executor_kubeconfig", lambda: "not_configured")
+        monkeypatch.setattr(health, "_check_sandbox_api", lambda: "not_configured")
         resp = client.get("/health")
         assert resp.status_code == 200
         data = resp.json()

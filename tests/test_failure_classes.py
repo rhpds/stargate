@@ -6,6 +6,8 @@ import yaml
 
 
 FAILURE_CLASSES_DIR = Path(__file__).parent.parent / "failure-classes"
+CLASS_CATALOG_FILES = sorted(path for path in FAILURE_CLASSES_DIR.glob("*.yaml")
+                             if path.name != "sub-classes.yaml")
 
 
 class TestYAMLStructure:
@@ -15,7 +17,7 @@ class TestYAMLStructure:
         files = list(FAILURE_CLASSES_DIR.glob("*.yaml"))
         assert len(files) >= 3, f"Expected at least 3 YAML files, found {len(files)}"
 
-    @pytest.mark.parametrize("yaml_file", list(FAILURE_CLASSES_DIR.glob("*.yaml")))
+    @pytest.mark.parametrize("yaml_file", CLASS_CATALOG_FILES)
     def test_yaml_parses(self, yaml_file):
         with open(yaml_file) as f:
             data = yaml.safe_load(f)
@@ -24,7 +26,7 @@ class TestYAMLStructure:
         assert "version" in data
         assert "classes" in data
 
-    @pytest.mark.parametrize("yaml_file", list(FAILURE_CLASSES_DIR.glob("*.yaml")))
+    @pytest.mark.parametrize("yaml_file", CLASS_CATALOG_FILES)
     def test_each_class_has_required_fields(self, yaml_file):
         with open(yaml_file) as f:
             data = yaml.safe_load(f)
@@ -34,6 +36,22 @@ class TestYAMLStructure:
             assert len(cls_data["remediation"]) > 0, f"{yaml_file.name}:{cls_name} has empty remediation"
             assert cls_data["severity"] in ("low", "medium", "high", "critical", "warning", "info", "none"), \
                 f"{yaml_file.name}:{cls_name} invalid severity: {cls_data['severity']}"
+
+    def test_subclass_rules_have_their_own_schema(self):
+        import re
+
+        data = yaml.safe_load((FAILURE_CLASSES_DIR / "sub-classes.yaml").read_text())
+        assert isinstance(data, dict) and data
+        for parent, rules in data.items():
+            assert isinstance(parent, str)
+            assert isinstance(rules, list) and rules
+            for rule in rules:
+                assert isinstance(rule["sub_class"], str) and rule["sub_class"]
+                assert isinstance(rule["workload"], str)
+                assert rule["auto_fix_confidence"] in {"low", "medium", "high"}
+                assert rule["pattern"] is None or isinstance(rule["pattern"], str)
+                if rule["pattern"] is not None:
+                    re.compile(rule["pattern"])
 
 
 class TestFailureClassLoader:

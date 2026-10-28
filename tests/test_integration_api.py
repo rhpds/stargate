@@ -171,7 +171,16 @@ class TestEventsAPI:
         assert "filtered" in data
         assert "by_type" in data
 
-    def test_register_consumer(self, client):
+    def test_register_consumer(self, client, monkeypatch):
+        # Registration validates DNS for SSRF protection; the unit contract must
+        # not depend on an external resolver being reachable in the test runner.
+        import socket
+        from api.routers import _shared
+
+        # Do not leak the registered webhook into later tests' event delivery.
+        monkeypatch.setattr(_shared._event_bus, "consumers", list(_shared._event_bus.consumers))
+        monkeypatch.setattr(socket, "getaddrinfo", lambda *args, **kwargs: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))])
         resp = client.post("/events/consumers", json={
             "url": "https://hooks.slack.com/test",
             "event_types": ["evaluation.failed"],
