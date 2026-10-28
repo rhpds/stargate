@@ -22,6 +22,7 @@ describe('API Client Error Handling', () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
       status: 403,
+      url: 'http://localhost/health',
       statusText: 'Forbidden',
       headers: new Headers(),
       json: async () => ({ detail: 'Invalid API key' }),
