@@ -20,6 +20,30 @@ def _row(obj, fields):
     return result
 
 
+@router.get("/adjudications", dependencies=[Depends(require_admin_read)])
+def adjudications(status: Optional[str] = None, limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db)):
+    from db.models import AdjudicationRecord
+    from engine.adjudication import configuration, enabled, serialize
+    from datetime import timedelta
+    query = db.query(AdjudicationRecord)
+    if status == "needs_human_review":
+        query = query.filter((AdjudicationRecord.status == status) | (
+            (AdjudicationRecord.status == "running") &
+            (AdjudicationRecord.created_at < datetime.now(timezone.utc) - timedelta(minutes=5))))
+    elif status:
+        query = query.filter_by(status=status)
+    items = []
+    for row in query.order_by(AdjudicationRecord.id.desc()).limit(limit).all():
+        item = serialize(row)
+        created = row.created_at.replace(tzinfo=timezone.utc) if row.created_at.tzinfo is None else row.created_at
+        if row.status == "running" and created < datetime.now(timezone.utc) - timedelta(minutes=5):
+            item.update(status="needs_human_review", reason="interrupted_review_not_automatically_retried")
+        items.append(item)
+    reviewers, judge, daily_limit = configuration()
+    return {"enabled": enabled(), "reviewers": reviewers, "judge": judge, "daily_limit": daily_limit,
+            "auto_remediation": False, "human_verification_required": True, "items": items}
+
+
 @router.get("/source-events", dependencies=[Depends(require_admin_read)])
 def source_events(state: Optional[str] = None, limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db)):
     from db.models import SourceEvent

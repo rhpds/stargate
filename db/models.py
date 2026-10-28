@@ -83,6 +83,9 @@ class EvaluationRecord(Base):
         Index('idx_eval_lab_stage', 'lab_code', 'stage_id'),
         Index('idx_eval_lab_cluster', 'lab_code', 'cluster_name'),
         Index('idx_eval_cluster_outcome', 'cluster_name', 'outcome'),
+        Index('idx_eval_evaluated_at', 'evaluated_at'),
+        Index('idx_eval_lab_first_seen', 'lab_code', 'evaluated_at'),
+        Index('idx_eval_lab_failure_latest', 'lab_code', 'failure_class', 'id'),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -516,6 +519,27 @@ class InvestigationRecord(Base):
     reviewed_by = Column(String(255), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     knowledge_match = Column(JSON, nullable=True)
+
+
+class AdjudicationRecord(Base):
+    """Model-only review ledger; never changes human review or execution state."""
+    __tablename__ = "adjudications"
+    __table_args__ = (
+        UniqueConstraint("investigation_id", "diagnosis_version", "evidence_hash", name="uq_adjudication_evidence"),
+        Index("idx_adjudication_created", "created_at"),
+    )
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    investigation_id = Column(Integer, ForeignKey("investigations.id"), nullable=False)
+    diagnosis_version = Column(Integer, nullable=False)
+    evidence_hash = Column(String(64), nullable=False)
+    status = Column(String(40), nullable=False)
+    models = Column(JSON, nullable=False)
+    reviews = Column(JSON, nullable=True)
+    judge = Column(JSON, nullable=True)
+    reason = Column(String(255), nullable=True)
+    total_tokens = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class SourceEvent(Base):
