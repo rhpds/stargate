@@ -20,8 +20,9 @@ WORKFLOWS = [
 ]
 
 
+@pytest.mark.integration
 def test_generate_workflow_matrix():
-    """Run all workflow tests and generate a coverage receipt."""
+    """Child-process orchestration, separate from in-process unit contracts."""
     results = []
 
     for name, test_file in WORKFLOWS:

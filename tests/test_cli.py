@@ -71,10 +71,11 @@ class TestCollectDir:
     def test_collect_healthy_dir(self, capsys):
         rc = main(["collect-dir", "fixtures/oc/healthy",
                     "--stages", "namespace-ready,deployment-ready,route-ready"])
-        assert rc == 0
+        assert rc == 2  # Route topology has no independent HTTP observation.
         out = capsys.readouterr().out
         assert "[+] namespace-ready: pass" in out
         assert "[+] deployment-ready: pass" in out
+        assert "[?] route-ready: indeterminate" in out
 
     def test_collect_unhealthy_dir(self, capsys):
         rc = main(["collect-dir", "fixtures/oc/unhealthy",

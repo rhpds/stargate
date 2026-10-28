@@ -1,5 +1,21 @@
 """TDD tests — Sandbox-API collector: health observation + sandbox counts."""
 
+from io import BytesIO
+import urllib.request
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def synthetic_metrics(monkeypatch):
+    from collectors.sandbox_api import collect_sandbox_api as collector
+
+    monkeypatch.setitem(collector._cache, "data", None)
+    monkeypatch.setitem(collector._cache, "ts", 0)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: BytesIO(
+        b"sandbox_pg_connections_active 2\nsandbox_pg_connections_idle 3\n"
+    ))
+
 
 class TestSandboxAPIHealth:
     def test_collect_sandbox_api_health_function_exists(self):

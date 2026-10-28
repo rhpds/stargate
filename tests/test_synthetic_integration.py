@@ -12,6 +12,15 @@ from fastapi.testclient import TestClient
 from tests.conftest import client, db
 
 
+@pytest.fixture(autouse=True)
+def synthetic_action_transport(monkeypatch):
+    from api import action_executor
+
+    monkeypatch.setattr(action_executor, "_do_execute", lambda *a, **kw: {
+        "success": True, "mode": "synthetic-unit-test",
+    })
+
+
 # ===========================================================================
 # Phase 1: Evidence Source Toggle
 # ===========================================================================

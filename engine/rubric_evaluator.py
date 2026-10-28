@@ -10,7 +10,7 @@ from engine.sub_classifier import sub_classify
 class CriterionResult:
     name: str
     required: bool
-    passed: bool
+    passed: bool | None
 
 
 @dataclass
@@ -30,13 +30,15 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
 
     for criterion in rubric.entry_criteria:
         value = evidence.get(criterion.name)
-        passed = _is_truthy(value)
+        passed = None if criterion.name in evidence and value is None else _is_truthy(value)
         criteria_results.append(CriterionResult(
             name=criterion.name,
             required=criterion.required,
             passed=passed,
         ))
-        if criterion.required and not passed:
+        # Unknown entries must not hide a later observed required failure.
+        # Resolve unknowns only after examining the remaining criteria.
+        if criterion.required and passed is False:
             failure_class = _classify_failure(rubric, evidence)
             if not failure_class:
                 failure_class = _classify_entry_failure(criterion.name)
@@ -53,15 +55,15 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
 
     for criterion in rubric.exit_criteria:
         value = evidence.get(criterion.name)
-        passed = _is_truthy(value)
+        passed = None if criterion.name in evidence and value is None else _is_truthy(value)
         criteria_results.append(CriterionResult(
             name=criterion.name,
             required=criterion.required,
             passed=passed,
         ))
 
-    required_failures = [c for c in criteria_results if c.required and not c.passed]
-    optional_failures = [c for c in criteria_results if not c.required and not c.passed]
+    required_failures = [c for c in criteria_results if c.required and c.passed is False]
+    optional_failures = [c for c in criteria_results if not c.required and c.passed is False]
 
     if required_failures:
         failure_class = _classify_failure(rubric, evidence)
@@ -73,6 +75,16 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
             failure_class=failure_class,
             sub_class=sub.get("sub_class"),
             message=f"Required criteria failed: {failed_names}",
+            criteria_results=criteria_results,
+            timeout_seconds=timeout,
+        )
+
+    unobserved = [c.name for c in criteria_results if c.passed is None]
+    if unobserved:
+        return EvaluationResult(
+            stage_id=rubric.stage,
+            outcome=StageOutcome.INDETERMINATE,
+            message=f"Criteria unobserved: {', '.join(unobserved)}",
             criteria_results=criteria_results,
             timeout_seconds=timeout,
         )
@@ -145,6 +157,8 @@ def _matches_conditions(conditions: list[str], evidence: dict[str, object]) -> b
             return False
         key = parts[0].strip()
         expected_raw = parts[1].strip()
+        if key in evidence and evidence[key] is None:
+            return False
         actual = evidence.get(key)
         if not _values_match(actual, expected_raw):
             return False

@@ -93,22 +93,43 @@ class TestEndToEndFlow:
         # Cleanup
         client.post("/admin/dry-run", json={"enabled": False})
 
-    def test_full_flow_with_confidence_gate(self, client, db):
-        """Low confidence → queued → approve → audit shows approved."""
+    def test_confidence_gate_hides_test_namespace_actions(self, client, db):
+        """Low-confidence test actions are stored but not in the operator queue."""
         from api.action_executor import execute_action
+        from db.models import PendingAction
 
         result = execute_action("low_conf_action", "stargate-test", {}, confidence=0.3, db=db)
         assert result["executed"] is False
         assert result["reason"] == "low_confidence"
         pending_id = result.get("pending_id")
         assert pending_id is not None
+        assert db.get(PendingAction, pending_id).status == "pending"
 
         # Check approval queue
         resp = client.get("/admin/approval-queue")
         pending = resp.json()["pending"]
-        assert any(p["id"] == pending_id for p in pending)
+        assert all(p["id"] != pending_id for p in pending)
 
-        # Approve
-        resp = client.post(f"/admin/approval-queue/{pending_id}/approve")
+    def test_visible_action_approval_keeps_recommend_only_gate(self, client, db, monkeypatch):
+        """Approval of a visible proposal does not bypass recommend-only policy."""
+        from datetime import datetime, timezone
+        from unittest.mock import Mock
+
+        from api import action_executor
+        from db.models import PendingAction
+
+        execute = Mock(side_effect=AssertionError("No real execution in an approval contract test"))
+        monkeypatch.setattr(action_executor, "_do_execute", execute)
+        proposal = PendingAction(action_type="synthetic_action", target="launchpad-unit-test",
+                                 parameters={}, confidence=0.3, status="pending",
+                                 proposed_at=datetime.now(timezone.utc))
+        db.add(proposal)
+        db.commit()
+        response = client.get("/admin/approval-queue")
+        assert any(p["id"] == proposal.id for p in response.json()["pending"])
+        resp = client.post(f"/admin/approval-queue/{proposal.id}/approve")
         assert resp.status_code == 200
         assert resp.json()["status"] == "approved"
+        assert resp.json()["execution"]["executed"] is False
+        assert resp.json()["execution"]["reason"] == "recommend_only"
+        execute.assert_not_called()
