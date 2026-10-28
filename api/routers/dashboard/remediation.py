@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
+from api.schemas import PlaybookRunRequest
 from api.constants import is_ecosystem_ns as _is_ecosystem_ns
 from api.routers._shared import (
     _load_latest_scan,
@@ -1259,12 +1260,11 @@ def run_diagnostic_command(request: Request, req: dict, _auth=Depends(require_ad
 
 
 @router.post("/remediation/playbook")
-def run_remediation_playbook(req: "PlaybookRunRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
+def run_remediation_playbook(req: PlaybookRunRequest, db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Run a single remediation playbook: investigate → diagnose → fix → verify."""
     import os
     import re
     import time as _t
-    from api.schemas import PlaybookRunRequest  # noqa: F811
 
     _K8S_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,252}$")
 
