@@ -184,8 +184,8 @@ def call_llm(
     error_message = None
 
     try:
-        resp = urllib_req.urlopen(req, timeout=timeout, context=ssl_ctx)
-        llm_data = json.loads(resp.read())
+        with urllib_req.urlopen(req, timeout=timeout, context=ssl_ctx) as resp:
+            llm_data = json.loads(resp.read())
 
         choices = llm_data.get("choices", [{}])
         content = choices[0].get("message", {}).get("content", "") if choices else ""
@@ -236,7 +236,7 @@ def call_llm(
             from db.models import LLMMetric
             metric = LLMMetric(
                 endpoint=endpoint,
-                model=LLM_MODEL,
+                model=use_model,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,

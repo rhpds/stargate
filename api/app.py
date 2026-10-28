@@ -47,7 +47,7 @@ app.add_middleware(
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
     import uuid
-    from api.metrics import http_requests_total, http_request_duration
+    from api.metrics import http_requests_total, http_request_duration, request_metric_labels
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
     request.state.request_id = request_id
     start = _time.time()
@@ -64,8 +64,9 @@ async def request_id_middleware(request: Request, call_next):
         logging.getLogger("stargate.http").info(
             f"{request.method} {path} → {response.status_code} ({duration_ms}ms) [{request_id}]"
         )
-        http_requests_total.labels(method=request.method, path=path, status=response.status_code).inc()
-        http_request_duration.labels(method=request.method, path=path).observe(duration)
+        metric_method, metric_path = request_metric_labels(request)
+        http_requests_total.labels(method=metric_method, path=metric_path, status=response.status_code).inc()
+        http_request_duration.labels(method=metric_method, path=metric_path).observe(duration)
     return response
 
 
@@ -155,6 +156,10 @@ def _register_event_consumers():
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Alembic configures logging during init_db; register diagnostics afterward
+    # so its logger is not disabled by that configuration.
+    from engine.memory_diagnostics import start_memory_diagnostics
+    start_memory_diagnostics(_shutdown_event)
     _clone_agnosticv()
     _register_event_consumers()
     import threading

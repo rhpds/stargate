@@ -142,14 +142,17 @@ _labagator_cache: Dict = {"labs": None, "sessions": None, "ts": 0.0}
 _demolition_cache: Dict = {"data": None, "ts": 0.0}
 _deployments_cache: Dict = {"data": None, "ts": 0.0}
 _deployments_refreshing = _threading.Event()
-_constraints_cache: Dict[str, Dict] = {}
-_constraints_cache_ts: float = 0
+from collections import OrderedDict
+
+_constraints_cache = OrderedDict()
+_constraints_cache_lock = _threading.Lock()
 _rubric_cache: Dict[str, Rubric] = {}
 _rubric_cache_ts: float = 0
 
 _FILE_CACHE_TTL = 120
 _EXTERNAL_CACHE_TTL = 120
 _CONSTRAINTS_CACHE_TTL = 600
+_CONSTRAINTS_CACHE_MAX_ENTRIES = 256
 _RUBRIC_CACHE_TTL = 300
 
 
@@ -508,13 +511,38 @@ _AGNOSTICV_SCAN_DIRS = [
 ]
 
 
+def _cached_constraints(key):
+    with _constraints_cache_lock:
+        entry = _constraints_cache.get(key)
+        if entry is None:
+            return None
+        expires, value = entry
+        if time.monotonic() >= expires:
+            del _constraints_cache[key]
+            return None
+        _constraints_cache.move_to_end(key)
+        return value
+
+
+def _cache_constraints(key, value):
+    now = time.monotonic()
+    with _constraints_cache_lock:
+        for expired in [k for k, (expiry, _) in _constraints_cache.items() if expiry <= now]:
+            del _constraints_cache[expired]
+        _constraints_cache[key] = (now + _CONSTRAINTS_CACHE_TTL, value)
+        _constraints_cache.move_to_end(key)
+        while len(_constraints_cache) > _CONSTRAINTS_CACHE_MAX_ENTRIES:
+            _constraints_cache.popitem(last=False)
+
+
 def _load_agnosticv_constraints(lab_code: Optional[str], ci_name: Optional[str] = None) -> Optional[Dict]:
     """Load AgnosticV constraints for a lab. Uses ci_name slug for exact match, falls back to prefix.  Cached 10 min."""
-    global _constraints_cache_ts
     if not lab_code:
         return None
-    if lab_code in _constraints_cache and time.time() - _constraints_cache_ts < _CONSTRAINTS_CACHE_TTL:
-        return _constraints_cache[lab_code]
+    key = (lab_code, ci_name)
+    cached = _cached_constraints(key)
+    if cached is not None:
+        return cached
 
     from pathlib import Path
     agnosticv_dir = Path(AGNOSTICV_DIR) if AGNOSTICV_DIR else None
@@ -545,8 +573,7 @@ def _load_agnosticv_constraints(lab_code: Optional[str], ci_name: Optional[str] 
             exact_path = agnosticv_dir / ci_event / ci_slug / "common.yaml"
             if exact_path.exists():
                 constraints = load_lab_constraints(exact_path)
-                _constraints_cache[lab_code] = constraints
-                _constraints_cache_ts = time.time()
+                _cache_constraints(key, constraints)
                 return constraints
 
         for scan_dir_name in _AGNOSTICV_SCAN_DIRS:
@@ -557,16 +584,14 @@ def _load_agnosticv_constraints(lab_code: Optional[str], ci_name: Optional[str] 
                 exact = scan_dir / ci_slug
                 if exact.is_dir() and (exact / "common.yaml").exists():
                     constraints = load_lab_constraints(exact / "common.yaml")
-                    _constraints_cache[lab_code] = constraints
-                    _constraints_cache_ts = time.time()
+                    _cache_constraints(key, constraints)
                     return constraints
             for lab_dir in scan_dir.iterdir():
                 if lab_dir.is_dir() and lab_dir.name.startswith(lab_prefix):
                     common = lab_dir / "common.yaml"
                     if common.exists():
                         constraints = load_lab_constraints(common)
-                        _constraints_cache[lab_code] = constraints
-                        _constraints_cache_ts = time.time()
+                        _cache_constraints(key, constraints)
                         return constraints
     except Exception:
         pass

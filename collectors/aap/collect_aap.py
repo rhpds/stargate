@@ -13,20 +13,33 @@ import os
 import re
 import ssl
 import time
+import threading
 from pathlib import Path
 
 import yaml
+from contextlib import closing
+
+
+_ssl_contexts = {}
+_ssl_context_lock = threading.Lock()
 
 
 def _make_ssl_ctx():
-    ctx = ssl.create_default_context()
-    if os.environ.get("STARGATE_SSL_VERIFY", "true").lower() == "false":
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-    return ctx
+    # Trust stores are large native allocations. Reuse immutable contexts rather
+    # than rebuilding one for every failed job (thousands per collection).
+    verify = os.environ.get("STARGATE_SSL_VERIFY", "true").lower() != "false"
+    with _ssl_context_lock:
+        if verify not in _ssl_contexts:
+            ctx = ssl.create_default_context()
+            if not verify:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            _ssl_contexts[verify] = ctx
+        return _ssl_contexts[verify]
 import urllib.error
 import urllib.request
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -91,6 +104,7 @@ def _authorization_header(controller: Dict) -> str:
 
 _cache: Dict[str, Any] = {"data": None, "ts": 0}
 _CACHE_TTL = 300
+_collection_lock = threading.Lock()
 
 _EVENT_PREFIX = os.environ.get("STARGATE_EVENT_PREFIX", "")
 _LAB_CODE_PATTERN = re.compile(
@@ -138,6 +152,11 @@ def group_failures(failures: List[Dict]) -> List[Dict]:
 
 def collect_aap_jobs(hours: int = 24) -> Dict:
     """Fetch provisioning job data from AAP controllers. Cached 5 min."""
+    with _collection_lock:
+        return _collect_aap_jobs(hours)
+
+
+def _collect_aap_jobs(hours: int) -> Dict:
     now = time.time()
     if _cache["data"] and now - _cache["ts"] < _CACHE_TTL:
         return _cache["data"]
@@ -151,8 +170,6 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
     running = 0
     provision_total = 0
     provision_success = 0
-
-    _event_cache: Dict[str, Dict] = {}
 
     collection_status = []
     controllers = load_aap_controllers()
@@ -171,6 +188,13 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
     for controller in controllers:
         try:
             failed_jobs = _fetch_jobs(controller, f"status=failed&finished__gt={cutoff}&page_size=200")
+            # Fetch each job's evidence separately; catalog-level reuse can
+            # attribute a different job's task and error to this source event.
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                job_events = dict(zip(
+                    [job["id"] for job in failed_jobs],
+                    pool.map(lambda job: _fetch_job_events(controller, job["id"]), failed_jobs),
+                ))
             for job in failed_jobs:
                 name = job.get("name", "")
                 lab_code = extract_lab_code(name)
@@ -197,33 +221,15 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
                 if not error_msg:
                     error_msg = job.get("job_explanation", "")[:200] or ""
 
-                if not failing_task or not error_msg:
-                    catalog_key = catalog_item + ("_destroy" if "destroy" in name else "_prov")
-                    if catalog_key in _event_cache:
-                        cached = _event_cache[catalog_key]
-                        if not failing_task:
-                            failing_task = cached.get("task", "")
-                        if not error_msg:
-                            error_msg = cached.get("error", "")
-                    elif len(_event_cache) < 50:
-                        try:
-                            job_id = job.get("id")
-                            events = _fetch_job_events(controller, job_id)
-                            if events:
-                                ev = events[0]
-                                job_event_id = ev.get("id")
-                                task = ev.get("task", "") or ""
-                                failing_play = ev.get("play", "") or ev.get("event_data", {}).get("play", "") or ""
-                                failing_role = ev.get("role", "") or ev.get("event_data", {}).get("role", "") or ""
-                                res = ev.get("event_data", {}).get("res", {})
-                                msg = (res.get("msg", "") or "")[:200] or ""
-                                _event_cache[catalog_key] = {"task": task, "error": msg}
-                                if not failing_task:
-                                    failing_task = task
-                                if not error_msg:
-                                    error_msg = msg
-                        except Exception as e:
-                            logger.debug("Job event fetch failed: %s", e)
+                events = job_events.get(job["id"], [])
+                if events:
+                    event = events[0]
+                    job_event_id = event.get("id")
+                    event_data = event.get("event_data", {})
+                    failing_task = event.get("task") or event_data.get("task") or failing_task
+                    failing_play = event.get("play") or event_data.get("play") or ""
+                    failing_role = event.get("role") or event_data.get("role") or ""
+                    error_msg = str(event_data.get("res", {}).get("msg") or error_msg)[:65536]
                 if not failing_task:
                     failing_task = "Unknown task"
                 if not error_msg:
@@ -357,7 +363,7 @@ def collect_aap_jobs(hours: int = 24) -> Dict:
         "by_cluster": by_cluster,
         "by_lab": by_lab,
         "recent_failures": sorted(all_failures, key=lambda x: x.get("finished") or "", reverse=True)[:50],
-        "recent_events": sorted(recent_events, key=lambda x: x.get("finished") or "", reverse=True)[:400],
+        "recent_events": sorted(recent_events, key=lambda x: x.get("finished") or "", reverse=True),
         "collection_status": collection_status,
         "collected_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -376,17 +382,37 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
     """Fetch jobs from AAP API."""
     ctx = _make_ssl_ctx()
 
+    # AAP job objects can contain very large artifacts and credential-bearing
+    # extra_vars. Keep page memory bounded and retain only collection fields.
+    query = query.replace("page_size=200", "page_size=50")
     url = f"{controller['url']}/api/v2/jobs/?{query}"
     from urllib.parse import urlparse
     orig_host = urlparse(controller['url']).hostname
 
     all_results = []
-    while url and len(all_results) < 500:
+    while url:
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=30, context=ctx)
-        data = json.loads(resp.read())
-        all_results.extend(data.get("results", []))
+        with closing(urllib.request.urlopen(req, timeout=30, context=ctx)) as resp:
+            data = json.loads(resp.read())
+        for job in data.get("results", []):
+            compact = {key: job.get(key) for key in (
+                "id", "name", "status", "finished", "elapsed", "job_explanation", "result_traceback",
+            )}
+            compact["result_traceback"] = str(compact.get("result_traceback") or "")[:65536]
+            extra_vars = job.get("extra_vars") or {}
+            if isinstance(extra_vars, str):
+                try:
+                    extra_vars = json.loads(extra_vars)
+                except (ValueError, TypeError):
+                    extra_vars = {}
+            if not isinstance(extra_vars, dict):
+                extra_vars = {}
+            compact["extra_vars"] = json.dumps({
+                key: extra_vars[key] for key in ("bastion_ansible_host", "target_host") if key in extra_vars
+            })
+            all_results.append(compact)
         url = data.get("next")
+        del data
         if url and not url.startswith("http"):
             url = f"{controller['url']}{url}"
         elif url:
@@ -400,12 +426,22 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
 def _fetch_job_events(controller: Dict, job_id: int) -> List[Dict]:
     """Fetch failed task events for a specific job."""
     ctx = _make_ssl_ctx()
-    url = f"{controller['url']}/api/v2/jobs/{job_id}/job_events/?event=runner_on_failed&page_size=3"
+    url = f"{controller['url']}/api/v2/jobs/{job_id}/job_events/?failed=true&page_size=1&order_by=-counter"
     try:
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=10, context=ctx)
-        data = json.loads(resp.read())
-        return data.get("results", [])
+        with closing(urllib.request.urlopen(req, timeout=10, context=ctx)) as resp:
+            data = json.loads(resp.read())
+        events = []
+        for event in data.get("results", []):
+            details = event.get("event_data") or {}
+            events.append({
+                "id": event.get("id"),
+                "task": event.get("task") or details.get("task"),
+                "play": event.get("play") or details.get("play"),
+                "role": event.get("role") or details.get("role"),
+                "event_data": {"res": {"msg": str((details.get("res") or {}).get("msg") or "")[:65536]}},
+            })
+        return events
     except Exception as e:
         logger.warning("Job events fetch failed: %s", e)
         return []
@@ -422,8 +458,8 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
             if status == "running":
                 url = f"{controller['url']}/api/v2/jobs/?status=running&page_size=1"
             req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-            resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-            data = json.loads(resp.read())
+            with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+                data = json.loads(resp.read())
             count = data.get("count", 0)
             counts[status] = count
             counts["total"] += count
@@ -433,14 +469,14 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
     try:
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&page_size=1"
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+            data = json.loads(resp.read())
         counts["provision_total"] = data.get("count", 0)
 
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&status=successful&page_size=1"
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+            data = json.loads(resp.read())
         counts["provision_success"] = data.get("count", 0)
     except Exception as e:
         logger.debug("Job count fetch failed: %s", e)

@@ -2,6 +2,18 @@
 
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
+
+def request_metric_labels(request):
+    """Only bounded, registered route templates belong in metric labels.
+
+    Raw URLs contain unbounded user/resource IDs, including on 404s and SPA
+    fallbacks. Route matching has completed when the response is recorded.
+    """
+    method = request.method if request.method in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"} else "OTHER"
+    route = request.scope.get("route")
+    path = getattr(route, "path", None) or "<unmatched>"
+    return method, path
+
 http_requests_total = Counter(
     "stargate_http_requests_total",
     "Total HTTP requests",

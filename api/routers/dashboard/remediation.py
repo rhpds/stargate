@@ -555,9 +555,11 @@ def dashboard_investigations_list(
     from db.repository import list_investigations
     from db.models import LabMapping, ResolutionRecord, EvaluationRecord
     from engine.attention_classifier import extract_catalog_item, classify_namespace, get_cached_baselines
-    from sqlalchemy import func
+    from db.evaluation_queries import first_observed_by_lab, latest_evaluations_by_pair
 
     records = list_investigations(db, lab_code=lab_code, cluster=cluster, status=status, limit=limit)
+    if not records:
+        return []
 
     lab_codes = [r.lab_code for r in records if r.lab_code]
     lab_map = {}
@@ -566,6 +568,21 @@ def dashboard_investigations_list(
         lab_map = {m.lab_code: m for m in mappings}
 
     baselines = get_cached_baselines(db)
+
+    # Fetch only compact status columns, once for all displayed investigations.
+    # Per-row ORDER BY id DESC can otherwise scan extensive history repeatedly.
+    pairs = {(r.lab_code, r.failure_class) for r in records if r.lab_code and r.failure_class}
+    latest_by_pair = latest_evaluations_by_pair(db, pairs)
+    now = datetime.now(timezone.utc)
+    active_labs = {row.lab_code for row in latest_by_pair.values()
+                   if row.outcome != "pass" and
+                   (now - (row.evaluated_at.replace(tzinfo=timezone.utc) if row.evaluated_at.tzinfo is None
+                           else row.evaluated_at)).total_seconds() <= 3600}
+    first_eval_by_lab = first_observed_by_lab(db, active_labs)
+    resolution_ids = {r.resolved_by_id for r in records if r.resolved_by_id}
+    resolutions_by_id = {row.id: row for row in db.query(ResolutionRecord).filter(
+        ResolutionRecord.id.in_(resolution_ids),
+    ).all()} if resolution_ids else {}
 
     result = []
     for r in records:
@@ -577,20 +594,12 @@ def dashboard_investigations_list(
 
         current_status = None
         if r.lab_code and r.failure_class:
-            latest_eval = (
-                db.query(EvaluationRecord)
-                .filter(
-                    EvaluationRecord.lab_code == r.lab_code,
-                    EvaluationRecord.failure_class == r.failure_class,
-                )
-                .order_by(EvaluationRecord.id.desc())
-                .first()
-            )
+            latest_eval = latest_by_pair.get((r.lab_code, r.failure_class))
             if latest_eval:
                 if latest_eval.outcome == "pass":
                     current_status = "resolved"
                 else:
-                    age = (datetime.now(timezone.utc) - (latest_eval.evaluated_at.replace(tzinfo=timezone.utc) if latest_eval.evaluated_at.tzinfo is None else latest_eval.evaluated_at)).total_seconds()
+                    age = (now - (latest_eval.evaluated_at.replace(tzinfo=timezone.utc) if latest_eval.evaluated_at.tzinfo is None else latest_eval.evaluated_at)).total_seconds()
                     if age > 3600:
                         current_status = "stale"
                     else:
@@ -602,9 +611,7 @@ def dashboard_investigations_list(
         attention_reason = None
         if r.lab_code and r.failure_class and current_status == "active":
             try:
-                first_eval_at = db.query(
-                    func.min(EvaluationRecord.evaluated_at)
-                ).filter(EvaluationRecord.lab_code == r.lab_code).scalar()
+                first_eval_at = first_eval_by_lab.get(r.lab_code)
                 cl = classify_namespace(
                     r.lab_code, catalog_item or "",
                     {r.failure_class: 1}, first_eval_at, baselines,
@@ -616,7 +623,7 @@ def dashboard_investigations_list(
 
         resolved = None
         if r.resolved_by_id:
-            res = db.query(ResolutionRecord).filter(ResolutionRecord.id == r.resolved_by_id).first()
+            res = resolutions_by_id.get(r.resolved_by_id)
             if res:
                 resolved = {
                     "resolution_type": res.resolution_type,

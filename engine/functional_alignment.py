@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -90,6 +90,13 @@ def ingest_aap_failures(db: Session, failures: Iterable[Dict]) -> Dict:
         event_id = str(raw.get("event_id") or raw.get("job_event_id") or "")
         if not event_id:
             event_id = f"job-{raw.get('job_id', 'unknown')}-{digest[:16]}"
+        # Serialize event + evaluation creation across PostgreSQL replicas.
+        # The transaction lock is released on commit, rollback, or disconnect.
+        if db.get_bind().dialect.name == "postgresql":
+            identity = f"aap:{instance}:{event_id}"
+            lock_key = int.from_bytes(hashlib.sha256(identity.encode()).digest()[:8], "big", signed=True)
+            db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+        raw = sanitize_evidence(raw)
         now = _utcnow()
         record = db.query(SourceEvent).filter_by(
             source_system="aap", source_instance=instance, source_event_id=event_id,
