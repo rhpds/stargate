@@ -5,7 +5,79 @@ required beyond the YAML rubrics in `rubrics/platform/`.
 
 ---
 
+## API reliability and metrics
+
+HTTP metric `path` labels use registered route templates (for example,
+`/runs/{run_id}`), not individual resource IDs. Unmatched requests share
+`<unmatched>` and nonstandard HTTP methods share `OTHER`. This bounds metric
+cardinality, prevents per-ID series retention in API memory, and avoids
+resource identifiers in exported metric labels. Raw paths remain in request
+logs for diagnostics. Update monitoring queries that relied on concrete
+resource paths to use the route template instead. A rollout clears retained
+old per-resource series in each process; counters reset as with any restart.
+
+Request schema types must be imported at module scope and resolved before route
+registration, including rate-limited handlers. OpenAPI generation and the
+non-executing remediation preview are regression-tested. Neither schema
+validation nor preview is proof of recovery or permission to execute a fix.
+
+Memory allocation diagnostics identified growing Prometheus allocations with
+raw-path labels; this is an addressed source of unbounded retention, not proof
+that all memory growth is resolved. Check RSS, new OOMs, metric-label stability,
+and ingestion health through a representative soak after deployment. Keep
+dry-run enabled and model configurations unchanged while validating API repairs.
+
 ## Database
+
+### Operations query windows and baseline cache
+
+The lifecycle matrix uses the last hour of evaluations for current failures.
+Its historical attention baseline uses seven days of evaluations. These are
+different windows: reducing the baseline to one day favors recent behavior but
+gives fewer samples for rare failures and makes attention labels more volatile.
+It does not replace indexing or reuse of the baseline calculation.
+
+Lifecycle and remediation-strategy requests share the existing one-hour-TTL
+baseline cache. Refreshes are serialized per API process so concurrent requests
+do not rebuild the same history simultaneously. Each replica has its own cache.
+A cold cache still needs an initial baseline query. A failed refresh raises
+rather than replacing the prior data with an empty/healthy-looking baseline.
+The cache does not change model configuration or enable investigation/execution.
+
+Optional Labagator display titles are read from the API's existing metadata
+cache, populated by startup/other collectors. Lifecycle requests never wait
+for a live metadata request; stored names/catalog identifiers remain usable
+when metadata is absent or stale. This changes labels only, not failure data.
+The investigations list batches latest evaluation, first-observation, and linked
+resolution lookups for the displayed records rather than performing historical
+queries per investigation. It retains the existing latest-ID and status rules
+and projects only the evaluation columns needed for list status.
+
+Migration `g7b8c9d0e1f2` adds `idx_eval_evaluated_at` to support evaluation time
+filters. PostgreSQL creates/drops it concurrently outside a transaction. Normal
+writes remain possible, but building an index consumes I/O and disk headroom;
+check capacity and observe the build before promotion. An existing index must
+be valid, ready, nonunique, and match the intended table/column. Invalid or
+mismatched builds require inspection rather than silently proceeding. Retain
+the additive index when reverting application behavior; do not run a destructive
+database downgrade just to roll back caching. A rollback image must retain the
+migration revision so startup migration discovery still recognizes the database.
+
+Migration `h8c9d0e1f2a3` adds two matching history indexes:
+`(lab_code, evaluated_at)` for all-time first observation, and
+`(lab_code, failure_class, id)` for the latest evaluation ID. The read helpers
+probe only the requested namespaces/pairs in one SQL statement instead of
+grouping all their historical rows. Late-arriving records retain latest-ID
+semantics; first observation is not truncated to the baseline window. Lifecycle
+display metadata selects only the columns it uses, not full mapping objects.
+Build these indexes sequentially and concurrently on PostgreSQL after checking
+disk headroom. They add storage and write-maintenance cost but do not delete
+history or change collection frequency. Retain both migration revisions in any
+rollback image; leave additive indexes in place when reverting application code.
+
+Verify cold and repeat endpoint latency, production ingestion, replica memory,
+and dry-run gates after rollout. Faster repeat responses do not prove that every
+Operations tab or a user's full browser session has been measured.
 
 ### STARGATE_DATABASE_URL
 
@@ -435,14 +507,201 @@ without creating another evaluation for the same source event.
 
 Collections within an API process are serialized. Job pages retain only the
 fields needed by ingestion; bulky artifacts and unrelated extra variables are
-discarded before accumulation. This keeps historical backfills within the API
-memory limit while preserving each failed job's task evidence.
+discarded before accumulation. This reduces backfill allocation peaks while
+preserving each failed job's task evidence; it does not establish long-term
+memory stability. AAP requests share at most two TLS trust contexts (verified
+and explicitly unverified) and close responses after reading, including on
+decode errors. Certificate verification remains enabled by default. Trust-store
+changes require an API restart to reload the shared context.
+
+Catalog constraints use a thread-safe, 256-entry LRU cache with independent
+10-minute expiry. Cache identity includes both the lab code and catalog name;
+loading a new catalog cannot extend an old entry's lifetime.
+
+For a memory investigation, set `STARGATE_MEMORY_DIAGNOSTICS=true` on the API.
+It enables one-frame Python allocation tracing and logs current RSS, Python
+allocation size, and Python peak allocation size every five minutes. Above
+768 MiB RSS, it also logs the ten largest allocation source locations and sizes.
+It never logs object contents, request bodies, or evidence. Tracing and snapshots
+add overhead; use this temporarily and restart with the flag disabled after the
+soak. `MALLOC_ARENA_MAX=2` can additionally limit glibc allocator arenas on Linux;
+it is not an application memory cap and is read at process startup.
+
+Validate across repeated collection cycles and a multi-day soak, checking
+restarts/OOM history, production source freshness, and duplicate/missing
+evaluations. Low memory immediately after a restart is not a passing soak.
+Rollback uses the previous immutable API image and removes the diagnostic flag;
+keep `STARGATE_DRY_RUN=true` and do not enable diagnosis or remediation as part
+of memory troubleshooting.
 
 Disable `STARGATE_GATE_SOURCE_INGESTION` to stop automatic persistence while
 retaining the ledger. This gate does not enable diagnosis claims, Slack, Jira,
 knowledge retrieval, trends, or automatic infrastructure remediation. An initial
 backfill can use a longer collection window before returning to the rolling
 24-hour schedule.
+
+### Advisory stateless recovery pilot
+
+`POST /admin/remediation/pilot/assess` is an authenticated, non-executing
+assessment of caller-supplied evidence. It never calls a model, collects cluster
+data, creates an approval, reserves an action, or invokes the executor. A passing
+assessment means only `candidate_for_operator_review`; `execution_authorized`
+is always false. Do not treat this response as an execution token or as measured
+remediation success. Existing execution modes and global dry-run remain unchanged.
+
+`STARGATE_STATELESS_PILOT_TARGET` is unset by default, which blocks all assessments.
+If locally evaluating a hypothetical opt-in, its JSON policy requires the pinned
+infra01 API server, cluster UID, `stargate-test` namespace UID, Deployment name and
+UID, and accountable owner. The `cluster` policy value is restricted to `infra01`
+and namespace to `stargate-test`; no production workload is opted in by this code.
+Malformed policy returns a generic 503 without echoing configuration. Keep actual
+deployment identities out of source control.
+
+The v1 candidate condition is an operator-reviewed application deadlock with
+evidence that a restart is appropriate, not a generic readiness failure. The
+assessment requires three failed probes spanning at least five minutes, a
+snapshot no older than two minutes (maximum five seconds of clock skew), a
+non-Ready target pod, a matching Deployment ownership assertion, no persistent
+storage, healthy dependencies/controller, no rollout/deletion, at least two
+desired replicas with all other replicas Ready, and positive disruption-budget
+headroom. Any confounding fault, including unknown conditions, blocks review.
+Missing safety observations fail closed. The asserted incident history must have
+zero prior attempts and at least one hour since any previous action, if present.
+
+These checks test supplied assertions, not their truth: current data must later
+come from trusted collectors and durable incident history. This increment does
+not implement concurrent-action locking, action execution, outcome collection, or
+automatic promotion. No target has been chosen or enabled. Next steps are:
+
+1. Select an owner-approved stateless test Deployment on infra01 and independently
+   verify the API/cluster/namespace/controller/pod identities and absence of
+   persistent storage. Do not access excluded clusters.
+2. Collect evidence through pinned read-only collectors and bind a reviewed
+   diagnosis, specific action, and operator approval to the pod UID/evidence hash.
+3. Add a transactional single-action claim and recheck safety after approval.
+   Any future executor must use a fixed, disruption-budget-honoring action,
+   never generated commands, force deletion, or automatic retries.
+4. Validate in an isolated test namespace before any approved pilot execution.
+   Record sustained recovery and adverse effects; recycling/self-resolution do
+   not count as successful remediation. A removed pod cannot be restored as the
+   same object: define replacement verification and abort/escalation rather than
+   claiming an undo operation exists.
+
+Keep auto remediation off throughout preparation. Unit/API tests demonstrate
+refusal behavior, not production recovery effectiveness. The known API memory
+instability must also be addressed before unattended operation.
+
+### Review-only model adjudication
+
+`STARGATE_ADJUDICATION_ENABLED=true` adds reviews to new successful agent
+investigations with a durable investigation ID. Set
+`STARGATE_ADJUDICATION_REVIEWERS` to two comma-separated distinct model IDs and
+`STARGATE_ADJUDICATION_JUDGE` to a third distinct model ID. All use the existing
+configured model service and credentials; configure only approved routes.
+
+The reviewers each receive the same sanitized initial evidence and full collected
+tool-result text, independently of the original diagnosis or each other's output.
+The judge receives both reviews, the original diagnosis, and that same evidence.
+There are no extra tools, cluster reads, or remediation actions. `ocpv06` cases
+are explicitly excluded. Evidence beyond 64 KiB, original analyses beyond 16 KiB,
+or insufficient worker time are held for human review, not silently truncated.
+
+`STARGATE_ADJUDICATION_DAILY_LIMIT` defaults to 20 reservations per UTC day and
+is capped at 100. A PostgreSQL transaction lock shares the reservation budget
+across replicas. A unique investigation/version/evidence identity, including
+the configured reviewer and judge model IDs, prevents
+duplicate model calls after retries or restarts. Failed/interrupted cases consume
+their reservation and are not automatically retried. Each admitted case uses at
+most three calls, 900/900/1200 output tokens and 30-second timeouts. Calls run
+sequentially to avoid extra parallel memory pressure. Input tokens are bounded by
+the evidence-size limits but are additional to the investigation's original use.
+
+Results are stored in `adjudications` and summarized in the finding's analysis.
+The authenticated `GET /admin/functional/adjudications` endpoint returns model
+provenance, evidence hash, reviews, judge, token use and review status; filter
+`?status=needs_human_review` for leftovers. Running cases interrupted for more
+than five minutes appear there as requiring human review. Unknown verdicts,
+invalid responses, missing evidence citations and disagreements fail closed to
+human review. Budget-exhausted cases are labeled in their finding and incur no
+additional model calls.
+
+Protocol `adjudication-v2.5` supplies an explicit `allowed_evidence_ids` list.
+Nested evidence field names are not valid citations. Each reviewer assesses
+three claims separately: observation, root cause, and remediation. Each claim
+must say supported, contradicted, or unknown, cite evidence where applicable,
+and identify missing evidence. A supported claim requires a citation and an
+empty missing-evidence field; lack of proof is not itself a cause or a remedy.
+The judge assesses those same three claims in the original diagnosis and reports
+the reviewers' verdicts plus whether all three verdicts agree. Deterministic
+checks independently verify that comparison and prohibit `model_supported` when
+verdicts conflict, claims are unknown/contradicted, or a reviewer failed validation.
+
+The output instruction requests one complete minified JSON object, with at most
+12 words per text field, retaining all three claims. The judge receives an
+explicit two-slot verdict template derived from reviewer validation, including
+`INVALID` for any failed slot. These are prompt instructions, not provider-enforced
+constraints or proof of model compliance. Output caps and timeouts are unchanged;
+truncated or malformed responses are rejected, not repaired or automatically
+retried with larger budgets. A string `"false"` is not a JSON boolean. Promotion
+requires checking actual provider output; passing unit tests alone is insufficient.
+
+Each call also requests `response_format.type=json_schema` with `strict=true`,
+typed verdicts, citations, three claims, and (for judges) two verdict slots plus
+a boolean agreement field. Schema support is route-specific: a proxy accepting
+the parameter does not prove the backend enforces it. Local contract and evidence
+checks still run; there is no fallback to unconstrained output or JSON repair.
+The judge's schema additionally constrains the complete ordered verdict array to
+the recorded validation facts with a single allowed array value. The judge still
+assesses the incident independently; this constraint does not supply a diagnosis
+or turn a failed reviewer into a valid one. Independent comparison checks remain
+mandatory if the provider ignores the schema.
+Structured requests explicitly request zero proxy retries (`num_retries=0`), zero
+underlying-client retries (`max_retries=0`), and no fallbacks. These requests do
+not prove an upstream service has no independent retry layer.
+Raw HTTP template options are sent as top-level `chat_template_kwargs`.
+LiteLLM may map provider extensions into its downstream client's `extra_body`;
+wire shape alone does not establish forwarding or enforcement. A model may
+ignore a template's thinking flag. Verify schema and reasoning controls on each
+configured backend, not merely one response from a load-balanced alias. If both
+standard and native schema probes are ignored, or a reasoning-only completion
+exhausts its cap despite a requested sub-budget, hold promotion for provider
+configuration review rather than repeatedly changing prompts or raising caps.
+
+For DeepSeek-R1 routes the coordinator requests `thinking_token_budget=256`
+within the unchanged 900-token completion cap. Backend support must be verified;
+the request is not a guarantee of a reasoning limit. Usage retains
+`reasoning_tokens` when reported under `completion_tokens_details`, and records
+whether a separate reasoning field was present without saving that text.
+Absent reasoning counts remain null. Reasoning consumes the completion allowance:
+do not add its count again to completion or total tokens, or estimate tokens from
+character counts. Review and judge usage metadata is retained in the adjudication
+ledger even when contract validation fails. Model selection/promotion still
+requires a successful bounded provider test, not just these client changes.
+If any attempted call lacks reported total usage (for example after a timeout),
+the adjudication's `total_tokens` is null. `models.usage_accounting.complete` is
+false and `known_total_tokens` contains only the observed subtotal. This does
+not establish that an upstream request stopped generating when the client timed
+out; do not treat missing usage as zero or retry it automatically.
+
+If a reviewer returns text that fails the contract, the judge may inspect that
+text as explicitly unvalidated input, with `INVALID` in that reviewer's verdict
+slot. This never repairs the failed review or permits acceptance. Both reviewers
+failing without any returned text skips judging. Failure provenance is retained
+under `models.review_validation`; the original responses remain in model metrics.
+The protocol version participates in replay identity, preserving earlier results
+instead of silently overwriting them after a contract revision. A schema-valid
+response is not factual validation and still requires operator verification.
+If a judge returns explicit verdict objects instead of strings, their verdict
+values are normalized for comparison and preserved under `reviewer_verdicts_raw`.
+This changes representation only; an invalid reviewer remains invalid, and a
+reported raw verdict cannot stand in for its required `INVALID` validation slot.
+
+`model_supported` means model agreement against the supplied evidence, not
+verified accuracy or a successful remediation. Adjudication never changes the
+operator's `review_state`, publishes knowledge, creates tickets, or enables
+execution. Keep `STARGATE_DRY_RUN=true`. Disable the adjudication flag and roll
+back the image to stop new reviews; retain the additive ledger and its migration
+history. Historical investigations are not automatically reprocessed.
 
 Diagnosis claims require a separate promotion. Source-bound investigations must
 acquire evidence before model execution; claim errors prevent execution. Claims
@@ -466,6 +725,8 @@ promoted. Complete the ingestion canary before enabling the diagnosis gate.
 |---|---|---|
 | `STARGATE_WORKSHOP_PROVISION_NAMESPACES` | `babylon-catalog-prod` | Comma-separated namespaces queried by the dedicated Babylon worker |
 | `STARGATE_WORKSHOP_PROVISION_STALL_HOURS` | `1` | Age threshold for stalled provision classification |
+| `STARGATE_STUCK_TEARDOWN_HOURS` | `2` | Age (hours) before an AnarchySubject in destroying/destroy-failed/destroy-error is reported as `teardown_stuck` |
+| `STARGATE_GAP_DEDUP_HOURS` | `24` | Gap-detection episode window: a persisting condition refreshes its evaluation inside this window and starts a new episode after it |
 | `STARGATE_API_BABYLON_COLLECTION` | `false` | Enables collection inside the API process; leave false when a dedicated worker owns collection |
 | `STARGATE_API_CLIENT_TIMEOUT` | `60` | Worker-to-API request timeout in seconds |
 

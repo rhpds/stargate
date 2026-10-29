@@ -14,7 +14,7 @@ class TestGeoLuxOutbound:
         from events.consumers import GeoLuxConsumer
         consumer = GeoLuxConsumer(url="http://geolux.test:8091")
         event = Event(event_type="evaluation.failed", run_id="r1", stage_id="s1",
-                      lab_code="lab1", cluster_name="c1", outcome="fail", failure_class="pods_crashlooping")
+                      lab_code="sandbox-unit-test", cluster_name="c1", outcome="fail", failure_class="pods_crashlooping")
         assert consumer.should_receive(event) is True
         consumer.deliver(event)
         mock_http.assert_called_once()
@@ -24,6 +24,14 @@ class TestGeoLuxOutbound:
         body = json.loads(req.data)
         assert body["source"] == "stargate"
         assert body["event_type"] == "stargate_evaluation_failed"
+
+    def test_non_lab_namespace_remains_filtered(self, mock_http):
+        from events.consumers import GeoLuxConsumer
+
+        consumer = GeoLuxConsumer(url="http://geolux.test:8091")
+        event = Event(event_type="evaluation.failed", lab_code="lab1", outcome="fail")
+        assert consumer.should_receive(event) is False
+        mock_http.assert_not_called()
 
     def test_skips_filtered_event(self):
         from events.consumers import GeoLuxConsumer

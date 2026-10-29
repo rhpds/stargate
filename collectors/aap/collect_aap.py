@@ -17,14 +17,25 @@ import threading
 from pathlib import Path
 
 import yaml
+from contextlib import closing
+
+
+_ssl_contexts = {}
+_ssl_context_lock = threading.Lock()
 
 
 def _make_ssl_ctx():
-    ctx = ssl.create_default_context()
-    if os.environ.get("STARGATE_SSL_VERIFY", "true").lower() == "false":
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-    return ctx
+    # Trust stores are large native allocations. Reuse immutable contexts rather
+    # than rebuilding one for every failed job (thousands per collection).
+    verify = os.environ.get("STARGATE_SSL_VERIFY", "true").lower() != "false"
+    with _ssl_context_lock:
+        if verify not in _ssl_contexts:
+            ctx = ssl.create_default_context()
+            if not verify:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            _ssl_contexts[verify] = ctx
+        return _ssl_contexts[verify]
 import urllib.error
 import urllib.request
 from collections import Counter
@@ -381,8 +392,8 @@ def _fetch_jobs(controller: Dict, query: str) -> List[Dict]:
     all_results = []
     while url:
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=30, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=30, context=ctx)) as resp:
+            data = json.loads(resp.read())
         for job in data.get("results", []):
             compact = {key: job.get(key) for key in (
                 "id", "name", "status", "finished", "elapsed", "job_explanation", "result_traceback",
@@ -418,8 +429,8 @@ def _fetch_job_events(controller: Dict, job_id: int) -> List[Dict]:
     url = f"{controller['url']}/api/v2/jobs/{job_id}/job_events/?failed=true&page_size=1&order_by=-counter"
     try:
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=10, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=10, context=ctx)) as resp:
+            data = json.loads(resp.read())
         events = []
         for event in data.get("results", []):
             details = event.get("event_data") or {}
@@ -447,8 +458,8 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
             if status == "running":
                 url = f"{controller['url']}/api/v2/jobs/?status=running&page_size=1"
             req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-            resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-            data = json.loads(resp.read())
+            with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+                data = json.loads(resp.read())
             count = data.get("count", 0)
             counts[status] = count
             counts["total"] += count
@@ -458,14 +469,14 @@ def _fetch_job_counts(controller: Dict, cutoff: str) -> Dict:
     try:
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&page_size=1"
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+            data = json.loads(resp.read())
         counts["provision_total"] = data.get("count", 0)
 
         url = f"{controller['url']}/api/v2/jobs/?finished__gt={cutoff}&name__contains=provision&status=successful&page_size=1"
         req = urllib.request.Request(url, headers={"Authorization": _authorization_header(controller)})
-        resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-        data = json.loads(resp.read())
+        with closing(urllib.request.urlopen(req, timeout=15, context=ctx)) as resp:
+            data = json.loads(resp.read())
         counts["provision_success"] = data.get("count", 0)
     except Exception as e:
         logger.debug("Job count fetch failed: %s", e)

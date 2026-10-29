@@ -655,6 +655,52 @@ def run_investigation(
     db=None,
     job_id: str = "",
 ) -> Dict[str, Any]:
+    from engine.adjudication import adjudicate, enabled
+    started = time.monotonic()
+    captured = [] if enabled() and db is not None and job_id and cluster.lower() != "ocpv06" else None
+    result = _run_investigation(namespace, cluster, failure_class, initial_evidence,
+                                kubeconfig_dir, model, db, job_id, evidence_sink=captured)
+    if captured is not None and result.get("analysis") and not result.get("error"):
+        try:
+            result["adjudication"] = adjudicate(db, job_id, result["analysis"],
+                                               _redact(initial_evidence), captured,
+                                               wall_budget=max(0, 280 - (time.monotonic() - started)))
+        except Exception:
+            db.rollback()
+            logger.warning("Adjudication unavailable; original investigation preserved")
+            result["adjudication"] = {"status": "needs_human_review", "reason": "adjudication_unavailable"}
+        review = result["adjudication"]
+        summary = ["\n\n### Model adjudication — review only",
+                   f"Status: {review['status']}. Human verification is still required."]
+        validations = (review.get("models") or {}).get("review_validation") or []
+        valid_slots = [n for n, entry in enumerate(validations, 1) if entry.get("valid")]
+        for n, blind in enumerate(review.get("reviews") or []):
+            slot = valid_slots[n] if n < len(valid_slots) else n + 1
+            summary.append(f"Blind reviewer {slot}: {blind['verdict']} ({blind['confidence']}% model confidence).")
+        for n, entry in enumerate(validations, 1):
+            if not entry.get("valid"):
+                summary.append(f"Blind reviewer {n} ({entry['model']}): validation failed ({entry.get('error', 'unknown')}).")
+        judge = review.get("judge") or {}
+        if judge:
+            summary.append(f"Judge: {judge['decision']}. {judge['rationale']}")
+        elif review.get("reason"):
+            summary.append(f"Reason: {review['reason']}.")
+        summary.append("No remediation was executed. Model agreement is not verified accuracy.")
+        result["analysis"] += "\n".join(summary)
+    return result
+
+
+def _run_investigation(
+    namespace: str,
+    cluster: str,
+    failure_class: str,
+    initial_evidence: str,
+    kubeconfig_dir: str = "",
+    model: str = "",
+    db=None,
+    job_id: str = "",
+    evidence_sink=None,
+) -> Dict[str, Any]:
     """Run the investigation agent loop.
 
     Returns {"analysis": str, "tool_calls": list, "iterations": int, "error": str|None}
@@ -754,6 +800,8 @@ def run_investigation(
             logger.info("Agent tool call: %s(%s)", fn_name, json.dumps(fn_args)[:100])
 
             tool_result = _dispatch_tool(fn_name, fn_args, cluster, kubeconfig_dir)
+            if evidence_sink is not None:
+                evidence_sink.append(_redact(tool_result))
             tc_entry = {
                 "tool": fn_name,
                 "args": fn_args,

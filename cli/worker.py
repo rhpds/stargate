@@ -351,7 +351,10 @@ class ClusterWorker:
                 if result.get("service_uuid"):
                     uuid_map[result["service_uuid"]] = ns
                 persisted += 1
-                ns_outcome = "pass"
+                stage_outcomes = [r.get("outcome") for r in result.get("results", [])]
+                ns_outcome = "pass" if stage_outcomes and all(
+                    outcome == "pass" for outcome in stage_outcomes
+                ) else "indeterminate"
                 for r in result.get("results", []):
                     if r["outcome"] == "pass":
                         passed += 1
@@ -362,7 +365,7 @@ class ClusterWorker:
                         failure_classes[fc] = failure_classes.get(fc, 0) + 1
 
                 prev = self.state.ns_outcomes.get(ns)
-                if prev and prev != ns_outcome:
+                if prev and prev != ns_outcome and ns_outcome in ("pass", "fail"):
                     outcome_changes.append({
                         "namespace": ns,
                         "previous": prev,

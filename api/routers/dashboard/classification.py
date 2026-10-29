@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
+from engine.llm_json import parse_llm_json
 from api.routers._shared import (
     _load_latest_scan,
     _load_latest_babylon,
@@ -147,16 +148,16 @@ Respond in this exact JSON format:
     conditions = []
     confidence = 0.0
     reasoning = ""
-    try:
-        parsed = json.loads(llm_response)
+    parsed = parse_llm_json(llm_response)
+    if parsed:
         proposed_class = parsed.get("proposed_class", "unknown")
         conditions = parsed.get("conditions", [])
         confidence = parsed.get("confidence", 0.0)
         reasoning = parsed.get("reasoning", "")
-    except json.JSONDecodeError:
+    else:
         proposed_class = "parse_error"
 
-    if not re.match(r"^[a-z][a-z0-9_]*$", proposed_class):
+    if not re.match(r"^[a-z][a-z0-9_]*$", str(proposed_class)):
         proposed_class = "unknown"
 
     # Store the proposal

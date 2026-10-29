@@ -19,6 +19,7 @@ import math
 import os
 import re
 import ssl
+import sys
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -27,6 +28,11 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from engine.llm_json import parse_llm_json  # noqa: E402
+
 CASES_PATH = ROOT / "qualify" / "classifier_cases.json"
 CARD_SCHEMA_PATH = ROOT / "contracts" / "evaluation-card-v1.schema.json"
 TAXONOMY_DIR = ROOT / "failure-classes"
@@ -49,6 +55,30 @@ CONSTRUCTS = {
         "gaming_analysis": "The judge is prompted to propose a class from a known list it cannot see; without context it must invent names, so a low score demonstrates context-dependence rather than model incapacity. The prompt explicitly permits novel class names when none fit, so semantically correct but differently-formatted answers score RED by the exact-match rule - this is the production grading contract, applied honestly. The regex baseline is unaffected by the ablation and serves as the control.",
     },
 }
+
+# Lifecycle (provisioning/reclamation outcome) constructs — selected when the
+# run uses qualify/lifecycle_cases.json via --cases.
+CONSTRUCTS_LIFECYCLE = {
+    "production": {
+        "workload": "stargate-lifecycle-classification",
+        "statement": "Whether StarGate's failure classifier correctly identifies the lifecycle outcome class (provisioning or reclamation) of a control-plane case with the known class list in context, compared against the deterministic taxonomy baseline on the same frozen lifecycle cases.",
+        "metric": "Exact proposed_class match per case against authored lifecycle taxonomy references with the known-class list injected into the evidence, repeated k times per case at production temperature 0.1 and max_tokens 500, reported as single-attempt rate, pass@k and pass-all-k with Wilson 95% intervals, per system including the regex baseline.",
+        "gaming_analysis": "Cases 1-7 are authored from the lifecycle taxonomy's own regex patterns, so a pure pattern-matcher scores on them; cases 8-12 paraphrase the same lifecycle outcomes so literal matching fails and semantic classification is required. With the class list in context, an LLM could still score by echoing a frequent lifecycle class rather than reading the evidence; temperature 0.1 with repeated trials exposes inconsistency as pass-at-k versus pass-all-k divergence. References are authored diagnostic expectations, not independent human ground truth.",
+    },
+    "ablation": {
+        "workload": "stargate-lifecycle-classification-ablation",
+        "statement": "Whether StarGate's failure classifier can name lifecycle outcome classes when run WITHOUT the known-class list - measuring how load-bearing the context injection is for lifecycle classification.",
+        "metric": "Exact proposed_class match per case against authored lifecycle taxonomy references with the failure message only (no class list), repeated k times per case, reported as single-attempt rate, pass@k and pass-all-k with Wilson 95% intervals, per system including the regex baseline.",
+        "gaming_analysis": "The judge must infer lifecycle classes it cannot see named; a low score demonstrates context-dependence rather than model incapacity. The regex baseline is unaffected by the ablation and serves as the control.",
+    },
+}
+
+
+def _cases_id(cases_path: Path) -> str:
+    """Stable identity for a case set: 'failure' for the original frozen set
+    (preserving historical source_id format), 'lifecycle' for the lifecycle set."""
+    stem = cases_path.stem.removesuffix("_cases") or cases_path.stem
+    return "failure" if stem == "classifier" else stem
 
 
 def format_evidence(case: dict, context_mode: str, taxonomy=None) -> str:
@@ -161,18 +191,14 @@ def call_llm(evidence: str, model: str, *, api_key: str, api_url: str) -> dict:
 
 
 def parse_proposed_class(content: str):
-    """Extract proposed_class from the judge's JSON reply (production format)."""
-    try:
-        data = json.loads(content)
-    except ValueError:
-        match = re.search(r"\{.*\}", content, re.DOTALL)
-        if not match:
-            return None
-        try:
-            data = json.loads(match.group(0))
-        except ValueError:
-            return None
-    if isinstance(data, dict) and isinstance(data.get("proposed_class"), str):
+    """Extract proposed_class from the judge's JSON reply (production format).
+
+    Delegates to engine.llm_json so the harness grades with the same
+    tolerant extraction the production pipeline uses (fences, prose
+    wrapping, and brace-doubled replies that mirror a prompt example).
+    """
+    data = parse_llm_json(content)
+    if data and isinstance(data.get("proposed_class"), str):
         return data["proposed_class"].strip()
     return None
 
@@ -180,8 +206,10 @@ def parse_proposed_class(content: str):
 # ---------- run ----------
 
 
-def run_qualification(models: list, trials: int, output_dir: Path, context_mode: str = "production") -> dict:
-    cases = json.loads(CASES_PATH.read_text())["cases"]
+def run_qualification(models: list, trials: int, output_dir: Path, context_mode: str = "production",
+                      cases_path: Path = None) -> dict:
+    cases_path = cases_path or CASES_PATH
+    cases = json.loads(cases_path.read_text())["cases"]
     taxonomy = load_taxonomy()
     api_key = os.environ.get("STARGATE_LITELLM_API_KEY", "")
     api_url = os.environ.get("STARGATE_LITELLM_URL", "https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/completions")
@@ -222,10 +250,12 @@ def run_qualification(models: list, trials: int, output_dir: Path, context_mode:
         "schema_version": "stargate.classifier-qualification/v1",
         "started_namespace": "stargate",
         "cases_sha256": digest(cases),
+        "cases_id": _cases_id(cases_path),
         "prompt_id": "classify",
         "context_mode": context_mode,
         "models": models,
         "trials_per_case": trials,
+        "api_base": api_url,
         "finished_at": datetime.now(timezone.utc).isoformat(),
     }
     (output_dir / "run.json").write_text(json.dumps(run, indent=2) + "\n")
@@ -260,7 +290,7 @@ def build_card(run_dir: Path) -> dict:
         incomplete = len(system_rows) - len(completed)
         is_baseline = system_id == "taxonomy-regex-baseline"
         fingerprints = {row.get("fingerprint") for row in completed if row.get("fingerprint")}
-        model_config = {"model": system_id, "api_base": "https://maas-rhdp.apps.maas.redhatworkshops.io/v1",
+        model_config = {"model": system_id, "api_base": run.get("api_base", "https://maas-rhdp.apps.maas.redhatworkshops.io/v1"),
                         "temperature": 0.1, "max_tokens": 500}
         scope = ("Deterministic taxonomy pattern baseline on the same frozen cases; not a capability equivalent."
                  if is_baseline else
@@ -270,7 +300,7 @@ def build_card(run_dir: Path) -> dict:
         systems.append({
             "system_id": system_id,
             "scaffold": {"adapter": "taxonomy-regex" if is_baseline else "racmaas-litellm",
-                         "procedure_revision": "stargate-classify-v1"},
+                         "procedure_revision": "stargate-classify-v2"},
             "model_binding": {"candidate_kind": "deterministic" if is_baseline else "live-model",
                               "profile_sha256": digest(model_config)},
             "evidence_label": "OFFLINE" if is_baseline else "LIVE",
@@ -301,7 +331,7 @@ def build_card(run_dir: Path) -> dict:
         "construct": None,  # replaced below
         "evaluation": {
             "source_schema_version": "stargate.classifier-qualification/v1",
-            "source_id": "stargate-failure-classification-" + run.get("context_mode", "production"),
+            "source_id": f"stargate-{run.get('cases_id', 'failure')}-classification-" + run.get("context_mode", "production"),
             "binding_sha256": run["cases_sha256"],
             "measured_sha256": digest(rows),
             "split": "development",
@@ -325,7 +355,8 @@ def build_card(run_dir: Path) -> dict:
         "limits": "StarGate classifier qualification on frozen authored cases. Measures agreement with taxonomy expectations, "
                   "not classification quality on novel operational failures. No authorization, no remediation authority.",
     }
-    construct = CONSTRUCTS[run.get("context_mode", "production")]
+    construct_set = CONSTRUCTS_LIFECYCLE if run.get("cases_id") == "lifecycle" else CONSTRUCTS
+    construct = construct_set[run.get("context_mode", "production")]
     card["construct"] = {
         "statement": construct["statement"],
         "metric": construct["metric"],
@@ -344,6 +375,9 @@ def main() -> int:
     run_parser.add_argument("--models", default="llama-scout-17b,granite-3-2-8b-instruct-cpu")
     run_parser.add_argument("--trials", type=int, default=3)
     run_parser.add_argument("--context-mode", choices=("production", "ablation"), default="production")
+    run_parser.add_argument("--cases", type=Path, default=CASES_PATH,
+                            help="Case set to qualify (default: the frozen failure-classification set; "
+                                 "qualify/lifecycle_cases.json qualifies lifecycle outcomes)")
     run_parser.add_argument("--output-dir", type=Path, required=True)
     emit_parser = sub.add_parser("emit-card")
     emit_parser.add_argument("--run-dir", type=Path, required=True)
@@ -352,9 +386,10 @@ def main() -> int:
 
     if args.command == "run":
         models = [m.strip() for m in args.models.split(",") if m.strip()]
-        result = run_qualification(models, args.trials, args.output_dir, context_mode=args.context_mode)
+        result = run_qualification(models, args.trials, args.output_dir,
+                                   context_mode=args.context_mode, cases_path=args.cases)
         print(json.dumps({"models": result["models"], "trials": result["trials_per_case"],
-                          "context_mode": result["context_mode"]}))
+                          "context_mode": result["context_mode"], "cases_id": result["cases_id"]}))
         return 0
 
     card = build_card(args.run_dir)

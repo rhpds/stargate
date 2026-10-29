@@ -26,7 +26,16 @@ class TestExecSummaryEvidence:
         source = inspect.getsource(dashboard_executive_summary)
         assert "_get_capacity_evidence_for_summary" in source
 
-    def test_exec_summary_returns_sources_queried(self, client):
+    def test_exec_summary_returns_sources_queried(self, client, monkeypatch):
+        from api import llm
+        from collectors.sandbox_api import collect_sandbox_api
+
+        monkeypatch.setattr(llm, "call_llm", lambda **kw: {
+            "success": True, "content": '{"summary":"synthetic"}',
+        })
+        monkeypatch.setattr(collect_sandbox_api, "summarize_sandbox_api", lambda **kw: {
+            "api_healthy": True, "active": 0, "failing": 0,
+        })
         resp = client.post("/dashboard/executive-summary")
         if resp.status_code == 200:
             data = resp.json()

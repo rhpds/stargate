@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Tuple
 
@@ -179,17 +180,24 @@ def classify_namespace(
 
 _baseline_cache = None
 _baseline_cache_at = None
+_baseline_cache_lock = threading.Lock()
 
 
 def get_cached_baselines(db, max_age_seconds=3600):
-    """Return cached catalog baselines, rebuilding if older than *max_age_seconds*."""
+    """Reuse baselines and allow only one refresh per process at a time."""
     global _baseline_cache, _baseline_cache_at
     now = datetime.now(timezone.utc)
     if _baseline_cache is not None and _baseline_cache_at and (now - _baseline_cache_at).total_seconds() < max_age_seconds:
         return _baseline_cache
-    _baseline_cache = build_catalog_baselines(db)
-    _baseline_cache_at = now
-    return _baseline_cache
+    with _baseline_cache_lock:
+        now = datetime.now(timezone.utc)
+        if _baseline_cache is not None and _baseline_cache_at and (now - _baseline_cache_at).total_seconds() < max_age_seconds:
+            return _baseline_cache
+        # Do not timestamp or replace the last value if the refresh fails.
+        result = build_catalog_baselines(db)
+        _baseline_cache = result
+        _baseline_cache_at = datetime.now(timezone.utc)
+        return _baseline_cache
 
 
 # ---------------------------------------------------------------------------

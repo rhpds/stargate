@@ -1,6 +1,7 @@
 """PostgreSQL database engine and session management."""
 
 import os
+from contextlib import contextmanager
 from typing import Optional
 
 from sqlalchemy import create_engine
@@ -47,6 +48,23 @@ def get_db():
     try:
         yield db
     except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@contextmanager
+def background_session():
+    """Own a worker session without committing work implicitly.
+
+    Request dependencies are generators, not worker session factories. Keep
+    ownership through the entire cycle and release it even on cancellation.
+    """
+    db = get_session_factory()()
+    try:
+        yield db
+    except BaseException:
         db.rollback()
         raise
     finally:

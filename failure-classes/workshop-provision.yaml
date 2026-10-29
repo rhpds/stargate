@@ -1,0 +1,47 @@
+id: workshop-provision-failures
+version: "1.0"
+description: WorkshopProvision control-plane outcome classifications (babylon worker)
+source: workshop_provision
+
+classes:
+  # Order matters: specific collection-failure language must be tried before
+  # the general provision-failure pattern (same convention as other catalogs).
+  workshop_provision_crd_unavailable:
+    pattern: "WorkshopProvision.*collection failed|workshopprovisions.*[Ff]orbidden|workshopprovisions.*not found"
+    description: WorkshopProvision collection failed (RBAC, API, timeout, or missing CRD) — a monitoring gap, not a workload failure
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Verify the stargate service account can list workshopprovisions
+      - Check the babylon control plane availability
+      - Zero provisions is only healthy when the query explicitly succeeded
+
+  workshop_provision_failed:
+    pattern: "WorkshopProvision.*[Ff]ailed|provision.*condition.*[Ff]ail"
+    description: WorkshopProvision has a failed condition with status True — the control plane reports a failed provision
+    severity: high
+    team: platform-ops
+    remediation:
+      - Inspect the WorkshopProvision conditions for the specific failure reason
+      - "oc get workshopprovision {name} -n {namespace} -o yaml"
+      - Check the owning catalog item and AnarchySubject state
+
+  workshop_provision_controller_lag:
+    pattern: "generation.*observedGeneration|WorkshopProvision.*controller lag"
+    description: WorkshopProvision metadata.generation exceeds status.observedGeneration — the controller has not reconciled the current spec
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Check babylon controller health and recent restarts
+      - "oc get workshopprovision {name} -n {namespace} -o jsonpath={.status.observedGeneration}"
+      - Conditions from a previous generation cannot be trusted; wait for reconciliation before acting
+
+  workshop_provision_stalled:
+    pattern: "WorkshopProvision.*stalled|provision.*[Ss]talled.*hours"
+    description: WorkshopProvision Ready=False (or absent) for longer than the stall threshold — provision is not progressing
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Check lastTransitionTime on the Ready condition
+      - Inspect the associated AnarchySubject and AAP job
+      - "oc get workshopprovisions -n babylon-catalog-prod -o wide"

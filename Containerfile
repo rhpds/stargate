@@ -39,7 +39,6 @@ COPY celery_app.py .
 COPY tasks/ tasks/
 COPY evidence-schemas/ evidence-schemas/
 COPY cli/ cli/
-COPY receipts/ receipts/
 COPY alembic.ini .
 COPY alembic/ alembic/
 COPY --from=frontend-build /app/dist frontend/dist/

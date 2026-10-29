@@ -24,7 +24,14 @@ class TestDeepFieldConsumer:
         consumer = DeepFieldConsumer(url="")
         assert not consumer.should_receive(Event(event_type="evaluation.failed"))
 
-    def test_delivery_failure_doesnt_crash(self):
+    def test_delivery_failure_doesnt_crash(self, monkeypatch):
+        import urllib.error
+        import urllib.request
+
+        def unavailable(*args, **kwargs):
+            raise urllib.error.URLError("synthetic delivery unavailable")
+
+        monkeypatch.setattr(urllib.request, "urlopen", unavailable)
         consumer = DeepFieldConsumer(url="http://unreachable:9999")
         event = Event(
             event_type="evaluation.failed",

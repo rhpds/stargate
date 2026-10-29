@@ -23,7 +23,7 @@ from collectors.openshift.evidence_normalizer import normalize_evidence
 @dataclass
 class TaskResult:
     task_name: str
-    status: str  # "succeeded", "failed", "skipped"
+    status: str  # "succeeded", "failed", "blocked", "skipped"
     results: Dict[str, str] = field(default_factory=dict)
     message: str = ""
 
@@ -42,7 +42,7 @@ class PipelineSimulationResult:
     run_id: str
     demo_id: str
     namespace: str
-    status: str  # "succeeded", "failed"
+    status: str  # "succeeded", "failed", "blocked"
     tasks: List[TaskResult] = field(default_factory=list)
     gates: List[StageGateResult] = field(default_factory=list)
     blocked_by: Optional[str] = None
@@ -150,8 +150,10 @@ def simulate_pipeline(
             normalized.update(extra_evidence[stage_id])
         result = evaluate_rubric(rubric, normalized)
 
-        gate_passed = result.outcome != StageOutcome.FAIL
-        gate_status = "succeeded" if gate_passed else "failed"
+        gate_passed = result.outcome in (StageOutcome.PASS, StageOutcome.WARN)
+        gate_status = "succeeded" if gate_passed else (
+            "failed" if result.outcome == StageOutcome.FAIL else "blocked"
+        )
 
         gate_task = TaskResult(
             task_name=f"gate-{stage_id}",
@@ -173,7 +175,7 @@ def simulate_pipeline(
         ))
 
         if not gate_passed:
-            pipeline_status = "failed"
+            pipeline_status = gate_status
             blocked_by = stage_id
 
     # Simulate report task (always runs, as a finally task)

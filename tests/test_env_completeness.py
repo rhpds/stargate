@@ -8,13 +8,18 @@ import pytest
 
 
 PROJECT_DIR = Path(__file__).parent.parent
+SOURCE_DIRS = ("api", "cli", "collectors", "constraints", "contracts", "db", "engine",
+               "events", "integrations", "proposals", "qualify", "scripts", "tasks", "alembic")
 
 
-def _find_env_vars_in_code() -> set:
-    """Find all STARGATE_* env var references in Python source."""
-    pattern = re.compile(r'os\.environ\.get\(["\']?(STARGATE_[A-Z_]+)')
+def _find_env_vars_in_code(root=PROJECT_DIR) -> set:
+    """Check runtime sources, not test fixtures, vendored code or environments."""
+    pattern = re.compile(r'os\.(?:environ\.get|getenv)\(\s*["\'](STARGATE_[A-Z0-9_]+)["\']')
     found = set()
-    for py in PROJECT_DIR.rglob("*.py"):
+    sources = list(root.glob("*.py"))
+    for directory in SOURCE_DIRS:
+        sources.extend((root / directory).rglob("*.py"))
+    for py in sources:
         if "__pycache__" in str(py) or "node_modules" in str(py):
             continue
         try:
@@ -25,23 +30,37 @@ def _find_env_vars_in_code() -> set:
     return found
 
 
-def _read_env_example() -> set:
+def _read_env_example(env_file=None) -> set:
     """Read all var names from .env.example."""
-    env_file = PROJECT_DIR / ".env.example"
+    env_file = env_file or PROJECT_DIR / ".env.example"
     if not env_file.exists():
         return set()
     names = set()
     for line in env_file.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        key = line.split("=")[0].strip()
-        if key:
-            names.add(key)
+        # Commented optional assignments document a setting without enabling it.
+        line = line.removeprefix("#").strip()
+        match = re.match(r'^(STARGATE_[A-Z0-9_]+)\s*=', line)
+        if match:
+            names.add(match.group(1))
     return names
 
 
 class TestEnvCompleteness:
+
+    def test_scanner_handles_multiline_and_digit_names_without_test_fixtures(self, tmp_path):
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "example.py").write_text(
+            'os.environ.get(\n "STARGATE_API_V2", "")\nos.getenv("STARGATE_OPTION", "")\n'
+        )
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "example.py").write_text('os.environ.get("STARGATE_TEST_ONLY")')
+        assert _find_env_vars_in_code(tmp_path) == {"STARGATE_API_V2", "STARGATE_OPTION"}
+
+    def test_commented_optional_settings_are_documented(self, tmp_path):
+        example = tmp_path / ".env.example"
+        example.write_text('# Optional settings\n# STARGATE_OPTION=\nSTARGATE_ACTIVE=true\n')
+        assert _read_env_example(example) == {"STARGATE_OPTION", "STARGATE_ACTIVE"}
 
     def test_env_example_exists(self):
         assert (PROJECT_DIR / ".env.example").exists()

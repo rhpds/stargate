@@ -1,5 +1,5 @@
 id: classify
-version: "1.1"
+version: "1.2"
 description: Propose failure classification with chain-of-thought reasoning
 model: granite-3-2-8b-instruct
 max_tokens: 700
@@ -24,4 +24,4 @@ user_template: |
   3. Your confidence level (0.0 to 1.0) — higher if similar past classifications match, lower if this is novel
 
   Respond in this exact JSON format:
-  {{"proposed_class": "class_name", "conditions": ["criterion == value"], "confidence": 0.85, "reasoning": "step-by-step explanation"}}
+  {"proposed_class": "class_name", "conditions": ["criterion == value"], "confidence": 0.85, "reasoning": "step-by-step explanation"}

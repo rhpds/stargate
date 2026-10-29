@@ -107,13 +107,13 @@ def get_corpus_stats() -> Dict:
 
     by_source: Dict[str, int] = {}
     by_severity: Dict[str, int] = {}
-    for name, data in all_classes.items():
+    for data in all_classes:
         source = data.get("_source", "unknown")
         by_source[source] = by_source.get(source, 0) + 1
         severity = data.get("severity", "unknown")
         by_severity[severity] = by_severity.get(severity, 0) + 1
 
-    has_remediation = sum(1 for d in all_classes.values() if d.get("remediation"))
+    has_remediation = sum(1 for d in all_classes if d.get("remediation"))
 
     return {
         "total_classes": len(all_classes),

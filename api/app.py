@@ -17,6 +17,8 @@ from slowapi.errors import RateLimitExceeded
 
 from db.database import get_db, init_db
 from db import repository
+from contracts.outcome_contracts import ReclamationOutcome, resolve_reclamation_outcome
+from engine.runtime_diagnostics import diagnostic_stage
 
 from api.routers._shared import _event_bus, _shutdown_event, limiter
 
@@ -47,7 +49,7 @@ app.add_middleware(
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
     import uuid
-    from api.metrics import http_requests_total, http_request_duration
+    from api.metrics import http_requests_total, http_request_duration, request_metric_labels
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
     request.state.request_id = request_id
     start = _time.time()
@@ -64,8 +66,9 @@ async def request_id_middleware(request: Request, call_next):
         logging.getLogger("stargate.http").info(
             f"{request.method} {path} → {response.status_code} ({duration_ms}ms) [{request_id}]"
         )
-        http_requests_total.labels(method=request.method, path=path, status=response.status_code).inc()
-        http_request_duration.labels(method=request.method, path=path).observe(duration)
+        metric_method, metric_path = request_metric_labels(request)
+        http_requests_total.labels(method=metric_method, path=metric_path, status=response.status_code).inc()
+        http_request_duration.labels(method=metric_method, path=metric_path).observe(duration)
     return response
 
 
@@ -154,9 +157,16 @@ def _register_event_consumers():
 
 @app.on_event("startup")
 def on_startup():
-    init_db()
-    _clone_agnosticv()
-    _register_event_consumers()
+    with diagnostic_stage("startup.database"):
+        init_db()
+    # Alembic configures logging during init_db; register diagnostics afterward
+    # so its logger is not disabled by that configuration.
+    from engine.memory_diagnostics import start_memory_diagnostics
+    start_memory_diagnostics(_shutdown_event)
+    with diagnostic_stage("startup.catalog"):
+        _clone_agnosticv()
+    with diagnostic_stage("startup.consumers"):
+        _register_event_consumers()
     import threading
     t = threading.Thread(target=_mv_refresh_loop, daemon=True)
     t.start()
@@ -184,21 +194,20 @@ def _shadow_mode_loop():
     """Run shadow mode every 5 minutes — track failures + incidents, no execution.
     Also auto-resolves incidents when underlying failures clear.
     Also creates evaluation records for monitoring gap detections."""
-    import time as _ts
-    _ts.sleep(60)  # Wait for startup
-    while True:
+    if _shutdown_event.wait(60):  # Wait for startup, unless shutting down.
+        return
+    while not _shutdown_event.is_set():
         try:
-            from db.database import get_db
-            db = next(get_db())
+            from db.database import background_session
             from engine.historical_miner import run_shadow_cycle
-            run_shadow_cycle(db, max_failures=100)
-            _auto_resolve_incidents(db)
-            _record_gap_detections(db)
-            db.close()
+            with background_session() as db:
+                run_shadow_cycle(db, max_failures=100)
+                _auto_resolve_incidents(db)
+                _record_gap_detections(db)
         except Exception as e:
             import logging
             logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
-        _ts.sleep(300)
+        _shutdown_event.wait(300)
 
 
 def _functional_alignment_loop():
@@ -240,55 +249,191 @@ def _functional_alignment_loop():
         _shutdown_event.wait(300)
 
 
-def _record_gap_detections(db):
-    """Create EvaluationRecords for monitoring gap detections found by babylon worker."""
-    from api.routers._shared import _load_latest_babylon
+def _gap_episode_run_id(kind: str, *identity_parts) -> str:
+    """Stable run_id for one ongoing gap condition (idempotency key).
+
+    Replaces the per-cycle timestamped run_id: a condition that persists
+    across cycles maps to one episode run_id so it can be refreshed rather
+    than duplicated.
+    """
+    import hashlib
+    digest = hashlib.sha256("|".join(str(p).lower() for p in identity_parts if p).encode()).hexdigest()[:12]
+    return f"gap-{kind}-{digest}"
+
+
+def _gap_dedup_seconds() -> float:
+    """Episode window: refresh an existing record inside it, start a new episode after."""
+    return float(os.environ.get("STARGATE_GAP_DEDUP_HOURS", "24")) * 3600
+
+
+def _upsert_gap_record(db, *, run_id, stage_id, lab_code, cluster_name,
+                       failure_class, message, now, criteria_results=None,
+                       outcome="fail") -> str:
+    """Insert a gap evaluation once per episode; refresh while it persists.
+
+    Without this, a stuck teardown or orphaned PV produced a duplicate
+    EvaluationRecord every cycle under a fresh timestamped run_id, inflating
+    aggregates (mv_* summaries) and the evaluations table. Within the
+    episode window the existing record's message and evaluated_at are
+    refreshed; a recurrence after the window starts a new episode.
+    """
     from db.models import EvaluationRecord
+    from datetime import timezone
+
+    existing = (
+        db.query(EvaluationRecord)
+        .filter(EvaluationRecord.run_id == run_id)
+        .order_by(EvaluationRecord.evaluated_at.desc())
+        .first()
+    )
+    if existing:
+        evaluated = existing.evaluated_at
+        if evaluated.tzinfo is None:
+            evaluated = evaluated.replace(tzinfo=timezone.utc)
+        if (now - evaluated).total_seconds() < _gap_dedup_seconds():
+            existing.message = message
+            existing.evaluated_at = now
+            if criteria_results is not None:
+                existing.criteria_results = criteria_results
+            return "refreshed"
+    db.add(EvaluationRecord(
+        run_id=run_id,
+        stage_id=stage_id,
+        lab_code=lab_code,
+        cluster_name=cluster_name,
+        outcome=outcome,
+        failure_class=failure_class,
+        message=message,
+        evaluated_at=now,
+        criteria_results=criteria_results,
+    ))
+    return "created"
+
+
+def _record_gap_detections(db):
+    """Create EvaluationRecords for monitoring gap detections found by babylon worker.
+
+    Idempotent per condition: each detection derives a stable episode
+    run_id, so a persisting condition refreshes one record instead of
+    accumulating duplicates every cycle.
+    """
+    from api.routers._shared import _load_latest_babylon
     from datetime import datetime, timezone
-    import uuid
+    from events.models import Event as BusEvent
 
     babylon = _load_latest_babylon()
-    recorded = 0
+    created = 0
+    refreshed = 0
     now = datetime.now(timezone.utc)
-    run_id = f"gap-{now.strftime('%Y%m%d-%H%M%S')}"
+    pending_events = []
 
-    # Stuck teardowns
+    def _record(kind, identity_parts, *, outcome="fail", failure_class=None,
+                emit=True, **kwargs):
+        """Create/refresh one episode; queue a bus event on first creation.
+
+        One event per episode (not per cycle) keeps the bus, Kafka, and the
+        DeepField forwarder spam-free while making every lifecycle episode
+        visible downstream as evaluation.passed / evaluation.failed.
+        """
+        nonlocal created, refreshed
+        run_id = _gap_episode_run_id(kind, *identity_parts)
+        result = _upsert_gap_record(
+            db, run_id=run_id, now=now, outcome=outcome,
+            failure_class=failure_class, **kwargs
+        )
+        if result == "created":
+            created += 1
+            if emit:
+                pending_events.append(BusEvent(
+                    event_type="evaluation.passed" if outcome == "pass" else "evaluation.failed",
+                    run_id=run_id,
+                    stage_id=kwargs.get("stage_id"),
+                    lab_code=kwargs.get("lab_code"),
+                    cluster_name=kwargs.get("cluster_name"),
+                    outcome=outcome,
+                    failure_class=failure_class,
+                    message=kwargs.get("message", ""),
+                ))
+        else:
+            refreshed += 1
+
+    # Stuck teardowns — resolve via the reclamation outcome contract so an
+    # explicit destroy failure (destroy-failed/destroy-error) is classified
+    # as destroy_failed, not conflated with a destroy that is merely stuck.
+    RECLAMATION_CLASSES = {
+        ReclamationOutcome.DESTROY_FAILED: "destroy_failed",
+        ReclamationOutcome.DESTROY_STALLED: "teardown_stuck",
+    }
     stuck = babylon.get("stuck_teardowns", {}).get("stuck", [])
     for s in stuck:
         ns = s.get("namespace", s.get("anarchy_subject", ""))
         if not ns:
             continue
-        ev = EvaluationRecord(
-            run_id=run_id,
-            stage_id="cluster-health",
+        outcome = resolve_reclamation_outcome({
+            # Presence in the stuck list means collection succeeded and the
+            # subject has been in a destroy state at least the threshold.
+            "collection_ok": True,
+            "state_is_destroy_failed": s.get("state") in ("destroy-failed", "destroy-error"),
+            "destroy_stalled": True,
+        })
+        _record(
+            "teardown",
+            (s.get("anarchy_subject", ""), ns, s.get("cluster", ""), s.get("state", "")),
+            stage_id="destroy-complete",
             lab_code=ns,
             cluster_name=s.get("cluster", ""),
-            outcome="fail",
-            failure_class="teardown_stuck",
+            failure_class=RECLAMATION_CLASSES.get(outcome, "teardown_stuck"),
             message=f"AnarchySubject {s.get('anarchy_subject', '')} stuck in {s.get('state', '')} for {s.get('age_hours', 0)}h",
-            evaluated_at=now,
         )
-        db.add(ev)
-        recorded += 1
 
-    # Resource leaks
+    # AAP destroy-job successes — reclamation completions with explicit job
+    # outcomes. Previously successful destroy jobs were counted in AAP metrics
+    # only, never recorded; the warm AAP cache already carries them.
+    try:
+        import api.routers._shared as _shared_mod
+        aap_events = ((getattr(_shared_mod, "_aap_cache", None) or {}).get("data") or {}).get("recent_events", [])
+    except Exception:
+        aap_events = []
+    for event in aap_events:
+        if event.get("type") != "destroy" or event.get("outcome") != "success":
+            continue
+        # Route through the contract so the success definition stays in one
+        # place (destroy_job_succeeded is the primary RECLAIMED evidence).
+        if resolve_reclamation_outcome(
+            {"collection_ok": True, "destroy_job_succeeded": True}
+        ) != ReclamationOutcome.RECLAIMED:
+            continue
+        job_id = str(event.get("job_id") or "")
+        lab_code = event.get("lab_code") or event.get("catalog_item") or ""
+        if not job_id and not lab_code:
+            continue
+        _record(
+            "reclaim",
+            (job_id, lab_code, event.get("catalog_item", "")),
+            stage_id="destroy-complete",
+            lab_code=lab_code or "unknown",
+            cluster_name="",
+            outcome="pass",
+            failure_class=None,
+            message=f"AAP destroy job {job_id} for {lab_code} succeeded (reclamation-outcome/v1: reclaimed)",
+        )
+
+    # Resource leaks — orphaned PVs bound to deleted namespaces are
+    # reclamation outcomes (destroy-complete stage per the rubric).
     leaks = babylon.get("resource_leaks", {}).get("orphaned_pvs", [])
     for lk in leaks:
         ns = lk.get("bound_to_namespace", "")
         if not ns:
             continue
-        ev = EvaluationRecord(
-            run_id=run_id,
-            stage_id="cluster-health",
+        _record(
+            "pvleak",
+            (lk.get("pv_name", ""), ns),
+            stage_id="destroy-complete",
             lab_code=ns,
             cluster_name="",
-            outcome="fail",
             failure_class="resource_leak_pv",
             message=f"Orphaned PV {lk.get('pv_name', '')} ({lk.get('capacity', '?')}) bound to deleted namespace",
-            evaluated_at=now,
         )
-        db.add(ev)
-        recorded += 1
 
     # Operator health
     unhealthy = babylon.get("operator_health", {}).get("unhealthy", [])
@@ -297,46 +442,58 @@ def _record_gap_detections(db):
         if not ns:
             continue
         issues_str = ", ".join(op.get("issues", []))
-        ev = EvaluationRecord(
-            run_id=run_id,
+        _record(
+            "operator",
+            (op.get("pod", ""), ns),
             stage_id="cluster-health",
             lab_code=ns,
             cluster_name="",
-            outcome="fail",
             failure_class="operator_unhealthy",
             message=f"Pod {op.get('pod', '')} in {ns}: {issues_str}",
-            evaluated_at=now,
         )
-        db.add(ev)
-        recorded += 1
 
     # WorkshopProvision health. Query failures are findings too: zero is only
     # healthy when the Babylon API explicitly returned a successful empty list.
     provisions = babylon.get("workshops", {}).get("workshop_provisions", {})
     query = provisions.get("query", {})
     if query and not query.get("ok", False):
-        db.add(EvaluationRecord(
-            run_id=run_id,
+        _record(
+            "wpcrd",
+            ("workshop_provision",),
             stage_id="provisioning",
             lab_code="babylon-prod",
             cluster_name="babylon",
-            outcome="fail",
             failure_class="workshop_provision_crd_unavailable",
             message=f"WorkshopProvision collection failed: {query.get('error', 'unknown error')}",
-            evaluated_at=now,
-        ))
-        recorded += 1
+        )
+    # WorkshopProvision successes — first-class provisioning success records
+    # (previously only counted in state_counts, never persisted or evented).
+    for item in provisions.get("succeeded", []):
+        name = item.get("name", "")
+        namespace = item.get("namespace", "")
+        if not name and not namespace:
+            continue
+        _record(
+            "wp-success",
+            (namespace, name),
+            stage_id="provisioning",
+            lab_code=item.get("catalog_item") or item.get("owner") or name or "babylon-prod",
+            cluster_name="babylon",
+            outcome="pass",
+            failure_class=None,
+            message=f"WorkshopProvision {namespace}/{name} Ready=True (provisioning-outcome/v1: succeeded)",
+        )
     for finding in provisions.get("findings", []):
         name = finding.get("name", "")
         namespace = finding.get("namespace", "")
         reason = finding.get("reason", "")
         detail = finding.get("message", "")
-        db.add(EvaluationRecord(
-            run_id=run_id,
+        _record(
+            "wp",
+            (finding.get("failure_class", "workshop_provision_failed"), namespace, name),
             stage_id="provisioning",
             lab_code=finding.get("catalog_item") or finding.get("owner") or name or "babylon-prod",
             cluster_name="babylon",
-            outcome="fail",
             failure_class=finding.get("failure_class", "workshop_provision_failed"),
             message=(
                 f"WorkshopProvision {namespace}/{name}: {reason} {detail} "
@@ -345,13 +502,20 @@ def _record_gap_detections(db):
                 f"age={finding.get('age_hours')}h)"
             ).strip(),
             criteria_results={"workshop_provision": finding},
-            evaluated_at=now,
-        ))
-        recorded += 1
+        )
 
-    if recorded > 0:
+    if created or refreshed:
         db.commit()
-        logging.getLogger("stargate").info("Gap detections: %d evaluation records created", recorded)
+        logging.getLogger("stargate").info(
+            "Gap detections: %d evaluation records created, %d refreshed", created, refreshed
+        )
+        # Emit one bus event per newly created episode — records are durable
+        # first, then the bus fans out to nanoagents, Kafka, and DeepField.
+        for event in pending_events:
+            try:
+                _event_bus.emit(event)
+            except Exception as exc:
+                logging.getLogger("stargate").warning("Gap event emission failed: %s", exc)
 
 
 def _auto_resolve_incidents(db):
@@ -699,20 +863,19 @@ def _babylon_collection_loop():
 
 def _corpus_mining_loop():
     """Run corpus miners every 30 minutes to build the failure knowledge base."""
-    import time as _tc
-    _tc.sleep(60)
+    if _shutdown_event.wait(60):
+        return
     logger = logging.getLogger("stargate")
     while not _shutdown_event.is_set():
         try:
             from engine.corpus_runner import run_all_miners
-            from db.database import get_db
-            db = next(get_db())
-            result = run_all_miners(db=db)
+            from db.database import background_session
+            with background_session() as db:
+                result = run_all_miners(db=db)
             logger.info(
                 "Corpus mining: %d findings from %d sources, %d total classes",
                 result["total_findings"], len(result["by_source"]), result["total_failure_classes"],
             )
-            db.close()
         except Exception as e:
             logger.warning("Corpus mining failed: %s", e)
         _shutdown_event.wait(1800)
@@ -748,9 +911,10 @@ def _warm_caches():
     logger = logging.getLogger("stargate")
     try:
         from api.routers._shared import _fetch_labagator_labs, _fetch_labagator_sessions, _fetch_demolition_sessions
-        _fetch_labagator_labs()
-        _fetch_labagator_sessions()
-        _fetch_demolition_sessions()
+        with diagnostic_stage("warm.inventory"):
+            _fetch_labagator_labs()
+            _fetch_labagator_sessions()
+            _fetch_demolition_sessions()
         logger.info("Cache warm: labagator + demolition")
     except Exception as e:
         logger.debug(f"Cache warm failed: {e}")
@@ -760,26 +924,23 @@ def _warm_caches():
         import time as _tc
         if not hasattr(_shared, '_aap_cache'):
             _shared._aap_cache = {"data": {}, "ts": 0.0}
-        _shared._aap_cache["data"] = collect_aap_jobs()
+        with diagnostic_stage("warm.aap_collection"):
+            _shared._aap_cache["data"] = collect_aap_jobs()
         _shared._aap_cache["ts"] = _tc.time()
         from engine.functional_alignment import gate_enabled, ingest_aap_collection_status, ingest_aap_failures
         if gate_enabled("source_ingestion"):
-            from db.database import get_session_factory
-            _db = get_session_factory()()
-            try:
+            from db.database import background_session
+            with diagnostic_stage("warm.aap_ingestion"), background_session() as _db:
                 ingest_aap_failures(_db, _shared._aap_cache["data"].get("recent_events", _shared._aap_cache["data"].get("recent_failures", [])))
                 ingest_aap_collection_status(_db, _shared._aap_cache["data"].get("collection_status", []))
-            finally:
-                _db.close()
         logger.info("Cache warm: AAP")
     except Exception as e:
         logger.debug(f"Cache warm AAP failed: {e}")
     try:
-        from db.database import get_db
+        from db.database import background_session
         from api.routers.dashboard import dashboard_summit
-        db = next(get_db())
-        dashboard_summit(db=db, include_all=False)
-        db.close()
+        with diagnostic_stage("warm.summit"), background_session() as db:
+            dashboard_summit(db=db, include_all=False)
         logger.info("Cache warm: summit dashboard pre-built")
     except Exception as e:
         logger.debug(f"Cache warm summit failed: {e}")
@@ -809,9 +970,12 @@ def _mv_refresh_loop():
             from db.database import get_session_factory
             factory = get_session_factory()
             db = factory()
-            repository.refresh_cluster_summary(db)
-            repository.refresh_pipeline_stages(db)
-            repository.refresh_lab_eval_summary(db)
+            with diagnostic_stage("refresh.clusters"):
+                repository.refresh_cluster_summary(db)
+            with diagnostic_stage("refresh.pipeline"):
+                repository.refresh_pipeline_stages(db)
+            with diagnostic_stage("refresh.labs"):
+                repository.refresh_lab_eval_summary(db)
             try:
                 from api.contracts import record_source_fetch
                 record_source_fetch("stargate_db")

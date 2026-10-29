@@ -17,6 +17,8 @@ from sqlalchemy.orm import Session
 
 import re as _re
 
+from engine.llm_json import parse_llm_json
+
 logger = logging.getLogger("stargate.auto_llm")
 
 MAX_CALLS_PER_CYCLE = 20
@@ -242,13 +244,17 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
     proposed_class = ev.failure_class or "unknown"
     conditions = []
     confidence = 0.0
-    try:
-        parsed = json.loads(llm_result["content"])
-        proposed_class = parsed.get("proposed_class", proposed_class)
-        conditions = parsed.get("conditions", [])
-        confidence = parsed.get("confidence", 0.0)
-    except (json.JSONDecodeError, ValueError):
-        pass
+    parsed = parse_llm_json(llm_result["content"])
+    if parsed:
+        candidate = parsed.get("proposed_class")
+        if isinstance(candidate, str) and _re.match(r"^[a-z][a-z0-9_]*$", candidate.strip()):
+            proposed_class = candidate.strip()
+        raw_conditions = parsed.get("conditions")
+        if isinstance(raw_conditions, list):
+            conditions = raw_conditions
+        raw_confidence = parsed.get("confidence")
+        if isinstance(raw_confidence, (int, float)) and not isinstance(raw_confidence, bool):
+            confidence = float(raw_confidence)
 
     proposal = ProposedClassification(
         run_id=ev.run_id,

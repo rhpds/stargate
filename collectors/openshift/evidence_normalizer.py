@@ -42,7 +42,7 @@ def normalize_for_route_ready(evidence_list: List[CollectedEvidence]) -> Dict[st
         "service_exists": False,
         "route_exists": False,
         "service_has_ready_endpoints": False,
-        "health_endpoint_returns_200": False,
+        "health_endpoint_returns_200": None,
         "ready_endpoint_count": 0,
     }
     for ev in evidence_list:
@@ -53,9 +53,7 @@ def normalize_for_route_ready(evidence_list: List[CollectedEvidence]) -> Dict[st
         elif ev.resource_kind == "Endpoints":
             result["service_has_ready_endpoints"] = ev.observed.get("service_has_ready_endpoints", False)
             result["ready_endpoint_count"] = ev.observed.get("ready_endpoint_count", 0)
-    # health_endpoint_returns_200 requires an actual HTTP check — left false for fixture-only
-    if result["service_has_ready_endpoints"]:
-        result["health_endpoint_returns_200"] = True
+    # Topology is not an HTTP observation. No probe is executed by this normalizer.
     return result
 
 
@@ -71,9 +69,9 @@ def normalize_for_smoke_test_ready(evidence_list: List[CollectedEvidence]) -> Di
     route_reachable = has_ready_endpoints and route_admitted
     return {
         "route_reachable": route_reachable,
-        "smoke_test_passed": False,
-        "expected_response_received": False,
-        "response_time_acceptable": False,
+        "smoke_test_passed": None,
+        "expected_response_received": None,
+        "response_time_acceptable": None,
     }
 
 
