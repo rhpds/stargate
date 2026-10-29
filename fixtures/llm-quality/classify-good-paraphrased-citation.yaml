@@ -1,0 +1,41 @@
+id: classify-good-paraphrased-citation
+prompt_type: classify
+scenario: "Production-shaped evidence (stage_id + message, no short citation keys): the response paraphrases the message and extracts key == value conditions — the citation checks must accept token overlap, not verbatim quotes"
+quality: good
+context_type: classification
+
+evidence:
+  raw: "## Failure Details\n- Stage: aap-provisioning\n- Message: ocp_console_embed_domain is empty. Set ocp_console_embed_domain, openshift_cluster_ingress_domain before deploying\n- Cluster: ocpv05"
+  stage_id: "aap-provisioning"
+  message: "ocp_console_embed_domain is empty. Set ocp_console_embed_domain, openshift_cluster_ingress_domain before deploying"
+  lab_code: "RHPDS pert.aap27-automation-portal"
+  cluster_name: "ocpv05"
+  failure_class: null
+
+response: |
+  {"proposed_class": "invalid_configuration", "conditions": ["ocp_console_embed_domain == empty"], "confidence": 0.9, "reasoning": "The failure message explicitly states that ocp_console_embed_domain is empty, which directly points to an invalid configuration during the provisioning stage."}
+
+metadata:
+  finish_reason: "stop"
+  usage:
+    prompt_tokens: 700
+    completion_tokens: 120
+    total_tokens: 820
+
+expected:
+  tdd:
+    response_is_json: true
+    has_proposed_class: true
+    has_conditions: true
+    has_confidence: true
+    has_reasoning: true
+  edd:
+    conditions_reference_criteria: true
+    reasoning_cites_evidence: true
+    no_fabricated_stages: true
+  cdd:
+    valid_json_parse: true
+    proposed_class_snake_case: true
+    confidence_is_float: true
+    conditions_is_list: true
+    schema_validates: true

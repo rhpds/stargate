@@ -302,9 +302,24 @@ def _check_evidence_cited(
             return False, "No conditions/criteria found in response"
         # Check that at least one condition references evidence content
         conditions_text = json.dumps(conditions) if not isinstance(conditions, str) else conditions
+        condition_tokens = _significant_tokens(conditions_text)
         for key, val in evidence.items():
-            if str(val) in conditions_text:
+            # Empty values are substrings of everything and must never count.
+            if val and str(val) in conditions_text:
                 return True, "Conditions reference evidence content"
+        # Token-overlap citation: models paraphrase and extract key == value
+        # pairs, so requiring the verbatim message inside a condition rejected
+        # every production response (observed 2026-10-29: the auto classifier
+        # produced contract-shaped responses that were all quality-gated off).
+        # A condition cites evidence when it shares a significant word with
+        # the stage, message, or summary.
+        for key in ("stage_id", "message", "summary"):
+            val = evidence.get(key)
+            if not val:
+                continue
+            overlap = _significant_tokens(str(val)) & condition_tokens
+            if overlap:
+                return True, f"Conditions cite evidence tokens from '{key}' ({sorted(overlap)[:3]})"
         return False, "Conditions do not reference any evidence values"
 
     if target == "reasoning":
@@ -313,12 +328,47 @@ def _check_evidence_cited(
             reasoning = str(parsed.get("reasoning", parsed.get("explanation", "")))
         else:
             reasoning = response
+        reasoning_tokens = _significant_tokens(reasoning)
         for key, val in evidence.items():
-            if str(val) in reasoning:
+            if val and str(val) in reasoning:
                 return True, f"Reasoning references evidence ({key})"
+        for key in ("stage_id", "message", "summary"):
+            val = evidence.get(key)
+            if not val:
+                continue
+            overlap = _significant_tokens(str(val)) & reasoning_tokens
+            if overlap:
+                return True, f"Reasoning cites evidence tokens from '{key}' ({sorted(overlap)[:3]})"
         return False, "Reasoning does not reference any evidence content"
 
     return False, f"Unknown evidence_cited target: {target}"
+
+
+# Generic prose and condition boilerplate: present in nearly every response
+# and message, so they never establish a citation on their own.
+_CITATION_STOPWORDS = {
+    "true", "false", "matches", "match", "value", "values",
+    "this", "that", "with", "from", "have", "been", "which", "when", "where",
+    "during", "because", "should", "would", "could", "their", "there",
+    "about", "after", "before", "other", "while", "these", "those",
+    "message", "failure", "error", "stage", "cluster", "evidence", "known",
+    "class", "classes", "proposed", "confidence", "reasoning",
+    "conditions", "criteria",
+}
+
+
+def _significant_tokens(text: str) -> set:
+    """Significant words (≥4 chars, lowercased) for citation-overlap checks.
+
+    Compound identifiers split on their separators so an extracted
+    condition like ``ocp_console_embed_domain == empty`` shares the tokens
+    {console, embed, domain, empty} with the message that motivated it.
+    """
+    return {
+        word.lower()
+        for word in re.findall(r"[A-Za-z0-9]+", str(text))
+        if len(word) >= 4 and word.lower() not in _CITATION_STOPWORDS
+    }
 
 
 def _check_no_hallucination(
