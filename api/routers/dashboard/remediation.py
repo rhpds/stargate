@@ -1499,3 +1499,23 @@ def run_remediation_playbook(req: PlaybookRunRequest, db: Session = Depends(get_
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     }
+
+
+@router.get("/dashboard/causal-chain")
+def get_causal_chain(
+    investigation_id: Optional[int] = None,
+    namespace: Optional[str] = None,
+    db: Session = Depends(get_db), _auth=Depends(require_admin),
+):
+    """Assemble the causal chain for an investigation.
+
+    The smoking-gun artifact: symptom eval -> collected evidence -> diagnosis
+    -> adjudication -> action -> remediation -> verification eval, with the
+    missing legs reported explicitly. Query by investigation_id or namespace
+    (latest investigation for the namespace).
+    """
+    from db.repository import build_causal_chain
+    try:
+        return build_causal_chain(db, investigation_id=investigation_id, namespace=namespace)
+    except ValueError as e:
+        raise HTTPException(422, str(e))

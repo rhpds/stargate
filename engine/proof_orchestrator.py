@@ -283,6 +283,30 @@ def run_proof_cycle(
     except Exception as e:
         logger.warning("Pipeline rubric GeoLux evaluation failed: %s", e)
 
+    # 3c. Record the recommend stage from the StarGate catalog mapping, and
+    # carry the GeoLux classification into the HITL action as advisory
+    # context — the recommendation no longer evaporates.
+    catalog_recommendations = []
+    try:
+        from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
+        catalog_recommendations = sorted(
+            action for action, fcs in ACTION_TO_FAILURE_CLASSES.items()
+            if failure_class in [fc.lower() for fc in fcs]
+        )
+        pipeline.record_stage(failure_class, "recommend", "stargate-catalog", {
+            "tdd": "green" if catalog_recommendations else "yellow",
+            "edd": "green" if catalog_recommendations else "yellow",
+            "cdd": "green",
+            "bdd": "green",
+        }, evidence={
+            "tdd": [f"Catalog actions: {catalog_recommendations or 'none'}"],
+            "edd": [f"Actionable: {bool(catalog_recommendations)}"],
+            "cdd": [f"Failure class: {failure_class}"],
+            "bdd": [f"Sources: stargate catalog + geolux classification"],
+        })
+    except Exception as e:
+        logger.warning("Pipeline rubric recommend evaluation failed: %s", e)
+
     # 4. HITL gate — create pending action and stop
     if mode == "manual" and db:
         from db.models import PendingAction
@@ -293,6 +317,8 @@ def run_proof_cycle(
                 "source": "proof_orchestrator",
                 "failure_class": failure_class,
                 "detected_class": detected_class,
+                "geolux_classification": geolux_result.get("hypothesis") or {},
+                "catalog_recommendations": catalog_recommendations,
             },
             confidence=0.95,
             proposed_by="proof_system",

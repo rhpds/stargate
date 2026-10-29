@@ -1612,3 +1612,137 @@ def link_investigation_to_resolution(
     if record:
         record.resolved_by_id = resolution_id
         db.commit()
+
+
+def build_causal_chain(
+    db: Session,
+    investigation_id: Optional[int] = None,
+    namespace: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Assemble the causal chain for an investigation: symptom -> evidence ->
+    diagnosis -> (adjudication) -> action -> remediation -> verification.
+
+    The smoking-gun artifact: one view over the lineage keys (triggering_eval_id,
+    investigation_id on actions, verification_eval_id on remediations) that
+    shows whether a demonstrated cause is cited, a remedy was applied, and a
+    passing eval proved resolution. Missing legs are reported explicitly —
+    an incomplete chain is honest about what is not yet proven.
+    """
+    from db.models import EvaluationRecord, InvestigationRecord, PendingAction, RemediationRecord
+
+    query = db.query(InvestigationRecord)
+    if investigation_id is not None:
+        inv = query.filter(InvestigationRecord.id == investigation_id).first()
+    elif namespace:
+        inv = query.filter(
+            (InvestigationRecord.namespace == namespace)
+            | (InvestigationRecord.lab_code == namespace),
+        ).order_by(InvestigationRecord.id.desc()).first()
+    else:
+        raise ValueError("investigation_id or namespace is required")
+    if not inv:
+        return {"found": False, "reason": "no investigation found"}
+
+    def _eval_summary(e):
+        if not e:
+            return None
+        return {
+            "id": e.id, "outcome": e.outcome, "failure_class": e.failure_class,
+            "message": (e.message or "")[:200], "evaluated_at": e.evaluated_at.isoformat() if e.evaluated_at else None,
+        }
+
+    # T0: the symptom that triggered the investigation
+    symptom = None
+    if inv.triggering_eval_id:
+        symptom = _eval_summary(
+            db.query(EvaluationRecord).filter(EvaluationRecord.id == inv.triggering_eval_id).first())
+
+    # Evidence collected by the agent
+    evidence = [
+        {"tool": tc.get("tool"), "args": tc.get("args"), "result_preview": (tc.get("result_preview") or "")[:200]}
+        for tc in (inv.tool_calls or []) if isinstance(tc, dict)
+    ]
+
+    # Adjudication (if the blind review ran)
+    adjudication = None
+    try:
+        from db.models import AdjudicationRecord
+        adj = db.query(AdjudicationRecord).filter(
+            AdjudicationRecord.investigation_id == inv.id,
+        ).order_by(AdjudicationRecord.id.desc()).first()
+        if adj:
+            adjudication = {
+                "status": adj.status, "models": adj.models, "judge": adj.judge,
+                "reason": adj.reason, "completed_at": adj.completed_at.isoformat() if adj.completed_at else None,
+            }
+    except Exception:
+        pass
+
+    # The queued / approved action
+    action = None
+    pending = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "investigation",
+        PendingAction.target == inv.namespace,
+    ).order_by(PendingAction.id.desc()).all()
+    for candidate in pending:
+        if (candidate.parameters or {}).get("investigation_id") == inv.id:
+            action = {
+                "id": candidate.id, "action_type": candidate.action_type,
+                "status": candidate.status, "parameters": candidate.parameters,
+                "proposed_at": candidate.proposed_at.isoformat() if candidate.proposed_at else None,
+            }
+            break
+
+    # The executed remediation and its verification eval (T2)
+    remediation = None
+    verification = None
+    rem = db.query(RemediationRecord).filter(
+        RemediationRecord.notes == f"investigation:{inv.id}",
+    ).order_by(RemediationRecord.id.desc()).first()
+    if rem:
+        remediation = {
+            "id": rem.id, "remediation_id": rem.remediation_id,
+            "action_taken": (rem.action_taken or "")[:200],
+            "applied_at": rem.applied_at.isoformat() if rem.applied_at else None,
+            "resolved": rem.resolved,
+        }
+        if rem.verification_eval_id:
+            verification = _eval_summary(
+                db.query(EvaluationRecord).filter(EvaluationRecord.id == rem.verification_eval_id).first())
+
+    verdict = ((inv.trust_dimensions or {}).get("verdict")) if inv.trust_dimensions else None
+    chain = {
+        "found": True,
+        "investigation": {
+            "id": inv.id, "job_id": inv.job_id, "namespace": inv.namespace,
+            "lab_code": inv.lab_code, "cluster": inv.cluster,
+            "failure_class": inv.failure_class, "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None,
+        },
+        "symptom": symptom,
+        "evidence": evidence,
+        "evidence_count": len(evidence),
+        "diagnosis": {
+            "root_cause": inv.root_cause,
+            "remediation_suggestion": inv.remediation_suggestion,
+            "verdict": verdict,
+            "confidence": (inv.trust_dimensions or {}).get("confidence") if inv.trust_dimensions else None,
+        },
+        "adjudication": adjudication,
+        "action": action,
+        "remediation": remediation,
+        "verification": verification,
+    }
+    chain["chain_complete"] = bool(
+        symptom and inv.root_cause and remediation and verification and verification["outcome"] == "pass"
+    )
+    chain["missing_legs"] = [
+        leg for leg, present in [
+            ("symptom_eval", bool(symptom)),
+            ("diagnosis", bool(inv.root_cause)),
+            ("action", bool(action)),
+            ("remediation", bool(remediation)),
+            ("verification_eval", bool(verification)),
+        ] if not present
+    ]
+    return chain
