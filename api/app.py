@@ -204,6 +204,14 @@ def _shadow_mode_loop():
                 run_shadow_cycle(db, max_failures=100)
                 _auto_resolve_incidents(db)
                 _record_gap_detections(db)
+                try:
+                    from db.repository import link_remediation_verification
+                    link_remediation_verification(db)
+                except Exception as e:
+                    # NB: 'logging' is function-local (imported in the outer
+                    # except below) — use an alias to avoid UnboundLocalError.
+                    import logging as _logging
+                    _logging.getLogger("stargate").debug("verification link skipped: %s", e)
         except Exception as e:
             import logging
             logging.getLogger("stargate").debug("Shadow cycle error: %s", e)
@@ -808,6 +816,7 @@ def _scan_for_investigations(db, logger):
             EvaluationRecord.lab_code,
             EvaluationRecord.cluster_name,
             func.string_agg(EvaluationRecord.failure_class.distinct(), ','),
+            func.max(EvaluationRecord.id).label("trigger_eval_id"),
         ).filter(
             EvaluationRecord.outcome == "fail",
             EvaluationRecord.failure_class.isnot(None),
@@ -820,7 +829,7 @@ def _scan_for_investigations(db, logger):
         ).limit(100).all()
 
         queued = 0
-        for lab_code, cluster, failure_classes_str in rows:
+        for lab_code, cluster, failure_classes_str, trigger_eval_id in rows:
             failure_classes = (failure_classes_str or "").split(",")
             top_fc = failure_classes[0] if failure_classes else ""
 
@@ -836,6 +845,7 @@ def _scan_for_investigations(db, logger):
                 db, job_id=job_id, lab_code=lab_code,
                 cluster=cluster or "", failure_class=all_fcs,
                 trigger_type=f"auto_{att}" if att else "auto",
+                triggering_eval_id=trigger_eval_id,
             )
             queued += 1
             logger.info("Auto-investigation queued: %s for %s [%s] (%s)", job_id, lab_code, all_fcs, reason)

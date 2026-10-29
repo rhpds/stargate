@@ -619,6 +619,30 @@ def approve_action(action_id: int, db: Session = Depends(get_db)):
                 confidence=1.0,
                 db=db,
             )
+            # Investigation-sourced actions record their execution for the
+            # verify leg (link_remediation_verification links the follow-up
+            # passing eval). run_id carries the lab/namespace so the
+            # verification sweep can match evaluations.
+            if (action.proposed_by == "investigation"
+                    and execution_result and execution_result.get("executed")):
+                try:
+                    from db.models import RemediationRecord
+                    params = action.parameters or {}
+                    db.add(RemediationRecord(
+                        run_id=action.target,
+                        stage_id=str(params.get("triggering_eval_id") or ""),
+                        failure_class=str(params.get("failure_class") or "")[:255],
+                        remediation_id=action.action_type,
+                        action_taken=str(params.get("remediation_suggestion") or "")[:2000],
+                        resolved=None,
+                        applied_at=datetime.now(timezone.utc),
+                        applied_by=f"admin:{action.reviewed_by}",
+                        notes=f"investigation:{params.get('investigation_id')}",
+                    ))
+                    db.commit()
+                except Exception as record_error:
+                    logging.getLogger("stargate").warning(
+                        "Failed to record investigation remediation: %s", record_error)
     except Exception as e:
         execution_result = {"error": str(e)}
 
