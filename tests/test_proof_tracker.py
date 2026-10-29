@@ -210,8 +210,14 @@ class TestGetMatrix:
         t.record_verification("failed_fc", False, {})
         t.record_injection("untested_fc", {})
         s = t.get_summary()
+        # Summary counts accumulated proof (gate), not the current cycle
+        # phase (status), which record_injection resets to INJECTED.
         assert s["proven"] == 1
-        assert s["verified"] == 1
+        assert s["proven_remediation"] == 1
+        assert s["proven_detection"] == 0
+        assert s["passed_not_proven"] == 1  # verified_fc: one pass, below threshold
+        # failed_fc and untested_fc keep the default 'manual' gate — never
+        # passed, so they are not "passed_not_proven".
         assert s["failed"] == 1
         assert s["total"] == 4
 
