@@ -7,10 +7,10 @@ context_type: classification
 evidence:
   lab_code: "LB0088"
   failure_class: "pods_crashlooping"
-  cluster_name: "sandbox-j4n7q-ocpv08"
+  cluster_name: "sandbox-XXXXX-ocpv08"
   summary: |
-    Lab LB0088 on cluster sandbox-j4n7q-ocpv08 is experiencing container restart loops.
-    Pod api-gateway-6b8c9d0e1-fg2hi in namespace lb0088-prod has restarted 14 times in the
+    Lab LB0088 on cluster sandbox-XXXXX-ocpv08 is experiencing container restart loops.
+    Pod api-gateway-6b8c9d0e1-fg2hi in namespace lab-XXXXX-prod has restarted 14 times in the
     last 30 minutes. Container exit code: 1. Events show "Back-off restarting failed container"
     with CrashLoopBackOff status. Last successful run lasted 8 seconds before crash.
     Container logs show: "Error: ECONNREFUSED 10.128.2.45:5432 - connection refused"
@@ -26,7 +26,7 @@ evidence:
   remediations: ""
 
 response: |
-  {"proposed_class": "pods_crashlooping", "conditions": ["pods_crashlooping == true", "container_exit_code == 1", "restart_count > 10", "event_pattern matches CrashLoopBackOff"], "confidence": 0.92, "reasoning": "Pod api-gateway-6b8c9d0e1-fg2hi in namespace lb0088-prod shows classic CrashLoopBackOff pattern: 14 restarts in 30 minutes with Back-off restarting failed container events. Container exit code 1 and ECONNREFUSED errors indicate application-level crash due to missing database dependency. This matches the pods_crashlooping failure class criteria."}
+  {"proposed_class": "pods_crashlooping", "conditions": ["pods_crashlooping == true", "container_exit_code == 1", "restart_count > 10", "event_pattern matches CrashLoopBackOff"], "confidence": 0.92, "reasoning": "Pod api-gateway-6b8c9d0e1-fg2hi in namespace lab-XXXXX-prod shows classic CrashLoopBackOff pattern: 14 restarts in 30 minutes with Back-off restarting failed container events. Container exit code 1 and ECONNREFUSED errors indicate application-level crash due to missing database dependency. This matches the pods_crashlooping failure class criteria."}
 
 metadata:
   finish_reason: "stop"

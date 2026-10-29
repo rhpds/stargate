@@ -20,7 +20,7 @@
           "pod-template-hash": "6d769469cf"
         },
         "name": "showroom-6d769469cf-4lzrh",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "ownerReferences": [
           {
             "apiVersion": "apps/v1",
@@ -1536,9 +1536,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"rhel\", \"--namespace\", \"sandbox-2dclz-zt-rhelbu\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"rhel\", \"--namespace\", \"sandbox-XXXXX-zt-rhelbu\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"rhel\", \"--namespace\", \"sandbox-2dclz-zt-rhelbu\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"rhel\", \"--namespace\", \"sandbox-XXXXX-zt-rhelbu\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -1556,7 +1556,7 @@
           "vm.kubevirt.io/name": "rhel"
         },
         "name": "virt-launcher-rhel-26kzq",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -1583,7 +1583,7 @@
               "--uid",
               "033e5e85-2544-43e4-bf17-001c2ca1d67a",
               "--namespace",
-              "sandbox-2dclz-zt-rhelbu",
+              "sandbox-XXXXX-zt-rhelbu",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",

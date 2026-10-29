@@ -10,7 +10,7 @@
     "generation": 9,
     "labels": {
       "poolboy.gpte.redhat.com/resource-claim-name": "published.rhacs-demo.prod-q8dm7",
-      "poolboy.gpte.redhat.com/resource-claim-namespace": "user-doloyede-redhat-com",
+      "poolboy.gpte.redhat.com/resource-claim-namespace": "user-XXXXXXXX-redhat-com",
       "poolboy.gpte.redhat.com/resource-handler-idx": "0",
       "poolboy.gpte.redhat.com/resource-pool-name": "openshift-4.20-single",
       "poolboy.gpte.redhat.com/resource-pool-namespace": "poolboy"
@@ -39,7 +39,7 @@
       "apiVersion": "poolboy.gpte.redhat.com/v1",
       "kind": "ResourceClaim",
       "name": "published.rhacs-demo.prod-q8dm7",
-      "namespace": "user-doloyede-redhat-com"
+      "namespace": "user-XXXXXXXX-redhat-com"
     },
     "resourcePool": {
       "apiVersion": "poolboy.gpte.redhat.com/v1",
@@ -177,7 +177,7 @@
         "sandbox_openshift_apps_domain": "apps.cluster.rhdp.example.com",
         "sandbox_openshift_cluster": "ocpv05",
         "sandbox_openshift_console_url": "https://console-openshift-console.apps.cluster.example.com",
-        "sandbox_openshift_namespace": "sandbox-247gt-ocp4-cluster",
+        "sandbox_openshift_namespace": "sandbox-XXXXX-ocp4-cluster",
         "showroom_primary_view_url": "https://showroom-showroom-247gt-1.apps.cluster-247gt.dynamic2.workshops.example.com/"
       },
       "runtime_default": "6h",

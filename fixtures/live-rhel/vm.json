@@ -21,7 +21,7 @@
         ],
         "generation": 1,
         "name": "rhel",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331220063",
         "uid": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
       },

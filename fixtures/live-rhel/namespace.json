@@ -13,7 +13,7 @@
       "cost_management_optimizations": "true",
       "created-by": "sandbox-api",
       "guid": "2dclz",
-      "kubernetes.io/metadata.name": "sandbox-2dclz-zt-rhelbu",
+      "kubernetes.io/metadata.name": "sandbox-XXXXX-zt-rhelbu",
       "mutatepods.kubemacpool.io": "ignore",
       "mutatevirtualmachines.kubemacpool.io": "ignore",
       "pod-security.kubernetes.io/audit": "restricted",
@@ -22,7 +22,7 @@
       "pod-security.kubernetes.io/warn-version": "latest",
       "serviceUuid": "b16afa37-ce7f-5f46-a86d-325e3a797db3"
     },
-    "name": "sandbox-2dclz-zt-rhelbu",
+    "name": "sandbox-XXXXX-zt-rhelbu",
     "resourceVersion": "1331216848",
     "uid": "13dc30df-1d8b-4079-9d9a-be4d951ba3e4"
   },

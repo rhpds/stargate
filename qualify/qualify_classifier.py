@@ -212,7 +212,7 @@ def run_qualification(models: list, trials: int, output_dir: Path, context_mode:
     cases = json.loads(cases_path.read_text())["cases"]
     taxonomy = load_taxonomy()
     api_key = os.environ.get("STARGATE_LITELLM_API_KEY", "")
-    api_url = os.environ.get("STARGATE_LITELLM_URL", "https://maas-rhdp.apps.maas.redhatworkshops.io/v1/chat/completions")
+    api_url = os.environ.get("STARGATE_LITELLM_URL", "${STARGATE_LITELLM_URL:-https://LLM-GATEWAY/v1/chat/completions}")
     output_dir.mkdir(parents=True, exist_ok=False)
 
     systems = [("taxonomy-regex-baseline", None)] + [(model, model) for model in models]
@@ -290,7 +290,7 @@ def build_card(run_dir: Path) -> dict:
         incomplete = len(system_rows) - len(completed)
         is_baseline = system_id == "taxonomy-regex-baseline"
         fingerprints = {row.get("fingerprint") for row in completed if row.get("fingerprint")}
-        model_config = {"model": system_id, "api_base": run.get("api_base", "https://maas-rhdp.apps.maas.redhatworkshops.io/v1"),
+        model_config = {"model": system_id, "api_base": run.get("api_base", "${STARGATE_LITELLM_URL:-https://LLM-GATEWAY/v1}"),
                         "temperature": 0.1, "max_tokens": 500}
         scope = ("Deterministic taxonomy pattern baseline on the same frozen cases; not a capability equivalent."
                  if is_baseline else

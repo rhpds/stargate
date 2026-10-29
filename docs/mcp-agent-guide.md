@@ -6,7 +6,7 @@ surfaces through the Model Context Protocol (MCP) — any MCP-compatible agent
 chains, the failure taxonomy, and the proof lab, or just ask questions in
 plain English.
 
-- **Endpoint:** `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp`
+- **Endpoint:** `https://YOUR-STARGATE-API-ROUTE/mcp`
 - **Protocol:** MCP Streamable HTTP (stateless, JSON responses)
 - **Auth:** platform API key (`X-API-Key` header) — request one from the
   StarGate owners; never commit it to a repo or paste it in shared channels
@@ -23,7 +23,7 @@ Most MCP clients accept a server config like:
 {
   "mcpServers": {
     "stargate": {
-      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
+      "url": "https://YOUR-STARGATE-API-ROUTE/mcp",
       "headers": {
         "X-API-Key": "YOUR-STARGATE-API-KEY"
       }

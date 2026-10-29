@@ -22,7 +22,7 @@
         ],
         "generation": 1,
         "name": "bastion",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330323651",
         "uid": "22841505-3384-437a-ad73-e5dd306b30bb"
       },
@@ -210,7 +210,7 @@
         ],
         "generation": 1,
         "name": "controller",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330324405",
         "uid": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
       },
@@ -393,7 +393,7 @@
         ],
         "generation": 1,
         "name": "node1",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330328294",
         "uid": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
       },
@@ -582,7 +582,7 @@
         ],
         "generation": 1,
         "name": "node2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330328602",
         "uid": "6626e924-c2a8-46a6-a29c-12807731966a"
       },
@@ -771,7 +771,7 @@
         ],
         "generation": 1,
         "name": "ssap",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330328983",
         "uid": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
       },

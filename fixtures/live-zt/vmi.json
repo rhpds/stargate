@@ -22,7 +22,7 @@
           "vm.cnv.io/name": "control"
         },
         "name": "control",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -264,7 +264,7 @@
           "vm.cnv.io/name": "dbserver"
         },
         "name": "dbserver",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -506,7 +506,7 @@
           "vm.cnv.io/name": "haproxy"
         },
         "name": "haproxy",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -769,7 +769,7 @@
           "vm.cnv.io/name": "node01"
         },
         "name": "node01",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -1028,7 +1028,7 @@
           "vm.cnv.io/name": "windows"
         },
         "name": "windows",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",

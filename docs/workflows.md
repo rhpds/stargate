@@ -71,7 +71,7 @@ For agent/MCP access, see [mcp-agent-guide.md](mcp-agent-guide.md).
 
 | Step | What happens | Data lands in |
 |------|-------------|---------------|
-| 1. Scan | Scanner workers poll 8 clusters (ocpv05–09, infra01, infra02, us-east-1) on tiered schedules | `evidence` table via API |
+| 1. Scan | Scanner workers poll 8 clusters (cluster-05–09, infra01, infra02, us-east-1) on tiered schedules | `evidence` table via API |
 | 2. Evaluate | Rubric evaluator checks evidence against stage criteria (tri-state: pass/fail/indeterminate) | `evaluations` table |
 | 3. Classify | Unclassified failures go to the LLM (quality-gated) or regex taxonomy | `proposed_classifications` table |
 | 4. Investigate | Attention classifier triggers Sonnet agent for anomalous namespaces | `investigations` table |
@@ -205,7 +205,7 @@ When a reclamation fails, the Sonnet agent can call:
 │                                                     │
 │  ┌───────┐  ┌───────┐  ┌────────┐  ┌────────┐     │
 │  │ prod0 │  │ prod1 │  │ event0 │  │ event1 │     │
-│  │(dal12)│  │(wdc07)│  │(dal12) │  │(wdc07) │     │
+│  │(region-a)│  │(region-b)│  │(region-a) │  │(region-b) │     │
 │  └───┬───┘  └───┬───┘  └───┬────┘  └───┬────┘     │
 │      │          │          │           │           │
 │      └──────────┴────┬─────┴───────────┘           │

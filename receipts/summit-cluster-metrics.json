@@ -1,7 +1,7 @@
 {
-  "ocpv07": {},
-  "ocpv08": {},
-  "ocpv-infra01": {
+  "cluster-07": {},
+  "cluster-08": {},
+  "cluster-infra-1": {
     "memory_utilization": [
       {
         "timestamp": "2026-05-05T00:00:00",

@@ -11,8 +11,8 @@ through a React dashboard and REST API. An LLM (configurable via
 failure classification and executive summaries when deterministic rules are
 insufficient.
 
-The system monitors 5+ scanner clusters (ocpv05-09 by default, configurable via
-`STARGATE_CLUSTERS`) from a deployment on ocpv-infra01 and
+The system monitors 5+ scanner clusters (cluster-05-09 by default, configurable via
+`STARGATE_CLUSTERS`) from a deployment on cluster-infra-1 and
 integrates with the Babylon control plane (Poolboy, Anarchy, AgnosticV),
 Labagator, and Demolition to produce a unified view of lab readiness.
 
@@ -44,8 +44,8 @@ Labagator, and Demolition to produce a unified view of lab readiness.
        |  |  |  |  |  |                                      |
        v  v  v  v  v  v                                      v
    +------+ +------+ +------+                   +------------+----------+
-   |ocpv05| |ocpv07| |ocpv08|  ...              | ocp-us-east-1         |
-   |ocpv09| |infra | |infra |                   | (Babylon ctrl plane)  |
+   |cluster-05| |cluster-07| |cluster-08|  ...              | cluster-us-east         |
+   |cluster-09| |infra | |infra |                   | (Babylon ctrl plane)  |
    |      | |  01  | |  02  |                   | Poolboy / Anarchy     |
    +------+ +------+ +------+                   +-----------------------+
        |                                                     |
@@ -322,30 +322,30 @@ apply simulated actions, evaluate after-state, verify resolution.
 
 ### Deployment Target
 
-- **Cluster**: ocpv-infra01 (Dallas 12 datacenter)
+- **Cluster**: cluster-infra-1 (Dallas 12 datacenter)
 - **Namespace**: `stargate`
 - **URL**: `https://stargate.apps.cluster.example.com`
-- **API**: `https://stargate-api.apps.cluster.example.com`
+- **API**: `https://YOUR-STARGATE-API-ROUTE
 - **Internal registry**: `image-registry.openshift-image-registry.svc:5000/stargate`
 
-### Scanner Clusters (configurable, default ocpv05-09)
+### Scanner Clusters (configurable, default cluster-05-09)
 
 | Cluster       | Kubeconfig file      | Role                     |
 |---------------|----------------------|--------------------------|
-| ocpv05        | kubeconfig-ocpv05    | Lab workloads            |
-| ocpv06        | kubeconfig-cnv       | Lab workloads (CNV)      |
-| ocpv07        | kubeconfig-ocpv07    | Lab workloads            |
-| ocpv08        | kubeconfig-ocpv08    | Lab workloads            |
-| ocpv09        | kubeconfig-ocpv09    | Lab workloads            |
-| ocpv-infra01  | kubeconfig-infra01   | Infrastructure + StarGate|
-| ocpv-infra02  | kubeconfig-infra02   | Infrastructure           |
-| ocp-us-east-1 | kubeconfig           | Babylon control plane    |
+| cluster-05        | kubeconfig-cluster-05    | Lab workloads            |
+| cluster-06        | kubeconfig-cnv       | Lab workloads (CNV)      |
+| cluster-07        | kubeconfig-cluster-07    | Lab workloads            |
+| cluster-08        | kubeconfig-cluster-08    | Lab workloads            |
+| cluster-09        | kubeconfig-cluster-09    | Lab workloads            |
+| cluster-infra-1  | kubeconfig-infra01   | Infrastructure + StarGate|
+| cluster-infra-2  | kubeconfig-infra02   | Infrastructure           |
+| cluster-us-east | kubeconfig           | Babylon control plane    |
 
 Scanner service accounts have `cluster-reader` (read-only) access.
 
 ### Test Namespace
 
-- **Cluster**: ocpv-infra01
+- **Cluster**: cluster-infra-1
 - **Namespace**: `stargate-test`
 - **Service Account**: `stargate-executor`
 - **Role**: `stargate-executor-role` (namespace-scoped write for Phase C)
@@ -421,7 +421,7 @@ automated actions:
 
 ### Phase C: Test Namespace
 
-- Execute real `oc` commands against `stargate-test` namespace on ocpv-infra01.
+- Execute real `oc` commands against `stargate-test` namespace on cluster-infra-1.
 - Use the `stargate-executor` service account with namespace-scoped write.
 - Verify rollback: capture state, delete, restore.
 - **Gate**: Real create/scale/delete and rollback verified.
