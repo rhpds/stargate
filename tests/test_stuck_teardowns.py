@@ -57,14 +57,69 @@ class TestDetectStuckTeardowns:
             result = collector.detect_stuck_teardowns(kubeconfig=str(kc))
         assert result["stuck_count"] == 2
 
-    def test_collection_failure_reports_error(self, tmp_path):
+    def test_queries_all_namespaces_by_default(self, tmp_path):
+        """AnarchySubjects live in sharded babylon-anarchy-* namespaces on the
+        Babylon control plane; the default query must cover them all."""
+        payload = {"items": [_subject("subj-1", "destroying", 3)]}
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = json.dumps(payload)
+            result = collector.detect_stuck_teardowns(kubeconfig=str(kc))
+        assert result["stuck_count"] == 1
+        cmd = run.call_args.args[0]
+        assert cmd[:4] == ["oc", "get", "anarchysubjects", "-A"], f"expected -A query, got {cmd}"
+
+    def test_explicit_namespace_list_is_honored(self, tmp_path):
+        payload = {"items": [_subject("subj-1", "destroying", 3)]}
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = json.dumps(payload)
+            collector.detect_stuck_teardowns(
+                kubeconfig=str(kc), anarchy_namespaces="babylon-anarchy-0,babylon-anarchy-1")
+        commands = [call.args[0] for call in run.call_args_list]
+        assert commands[0][3:5] == ["-n", "babylon-anarchy-0"]
+        assert commands[1][3:5] == ["-n", "babylon-anarchy-1"]
+
+    def test_namespace_list_is_env_configurable(self, tmp_path):
+        payload = {"items": []}
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.dict(os.environ, {"STARGATE_ANARCHY_NAMESPACES": "babylon-anarchy-events"}):
+            with patch.object(collector.subprocess, "run") as run:
+                run.return_value.returncode = 0
+                run.return_value.stdout = json.dumps(payload)
+                collector.detect_stuck_teardowns(kubeconfig=str(kc))
+        cmd = run.call_args.args[0]
+        assert cmd[3:5] == ["-n", "babylon-anarchy-events"]
+
+    def test_partial_namespace_failure_keeps_partial_results(self, tmp_path):
+        """One shard failing must not discard subjects found in the others."""
+        good = {"items": [_subject("subj-1", "destroying", 3)]}
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.side_effect = [
+                type("R", (), {"returncode": 1, "stderr": "forbidden", "stdout": ""})(),
+                type("R", (), {"returncode": 0, "stderr": "", "stdout": json.dumps(good)})(),
+            ]
+            result = collector.detect_stuck_teardowns(
+                kubeconfig=str(kc), anarchy_namespaces="bad-shard,good-shard")
+        assert result["stuck_count"] == 1
+        assert "bad-shard" in result.get("error", "")
+
+    def test_total_collection_failure_reports_error(self, tmp_path):
         kc = tmp_path / "kubeconfig-executor"
         kc.write_text("{}")
         with patch.object(collector.subprocess, "run") as run:
             run.return_value.returncode = 1
-            run.return_value.stderr = "not found"
+            run.return_value.stderr = "forbidden"
             result = collector.detect_stuck_teardowns(kubeconfig=str(kc))
-        assert result == {"error": "not found", "stuck": []}
+        assert result["stuck"] == []
+        assert "forbidden" in result["error"]
 
     def test_threshold_is_env_configurable(self):
         original = collector.STUCK_THRESHOLD_HOURS

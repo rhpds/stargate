@@ -18,27 +18,41 @@ logger = logging.getLogger("stargate.stuck_teardowns")
 STUCK_THRESHOLD_HOURS = float(os.environ.get("STARGATE_STUCK_TEARDOWN_HOURS", "2"))
 
 
-def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespace: str = "babylon-anarchy-events") -> Dict:
+def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None) -> Dict:
     """Find AnarchySubjects stuck in destroying state.
 
     Returns list of stuck subjects with namespace, state, age.
+
+    anarchy_namespaces: comma-separated namespaces to query, or "-A" for all
+    namespaces. AnarchySubjects live in sharded babylon-anarchy-* namespaces
+    on the Babylon control-plane cluster, so "-A" (the default, or
+    STARGATE_ANARCHY_NAMESPACES) is usually right.
     """
+    namespaces = anarchy_namespaces or os.environ.get("STARGATE_ANARCHY_NAMESPACES", "-A")
     env = {**os.environ}
     if kubeconfig:
         env["KUBECONFIG"] = kubeconfig
 
-    try:
-        r = subprocess.run(
-            ["oc", "get", "anarchysubjects", "-n", anarchy_namespace, "-o", "json"],
-            capture_output=True, text=True, timeout=30, env=env,
-        )
-        if r.returncode != 0:
-            return {"error": r.stderr.strip()[:200], "stuck": []}
-
-        data = json.loads(r.stdout)
-        items = data.get("items", [])
-    except Exception as e:
-        return {"error": str(e), "stuck": []}
+    items = []
+    query_error = None
+    targets = ["-A"] if namespaces.strip() == "-A" else [
+        n.strip() for n in namespaces.split(",") if n.strip()
+    ]
+    for target in targets:
+        args = ["oc", "get", "anarchysubjects"]
+        args += ["-A"] if target == "-A" else ["-n", target]
+        args += ["-o", "json"]
+        try:
+            r = subprocess.run(
+                args,
+                capture_output=True, text=True, timeout=30, env=env,
+            )
+            if r.returncode != 0:
+                query_error = (query_error or "") + f"{target}: {r.stderr.strip()[:150]}; "
+                continue
+            items.extend(json.loads(r.stdout).get("items", []))
+        except Exception as e:
+            query_error = (query_error or "") + f"{target}: {e}; "
 
     stuck = []
     now = datetime.now(timezone.utc)
@@ -83,12 +97,18 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespace: str = "babyl
     if stuck:
         _check_namespace_existence(stuck, env, kubeconfig)
 
-    return {
+    result = {
         "total_subjects": len(items),
         "stuck": stuck,
         "stuck_count": len(stuck),
         "threshold_hours": STUCK_THRESHOLD_HOURS,
     }
+    if query_error:
+        # Partial or total query failure: visible, but findings are still
+        # findings (a zero here is only healthy when every query succeeded).
+        result["error"] = query_error.strip()[:200]
+        result["partial"] = True
+    return result
 
 
 def _cluster_kubeconfig(base_kubeconfig: str, cluster: str) -> str:

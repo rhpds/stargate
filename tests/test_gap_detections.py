@@ -219,6 +219,33 @@ class TestGapSuccessRecordsAndEvents:
         assert db.query(EvaluationRecord).filter(
             EvaluationRecord.run_id.like("gap-reclaim-%")).count() == 0
 
+
+class TestGapDetectionSingleWriter:
+    """The advisory lock prevents the two-replica check-then-insert race
+    (observed 2026-10-29: identical episode run_ids inserted 6ms apart)."""
+
+    def test_lock_helper_acquires_on_sqlite(self, db):
+        from api.app import _acquire_gap_lock
+        assert _acquire_gap_lock(db) is True
+
+    def test_busy_lock_skips_the_pass(self, db, monkeypatch):
+        import api.app as app_module
+        monkeypatch.setattr(app_module, "_acquire_gap_lock", lambda db: False)
+        emit = _run(db)
+        assert db.query(EvaluationRecord).count() == 0
+        emit.assert_not_called()
+
+    def test_nothing_to_write_releases_via_rollback(self, db, monkeypatch):
+        """A pass with zero detections must not leave the transaction open."""
+        import api.app as app_module
+        babylon = {"stuck_teardowns": {"stuck": []}, "resource_leaks": {},
+                   "operator_health": {}, "workshops": {}}
+        rolled = []
+        monkeypatch.setattr(db, "rollback", lambda: rolled.append(True))
+        _run(db, babylon=babylon)
+        assert db.query(EvaluationRecord).count() == 0
+        assert rolled, "empty pass must rollback to release the advisory lock"
+
     def test_dedup_window_is_env_configurable(self, db, monkeypatch):
         monkeypatch.setenv("STARGATE_GAP_DEDUP_HOURS", "0")  # zero window: every cycle is a new episode
         _run(db)
