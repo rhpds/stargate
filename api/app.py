@@ -67,6 +67,7 @@ try:
         return None
 
     _mcp_task = None
+    _mcp_rate_state: dict = {}
 
     async def _run_mcp_session_manager():
         async with _mcp_server.session_manager.run():
@@ -89,12 +90,56 @@ try:
     async def mcp_api_key_auth(request, call_next):
         """Require the platform API key for /mcp (the mounted MCP app sits
         outside FastAPI's dependency system, so auth is enforced here) and
-        lazily start the MCP session manager."""
+        lazily start the MCP session manager.
+
+        Security posture: constant-time key comparison, per-key rate limit,
+        and an audit log line for every MCP request (agents are external
+        actors — their access must be traceable)."""
         if request.url.path.startswith("/mcp"):
+            import hmac as _hmac
+            import time as _time
             from api.routers._shared import ADMIN_API_KEY
             provided = request.headers.get("X-API-Key", "")
-            if not ADMIN_API_KEY or provided != ADMIN_API_KEY:
+            if not ADMIN_API_KEY or not _hmac.compare_digest(
+                provided.encode(), ADMIN_API_KEY.encode()
+            ):
                 return JSONResponse({"detail": "Invalid or missing API key"}, status_code=401)
+
+            # Per-key sliding-window rate limit (defense in depth; the key
+            # is already required, but a leaked key should not allow
+            # unbounded scraping).
+            now = _time.monotonic()
+            window = _mcp_rate_state.setdefault(provided, [])
+            while window and now - window[0] > 60:
+                window.pop(0)
+            if len(window) >= 60:
+                return JSONResponse(
+                    {"detail": "MCP rate limit exceeded (60 requests/minute)"},
+                    status_code=429,
+                )
+            window.append(now)
+
+            # Audit: every agent request is traceable in the platform logs.
+            try:
+                body = await request.body()
+                method = ""
+                tool = ""
+                try:
+                    payload = json.loads(body) if body else {}
+                    method = str(payload.get("method", ""))[:40]
+                    tool = str((payload.get("params") or {}).get("name", ""))[:60]
+                except Exception:
+                    pass
+                _logging.getLogger("stargate.mcp").info(
+                    "mcp request: method=%s tool=%s key_id=%s path=%s",
+                    method or "-", tool or "-",
+                    _hmac.compare_digest(provided.encode(), provided.encode()) and
+                    __import__("hashlib").sha256(provided.encode()).hexdigest()[:8],
+                    request.url.path,
+                )
+            except Exception:
+                pass
+
             try:
                 await _ensure_mcp_running()
             except Exception as _start_error:  # pragma: no cover
