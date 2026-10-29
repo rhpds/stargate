@@ -592,8 +592,14 @@ def get_approval_queue(db: Session = Depends(get_db)):
 
 
 @router.post("/admin/approval-queue/{action_id}/approve", dependencies=[Depends(require_admin)])
-def approve_action(action_id: int, db: Session = Depends(get_db)):
-    """Approve a pending action."""
+def approve_action(action_id: int, req: dict = None, db: Session = Depends(get_db)):
+    """Approve a pending action.
+
+    Investigation-sourced actions run a GeoLux constraint precheck first:
+    an "unsafe" verdict blocks execution until the human reviews the check
+    and re-approves with {"force_geolux": true}. GeoLux advises; the human
+    decides; the gated executor acts.
+    """
     from db.models import PendingAction
     action = db.query(PendingAction).filter(PendingAction.id == action_id).first()
     if not action:
@@ -602,6 +608,34 @@ def approve_action(action_id: int, db: Session = Depends(get_db)):
     action.reviewed_at = datetime.now(timezone.utc)
     action.reviewed_by = "admin"
     db.commit()
+
+    # GeoLux pre-approval governance check for investigation-sourced actions.
+    # Advisory with a deliberate human override: "unsafe" blocks until the
+    # human reviews the check and re-approves with force_geolux; "safe" and
+    # "unknown" (including GeoLux unreachable) proceed — human authority
+    # governs, and nothing here executes anything by itself.
+    geolux_check = None
+    if action.proposed_by == "investigation":
+        try:
+            from engine.geolux_governance import geolux_precheck
+            geolux_check = geolux_precheck(action.action_type, action.target, action.parameters or {})
+            params = dict(action.parameters or {})
+            params["geolux_check"] = geolux_check
+            action.parameters = params
+            db.commit()
+            if (geolux_check.get("verdict") == "unsafe"
+                    and not ((req or {}).get("force_geolux"))):
+                action.status = "pending"
+                db.commit()
+                return {
+                    "id": action.id,
+                    "status": "blocked_by_geolux",
+                    "geolux_check": geolux_check,
+                    "message": ("GeoLux constraint check flagged this action. Review the "
+                                "check, then approve with {\"force_geolux\": true} to override."),
+                }
+        except Exception as check_error:
+            logging.getLogger("stargate").warning("GeoLux precheck failed open: %s", check_error)
 
     execution_result = None
     try:
