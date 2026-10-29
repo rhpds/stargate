@@ -153,3 +153,104 @@ class TestToolCallMetering:
             LLMMetric.endpoint == "agent-investigation-tools").one()
         assert metric.success is False
         assert metric.error_type == "tool_call_error"
+
+
+class TestAdjudicationLifecycleClause:
+    def test_blind_reviewer_contract_distinguishes_failed_teardowns(self):
+        """The adjudication prompt must not dismiss residual resources after a
+        FAILED destroy as 'deleted resources' — that is the active fault."""
+        from engine.adjudication import _CONTRACT
+
+        assert "destroy FAILED" in _CONTRACT
+        assert "resource_leak_pv" in _CONTRACT
+        assert "the deletion did not succeed" in _CONTRACT
+
+
+class TestAutoResolveOutcomes:
+    """Namespace disappearance must not resolve an incident when the
+    reclamation itself failed (phase 5.2)."""
+
+    def _pending(self, db, ns):
+        from db.models import PendingAction
+        from datetime import datetime, timezone
+
+        action = PendingAction(
+            action_type="deepfield_probe_failure", target=ns,
+            proposed_by="deepfield",
+            parameters={"failure_class": "probe_failure", "cluster": "c"},
+            confidence=0.9, status="pending",
+            proposed_at=datetime.now(timezone.utc),
+        )
+        db.add(action)
+        db.commit()
+        return action
+
+    def _stale_eval(self, db, ns, hours_old=120):
+        from datetime import datetime, timedelta, timezone
+        from db.models import EvaluationRecord
+
+        db.add(EvaluationRecord(
+            run_id=f"scan-{ns}", stage_id="cluster-health", lab_code=ns,
+            cluster_name="c", outcome="fail", failure_class="probe_failure",
+            message="old failure", evaluated_at=datetime.now(timezone.utc) - timedelta(hours=hours_old),
+        ))
+        db.commit()
+
+    def test_failed_reclamation_blocks_auto_resolve(self, db):
+        from datetime import datetime, timedelta, timezone
+        from db.models import EvaluationRecord
+        from api.app import _auto_resolve_incidents
+
+        ns = "sandbox-failed-teardown"
+        action = self._pending(db, ns)
+        self._stale_eval(db, ns)
+        db.add(EvaluationRecord(
+            run_id="gap-teardown-x1", stage_id="destroy-complete", lab_code=ns,
+            cluster_name="c", outcome="fail", failure_class="teardown_stuck",
+            message="AnarchySubject subj stuck in destroying for 6h",
+            evaluated_at=datetime.now(timezone.utc) - timedelta(hours=3),
+        ))
+        db.commit()
+
+        _auto_resolve_incidents(db)
+
+        db.refresh(action)
+        assert action.status == "pending", (
+            "a namespace gone with a FAILED destroy must keep the incident open — "
+            "the failed reclamation is the finding"
+        )
+
+    def test_reclaimed_namespace_still_auto_resolves(self, db):
+        from datetime import datetime, timedelta, timezone
+        from db.models import EvaluationRecord
+        from api.app import _auto_resolve_incidents
+
+        ns = "sandbox-reclaimed"
+        action = self._pending(db, ns)
+        self._stale_eval(db, ns)
+        db.add(EvaluationRecord(
+            run_id="gap-reclaim-x2", stage_id="destroy-complete", lab_code=ns,
+            cluster_name="c", outcome="pass", failure_class=None,
+            message="AAP destroy job 7 succeeded (reclamation-outcome/v1: reclaimed)",
+            evaluated_at=datetime.now(timezone.utc) - timedelta(hours=3),
+        ))
+        db.commit()
+
+        _auto_resolve_incidents(db)
+
+        db.refresh(action)
+        assert action.status == "auto_resolved", (
+            "a namespace gone with a successful reclamation is genuinely recycled"
+        )
+
+    def test_no_reclamation_record_still_auto_resolves(self, db):
+        from api.app import _auto_resolve_incidents
+
+        ns = "sandbox-plain-gone"
+        action = self._pending(db, ns)
+        self._stale_eval(db, ns)
+
+        _auto_resolve_incidents(db)
+
+        db.refresh(action)
+        assert action.status == "auto_resolved"
