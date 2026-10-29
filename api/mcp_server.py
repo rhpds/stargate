@@ -41,6 +41,34 @@ def _db():
 
 
 @mcp.tool()
+def ask(question: str) -> str:
+    """Ask any question about the platform in natural language: lab health,
+    failures, provisioning and reclamation outcomes, the failure taxonomy,
+    remediation guidance, the proof lab. Answers are grounded in live
+    platform data and the knowledge corpus, with cited sources; says when
+    it does not know. Example: 'did sandbox-abc123 get reclaimed and did
+    anything leak?' or 'what does teardown_stuck mean and how is it fixed?'
+    """
+    from engine.stargate_qa import ask_stargate
+    return ask_stargate(question)
+
+
+def _proof_matrix_summary() -> str:
+    """Shared helper: one-line proof-lab summary for QA context."""
+    import os
+    state_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "scan-history", "proof-matrix.json"
+    )
+    try:
+        with open(state_path) as handle:
+            data = json.load(handle)
+        summary = data.get("summary") or {}
+        return f"Proof lab: {summary.get('total', '?')} classes, {summary.get('proven', 0)} proven ({summary.get('proven_remediation', 0)} remediation, {summary.get('proven_detection', 0)} detection), {summary.get('failed', 0)} failed."
+    except Exception:
+        return "Proof lab summary unavailable."
+
+
+@mcp.tool()
 def query_lifecycle_outcomes(namespace: str, days: int = 14) -> str:
     """Provision/reclamation outcome episodes for a workload.
 
