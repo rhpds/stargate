@@ -7,13 +7,13 @@ context_type: remediation
 evidence:
   lab_code: "LB0042"
   failure_class: "pods_not_ready"
-  cluster_name: "sandbox-m7k2p-ocpv05"
+  cluster_name: "sandbox-XXXXX-ocpv05"
   summary: |
-    Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is experiencing pods_not_ready failure.
+    Lab LB0042 on cluster sandbox-XXXXX-ocpv05 is experiencing pods_not_ready failure.
     3 of 5 pods in namespace lb0042-workshop are in NotReady state since 2026-07-06T14:22:00Z.
     Health trend: DEGRADING over the last 4 hours. Current readiness: 40%.
     Affected pods: workshop-frontend-5d8b7c9f4-xk2lm, workshop-backend-6f9a3b2c1-mn4jp,
-    workshop-db-7c4d5e8f3-qr9st. Node sandbox-m7k2p-ocpv05-worker-2 shows MemoryPressure condition.
+    workshop-db-7c4d5e8f3-qr9st. Node sandbox-XXXXX-ocpv05-worker-2 shows MemoryPressure condition.
   history: |
     2026-07-06T12:15:00Z - Readiness dropped from 100% to 80% (1 pod NotReady)
     2026-07-06T13:00:00Z - Rollout restart attempted on workshop-backend deployment
@@ -21,7 +21,7 @@ evidence:
     2026-07-06T14:22:00Z - Readiness dropped to 40% (3 pods NotReady)
     This is a recurring issue on this cluster — similar incident on 2026-06-28.
   related: |
-    Node sandbox-m7k2p-ocpv05-worker-2 has MemoryPressure condition active since 2026-07-06T13:45:00Z.
+    Node sandbox-XXXXX-ocpv05-worker-2 has MemoryPressure condition active since 2026-07-06T13:45:00Z.
     Cluster has 3 worker nodes, 2 healthy. Total cluster memory utilization: 87%.
   remediations: |
     Prior attempted remediation: oc rollout restart deployment/workshop-backend -n lb0042-workshop
@@ -30,19 +30,19 @@ evidence:
 response: |
   ## Readiness Assessment
 
-  **Status: AT-RISK** — Lab LB0042 on cluster sandbox-m7k2p-ocpv05 is failing with pods_not_ready (3 of 5 pods in NotReady condition). Current readiness is at 40%, trending DEGRADING over the past 4 hours. Immediate intervention is required to prevent full lab failure.
+  **Status: AT-RISK** — Lab LB0042 on cluster sandbox-XXXXX-ocpv05 is failing with pods_not_ready (3 of 5 pods in NotReady condition). Current readiness is at 40%, trending DEGRADING over the past 4 hours. Immediate intervention is required to prevent full lab failure.
 
   ## New vs. Recurring Analysis
 
-  This is a **recurring issue**. A similar incident was recorded on 2026-06-28 on the same cluster. The historical pattern suggests an underlying capacity problem on sandbox-m7k2p-ocpv05 rather than a transient application fault. The recurrence interval of approximately 8 days points to a workload accumulation pattern.
+  This is a **recurring issue**. A similar incident was recorded on 2026-06-28 on the same cluster. The historical pattern suggests an underlying capacity problem on sandbox-XXXXX-ocpv05 rather than a transient application fault. The recurrence interval of approximately 8 days points to a workload accumulation pattern.
 
   ## Remediation Steps
 
   **Priority 1 — Relieve node memory pressure (root cause):**
   ```
   oc adm top nodes
-  oc describe node sandbox-m7k2p-ocpv05-worker-2 | grep -A5 Conditions
-  oc adm drain sandbox-m7k2p-ocpv05-worker-2 --ignore-daemonsets --delete-emptydir-data --grace-period=60
+  oc describe node sandbox-XXXXX-ocpv05-worker-2 | grep -A5 Conditions
+  oc adm drain sandbox-XXXXX-ocpv05-worker-2 --ignore-daemonsets --delete-emptydir-data --grace-period=60
   ```
 
   **Priority 2 — Reschedule affected pods to healthy nodes:**
@@ -70,7 +70,7 @@ response: |
 
   ## Systemic Assessment
 
-  **Blast radius: Cluster-level.** The MemoryPressure condition on worker-2 affects all workloads scheduled to that node, not just LB0042. Other labs on sandbox-m7k2p-ocpv05 sharing worker-2 may also be impacted. With cluster memory utilization at 87%, the cluster is operating near capacity. Consider scaling the cluster or redistributing labs.
+  **Blast radius: Cluster-level.** The MemoryPressure condition on worker-2 affects all workloads scheduled to that node, not just LB0042. Other labs on sandbox-XXXXX-ocpv05 sharing worker-2 may also be impacted. With cluster memory utilization at 87%, the cluster is operating near capacity. Consider scaling the cluster or redistributing labs.
 
   ## Prior Remediation Analysis
 

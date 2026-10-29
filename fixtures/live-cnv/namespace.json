@@ -13,7 +13,7 @@
       "cost_management_optimizations": "true",
       "created-by": "sandbox-api",
       "guid": "2cf6p",
-      "kubernetes.io/metadata.name": "sandbox-2cf6p-ocp4-cluster",
+      "kubernetes.io/metadata.name": "sandbox-XXXXX-ocp4-cluster",
       "mutatepods.kubemacpool.io": "ignore",
       "mutatevirtualmachines.kubemacpool.io": "ignore",
       "pod-security.kubernetes.io/audit": "restricted",
@@ -22,7 +22,7 @@
       "pod-security.kubernetes.io/warn-version": "latest",
       "serviceUuid": "30ad510c-e190-5538-a37a-b420fbca838b"
     },
-    "name": "sandbox-2cf6p-ocp4-cluster",
+    "name": "sandbox-XXXXX-ocp4-cluster",
     "resourceVersion": "1330315564",
     "uid": "d40be32b-6259-448d-968b-962a2f4702a5"
   },

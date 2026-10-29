@@ -1,6 +1,6 @@
 # StarGate
 
-Continuous operations platform for Red Hat Demo Platform (RHDP). Monitors, evaluates, and remediates lab/demo environments across 8+ OpenShift clusters using rubric-based readiness scoring and AI-powered failure classification (Granite 3.2 8B via LiteLLM).
+Continuous operations platform for Red Hat Demo Platform (RHDP). Monitors, evaluates, and remediates lab/demo environments across 8+ OpenShift clusters using rubric-based readiness scoring and AI-powered failure classification (qualified LLM via LiteLLM (llama-scout-17b in production)).
 
 ## Quick Start
 

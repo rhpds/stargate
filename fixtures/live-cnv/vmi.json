@@ -22,7 +22,7 @@
           "vm.cnv.io/name": "bastion"
         },
         "name": "bastion",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -279,7 +279,7 @@
           "vm.cnv.io/name": "controller"
         },
         "name": "controller",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -501,7 +501,7 @@
           "vm.cnv.io/name": "node1"
         },
         "name": "node1",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -739,7 +739,7 @@
           "vm.cnv.io/name": "node2"
         },
         "name": "node2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -977,7 +977,7 @@
           "vm.cnv.io/name": "ssap"
         },
         "name": "ssap",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",

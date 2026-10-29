@@ -7,23 +7,23 @@ context_type: remediation
 evidence:
   lab_code: "LB0117"
   failure_class: "pods_not_ready"
-  cluster_name: "sandbox-r3t5w-ocpv12"
+  cluster_name: "sandbox-XXXXX-ocpv12"
   summary: |
-    Lab LB0117 on cluster sandbox-r3t5w-ocpv12 is experiencing pods_not_ready failure.
+    Lab LB0117 on cluster sandbox-XXXXX-ocpv12 is experiencing pods_not_ready failure.
     2 of 4 pods in namespace lb0117-demo are in NotReady state since 2026-07-07T09:10:00Z.
     Health trend: STABLE (pods have been NotReady for 45 minutes with no further change).
     Current readiness: 50%.
     Affected pods: demo-app-5c7d8e9f0-vw2xy, demo-worker-3a4b5c6d7-gh8jk.
   history: ""
   related: |
-    All 3 worker nodes on sandbox-r3t5w-ocpv12 are in Ready state.
+    All 3 worker nodes on sandbox-XXXXX-ocpv12 are in Ready state.
     Cluster memory utilization: 62%. No resource pressure detected.
   remediations: ""
 
 response: |
   ## Readiness Assessment
 
-  **Status: AT-RISK** — Lab LB0117 on cluster sandbox-r3t5w-ocpv12 has 2 of 4 pods in NotReady state. Readiness is at 50%. The health trend is STABLE, meaning the situation is not actively worsening, but the lab is not functional at this readiness level.
+  **Status: AT-RISK** — Lab LB0117 on cluster sandbox-XXXXX-ocpv12 has 2 of 4 pods in NotReady state. Readiness is at 50%. The health trend is STABLE, meaning the situation is not actively worsening, but the lab is not functional at this readiness level.
 
   ## New vs. Recurring Analysis
 
@@ -64,7 +64,7 @@ response: |
 
   ## Systemic Assessment
 
-  **Scope: Namespace-level.** No cluster-wide resource pressure is detected. The issue appears isolated to the lb0117-demo namespace. Other labs on sandbox-r3t5w-ocpv12 are unlikely to be affected.
+  **Scope: Namespace-level.** No cluster-wide resource pressure is detected. The issue appears isolated to the lb0117-demo namespace. Other labs on sandbox-XXXXX-ocpv12 are unlikely to be affected.
 
 metadata:
   finish_reason: "stop"

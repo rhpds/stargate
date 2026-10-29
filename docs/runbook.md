@@ -5,11 +5,11 @@
 | Service    | URL                                                                       |
 |------------|---------------------------------------------------------------------------|
 | Dashboard  | `https://stargate.apps.cluster.example.com`         |
-| API        | `https://stargate-api.apps.cluster.example.com`     |
-| Health     | `https://stargate-api.apps.cluster.example.com/health` |
-| Metrics    | `https://stargate-api.apps.cluster.example.com/metrics` |
-| API Docs   | `https://stargate-api.apps.cluster.example.com/docs`   |
-| ReDoc      | `https://stargate-api.apps.cluster.example.com/redoc`  |
+| API        | `https://YOUR-STARGATE-API-ROUTE     |
+| Health     | `https://YOUR-STARGATE-API-ROUTE |
+| Metrics    | `https://YOUR-STARGATE-API-ROUTE |
+| API Docs   | `https://YOUR-STARGATE-API-ROUTE   |
+| ReDoc      | `https://YOUR-STARGATE-API-ROUTE  |
 | Console    | `https://console-openshift-console.apps.cluster.example.com` |
 
 ---
@@ -31,7 +31,7 @@ Usage:
 
 ```bash
 curl -H "X-API-Key: <your-admin-key>" \
-  -X POST https://stargate-api.apps.cluster.example.com/admin/scheduler/start
+  -X POST https://YOUR-STARGATE-API-ROUTE
 ```
 
 ---
@@ -40,7 +40,7 @@ curl -H "X-API-Key: <your-admin-key>" \
 
 ### Prerequisites
 
-- `oc` CLI logged into ocpv-infra01
+- `oc` CLI logged into cluster-infra-1
 - Kubeconfig files in `secrets/` with valid service account tokens
 - LiteLLM API key (for LLM features)
 - `podman` for image builds
@@ -124,17 +124,17 @@ python3 -m cli.scheduler --api-url http://localhost:8090
 
 # Specific clusters
 python3 -m cli.scheduler --api-url http://localhost:8090 \
-  --clusters ocpv06,ocpv07,ocpv08
+  --clusters cluster-06,cluster-07,cluster-08
 
 # Custom intervals
 python3 -m cli.scheduler --api-url http://localhost:8090 \
   --tier1 300 --tier2 900 --tier3 3600 --batch 5
 
 # Single cluster worker
-python3 -m cli.worker --cluster ocpv06 --api-url http://localhost:8090
+python3 -m cli.worker --cluster cluster-06 --api-url http://localhost:8090
 
 # One-shot scan (no persistence)
-python3 -m cli.scan --cluster ocpv06
+python3 -m cli.scan --cluster cluster-06
 ```
 
 ### Via podman-compose
@@ -457,7 +457,7 @@ ls -lt scan-history/scan-*.json | head -5
 - **Expired tokens**: Service account tokens expire. Regenerate kubeconfigs
   and update the `stargate-kubeconfigs` secret.
   ```bash
-  oc whoami --kubeconfig=secrets/kubeconfig-ocpv06
+  oc whoami --kubeconfig=secrets/kubeconfig-cluster-06
   ```
 - **Network issues**: Cluster unreachable. Check `oc cluster-info` with the
   relevant kubeconfig.

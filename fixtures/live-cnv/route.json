@@ -7,7 +7,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:58Z",
         "name": "bastion-3000",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329649",
         "uid": "586a6a2e-3313-4ed9-afb2-cf8540f81ec3"
       },
@@ -76,7 +76,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:57Z",
         "name": "bastion-443",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329621",
         "uid": "2e4961c2-45c4-4c50-8d81-2ce309bee618"
       },
@@ -145,7 +145,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:57Z",
         "name": "bastion-80",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329588",
         "uid": "0c298d76-12d8-411b-8248-3f8e8b6b5677"
       },
@@ -214,7 +214,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:59Z",
         "name": "bastion-8080",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329681",
         "uid": "60c9875b-9036-48d1-909e-03d0c78b4e57"
       },
@@ -283,7 +283,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:00Z",
         "name": "bastion-8181",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329724",
         "uid": "0e222609-706f-42b7-8f8c-31574a786a9a"
       },
@@ -352,7 +352,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:02Z",
         "name": "controller-443",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329791",
         "uid": "82fe8113-0ced-48cd-9474-85e7b2e62531"
       },
@@ -422,7 +422,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:01Z",
         "name": "controller-5000",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329761",
         "uid": "6e66948f-f762-4d4f-8a79-833345779336"
       },
@@ -491,7 +491,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:03Z",
         "name": "ssap-443",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329840",
         "uid": "09115efd-c221-4093-8cb4-a807e305ded3"
       },
@@ -547,7 +547,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:03Z",
         "name": "ssap-7007",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329862",
         "uid": "8e3d956d-2b95-40b6-aded-deb13753906e"
       },
