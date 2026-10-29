@@ -25,10 +25,18 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger("stargate.qa")
 
-# Documents worth indexing from docs/ (operational knowledge, kept small).
+# Documents worth indexing for RAG (operational knowledge). Each is split
+# into sections so long docs don't lose their tail to the character cap.
 _DOC_FILES = (
+    "workflows.md",
+    "mcp-agent-guide.md",
+    "architecture.md",
     "evidence-observation-semantics.md",
     "runbook.md",
+    "summary-refresh-release.md",
+    "integration-findings.md",
+    "proof-lab-ecosystem.md",
+    "post-summit-babylon-integration.md",
 )
 
 _STOPWORDS = {
@@ -49,6 +57,28 @@ def _tokens(text: str) -> set:
         for word in re.findall(r"[A-Za-z0-9_.-]+", str(text))
         if len(word) >= 3 and word.lower() not in _STOPWORDS
     }
+
+
+def _split_doc(name: str, content: str, max_chars: int = 4000) -> List[Dict]:
+    """Split a document into retrievable sections at markdown headings.
+
+    Long docs lose their tail to a single character cap; splitting at
+    headings lets each section score independently.
+    """
+    sections = re.split(r"\n(?=#{1,3} )", content)
+    docs: List[Dict] = []
+    for i, section in enumerate(sections):
+        section = section.strip()
+        if not section or len(section) < 50:
+            continue
+        # Extract the heading for the source label
+        heading_match = re.match(r"^#{1,3}\s+(.+)", section)
+        heading = heading_match.group(1).strip() if heading_match else f"section-{i}"
+        docs.append({
+            "source": f"doc:{name}#{heading}"[:120],
+            "text": section[:max_chars],
+        })
+    return docs
 
 
 def _knowledge_corpus() -> List[Dict]:
@@ -79,8 +109,7 @@ def _knowledge_corpus() -> List[Dict]:
         try:
             path = docs_dir / name
             if path.exists():
-                content = path.read_text()[:6000]
-                docs.append({"source": f"doc:{name}", "text": content})
+                docs.extend(_split_doc(name, path.read_text()))
         except Exception:
             continue
     return docs
