@@ -225,6 +225,20 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "list_reclamation_artifacts",
+            "description": "Enumerate left-over artifacts for a tearing-down or reclaimed workload: namespace existence, PVs still bound to it (leaked capacity), sandbox placement state, and reclamation episodes — with concrete reclamation targets. Call this after query_lifecycle_outcomes shows a FAILED or STALLED destroy to find what the workload left behind.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "namespace": {"type": "string", "description": "The sandbox namespace"},
+                },
+                "required": ["namespace"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "query_lifecycle_outcomes",
             "description": "Query provision/reclamation outcome episodes for a workload (provisioning-outcome/v1 and reclamation-outcome/v1): provisioning successes/failures, reclamation completions, failed or stuck teardowns, leaked resources. Call this BEFORE concluding a deleted namespace makes evidence stale — a FAILED destroy-complete episode is itself the finding, not staleness.",
             "parameters": {
@@ -327,15 +341,73 @@ def tool_query_evaluations(namespace: str, limit: int = 10) -> str:
         return f"ERROR querying evaluations: {str(e)[:200]}"
 
 
-def tool_query_lifecycle_outcomes(namespace: str, days: int = 14) -> str:
-    """Query provision/reclamation outcome episodes for a workload.
+def tool_list_reclamation_artifacts(namespace: str, cluster: str = "", kubeconfig_dir: str = "") -> str:
+    """Enumerate left-over artifacts for a tearing-down or reclaimed workload.
 
-    Returns the lifecycle outcome episodes (provisioning-outcome/v1 and
-    reclamation-outcome/v1) recorded for the namespace's lab, with guidance
-    on interpreting them: a PASS destroy-complete episode means the workload
-    was reclaimed (teardown succeeded); a FAIL destroy-complete episode
-    means the teardown failed or stalled, which is an active finding.
+    The reclamation counterpart of query_lifecycle_outcomes: after a FAILED or
+    STALLED destroy, this lists what the workload left behind — namespace
+    existence, PVs still bound to it (leaked capacity), sandbox placement
+    state, and recorded reclamation episodes — plus the concrete reclamation
+    targets an approver could act on.
     """
+    import json as _json
+
+    lines = [f"Reclamation artifacts for {namespace} (cluster: {cluster or 'default'}):"]
+
+    # 1. Namespace existence — a lingering namespace after subject deletion
+    ns_output = tool_oc_read(f"oc get namespace {namespace} -o name", cluster, kubeconfig_dir)
+    ns_exists = namespace in ns_output and "not found" not in ns_output.lower() and "Error" not in ns_output
+    lines.append(f"  namespace: {'EXISTS (teardown incomplete)' if ns_exists else 'gone (or never on this cluster)'}")
+
+    # 2. PVs still bound to the namespace — leaked capacity
+    leaked = []
+    try:
+        pv_output = tool_oc_read("oc get pv -o json", cluster, kubeconfig_dir)
+        pvs = _json.loads(pv_output)
+        for pv in pvs.get("items", []):
+            claim = (pv.get("spec") or {}).get("claimRef") or {}
+            if claim.get("namespace") == namespace:
+                leaked.append({
+                    "name": pv.get("metadata", {}).get("name", "?"),
+                    "phase": pv.get("status", {}).get("phase", "?"),
+                    "capacity": ((pv.get("spec") or {}).get("capacity") or {}).get("storage", "?"),
+                })
+    except Exception:
+        pass
+    if leaked:
+        lines.append(f"  leaked PVs ({len(leaked)}):")
+        for pv in leaked:
+            lines.append(f"    {pv['name']} — {pv['phase']}, {pv['capacity']}")
+    else:
+        lines.append("  leaked PVs: none found")
+
+    # 3. Sandbox placement — is the placement handle still held?
+    try:
+        placement = tool_get_sandbox_placement(namespace)
+        lines.append(f"  sandbox placement: {placement[:200]}")
+    except Exception as error:
+        lines.append(f"  sandbox placement: unavailable ({str(error)[:80]})")
+
+    # 4. Recorded reclamation episodes for context
+    try:
+        outcomes = tool_query_lifecycle_outcomes(namespace)
+        summary_line = next(
+            (line.strip() for line in outcomes.splitlines() if line.strip().startswith("Summary")),
+            "no episode summary",
+        )
+        lines.append(f"  lifecycle episodes: {summary_line[:160]}")
+    except Exception:
+        lines.append("  lifecycle episodes: unavailable")
+
+    # 5. Concrete reclamation targets for the approver
+    targets = [f"reclaim pv {pv['name']}" for pv in leaked]
+    if ns_exists:
+        targets.append("final namespace cleanup")
+    lines.append("  reclamation targets: " + ("; ".join(targets) if targets else "none — workload appears fully reclaimed"))
+    return "\n".join(lines)
+
+
+def tool_query_lifecycle_outcomes(namespace: str, days: int = 14) -> str:
     try:
         from datetime import datetime, timedelta, timezone
         from db.database import get_session_factory
@@ -651,6 +723,8 @@ def _dispatch_tool(name: str, args: Dict, cluster: str, kubeconfig_dir: str) -> 
         return tool_get_storage_diagnosis(args.get("namespace", ""), cluster, kubeconfig_dir)
     elif name == "query_lifecycle_outcomes":
         return tool_query_lifecycle_outcomes(args.get("namespace", ""), args.get("days", 14))
+    elif name == "list_reclamation_artifacts":
+        return tool_list_reclamation_artifacts(args.get("namespace", ""), cluster, kubeconfig_dir)
     else:
         return f"Unknown tool: {name}"
 

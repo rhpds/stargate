@@ -1429,14 +1429,30 @@ def _queue_investigation_action(db: Session, record) -> Optional[int]:
         return None
 
     classes = {c.strip().lower() for c in (record.failure_class or "").split(",") if c.strip()}
+    catalog_actions = set()
     try:
         from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
-        catalog_actions = sorted(
+        catalog_actions.update(
             action for action, fcs in ACTION_TO_FAILURE_CLASSES.items()
             if classes & {fc.lower() for fc in fcs}
         )
     except Exception:
-        catalog_actions = []
+        pass
+    # Also match the remediation catalog's allowed_when conditions — the
+    # reclamation entries (investigate_stuck_teardown, reclaim_sandbox_placement,
+    # launchpad_reclaim_*) live there, not in the hardcoded policy map.
+    try:
+        from engine.catalog_loader import load_catalog
+        for entry in load_catalog():
+            for condition in entry.allowed_when:
+                parts = condition.split("==")
+                if (len(parts) == 2 and parts[0].strip() == "failure_class"
+                        and parts[1].strip().lower() in classes):
+                    catalog_actions.add(entry.id)
+                    break
+    except Exception:
+        pass
+    catalog_actions = sorted(catalog_actions)
 
     existing = db.query(PendingAction).filter(
         PendingAction.proposed_by == "investigation",
