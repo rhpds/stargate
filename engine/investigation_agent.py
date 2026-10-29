@@ -222,6 +222,21 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_lifecycle_outcomes",
+            "description": "Query provision/reclamation outcome episodes for a workload (provisioning-outcome/v1 and reclamation-outcome/v1): provisioning successes/failures, reclamation completions, failed or stuck teardowns, leaked resources. Call this BEFORE concluding a deleted namespace makes evidence stale — a FAILED destroy-complete episode is itself the finding, not staleness.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "namespace": {"type": "string", "description": "The sandbox namespace or lab code"},
+                    "days": {"type": "integer", "description": "Lookback window in days (default 14, max 90)"},
+                },
+                "required": ["namespace"],
+            },
+        },
+    },
 ]
 
 
@@ -310,6 +325,65 @@ def tool_query_evaluations(namespace: str, limit: int = 10) -> str:
             db.close()
     except Exception as e:
         return f"ERROR querying evaluations: {str(e)[:200]}"
+
+
+def tool_query_lifecycle_outcomes(namespace: str, days: int = 14) -> str:
+    """Query provision/reclamation outcome episodes for a workload.
+
+    Returns the lifecycle outcome episodes (provisioning-outcome/v1 and
+    reclamation-outcome/v1) recorded for the namespace's lab, with guidance
+    on interpreting them: a PASS destroy-complete episode means the workload
+    was reclaimed (teardown succeeded); a FAIL destroy-complete episode
+    means the teardown failed or stalled, which is an active finding.
+    """
+    try:
+        from datetime import datetime, timedelta, timezone
+        from db.database import get_session_factory
+        from db.models import EvaluationRecord
+        factory = get_session_factory()
+        db = factory()
+        try:
+            window_days = min(max(int(days or 14), 1), 90)
+            since = datetime.now(timezone.utc) - timedelta(days=window_days)
+            episodes = db.query(EvaluationRecord).filter(
+                EvaluationRecord.run_id.like("gap-%"),
+                EvaluationRecord.evaluated_at > since,
+                (EvaluationRecord.lab_code == namespace)
+                | EvaluationRecord.lab_code.contains(namespace),
+            ).order_by(EvaluationRecord.evaluated_at.desc()).limit(15).all()
+
+            if not episodes:
+                return (
+                    f"No lifecycle outcome episodes found for {namespace} in the last "
+                    f"{window_days} days. No provision/reclamation outcome is recorded; "
+                    "do not infer one."
+                )
+
+            lines = [f"Lifecycle outcome episodes for {namespace} (last {window_days} days):"]
+            passes = fails = 0
+            for e in episodes:
+                mark = "PASS" if e.outcome == "pass" else "FAIL"
+                if e.outcome == "pass":
+                    passes += 1
+                else:
+                    fails += 1
+                lines.append(
+                    f"  {e.stage_id} | {mark} | {e.failure_class or 'reclaimed'} | "
+                    f"{(e.message or '')[:160]} | {e.evaluated_at}"
+                )
+            lines.append(f"Summary: {len(episodes)} episodes — {passes} pass, {fails} fail")
+            lines.append(
+                "Interpretation: a PASS destroy-complete episode means the workload was "
+                "reclaimed (teardown succeeded; its evidence is stale). A FAIL "
+                "destroy-complete episode (destroy_failed, teardown_stuck, resource_leak_pv) "
+                "means the teardown failed, stalled, or leaked resources — that is an "
+                "active finding to investigate, not staleness."
+            )
+            return "\n".join(lines)
+        finally:
+            db.close()
+    except Exception as e:
+        return f"ERROR querying lifecycle outcomes: {str(e)[:200]}"
 
 
 def tool_get_lab_identity(namespace: str) -> str:
@@ -575,6 +649,8 @@ def _dispatch_tool(name: str, args: Dict, cluster: str, kubeconfig_dir: str) -> 
         return tool_get_sandbox_placement(args.get("namespace", ""))
     elif name == "get_storage_diagnosis":
         return tool_get_storage_diagnosis(args.get("namespace", ""), cluster, kubeconfig_dir)
+    elif name == "query_lifecycle_outcomes":
+        return tool_query_lifecycle_outcomes(args.get("namespace", ""), args.get("days", 14))
     else:
         return f"Unknown tool: {name}"
 
@@ -638,7 +714,7 @@ Your final analysis MUST include:
 
 Rules:
 - Your investigation tools are read-only. The Shadow Remediation section documents what a human operator COULD run to fix the issue — these are never auto-executed.
-- If the target namespace no longer exists, treat the evidence as stale. Do not infer an active cluster-wide fault or recommend destructive cluster/PVC/controller changes without current corroborating evidence. The verdict must be TRANSIENT when teardown/provisioning explains it, otherwise UNKNOWN — never ACTIONABLE solely from a deleted namespace.
+- If the target namespace no longer exists, call query_lifecycle_outcomes before concluding anything. A PASS destroy-complete episode (reclaimed) means teardown succeeded and the evidence is stale — the verdict must be TRANSIENT. A FAIL destroy-complete episode (destroy_failed, teardown_stuck, resource_leak_pv) is itself the finding: the teardown failed, stalled, or leaked resources, and the investigation should target the failed reclamation and its residual resources. With no lifecycle outcome recorded, treat the evidence as stale: do not infer an active cluster-wide fault or recommend destructive cluster/PVC/controller changes without current corroborating evidence — TRANSIENT when teardown/provisioning explains it, otherwise UNKNOWN, never ACTIONABLE solely from a deleted namespace.
 - NEVER echo passwords, tokens, or credentials — they are automatically redacted
 - NEVER suggest oc commands for Babylon CRDs (resourceclaim, anarchysubject) — those don't exist on workload clusters
 - ALWAYS include the AgnosticV config URL when available — that's where lab developers fix issues
@@ -740,6 +816,7 @@ def _run_investigation(
             max_tokens=selection_max_tokens,
             temperature=0.2,
             timeout=60,
+            db=db,
         )
 
         if not result.get("success"):
@@ -749,6 +826,7 @@ def _run_investigation(
             result = _call_llm_with_tools(
                 messages=messages, tools=TOOLS, model=use_model,
                 max_tokens=selection_max_tokens, temperature=0.2, timeout=45,
+                db=db,
             )
         if not result.get("success"):
             logger.info("Tool calling failed after retry, falling back to single-shot with %s", use_model)
@@ -918,9 +996,16 @@ def _call_llm_with_tools(
     max_tokens: int = 2400,
     temperature: float = 0.2,
     timeout: int = 30,
+    db=None,
 ) -> Dict:
-    """Call LLM with tool definitions. Returns the full message object including tool_calls."""
+    """Call LLM with tool definitions. Returns the full message object including tool_calls.
+
+    Tool-loop calls are metered like every other LLM call (endpoint
+    agent-investigation-tools): they were previously invisible to the
+    cost/latency instrumentation despite being the bulk of agent spend.
+    """
     import ssl
+    import time as _time
     import urllib.request as urllib_req
 
     from api.llm import LLM_URL, LLM_API_KEY, LLM_MODEL, SSL_VERIFY
@@ -952,12 +1037,43 @@ def _call_llm_with_tools(
         },
     )
 
+    started = _time.time()
+    success = False
+    usage = {}
+    error_message = None
+    choices: list = []
     try:
         resp = urllib_req.urlopen(req, timeout=timeout, context=ssl_ctx)
         data = json.loads(resp.read())
         choices = data.get("choices", [{}])
         message = choices[0].get("message", {}) if choices else {}
+        usage = data.get("usage", {}) or {}
+        success = True
         return {"success": True, "message": message}
     except Exception as e:
+        error_message = str(e)[:500]
         logger.warning("LLM tool call failed: %s", str(e)[:200])
         return {"success": False, "error": str(e)[:200], "message": {}}
+    finally:
+        latency_ms = int((_time.time() - started) * 1000)
+        if db is not None:
+            try:
+                from datetime import datetime, timezone
+                from db.models import LLMMetric
+                metric = LLMMetric(
+                    endpoint="agent-investigation-tools",
+                    model=use_model,
+                    prompt_tokens=usage.get("prompt_tokens"),
+                    completion_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens"),
+                    latency_ms=latency_ms,
+                    success=success,
+                    finish_reason=(choices[0].get("finish_reason") if choices and success else None),
+                    error_type=None if success else "tool_call_error",
+                    error_message=error_message,
+                    called_at=datetime.now(timezone.utc),
+                )
+                db.add(metric)
+                db.commit()
+            except Exception as metric_error:
+                logger.debug("Failed to persist tool-call metric: %s", metric_error)
