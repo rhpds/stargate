@@ -488,6 +488,15 @@ def continue_proof_cycle(
             result["success"] = True
             result["proof_mode"] = "investigation"
         else:
+            # Record the failure so consecutive_passes resets and the gate
+            # decays — without this, a proven class could fail forever while
+            # its gate stayed full_auto (observed: image_pull_backoff with 4
+            # FAIL cycles and gate=full_auto, passes=4).
+            tracker.record_verification(failure_class, False, {
+                "verify_clean": False,
+                "detection_correct": detection_correct,
+                "note": "cycle failed: detection incorrect or timed out and namespace not clean after remediation",
+            })
             result["success"] = False
             result["proof_mode"] = "failed"
 

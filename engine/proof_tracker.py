@@ -96,7 +96,12 @@ class ProofTracker:
         else:
             fc["status"] = "FAILED"
             fc["cycles_failed"] += 1
+            # Gate decays with consecutive passes: a proven class that starts
+            # failing loses its promotion (proven_ever keeps the history).
+            if fc.get("gate") in ("full_auto", "investigation_proven", "low_risk_auto"):
+                fc["proven_ever"] = True
             fc["consecutive_passes"] = 0
+            fc["gate"] = "manual"
         fc["history"].append({
             "event": "verified", "ts": datetime.now(timezone.utc).isoformat(),
             "clean": clean, "evidence": evidence,
@@ -117,7 +122,10 @@ class ProofTracker:
         else:
             fc["status"] = "FAILED"
             fc["cycles_failed"] += 1
+            if fc.get("gate") in ("full_auto", "investigation_proven", "low_risk_auto"):
+                fc["proven_ever"] = True
             fc["consecutive_passes"] = 0
+            fc["gate"] = "manual"
         fc["history"].append({
             "event": "investigation_verified", "ts": datetime.now(timezone.utc).isoformat(),
             "detection_correct": detection_correct, "evidence": evidence,
@@ -166,4 +174,5 @@ class ProofTracker:
                 1 for fc in fcs.values() if fc.get("gate") == "low_risk_auto"
             ),
             "failed": sum(1 for fc in fcs.values() if fc.get("status") == "FAILED"),
+            "proven_ever": sum(1 for fc in fcs.values() if fc.get("proven_ever")),
         }

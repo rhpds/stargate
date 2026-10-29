@@ -36,6 +36,75 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# --- MCP server: read-only platform intelligence for any agent ---
+# Mounted stateless (any replica serves any request); authenticated by the
+# platform API key on /mcp paths via the middleware below. Read-only tools
+# only — no remediation, no execution.
+try:
+    import asyncio as _asyncio
+
+    from api.mcp_server import mcp as _mcp_server
+    from fastapi.responses import JSONResponse
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    def _build_mcp_transport():
+        return _mcp_server.streamable_http_app(
+            streamable_http_path="/", stateless_http=True, json_response=True,
+            # DNS-rebinding protection is disabled: the endpoint sits behind
+            # the OpenShift oauth-proxy route and requires the platform API
+            # key, which is the authoritative auth for agent access.
+            transport_security=TransportSecuritySettings(
+                enable_dns_rebinding_protection=False,
+            ),
+        )
+
+    app.mount("/mcp", _build_mcp_transport())
+
+    def _mcp_mount_route():
+        for route in app.routes:
+            if getattr(route, "path", "") == "/mcp":
+                return route
+        return None
+
+    _mcp_task = None
+
+    async def _run_mcp_session_manager():
+        async with _mcp_server.session_manager.run():
+            await _asyncio.Event().wait()  # keep the manager alive
+
+    async def _ensure_mcp_running():
+        """Lazily run the MCP session manager, rebuilding the transport when
+        the previous lifecycle ended (the manager cannot re-run after its
+        task group closed — relevant across app restarts and test clients)."""
+        global _mcp_task
+        if _mcp_task is not None and not _mcp_task.done():
+            return
+        route = _mcp_mount_route()
+        if route is not None:
+            route.app = _build_mcp_transport()  # fresh session manager
+        _mcp_task = _asyncio.get_running_loop().create_task(_run_mcp_session_manager())
+        await _asyncio.sleep(0.1)  # let the manager initialize
+
+    @app.middleware("http")
+    async def mcp_api_key_auth(request, call_next):
+        """Require the platform API key for /mcp (the mounted MCP app sits
+        outside FastAPI's dependency system, so auth is enforced here) and
+        lazily start the MCP session manager."""
+        if request.url.path.startswith("/mcp"):
+            from api.routers._shared import ADMIN_API_KEY
+            provided = request.headers.get("X-API-Key", "")
+            if not ADMIN_API_KEY or provided != ADMIN_API_KEY:
+                return JSONResponse({"detail": "Invalid or missing API key"}, status_code=401)
+            try:
+                await _ensure_mcp_running()
+            except Exception as _start_error:  # pragma: no cover
+                import logging as _logging
+                _logging.getLogger("stargate").warning("MCP start failed: %s", _start_error)
+        return await call_next(request)
+except Exception as _mcp_error:  # pragma: no cover - mcp is optional at import
+    import logging as _logging
+    _logging.getLogger("stargate").warning("MCP server not mounted: %s", _mcp_error)
+
 _cors_origins = os.environ.get("STARGATE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8090").split(",")
 app.add_middleware(
     CORSMiddleware,

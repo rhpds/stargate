@@ -257,3 +257,43 @@ class TestMultipleFailureClasses:
         from engine.proof_tracker import ProofTracker
         t = ProofTracker(path=tmp_path / "pm.json")
         assert t.get_status("never_seen") == "UNTESTED"
+
+
+class TestGateDecay:
+    """Failed cycles must reset passes and decay the gate — a proven class
+    that starts failing cannot keep full_auto forever (observed live:
+    image_pull_backoff, gate=full_auto with 4 consecutive FAIL cycles)."""
+
+    def test_failure_resets_passes_and_gate(self, tmp_path):
+        from engine.proof_tracker import ProofTracker
+        t = ProofTracker(path=tmp_path / "gd.json")
+        for _ in range(3):
+            t.record_verification("fc", True, {})
+        assert t.get_matrix()["failure_classes"]["fc"]["gate"] == "full_auto"
+        t.record_verification("fc", False, {})
+        fc = t.get_matrix()["failure_classes"]["fc"]
+        assert fc["consecutive_passes"] == 0
+        assert fc["gate"] == "manual"
+        assert fc["proven_ever"] is True  # history preserved
+
+    def test_investigation_failure_decays_too(self, tmp_path):
+        from engine.proof_tracker import ProofTracker
+        t = ProofTracker(path=tmp_path / "gd2.json")
+        for _ in range(3):
+            t.record_investigation_verified("fc", True, {})
+        fc = t.get_matrix()["failure_classes"]["fc"]
+        assert fc["gate"] == "investigation_proven"
+        t.record_investigation_verified("fc", False, {})
+        fc = t.get_matrix()["failure_classes"]["fc"]
+        assert fc["gate"] == "manual"
+        assert fc["proven_ever"] is True
+
+    def test_summary_distinguishes_current_from_ever(self, tmp_path):
+        from engine.proof_tracker import ProofTracker
+        t = ProofTracker(path=tmp_path / "gd3.json")
+        for _ in range(3):
+            t.record_verification("fc", True, {})
+        t.record_verification("fc", False, {})
+        s = t.get_summary()
+        assert s["proven"] == 0       # decayed
+        assert s["proven_ever"] == 1  # but historically proven
