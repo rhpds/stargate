@@ -5,6 +5,7 @@ outcome-conditional TRANSIENT rule in the system prompt, dispatcher routing,
 and metering of the previously-invisible tool-loop LLM calls.
 """
 
+import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
@@ -254,3 +255,59 @@ class TestAutoResolveOutcomes:
 
         db.refresh(action)
         assert action.status == "auto_resolved"
+
+
+class TestReclamationArtifactsTool:
+    """list_reclamation_artifacts: the left-over-artifact enumeration."""
+
+    def _patch_tools(self, monkeypatch, ns_output, pv_items, placement="placement gone"):
+        from engine import investigation_agent as agent
+        pv_json = json.dumps({"items": pv_items})
+        monkeypatch.setattr(agent, "tool_oc_read", lambda cmd, cluster, kc: (
+            ns_output if "namespace" in cmd else pv_json))
+        monkeypatch.setattr(agent, "tool_get_sandbox_placement", lambda ns: placement)
+
+        def fake_outcomes(ns, days=14):
+            return f"Lifecycle outcome episodes for {ns}:\nSummary: 2 episodes — 0 pass, 2 fail"
+
+        monkeypatch.setattr(agent, "tool_query_lifecycle_outcomes", fake_outcomes)
+
+    def test_enumerates_leaked_pvs_and_lingering_namespace(self, monkeypatch):
+        from engine import investigation_agent as agent
+        self._patch_tools(
+            monkeypatch,
+            ns_output="namespace/sandbox-leaky",
+            pv_items=[
+                {"metadata": {"name": "pv-1"}, "spec": {"claimRef": {"namespace": "sandbox-leaky"},
+                                                        "capacity": {"storage": "10Gi"}},
+                 "status": {"phase": "Released"}},
+                {"metadata": {"name": "pv-other"}, "spec": {"claimRef": {"namespace": "other-ns"}},
+                 "status": {"phase": "Bound"}},
+            ],
+        )
+        result = agent.tool_list_reclamation_artifacts("sandbox-leaky", "ocpv05", "/kc")
+        assert "EXISTS (teardown incomplete)" in result
+        assert "pv-1" in result and "Released" in result and "10Gi" in result
+        assert "pv-other" not in result
+        assert "reclaim pv pv-1" in result
+        assert "final namespace cleanup" in result
+        assert "Summary: 2 episodes" in result
+
+    def test_fully_reclaimed_workload_reports_no_targets(self, monkeypatch):
+        from engine import investigation_agent as agent
+        self._patch_tools(
+            monkeypatch,
+            ns_output=f'Error from server (NotFound): namespaces "sandbox-clean" not found',
+            pv_items=[],
+        )
+        result = agent.tool_list_reclamation_artifacts("sandbox-clean", "ocpv05", "/kc")
+        assert "gone" in result
+        assert "leaked PVs: none found" in result
+        assert "none — workload appears fully reclaimed" in result
+
+    def test_tool_is_registered_and_dispatched(self):
+        from engine.investigation_agent import TOOLS, _dispatch_tool
+        names = {t["function"]["name"] for t in TOOLS}
+        assert "list_reclamation_artifacts" in names
+        result = _dispatch_tool("list_reclamation_artifacts", {"namespace": "x"}, "c", "")
+        assert not result.startswith("Unknown tool")

@@ -83,10 +83,13 @@ class TestActionableInvestigationQueuesAction:
         record = _investigation(db, verdict="ACTIONABLE", fc="teardown_stuck")
         _complete(db, record, "ACTIONABLE")
         action = db.query(PendingAction).filter(PendingAction.proposed_by == "investigation").one()
-        # No hardcoded policy entry for teardown classes: generic action type,
-        # still queued with lineage for human review.
-        assert action.action_type == "investigation_remediation"
-        assert action.parameters["investigation_id"] == record.id
+        # Reclamation classes map through the remediation catalog's
+        # allowed_when (the hardcoded policy map lacks them): the queued
+        # action carries the actual reclamation candidates.
+        params = action.parameters
+        assert "investigate_stuck_teardown" in params["catalog_actions"]
+        assert "inspect_anarchy_destroy_state" in params["catalog_actions"]
+        assert action.action_type in params["catalog_actions"]
 
 
 class TestVerificationLink:
