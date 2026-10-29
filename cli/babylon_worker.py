@@ -214,19 +214,29 @@ def _parse_timestamp(value: str) -> Optional[datetime]:
 
 
 def collect_workshop_provisions() -> Dict:
-    """Collect actionable WorkshopProvision state from the Babylon control plane."""
-    namespaces = [
-        value.strip() for value in os.environ.get(
-            "STARGATE_WORKSHOP_PROVISION_NAMESPACES", "babylon-catalog-prod",
-        ).split(",") if value.strip()
+    """Collect actionable WorkshopProvision state from the Babylon control plane.
+
+    STARGATE_WORKSHOP_PROVISION_NAMESPACES selects the namespaces to query
+    (comma-separated), or "-A" for all namespaces. WorkshopProvisions for
+    user sandboxes live in per-user namespaces (user-*-redhat-com), so "-A"
+    is the correct setting for the RHDP control plane; the legacy default
+    covers the catalog namespace only.
+    """
+    raw_namespaces = os.environ.get(
+        "STARGATE_WORKSHOP_PROVISION_NAMESPACES", "babylon-catalog-prod",
+    )
+    cluster_wide = raw_namespaces.strip() == "-A"
+    namespaces = [] if cluster_wide else [
+        value.strip() for value in raw_namespaces.split(",") if value.strip()
     ]
     items = []
     namespace_queries = {}
-    for namespace in namespaces:
-        data, status = _oc_json_with_status(
-            ["get", "workshopprovisions", "-n", namespace, "-o", "json"], timeout=60,
-        )
-        namespace_queries[namespace] = status
+    query_targets = ["-A"] if cluster_wide else namespaces
+    for target in query_targets:
+        args = ["get", "workshopprovisions"]
+        args += ["-A"] if target == "-A" else ["-n", target]
+        data, status = _oc_json_with_status(args + ["-o", "json"], timeout=60)
+        namespace_queries[target] = status
         if data is not None:
             items.extend(data.get("items", []))
     failed_queries = {
