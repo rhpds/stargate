@@ -48,6 +48,17 @@ def test_parse_proposed_class_handles_production_shapes():
     assert parse_proposed_class('{"unrelated": true}') is None
 
 
+def test_parse_proposed_class_survives_format_mimicry():
+    """Replies that mirror a brace-doubled or fenced example must still parse.
+
+    Regression for the 0/36 granite qualification run: the model answered
+    correctly but mirrored the prompt's ``{{...}}`` example, and the strict
+    parser recorded every trial as unparseable.
+    """
+    assert parse_proposed_class('{{"proposed_class": "oom_killed", "confidence": 0.9}}') == "oom_killed"
+    assert parse_proposed_class('```json\n{"proposed_class": "oom_killed"}\n```') == "oom_killed"
+
+
 def test_wilson_bounds():
     low, high = wilson(9, 20)
     assert low <= 0.45 <= high

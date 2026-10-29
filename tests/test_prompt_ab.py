@@ -56,15 +56,15 @@ class TestPromptVersionSplitting:
 
 
 class TestPromptVariantFile:
-    """A classify v1.1 variant must exist for A/B testing."""
+    """A classify v1.2 variant must exist for A/B testing."""
 
-    def test_classify_v11_exists(self):
+    def test_classify_v12_exists(self):
         prompts_dir = Path(__file__).parent.parent / "prompts"
-        v11 = prompts_dir / "classify-v1.1.yaml"
-        assert v11.exists(), f"Missing {v11}"
+        v12 = prompts_dir / "classify-v1.2.yaml"
+        assert v12.exists(), f"Missing {v12}"
 
-    def test_classify_v11_has_version(self):
+    def test_classify_v12_has_version(self):
         prompts_dir = Path(__file__).parent.parent / "prompts"
-        v11 = prompts_dir / "classify-v1.1.yaml"
-        data = yaml.safe_load(v11.read_text())
-        assert data.get("version") == "1.1"
+        v12 = prompts_dir / "classify-v1.2.yaml"
+        data = yaml.safe_load(v12.read_text())
+        assert data.get("version") == "1.2"

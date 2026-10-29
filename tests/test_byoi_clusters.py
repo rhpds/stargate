@@ -15,16 +15,20 @@ class TestClusterLoading:
         from cli.scan import load_clusters
         assert callable(load_clusters)
 
-    def test_fallback_to_default_clusters(self):
-        """With no env vars set, returns the current 9-cluster dict."""
-        from cli.scan import load_clusters
+    def test_fallback_to_default_clusters(self, monkeypatch):
+        """Without overrides, return a copy of the configured default mapping."""
+        from cli import scan
+        defaults = {"synthetic-alpha": "synthetic-kubeconfig"}
+        monkeypatch.setattr(scan, "_DEFAULT_CLUSTERS", defaults)
         with patch.dict(os.environ, {}, clear=False):
             for key in ("STARGATE_CLUSTERS", "STARGATE_CLUSTERS_FILE"):
                 os.environ.pop(key, None)
-            clusters = load_clusters()
+            clusters = scan.load_clusters()
         assert isinstance(clusters, dict)
-        assert len(clusters) >= 8
-        assert "ocpv05" in clusters
+        assert clusters == defaults
+        assert clusters is not defaults
+        clusters.clear()
+        assert defaults == {"synthetic-alpha": "synthetic-kubeconfig"}
 
     def test_clusters_from_json_env_var(self):
         """STARGATE_CLUSTERS as JSON dict overrides the default."""

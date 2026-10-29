@@ -26,6 +26,7 @@ def collect_anarchysubject(data: Dict) -> CollectedEvidence:
 
     tower_jobs = status.get("towerJobs", {})
     provision_succeeded = _check_provision_succeeded(tower_jobs)
+    destroy_succeeded = _check_destroy_succeeded(tower_jobs)
 
     run_status = status.get("runStatus", "")
 
@@ -43,6 +44,7 @@ def collect_anarchysubject(data: Dict) -> CollectedEvidence:
         observed={
             "anarchysubject_exists": True,
             "provision_job_succeeded": provision_succeeded,
+            "destroy_job_succeeded": destroy_succeeded,
             "state_is_started": state == "started",
             "current_state": state,
             "no_error_conditions": not has_error,
@@ -75,17 +77,63 @@ def summarize_subjects(subjects: list) -> Dict:
     }
 
 
-def _check_provision_succeeded(tower_jobs: Dict) -> bool:
-    """Check provisioning success across v1 (dict) and v2 (list) formats."""
+def _check_provision_succeeded(tower_jobs: Dict) -> bool | None:
+    """Respect explicit outcomes; termination alone cannot establish success.
+
+    Mixed list histories have no guaranteed ordering, so remain unverified
+    rather than picking an arbitrary successful attempt.
+    """
     jobs = tower_jobs.get("provision", tower_jobs.get("start", {}))
 
-    if isinstance(jobs, dict):
-        return bool(jobs.get("completeTimestamp"))
+    if not jobs:
+        return False
+    attempts = jobs if isinstance(jobs, list) else [jobs]
+    outcomes = []
+    for job in attempts:
+        if not isinstance(job, dict):
+            return None
+        status = str(job.get("status", "")).strip().lower()
+        if status == "successful":
+            outcomes.append(True)
+        elif status in {"failed", "error", "canceled", "cancelled"}:
+            outcomes.append(False)
+        else:
+            return None
+    if all(outcome is True for outcome in outcomes):
+        return True
+    if all(outcome is False for outcome in outcomes):
+        return False
+    return None
 
-    if isinstance(jobs, list):
-        return any(
-            j.get("status") == "successful" or bool(j.get("completeTimestamp"))
-            for j in jobs
-        )
 
-    return False
+def _check_destroy_succeeded(tower_jobs: Dict) -> bool | None:
+    """Destroy counterpart of _check_provision_succeeded.
+
+    Same explicit-outcome contract: only successful/failed/error/canceled
+    statuses count, running or malformed histories stay unverified (None),
+    and mixed attempt histories remain unverified. Empty destroy history is
+    an observed not-succeeded (False) — the destroy never ran or was never
+    recorded. Meaningful only for subjects being destroyed; a subject never
+    asked to destroy trivially has no destroy job.
+    """
+    jobs = tower_jobs.get("destroy", tower_jobs.get("stop", {}))
+
+    if not jobs:
+        return False
+    attempts = jobs if isinstance(jobs, list) else [jobs]
+    outcomes = []
+    for job in attempts:
+        if not isinstance(job, dict):
+            return None
+        status = str(job.get("status", "")).strip().lower()
+        if status == "successful":
+            outcomes.append(True)
+        elif status in {"failed", "error", "canceled", "cancelled"}:
+            outcomes.append(False)
+        else:
+            return None
+    if all(outcome is True for outcome in outcomes):
+        return True
+    if all(outcome is False for outcome in outcomes):
+        return False
+    return None

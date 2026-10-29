@@ -1551,6 +1551,33 @@
   - oc get namespaces | grep sandbox
   forbidden_when: []
 
+- id: inspect_destroy_job
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == destroy_failed
+  commands:
+  - oc get anarchysubject {anarchy_subject} -n babylon-anarchy-events -o yaml
+  - oc get anarchysubject {anarchy_subject} -n babylon-anarchy-events -o jsonpath={.status.towerJobs}
+  forbidden_when: []
+
+- id: inspect_anarchy_destroy_state
+  risk: low
+  mode: recommend_only
+  execution_method: kubernetes
+  scope: namespace
+  requires_approval: false
+  allowed_when:
+  - failure_class == teardown_incomplete
+  - failure_class == teardown_stuck
+  commands:
+  - oc get anarchysubject {anarchy_subject} -n babylon-anarchy-events -o wide
+  - oc get events -n babylon-anarchy-events --field-selector=type=Warning --sort-by=.lastTimestamp
+  forbidden_when: []
+
 - id: investigate_resource_leak
   risk: low
   mode: recommend_only

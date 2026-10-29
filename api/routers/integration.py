@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import repository
 from engine.models import Run, RunStatus
-from api.schemas import DeepfieldIncidentRequest, ExternalEvidenceRequest, FeedbackRequest
+from api.schemas import DeepfieldIncidentRequest, ExternalEvidenceRequest, FeedbackRequest, GeoluxProposalRequest
 from api.routers._shared import _event_bus, require_admin
 
 router = APIRouter()
@@ -196,7 +196,7 @@ def receive_geolux_mpc_action(req: dict, db: Session = Depends(get_db), _auth=De
 
 
 @router.post("/integration/geolux-proposal", status_code=201)
-def receive_geolux_proposal(body: "GeoluxProposalRequest", db: Session = Depends(get_db), _auth=Depends(require_admin)):
+def receive_geolux_proposal(body: GeoluxProposalRequest, db: Session = Depends(get_db), _auth=Depends(require_admin)):
     """Receive a remediation proposal from GeoLux.
 
     GeoLux sends classification results and remediation recommendations
@@ -218,7 +218,6 @@ def receive_geolux_proposal(body: "GeoluxProposalRequest", db: Session = Depends
         }
     }
     """
-    from api.schemas import GeoluxProposalRequest  # noqa: F811
     from db.models import PendingAction, AuditLog
 
     proposal = body.proposal

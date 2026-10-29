@@ -143,11 +143,21 @@ class TestAgentSafety:
         assert "REFUSED" in result
 
     @pytest.mark.parametrize("org", ["rhpds", "agnosticd", "redhat-cop"])
-    def test_allowed_github_orgs(self, org):
+    def test_allowed_github_orgs(self, org, monkeypatch):
         """fetch_github_file must accept repos from allowed orgs."""
-        # Will fail with network error, but should NOT be REFUSED
+        from io import BytesIO
+        import urllib.request
+
+        requests = []
+
+        def urlopen(request, **kwargs):
+            requests.append(request.full_url)
+            return BytesIO(b"synthetic: true")
+
+        monkeypatch.setattr(urllib.request, "urlopen", urlopen)
         result = tool_fetch_github_file(f"{org}/some-repo", "some/path.yaml")
-        assert "REFUSED" not in result
+        assert result == "synthetic: true"
+        assert requests == [f"https://raw.githubusercontent.com/{org}/some-repo/main/some/path.yaml"]
 
     def test_refuses_github_path_traversal(self):
         """fetch_github_file must refuse repo names with no org."""

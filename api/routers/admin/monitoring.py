@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
-from engine.attention_classifier import build_catalog_baselines, classify_namespace
+from engine.attention_classifier import get_cached_baselines, classify_namespace
 from engine.namespace import extract_guid, strip_sandbox_prefix, extract_sandbox_parts
 from api.routers._shared import (
     limiter,
@@ -363,7 +363,7 @@ def _build_remediation_strategies(db: Session) -> list:
                 ns_data[lab_code]["failure_classes"].get(fc, 0) + cnt
             )
 
-    baselines = build_catalog_baselines(db)
+    baselines = get_cached_baselines(db)
     first_eval_map: Dict[str, datetime] = {}
     try:
         for lc, fa in db.query(
@@ -1098,7 +1098,7 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
                 stage = STAGE_MAP.get(fc, "workload")
                 d["stage_failures"][stage] = d["stage_failures"].get(stage, 0) + cnt
 
-    baselines = build_catalog_baselines(db)
+    baselines = get_cached_baselines(db)
 
     _BASE_ENV_NAMES = {
         "zt-ansiblebu": "Ansible Automation Platform Labs",
@@ -1112,7 +1112,9 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     guid_lab_names: Dict[str, str] = {}
     try:
         from db.models import LabMapping
-        lab_mappings_db = db.query(LabMapping).all()
+        lab_mappings_db = db.query(
+            LabMapping.lab_code, LabMapping.ci_name, LabMapping.ci_base, LabMapping.owner,
+        ).all()
         for m in lab_mappings_db:
             if m.lab_code.startswith("guid:") and m.ci_name:
                 guid_lab_names[m.lab_code.replace("guid:", "")] = m.ci_name
@@ -1125,21 +1127,16 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
     except Exception:
         pass
 
-    try:
-        import urllib.request as _urlreq
-        _lab_url = os.environ.get("STARGATE_LABAGATOR_URL", "")
-        if _lab_url:
-            with _urlreq.urlopen(f"{_lab_url}/labs?limit=300", timeout=5) as _resp:
-                _labs = json.loads(_resp.read())
-                for _lab in (_labs if isinstance(_labs, list) else []):
-                    _ci = _lab.get("ci_name") or ""
-                    _title = _lab.get("title") or ""
-                    if _ci and _title:
-                        _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
-                        if _slug not in catalog_display_names:
-                            catalog_display_names[_slug] = _title
-    except Exception:
-        pass
+    # Optional display labels must not put external HTTP on the critical path.
+    # Startup/other collectors refresh this cache; DB names remain the fallback.
+    from api.routers import _shared as _metadata
+    for _lab in (_metadata._labagator_cache.get("labs") or []):
+        _ci = _lab.get("ci_name") or ""
+        _title = _lab.get("title") or ""
+        if _ci and _title:
+            _slug = _ci.split(".", 1)[1] if "." in _ci else _ci
+            if _slug not in catalog_display_names:
+                catalog_display_names[_slug] = _title
 
     for _cat_slug in list(ns_data.keys()):
         _ci_slug = strip_sandbox_prefix(_cat_slug)
@@ -1150,15 +1147,8 @@ def lifecycle_matrix(db: Session = Depends(get_db), _auth=Depends(require_admin_
 
     first_eval_map: Dict[str, datetime] = {}
     try:
-        from db.models import EvaluationRecord as _ER
-        first_evals = db.query(
-            _ER.lab_code,
-            func.min(_ER.evaluated_at).label("first_at"),
-        ).filter(
-            _ER.lab_code.in_(list(ns_data.keys())),
-        ).group_by(_ER.lab_code).all()
-        for lab_code, first_at in first_evals:
-            first_eval_map[lab_code] = first_at
+        from db.evaluation_queries import first_observed_by_lab
+        first_eval_map = first_observed_by_lab(db, ns_data.keys())
     except Exception:
         pass
 

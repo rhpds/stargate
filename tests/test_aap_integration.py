@@ -37,6 +37,9 @@ def test_job_pagination_does_not_stop_after_500(monkeypatch):
         def read(self):
             return json.dumps(self.data).encode()
 
+        def close(self):
+            pass
+
     pages = iter([
         {"results": [{"id": n, "artifacts": {"large": "x" * 10000},
                        "extra_vars": '{"password":"do-not-retain","target_host":"host.example"}'}

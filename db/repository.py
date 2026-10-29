@@ -543,176 +543,18 @@ def get_namespaces_for_cluster(db: Session, cluster_name: str, limit: int = 200)
 # --- Materialized view refresh functions ---
 
 def refresh_cluster_summary(db: Session) -> None:
-    from db.models import EvaluationRecord, MVClusterSummary
-    from sqlalchemy import func
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVClusterSummary).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(
-            EvaluationRecord.cluster_name,
-            EvaluationRecord.outcome,
-            EvaluationRecord.failure_class,
-            EvaluationRecord.lab_code,
-        )
-        .filter(
-            EvaluationRecord.cluster_name.isnot(None),
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    clusters: dict = {}
-    for cluster_name, outcome, failure_class, lab_code in rows:
-        if cluster_name not in clusters:
-            clusters[cluster_name] = {"p": 0, "f": 0, "w": 0, "fc": {}, "labs": set(), "labs_f": set()}
-        c = clusters[cluster_name]
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            c["p"] += 1
-        elif o == "fail":
-            c["f"] += 1
-            if failure_class:
-                c["fc"][failure_class] = c["fc"].get(failure_class, 0) + 1
-            if lab_code:
-                c["labs_f"].add(lab_code)
-        elif o == "warn":
-            c["w"] += 1
-        if lab_code:
-            c["labs"].add(lab_code)
-
-    now = datetime.now(timezone.utc)
-    for name, c in clusters.items():
-        total = c["p"] + c["f"] + c["w"]
-        healthy = c["p"] + c["w"]
-        db.add(MVClusterSummary(
-            cluster_name=name,
-            total_evaluations=total,
-            passed=c["p"],
-            failed=c["f"],
-            warned=c["w"],
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            failure_classes=c["fc"],
-            labs_seen=len(c["labs"]),
-            labs_failing=len(c["labs_f"]),
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_clusters
+    refresh_clusters(db, datetime.now(timezone.utc))
 
 
 def refresh_pipeline_stages(db: Session) -> None:
-    from db.models import EvaluationRecord, MVPipelineStage
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVPipelineStage).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(EvaluationRecord.stage_id, EvaluationRecord.outcome)
-        .filter(
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    stages: dict = {}
-    for stage_id, outcome in rows:
-        if stage_id not in stages:
-            stages[stage_id] = {"p": 0, "f": 0, "w": 0}
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            stages[stage_id]["p"] += 1
-        elif o == "fail":
-            stages[stage_id]["f"] += 1
-        elif o == "warn":
-            stages[stage_id]["w"] += 1
-
-    now = datetime.now(timezone.utc)
-    for sid, s in stages.items():
-        total = s["p"] + s["f"] + s["w"]
-        healthy = s["p"] + s["w"]
-        db.add(MVPipelineStage(
-            stage_id=sid,
-            pass_count=s["p"],
-            fail_count=s["f"],
-            warn_count=s["w"],
-            total=total,
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_stages
+    refresh_stages(db, datetime.now(timezone.utc))
 
 
 def refresh_lab_eval_summary(db: Session) -> None:
-    from db.models import EvaluationRecord, MVLabEvalSummary
-    from sqlalchemy import func
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVLabEvalSummary).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(
-            EvaluationRecord.lab_code,
-            EvaluationRecord.cluster_name,
-            EvaluationRecord.outcome,
-            EvaluationRecord.failure_class,
-            EvaluationRecord.evaluated_at,
-        )
-        .filter(
-            EvaluationRecord.lab_code.isnot(None),
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    labs: dict = {}
-    for lab_code, cluster_name, outcome, failure_class, evaluated_at in rows:
-        key = (lab_code, cluster_name or "")
-        if key not in labs:
-            labs[key] = {"p": 0, "f": 0, "w": 0, "fc": {}, "last": None}
-        l = labs[key]
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            l["p"] += 1
-        elif o == "fail":
-            l["f"] += 1
-            if failure_class:
-                l["fc"][failure_class] = l["fc"].get(failure_class, 0) + 1
-        elif o == "warn":
-            l["w"] += 1
-        if evaluated_at and (l["last"] is None or evaluated_at > l["last"]):
-            l["last"] = evaluated_at
-
-    now = datetime.now(timezone.utc)
-    for (lab_code, cluster_name), l in labs.items():
-        total = l["p"] + l["f"] + l["w"]
-        healthy = l["p"] + l["w"]
-        top_fc = max(l["fc"], key=l["fc"].get) if l["fc"] else None
-        db.add(MVLabEvalSummary(
-            lab_code=lab_code,
-            cluster_name=cluster_name or None,
-            total_evals=total,
-            passed=l["p"],
-            failed=l["f"],
-            warned=l["w"],
-            top_failure_class=top_fc,
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            last_evaluated_at=l["last"],
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_labs
+    refresh_labs(db, datetime.now(timezone.utc))
 
 
 def get_all_cluster_summaries(db: Session) -> dict:

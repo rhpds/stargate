@@ -1,6 +1,7 @@
 scan-history/
 backups/
 test-receipts/
+receipts/
 stargate.db
 stargate-synthetic-client-emulator/.pytest_cache/
 stargate-synthetic-client-emulator/tests/

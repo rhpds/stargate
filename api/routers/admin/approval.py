@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
+from api.schemas import RemediationConfigRequest, RemediationPreviewRequest, RemediationExecuteRequest
 from api.constants import VALID_EXECUTION_MODES
 from api.routers._shared import (
     limiter,
@@ -63,9 +64,8 @@ def get_remediation_config(lab_code: str, db: Session = Depends(get_db)):
 
 @router.put("/admin/remediation/config/{lab_code}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
-def update_remediation_config(lab_code: str, request: Request, body: "RemediationConfigRequest", db: Session = Depends(get_db)):
+def update_remediation_config(lab_code: str, request: Request, body: RemediationConfigRequest, db: Session = Depends(get_db)):
     """Create or update remediation config for a lab."""
-    from api.schemas import RemediationConfigRequest  # noqa: F811
 
     if body.execution_mode not in VALID_EXECUTION_MODES:
         raise HTTPException(status_code=400, detail=f"Invalid execution_mode. Must be one of: {VALID_EXECUTION_MODES}")
@@ -215,11 +215,10 @@ def get_remediation_recommendations(limit: int = 20, cluster: str = None, db: Se
 
 @router.post("/admin/remediation/preview", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
-def preview_remediation(request: Request, body: "RemediationPreviewRequest", db: Session = Depends(get_db)):
+def preview_remediation(request: Request, body: RemediationPreviewRequest, db: Session = Depends(get_db)):
     """Preview what remediation would do — shows every gate check and exact commands without executing."""
     import os
     import re
-    from api.schemas import RemediationPreviewRequest  # noqa: F811
     from api.routers._shared import _dry_run_enabled, CONFIDENCE_THRESHOLD, TEST_NAMESPACE, EXECUTION_TARGET
     from api.action_executor import _get_lab_execution_mode, _check_rate_limit
     from api.constants import is_ecosystem_ns as _is_ecosystem_ns
@@ -383,13 +382,12 @@ def preview_remediation(request: Request, body: "RemediationPreviewRequest", db:
 
 @router.post("/admin/remediation/execute", dependencies=[Depends(require_admin)])
 @limiter.limit("10/minute")
-def execute_remediation(request: Request, body: "RemediationExecuteRequest", db: Session = Depends(get_db)):
+def execute_remediation(request: Request, body: RemediationExecuteRequest, db: Session = Depends(get_db)):
     """Manually trigger remediation for a specific namespace + failure class.
 
     This is the human-in-the-loop "Remediate Now" button — not auto-execution.
     Requires explicit operator action. Logs everything to audit trail.
     """
-    from api.schemas import RemediationExecuteRequest  # noqa: F811
     from api.action_executor import execute_action
     from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
 

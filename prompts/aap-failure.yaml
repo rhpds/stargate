@@ -1,5 +1,5 @@
 id: aap-failure
-version: "1.0"
+version: "1.1"
 description: Root cause analysis for AAP provisioning and destroy job failures
 model: granite-3-2-8b-instruct
 max_tokens: 500
@@ -20,4 +20,4 @@ user_template: |
   4. Team to notify (platform-ops/lab-developer/infra/babylon)
 
   Respond in this exact JSON format:
-  {{"root_cause": "description", "severity": "high", "action": "specific fix steps", "team": "platform-ops", "reasoning": "brief explanation"}}
+  {"root_cause": "description", "severity": "high", "action": "specific fix steps", "team": "platform-ops", "reasoning": "brief explanation"}

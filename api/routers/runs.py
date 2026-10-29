@@ -177,6 +177,8 @@ def evaluate_stage(run_id: str, stage_id: str, req: EvaluateRequest,
         stage_status = StageStatus.FAILED
     elif result.outcome == StageOutcome.WARN:
         stage_status = StageStatus.WARNED
+    elif result.outcome == StageOutcome.INDETERMINATE:
+        stage_status = StageStatus.PENDING
 
     stage_result = StageResult(
         outcome=result.outcome,
@@ -212,6 +214,7 @@ def evaluate_stage(run_id: str, stage_id: str, req: EvaluateRequest,
         "pass": "evaluation.passed",
         "warn": "evaluation.warned",
         "fail": "evaluation.failed",
+        "indeterminate": "evaluation.indeterminate",
     }.get(result.outcome.value, "evaluation.failed")
 
     if result.outcome.value == "fail" and not result.failure_class:
