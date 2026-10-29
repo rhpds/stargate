@@ -263,7 +263,11 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         metadata={"lab_code": ev.lab_code, "cluster_name": ev.cluster_name},
     )
     quality_outcome = quality_result.overall_outcome.value if quality_result else None
-    quality_details = quality_result.model_dump() if quality_result else None
+    # mode="json": the result carries a timestamp datetime, and the plain
+    # model_dump() left it unserializable — every quality-passing classify
+    # crashed the proposal INSERT with "Object of type datetime is not JSON
+    # serializable" (the reason no proposal had persisted since June 2).
+    quality_details = quality_result.model_dump(mode="json") if quality_result else None
 
     if not quality_passed:
         logger.warning("LLM quality gate REJECTED for %s/%s: outcome=%s",
