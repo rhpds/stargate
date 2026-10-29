@@ -1402,6 +1402,109 @@ def complete_investigation(
             create_jira_draft(db, record)
     except Exception:
         db.rollback()
+    # ACTIONABLE investigations queue a human-review remediation action —
+    # the investigate -> suggest -> approve link. Never executes: the
+    # approval queue is human-review only (the same pattern as deepfield
+    # incidents), honoring the no-auto-remediation constraint.
+    try:
+        verdict = str(((trust_dimensions or {}).get("verdict")) or "").strip().upper()
+        if not error and verdict == "ACTIONABLE":
+            _queue_investigation_action(db, record)
+    except Exception:
+        db.rollback()
+
+
+def _queue_investigation_action(db: Session, record) -> Optional[int]:
+    """Queue a human-review remediation for an ACTIONABLE investigation.
+
+    The investigation's remediation_suggestion is advisory text; the queued
+    action carries the catalog-mapped remediation candidates plus the full
+    lineage (investigation id, job id, triggering eval) so an approver can
+    trace the evidence chain. Idempotent per investigation.
+    """
+    from db.models import PendingAction
+
+    suggestion = (record.remediation_suggestion or "").strip()
+    if not suggestion:
+        return None
+
+    classes = {c.strip().lower() for c in (record.failure_class or "").split(",") if c.strip()}
+    try:
+        from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
+        catalog_actions = sorted(
+            action for action, fcs in ACTION_TO_FAILURE_CLASSES.items()
+            if classes & {fc.lower() for fc in fcs}
+        )
+    except Exception:
+        catalog_actions = []
+
+    existing = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "investigation",
+        PendingAction.target == record.namespace,
+        PendingAction.status.in_(("pending", "approved")),
+    ).all()
+    if any((a.parameters or {}).get("investigation_id") == record.id for a in existing):
+        return None
+
+    action = PendingAction(
+        action_type=catalog_actions[0] if catalog_actions else "investigation_remediation",
+        target=record.namespace,
+        proposed_by="investigation",
+        parameters={
+            "investigation_id": record.id,
+            "job_id": record.job_id,
+            "triggering_eval_id": record.triggering_eval_id,
+            "failure_class": record.failure_class,
+            "root_cause": (record.root_cause or "")[:500],
+            "remediation_suggestion": suggestion[:2000],
+            "catalog_actions": catalog_actions,
+            "cluster": record.cluster,
+        },
+        confidence=0.8,
+        status="pending",
+        proposed_at=datetime.now(timezone.utc),
+    )
+    db.add(action)
+    db.commit()
+    return action.id
+
+
+def link_remediation_verification(db: Session, max_links: int = 50) -> int:
+    """Link executed remediations to the passing eval that verified them.
+
+    The verify leg of the investigate -> suggest -> approve -> verify loop:
+    for each unresolved remediation, find the first passing evaluation for
+    the same lab after the remediation was applied and record it as
+    verification_eval_id. Returns the number of remediations verified.
+    """
+    from db.models import EvaluationRecord, RemediationRecord
+
+    unresolved = db.query(RemediationRecord).filter(
+        RemediationRecord.resolved.is_(None),
+    ).order_by(RemediationRecord.id.desc()).limit(max_links).all()
+    linked = 0
+    for remediation in unresolved:
+        try:
+            applied_at = remediation.applied_at
+            if applied_at is None:
+                continue
+            if applied_at.tzinfo is None:
+                applied_at = applied_at.replace(tzinfo=timezone.utc)
+            verification = db.query(EvaluationRecord.id).filter(
+                EvaluationRecord.lab_code == remediation.run_id,
+                EvaluationRecord.outcome == "pass",
+                EvaluationRecord.evaluated_at > applied_at,
+            ).order_by(EvaluationRecord.evaluated_at.asc()).first()
+            if verification:
+                remediation.verification_eval_id = verification.id
+                remediation.resolved = True
+                remediation.resolved_at = datetime.now(timezone.utc)
+                linked += 1
+        except Exception:
+            continue
+    if linked:
+        db.commit()
+    return linked
 
 
 def fail_investigation(db: Session, job_id: str, error: str) -> None:
