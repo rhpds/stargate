@@ -310,13 +310,42 @@ def _upsert_gap_record(db, *, run_id, stage_id, lab_code, cluster_name,
     return "created"
 
 
+# Advisory-lock key for the gap-detection pass. Same STGS namespace as
+# db/summary_refresh.py (which uses keys 1-3); key 4 is the gap detector.
+_GAP_LOCK = (0x53544753, 4)
+
+
+def _acquire_gap_lock(db) -> bool:
+    """Try to own this gap-detection pass (PostgreSQL advisory xact lock).
+
+    Two API replicas run the refresh loop concurrently; without the lock,
+    both observe "no existing episode" and insert duplicates (observed
+    2026-10-29: identical episode run_ids 6ms apart). Contention returns
+    False so the caller skips the pass — the next cycle on either replica
+    picks it up. SQLite (single-writer dev/test backend) always acquires.
+    """
+    try:
+        if db.get_bind().dialect.name != "postgresql":
+            return True
+        from sqlalchemy import func, select
+        return bool(db.execute(select(func.pg_try_advisory_xact_lock(*_GAP_LOCK))).scalar_one())
+    except Exception as exc:
+        logging.getLogger("stargate").warning("gap lock probe failed: %s", exc)
+        return True  # fail open: correct for single-replica, duplicate-safe enough otherwise
+
+
 def _record_gap_detections(db):
     """Create EvaluationRecords for monitoring gap detections found by babylon worker.
 
     Idempotent per condition: each detection derives a stable episode
     run_id, so a persisting condition refreshes one record instead of
-    accumulating duplicates every cycle.
+    accumulating duplicates every cycle. Single-writer across replicas via
+    an advisory lock (see _acquire_gap_lock).
     """
+    if not _acquire_gap_lock(db):
+        logging.getLogger("stargate").info("gap detections status=skipped_busy")
+        return
+
     from api.routers._shared import _load_latest_babylon
     from datetime import datetime, timezone
     from events.models import Event as BusEvent
@@ -516,6 +545,9 @@ def _record_gap_detections(db):
                 _event_bus.emit(event)
             except Exception as exc:
                 logging.getLogger("stargate").warning("Gap event emission failed: %s", exc)
+    else:
+        # Release the advisory transaction lock when nothing was written.
+        db.rollback()
 
 
 def _auto_resolve_incidents(db):

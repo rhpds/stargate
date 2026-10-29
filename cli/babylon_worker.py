@@ -631,12 +631,15 @@ def run_collection() -> Dict:
         results["demolition"] = {"error": str(e)}
         print(f"    Demolition error: {e}")
 
-    # Monitoring gap detectors — stuck teardowns + resource leaks
-    kubeconfig = os.environ.get("STARGATE_EXECUTOR_KUBECONFIG", "")
+    # Monitoring gap detectors — stuck teardowns + resource leaks. These
+    # observe the Babylon control plane (AnarchySubjects live in the sharded
+    # babylon-anarchy-* namespaces there), NOT the executor's stargate-test
+    # scope: default to the worker's control-plane kubeconfig, overridable.
+    gap_kubeconfig = os.environ.get("STARGATE_GAP_KUBECONFIG", KUBECONFIG)
     print("  Detecting stuck teardowns...")
     try:
         from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
-        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=kubeconfig)
+        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=gap_kubeconfig)
         st = results["stuck_teardowns"]
         print(f"    {st.get('stuck_count', 0)} stuck (threshold {st.get('threshold_hours', 2)}h)")
     except Exception as e:
@@ -646,7 +649,7 @@ def run_collection() -> Dict:
     print("  Detecting resource leaks...")
     try:
         from collectors.cleanup.collect_leaks import detect_resource_leaks
-        results["resource_leaks"] = detect_resource_leaks(kubeconfig=kubeconfig)
+        results["resource_leaks"] = detect_resource_leaks(kubeconfig=gap_kubeconfig)
         rl = results["resource_leaks"]
         print(f"    {rl.get('orphaned_count', 0)} orphaned PVs ({rl.get('orphaned_capacity_gi', 0)} Gi)")
     except Exception as e:
@@ -656,7 +659,7 @@ def run_collection() -> Dict:
     print("  Checking operator health...")
     try:
         from collectors.cleanup.collect_operator_health import detect_operator_issues
-        results["operator_health"] = detect_operator_issues(kubeconfig=kubeconfig)
+        results["operator_health"] = detect_operator_issues(kubeconfig=gap_kubeconfig)
         oh = results["operator_health"]
         print(f"    {oh.get('unhealthy_count', 0)} unhealthy operator pods across {len(oh.get('namespaces_checked', []))} namespaces")
     except Exception as e:

@@ -1,0 +1,36 @@
+# Apply on the Babylon control-plane cluster (ocp-us-east-1), with cluster-admin:
+#   oc apply -f deploy/openshift/babylon-reader-clusterrole.yaml
+#
+# Grants the stargate-scanner service account read-only access to Babylon
+# catalog resources. OpenShift's cluster-reader does not include the
+# babylon.gpte.redhat.com API group, so Workshop/WorkshopProvision health
+# collection fails with Forbidden without this grant (observed 2026-10-29:
+# workshop_provision_crd_unavailable episodes from
+# "cannot list resource workshopprovisions ... in the namespace
+# babylon-catalog-prod"). Read-only: get/list/watch only; no write verbs,
+# no remediation authority.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: stargate-babylon-reader
+  labels:
+    app.kubernetes.io/part-of: stargate
+rules:
+  - apiGroups: ["babylon.gpte.redhat.com"]
+    resources: ["workshops", "multiworkshops", "workshopprovisions"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: stargate-babylon-reader
+  labels:
+    app.kubernetes.io/part-of: stargate
+subjects:
+  - kind: ServiceAccount
+    name: stargate-scanner
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: stargate-babylon-reader
