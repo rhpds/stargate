@@ -54,10 +54,22 @@ MATRIX = [
     ("classify", "bad-invalid-json", "bdd", "green"),
 
     # --- classify: bad — hallucinated class ---
+    # edd red is deliberate as of 2026-10-29: the citation checks previously
+    # passed vacuously (an empty-string evidence value is a substring of
+    # everything), so hallucinated conditions were never actually caught.
     ("classify", "bad-hallucinated-class", "tdd", "green"),
-    ("classify", "bad-hallucinated-class", "edd", "green"),
+    ("classify", "bad-hallucinated-class", "edd", "red"),
     ("classify", "bad-hallucinated-class", "cdd", "green"),
     ("classify", "bad-hallucinated-class", "bdd", "green"),
+
+    # --- classify: good — paraphrased citation (production shape) ---
+    # Regression for the 2026-10-29 production failure: contract-shaped
+    # responses with paraphrased evidence citations were all quality-gated
+    # off because the checks demanded verbatim message quotes.
+    ("classify", "good-paraphrased-citation", "tdd", "green"),
+    ("classify", "good-paraphrased-citation", "edd", "green"),
+    ("classify", "good-paraphrased-citation", "cdd", "green"),
+    ("classify", "good-paraphrased-citation", "bdd", "green"),
 
     # --- classify: edge — novel failure ---
     ("classify", "edge-novel-failure", "tdd", "green"),

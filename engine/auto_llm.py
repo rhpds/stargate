@@ -244,12 +244,22 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         logger.warning(f"LLM classify failed: {llm_result.get('error')}")
         return None
 
-    # Quality gate — evaluate response across TDD/EDD/CDD/BDD dimensions
+    # Quality gate — evaluate response across TDD/EDD/CDD/BDD dimensions.
+    # The evidence dict mirrors the evaluator's designed shape (short
+    # citation keys + stage/message); the production-shaped keys alone made
+    # the citation checks unverifiable.
     from engine.llm_quality_gate import check_response_quality
     quality_passed, quality_result = check_response_quality(
         prompt_type="classify",
         response=llm_result["content"],
-        evidence={"raw": evidence, "stage_id": str(ev.stage_id), "message": ev.message or ""},
+        evidence={
+            "raw": evidence,
+            "stage_id": str(ev.stage_id),
+            "message": ev.message or "",
+            "lab_code": ev.lab_code,
+            "cluster_name": ev.cluster_name,
+            "failure_class": ev.failure_class,
+        },
         metadata={"lab_code": ev.lab_code, "cluster_name": ev.cluster_name},
     )
     quality_outcome = quality_result.overall_outcome.value if quality_result else None
