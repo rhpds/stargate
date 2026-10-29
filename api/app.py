@@ -586,7 +586,12 @@ def _auto_resolve_incidents(db):
             EvaluationRecord.evaluated_at > one_hour_ago,
         ).first()
 
-        # Check 3: namespace disappeared (no evals in 30 min = recycled)
+        # Check 3: namespace disappeared (no evals in 30 min = recycled).
+        # Outcome-conditional (phase 5.2): a FAILED reclamation episode
+        # (destroy_failed, teardown_stuck, resource_leak_pv) means the
+        # teardown did not complete — disappearance does not resolve the
+        # incident; it points at the failed teardown. Only a workload with
+        # no failed-destroy record counts as recycled.
         ns_gone = False
         if not recent_pass and not recent_fail:
             latest = db.query(func.max(EvaluationRecord.evaluated_at)).filter(
@@ -595,6 +600,16 @@ def _auto_resolve_incidents(db):
             if latest:
                 latest_tz = latest.replace(tzinfo=timezone.utc) if latest.tzinfo is None else latest
                 if latest_tz < thirty_min_ago:
+                    failed_reclamation = db.query(EvaluationRecord.id).filter(
+                        EvaluationRecord.lab_code == ns,
+                        EvaluationRecord.stage_id == "destroy-complete",
+                        EvaluationRecord.outcome == "fail",
+                        EvaluationRecord.evaluated_at > datetime.now(timezone.utc) - timedelta(days=7),
+                    ).first()
+                    if failed_reclamation:
+                        # Namespace gone but the destroy failed: keep the
+                        # incident open — the reclamation is the finding.
+                        continue
                     ns_gone = True
 
         should_resolve = (recent_pass and not recent_fail) or ns_gone
