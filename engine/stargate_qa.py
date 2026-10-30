@@ -305,12 +305,15 @@ def ask_stargate(question: str) -> str:
     )
     if not result.get("success"):
         # Still useful: return the retrieved context without synthesis.
+        # Cache the fallback too so the second ask is instant.
         sources = "\n\n".join(
             f"[source: {d['source']}] matched {', '.join(d['matched_terms'])}" for d in knowledge
         )
-        return (
+        fallback = (
             f"LLM synthesis unavailable ({str(result.get('error'))[:100]}). "
             f"Retrieved context:\n\n{sources}\n\n{context[:3000]}"
         )
+        _cache_put(question, fallback)
+        return fallback
     _cache_put(question, result["content"])
     return result["content"]
