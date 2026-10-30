@@ -402,10 +402,16 @@ def dashboard_llm_health(
                 metadata={
                     "gateway": gw,
                     "failing_models": failing,
+                    "config_invalid_models": [
+                        f.split("/", 1)[1] for f in report.get("config_invalid_models", [])
+                        if f.startswith(gw + "/")
+                    ],
                     "remediation": (
                         "Check the model deployments on the serving cluster "
-                        "(vLLM/KServe pods, Gaudi accelerator health). StarGate's "
-                        "own inference may be affected if it uses these models."
+                        "(vLLM/KServe pods, Gaudi accelerator health). Config-invalid "
+                        "entries are malformed gateway model definitions — the model "
+                        "may work via its normal name; fix the LiteLLM entry. "
+                        "StarGate's own inference may be affected if it uses these models."
                     ),
                 },
             ))
