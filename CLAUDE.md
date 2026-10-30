@@ -53,7 +53,7 @@ Frontend (React 19 / Vite / Tailwind 4)
   -> FastAPI (port 8090)
      +-- Scanner Workers (tiered schedule: 5m/15m/1h per cluster)
      +-- Babylon Worker (control plane collector)
-     +-- LLM (Granite via LiteLLM, prompts in YAML)
+     +-- LLM (llama-scout for classify, qwen3-14b for ask, Sonnet for investigations)
      +-- Policy Engine (deterministic recommendations)
      +-- Remediation Executor (5 independent gates before action)
      +-- Event Bus + Nanoagent Pipeline
@@ -63,7 +63,7 @@ Frontend (React 19 / Vite / Tailwind 4)
 ## Key Conventions
 
 - Config via `STARGATE_*` env vars (see `.env.example`)
-- Python 3.9+, Pydantic v2, FastAPI, SQLAlchemy 2.0 with Alembic migrations
+- Python 3.11+, Pydantic v2, FastAPI, SQLAlchemy 2.0 with Alembic migrations
 - Frontend: React 19, Tailwind 4 (not PatternFly), TanStack React Query, React Router 7
 - API key auth (`X-API-Key` header) + OAuth proxy support
 - Remediation: two-tier (K8s-native direct vs RHDP-managed via Anarchy/Poolboy)
