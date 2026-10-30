@@ -35,8 +35,8 @@ logger = logging.getLogger("stargate.agent")
 _SAFE_VERBS = frozenset({"get", "describe", "logs", "adm", "api-resources", "whoami"})
 _SAFE_ADM = frozenset({"top"})
 
-MAX_ITERATIONS = 8
-MAX_WALL_SECONDS = 300
+MAX_ITERATIONS = 12
+MAX_WALL_SECONDS = 480
 MAX_OUTPUT_CHARS = 3000
 FINAL_REPORT_REQUEST = (
     "Provide the required final analysis with these explicit markdown headings: "
