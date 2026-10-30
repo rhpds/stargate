@@ -318,3 +318,49 @@ def get_recent_episodes(hours: int = 24, stage: Optional[str] = None) -> str:
         return "\n".join(lines)
     finally:
         db.close()
+
+
+@mcp.tool()
+def get_cluster_saturation(window_hours: int = 6) -> str:
+    """Cluster capacity saturation status: which clusters show the
+    saturation signature (failure-rate spike vs own baseline + diverse
+    symptom classes + labs failing here while passing elsewhere).
+    Returns per-cluster signals, severity, confidence, top failure
+    classes, divergent labs, and the remediation guidance."""
+    from engine.cluster_saturation import detect_cluster_saturation
+    db = _db()
+    try:
+        report = detect_cluster_saturation(db, window_hours=min(max(window_hours, 1), 72))
+        lines = [
+            f"Cluster saturation report (window: last {report['window']['hours']}h, "
+            f"baseline: {report['baseline_days']}d, clusters analyzed: {report['clusters_analyzed']}):"
+        ]
+        if not report["saturated_clusters"]:
+            lines.append("  No clusters currently show the saturation signature.")
+        for c in report["saturated_clusters"]:
+            entry = next(x for x in report["clusters"] if x["cluster"] == c)
+            rs = entry["signals"]["rate_spike"]
+            sd = entry["signals"]["symptom_diversity"]
+            ld = entry["signals"]["lab_differential"]
+            lines.append(f"  {c}: {entry['severity']} (confidence {entry['confidence']})")
+            lines.append(
+                f"    failure rate {rs['window_rate']:.1%} vs {rs['baseline_rate']:.1%} baseline "
+                f"({rs['rate_multiplier_observed']}x, {rs['window_fails']} fails)"
+            )
+            lines.append(
+                f"    {sd['distinct_failure_classes']} distinct failure classes; top: "
+                + ", ".join(f"{t['class']} ({t['count']})" for t in sd["top_classes"][:5])
+            )
+            lines.append(
+                f"    {ld['divergent_lab_count']} labs failing here while passing elsewhere: "
+                + ", ".join(d["lab"] for d in ld["divergent_labs"][:5])
+            )
+            lines.append(f"    {entry.get('interpretation', '')}")
+        lines.append(
+            "  Remediation for saturated clusters: check node memory and NotReady status; "
+            "if confirmed, disable the cluster in the catalog and let the queue drain. "
+            "Do not chase individual symptom failures — they share one cause."
+        )
+        return "\n".join(lines)
+    finally:
+        db.close()

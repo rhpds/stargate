@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -251,6 +252,111 @@ def dashboard_sandbox_trends(hours: int = 24, db: Session = Depends(get_db)):
 def dashboard_mttr(hours: int = 168, db: Session = Depends(get_db)):
     """Mean time to recovery computed from evaluation pass/fail transitions."""
     return repository.compute_mttr(db, hours=hours)
+
+
+# ---------------------------------------------------------------------------
+# Cluster saturation correlation
+# ---------------------------------------------------------------------------
+
+_saturation_cache: Dict = {"data": None, "ts": 0.0}
+_SATURATION_CACHE_TTL = 300  # 5 minutes
+
+
+def _emit_saturation_events(report: Dict) -> None:
+    """Emit cluster_capacity_saturated events for newly saturated clusters."""
+    from events.models import Event as StarGateEvent
+    from api.routers._shared import _event_bus
+
+    recent = {
+        e.cluster_name
+        for e in _event_bus.history
+        if e.event_type == "cluster_capacity_saturated"
+    }
+    for c in report.get("saturated_clusters", []):
+        if c in recent:
+            continue
+        entry = next((x for x in report["clusters"] if x["cluster"] == c), None)
+        if not entry:
+            continue
+        _event_bus.emit(StarGateEvent(
+            event_type="cluster_capacity_saturated",
+            cluster_name=c,
+            outcome="fail",
+            failure_class="cluster_capacity_saturated",
+            priority=8.0 if entry["severity"] == "critical" else 6.5,
+            message=entry.get("interpretation", f"Cluster {c} saturated"),
+            metadata={
+                "correlation": "cluster_saturation",
+                "severity": entry["severity"],
+                "confidence": entry["confidence"],
+                "window": report["window"],
+                "signals": {
+                    k: v.get("present") for k, v in entry["signals"].items()
+                },
+                "rate_multiplier_observed": entry["signals"]["rate_spike"].get(
+                    "rate_multiplier_observed"
+                ),
+                "distinct_failure_classes": entry["signals"]["symptom_diversity"][
+                    "distinct_failure_classes"
+                ],
+                "divergent_lab_count": entry["signals"]["lab_differential"][
+                    "divergent_lab_count"
+                ],
+                "remediation": (
+                    "Check node memory and NotReady status; if confirmed, disable the "
+                    "cluster in the catalog and let the queue drain. Do not chase "
+                    "individual symptom failures — they share one cause."
+                ),
+            },
+        ))
+
+
+@router.get("/dashboard/saturation")
+def dashboard_saturation(
+    window_hours: int = 6,
+    window_start: Optional[str] = None,
+    window_end: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Cluster capacity saturation correlation.
+
+    Detects the saturation signature: failure-rate spike vs the cluster's own
+    baseline + diverse symptom classes + labs failing here while passing
+    elsewhere. Validated against the Oct 13-14 2026 ocpv06/ocpv08 incident
+    (RHDPOPS-24544). Pass window_start/window_end (ISO) for retrospective
+    analysis; defaults to the last window_hours.
+    """
+    from engine.cluster_saturation import detect_cluster_saturation
+
+    retrospective = bool(window_start or window_end)
+    if not retrospective:
+        now = time.time()
+        if _saturation_cache["data"] and now - _saturation_cache["ts"] < _SATURATION_CACHE_TTL:
+            return _saturation_cache["data"]
+
+    ws = we = None
+    if window_start:
+        try:
+            ws = datetime.fromisoformat(window_start.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="invalid window_start (ISO 8601)")
+    if window_end:
+        try:
+            we = datetime.fromisoformat(window_end.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="invalid window_end (ISO 8601)")
+
+    report = detect_cluster_saturation(
+        db, window_start=ws, window_end=we, window_hours=window_hours
+    )
+    if not retrospective:
+        _saturation_cache["data"] = report
+        _saturation_cache["ts"] = time.time()
+        try:
+            _emit_saturation_events(report)
+        except Exception:  # noqa: BLE001 — event emission must never break the endpoint
+            logger.exception("saturation event emission failed")
+    return report
 
 
 @router.get("/dashboard/resolutions")
