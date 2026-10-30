@@ -129,11 +129,12 @@ class TestAgentSafety:
     def test_max_iterations_enforced(self):
         """Agent must stop after MAX_ITERATIONS."""
         assert MAX_ITERATIONS > 0
-        assert MAX_ITERATIONS <= 10, "MAX_ITERATIONS should not exceed 10 for safety"
+        assert MAX_ITERATIONS <= 15, "MAX_ITERATIONS should not exceed 15 for safety"
 
     def test_max_iterations_value(self):
-        """MAX_ITERATIONS should be exactly 8."""
-        assert MAX_ITERATIONS == 8
+        """MAX_ITERATIONS should be 12 — enough to complete evidence
+        collection without 'let me gather more' dead-ends."""
+        assert MAX_ITERATIONS == 12
 
     # -- GitHub org allowlist --
 
