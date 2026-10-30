@@ -16,7 +16,7 @@ For agent/MCP access, see [mcp-agent-guide.md](mcp-agent-guide.md).
 │  ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌──────────┐    │
 │  │ SCANNER  │───▶│ RUBRIC   │───▶│ CLASSIFIER   │───▶│ SONNET   │    │
 │  │ (5m/15m/ │    │ EVALUATE │    │ (LLM + regex │    │ AGENT    │    │
-│  │  1h)     │    │          │    │  + taxonomy) │    │ (10 tools)│    │
+│  │  1h)     │    │          │    │  + taxonomy) │    │ (15 tools)│    │
 │  └────┬─────┘    └────┬─────┘    └──────┬───────┘    └────┬─────┘    │
 │       │               │                 │                  │          │
 │       ▼               ▼                 ▼                  ▼          │
@@ -321,9 +321,16 @@ GET /dashboard/causal-chain?investigation_id=N
                    └──────────────────┘     └─────────────┘
 ```
 
-**10 tools total**: 8 read-only query tools, `ask` (natural-language RAG),
-and 2 review tools (diagnosis review + action comments). Review tools
-record opinions only — no execution, no cluster access, no remediation.
+**12 tools total**: 9 read-only query tools, `ask` (natural-language RAG),
+`get_cluster_saturation` (capacity correlation), `get_recent_changes`
+(GitHub PRs + Jira change correlation), and 2 review tools (diagnosis
+review + action comments). Review tools record opinions only — no
+execution, no cluster access, no remediation.
+
+The **investigation agent** (separate from MCP) has 15 tools including
+`query_recent_changes`, `query_cluster_saturation`, and `search_knowledge`
+(retrieval over the documented RCA record) — every finding layer is
+agent-queryable.
 
 See [stargate-mcp-agent-guide.md](stargate-mcp-agent-guide.md) for
 connection configs and example questions.
