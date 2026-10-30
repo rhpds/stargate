@@ -122,3 +122,14 @@ classes:
       - Check certificate validity and renewal status
       - "oc get nodes on the target cluster"
       - Check cluster-bot or monitoring for cluster health
+
+  aap_job_timeout:
+    pattern: "(job.*timed? ?out|Timeout.*job|exceeded.*timeout|timeout.*exceeded)"
+    description: "AAP2 controller job exceeded its timeout — common on CNV and Equinix workloads with long provisioning times (validated against Confluence)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Check if the job eventually completed despite the timeout
+      - "Review AAP job logs for actual duration vs configured timeout"
+      - Consider increasing the AAP2 controller job timeout (Confluence recommends 6h for CNV/Equinix)
+      - Check if the timeout is configurable via AgnosticV common.yaml

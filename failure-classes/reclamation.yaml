@@ -31,3 +31,36 @@ classes:
     remediation:
       - Verify whether the sandbox API owns the namespace lifecycle
       - "oc get namespace {namespace}"
+
+  anarchy_processing_failure:
+    pattern: "(anarchyrun.*failed|anarchy.*error|babylon_anarchy_governor.*error|anarchy.*bug)"
+    description: "AnarchyRun itself failed due to a bug in Anarchy or the Ansible code it executes — distinct from infrastructure or cloud failures (validated against Confluence)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - Check the AnarchyRun's spec.result.ansibleRun for the specific Ansible error
+      - "oc get anarchyrun -n {namespace} -l anarchy.gpte.redhat.com/subject={subject}"
+      - If it's an Ansible bug, file a PR against the anarchy or governor repository
+      - Do NOT force-delete the subject until checking if cloud resources were created
+
+  teardown_zombie:
+    pattern: "(destroy.*complete.*not.*deleted|destroy-complete.*stuck|subject.*persist.*destroy)"
+    description: "AnarchySubject completed destroy but was not cleaned up — persists in destroy-complete state (validated against Confluence)"
+    severity: low
+    team: platform-ops
+    remediation:
+      - Check if the subject has finalizers preventing deletion
+      - "oc get anarchysubject {name} -n {namespace} -o jsonpath='{.metadata.finalizers}'"
+      - Use babylon-tools detect_stuck_anarchysubjects.py for bulk detection
+      - Safe to delete if destroy actually completed and no resources remain
+
+  force_delete_safe:
+    pattern: "(provision.*failed.*before.*resource|no.*cloud.*resource.*created|deployer.*job.*none)"
+    description: "Provision failed before any cloud resources were created — safe to force-delete without resource cleanup (validated against Confluence)"
+    severity: low
+    team: platform-ops
+    remediation:
+      - Verify the provision job logs show failure before resource creation
+      - "Check towerJobs.provision — if no deployerJob is listed, no resources were created"
+      - Safe to force-delete the AnarchySubject
+      - "oc delete anarchysubject {name} -n {namespace} --force --grace-period=0"
