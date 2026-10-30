@@ -209,3 +209,35 @@ classes:
       - "If confirmed: disable the cluster in the catalog, let the queue drain, re-enable with headroom"
       - "Do NOT chase individual symptom failures — they share one cause"
       - "This class requires correlation across evaluations, not single-message matching"
+
+  gpu_capacity_unavailable:
+    pattern: "(InsufficientInstanceCapacity|capacity reservation.*canceled|no.*GPU.*capacity|g6\\.12xlarge.*unavailable)"
+    description: "Cloud GPU capacity unavailable — on-demand capacity reservation failed across all AZs (validated: LB2861 Introducing llm-d AWS, Summit Retest Sep 30 — InsufficientInstanceCapacity for 1x g6.12xlarge in us-east-1, reservation canceled)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Check GPU instance availability in the target region"
+      - "Consider a different instance type or region"
+      - "AWS on-demand capacity reservations can fail across all AZs during high demand"
+      - "Check if the lab has a fallback configuration"
+
+  placement_pin_missing:
+    pattern: "(not pinned|wrong.*cluster|placement.*pin|event\\.yaml.*selector|sandbox.*selector.*prod)"
+    description: "Workload landed on the wrong cluster — missing placement pin in event.yaml or sandbox selector pointing at prod instead of events (validated: Summit Retest Sep 30 CRITICAL — Retest traffic hit shared/production capacity; fix agnosticv#28356; Confluence 491356483 row 8-9)"
+    severity: high
+    team: lab-developer
+    remediation:
+      - "Check the catalog item's event.yaml for the cluster pin"
+      - "Verify the sandbox selector actually selects events, not prod"
+      - "Impact: production capacity affected by event traffic"
+      - "Fix is an AgnosticV PR pinning the item to the event cluster pool"
+
+  image_pull_denied:
+    pattern: "(image.*pull.*denied|pull.*access.*denied|unauthorized.*pull|ErrImagePull.*denied)"
+    description: "Container image pull denied — registry credentials or repository permissions missing (validated: LB1758 RAG Cluster CI — llamastack image pull denied; GPTEINFRA-18139)"
+    severity: high
+    team: lab-developer
+    remediation:
+      - "Check the image reference and required pull credentials"
+      - "Verify registry.redhat.io or quay.io secrets exist in the namespace"
+      - "This is a content/packaging issue, not an infrastructure problem"

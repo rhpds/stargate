@@ -64,3 +64,14 @@ classes:
       - "Check towerJobs.provision — if no deployerJob is listed, no resources were created"
       - Safe to force-delete the AnarchySubject
       - "oc delete anarchysubject {name} -n {namespace} --force --grace-period=0"
+
+  destroy_dns_nxdomain:
+    pattern: "(NXDOMAIN|not DNS.resolvable|dns.*lookup.*failed.*destroy|api.*cluster.*deleted.*destroy)"
+    description: "Destroy job failed because the cluster API DNS entry is already gone — the destroy removed DNS first, then the job tried to connect. This is a FALSE-POSITIVE failure: the cluster is actually destroyed (validated: RHDPOPS-24499; Confluence 501907733 issue 7 — constant stream of noise tickets)"
+    severity: low
+    team: platform-ops
+    remediation:
+      - "Verify the cluster is actually gone before acting"
+      - "If the API is unreachable via DNS after destroy, treat as SUCCESS not failure"
+      - "Do not create a ticket — this is a known false-positive pattern"
+      - "Upstream fix needed: defensive destroy that treats DNS-gone as success"
