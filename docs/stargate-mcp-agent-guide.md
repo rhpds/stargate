@@ -3,15 +3,16 @@
 **Talk to the platform from any agent.** StarGate exposes its intelligence
 surfaces through the Model Context Protocol (MCP) — any MCP-compatible agent
 (Claude, Cursor, or your own) can query live lifecycle outcomes, causal
-chains, the failure taxonomy, and the proof lab, or just ask questions in
-plain English.
+chains, the failure taxonomy, and the proof lab; ask questions in plain
+English; and review diagnoses to build the platform's knowledge base.
 
 - **Endpoint:** `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp`
 - **Protocol:** MCP Streamable HTTP (stateless, JSON responses)
 - **Auth:** platform API key (`X-API-Key` header) — request one from the
   StarGate owners; never commit it to a repo or paste it in shared channels
-- **Mode:** strictly read-only. No tool mutates anything, nothing executes,
-  no remediation authority of any kind.
+- **Mode:** read + review. Query everything, review diagnoses, comment on
+  actions. **No execution** — nothing runs on any cluster, no remediation
+  is triggered, no infrastructure is touched.
 
 ---
 
@@ -44,7 +45,9 @@ For clients that need a command instead of a URL, wrap it with `mcp-remote`
 or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 (initialize → tools/list → tools/call).
 
-## The tools (8 total)
+## The tools (10 total)
+
+### Query tools (read-only)
 
 | Tool | What it answers |
 |---|---|
@@ -56,6 +59,60 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 | **get_failure_classes** | The failure taxonomy: classes, patterns, severity, remediation guidance |
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
+
+### Review tools (opinions only — no execution)
+
+| Tool | What it does |
+|---|---|
+| **review_diagnosis** | Record your agreement or disagreement with an investigation's diagnosis. Approved diagnoses are published to the versioned knowledge base so future investigations benefit from what you've confirmed. |
+| **comment_action** | Add a comment to a pending remediation action for the approver to see. Does NOT approve, reject, or execute anything. |
+
+## Reviewing diagnoses
+
+When you see an investigation's diagnosis (via `get_causal_chain` or `ask`),
+you can review it:
+
+```
+review_diagnosis(
+    investigation_id=2114,
+    approved=true,
+    notes="Yes, this matches what I've seen on ocpv07 — the CNV pods
+           were stuck because of the storage class mismatch."
+)
+```
+
+**What happens when you approve:**
+- Your review is attributed to you (hashed key ID)
+- If the investigation has a root cause and remediation suggestion, it's
+  published to the **knowledge base** (versioned, attributed)
+- Future investigations for the same failure class will reference your
+  confirmed diagnosis as prior knowledge
+
+**What happens when you reject:**
+- The diagnosis is marked for re-examination
+- It will NOT be used as reference knowledge
+
+**What does NOT happen (ever):**
+- No remediation is executed
+- No cluster is touched
+- No infrastructure is changed
+- No approval queue item is approved
+
+## Commenting on pending actions
+
+When you see a pending remediation (via `get_causal_chain`), you can add
+context for whoever eventually approves it:
+
+```
+comment_action(
+    action_id=42,
+    comment="I've seen this pattern before — the fix works but needs
+             the pod to be recreated first, not just restarted."
+)
+```
+
+Your comment is visible to the approver in the dashboard. It does NOT
+approve, reject, or execute anything.
 
 ## Performance
 
@@ -70,14 +127,36 @@ The `ask` tool has three response tiers:
 The synthesis model is configurable via `STARGATE_ASK_MODEL`
 (default: `qwen3-14b`).
 
-## Example questions (via `ask` or your agent's tool use)
+## Example sessions
 
-- "Did sandbox-abc123 get reclaimed, and did anything leak?"
-- "What does teardown_stuck mean and how is it fixed?"
-- "Show me the causal chain for the last investigation of sandbox-xyz"
-- "Which failure classes are proven in the proof lab, and which are only detection-proven?"
-- "What provisioning failures happened in the last day?"
-- "What is the StarGate platform?"
+### "What happened to my lab?"
+
+> **You:** "Did sandbox-abc123 get reclaimed, and did anything leak?"
+>
+> **StarGate:** "Lifecycle outcomes for sandbox-abc123: destroy-complete |
+> PASS | reclaimed | AAP destroy job 12345 succeeded. Reclamation
+> artifacts: namespace gone, leaked PVs: none found. [source: gap-reclaim-...]"
+
+### "Review a diagnosis"
+
+> **You:** "Show me the causal chain for the latest investigation"
+>
+> **StarGate:** (returns the full chain with diagnosis and verdict)
+>
+> **You:** "review_diagnosis for that investigation — approved, this
+>            matches what I've seen"
+>
+> **StarGate:** "Review recorded: APPROVED. Published to knowledge base
+>                as sandbox-xyz:teardown_stuck v1. Future investigations
+>                will reference this diagnosis."
+
+### "What's the platform's health?"
+
+> **You:** "What is the StarGate platform?"
+>
+> **StarGate:** "StarGate is a lifecycle intelligence platform for the
+>                Red Hat Demo Platform (RHDP). It monitors lab environments
+>                across multiple OpenShift clusters... [source: doc:platform-overview]"
 
 ## Answer semantics (what the platform guarantees)
 
@@ -90,18 +169,21 @@ The synthesis model is configurable via `STARGATE_ASK_MODEL`
   destroy is a finding, not staleness.
 - **Provenance**: causal chains are complete only when a verification eval
   proved resolution; `missing_legs` reports exactly what is not yet proven.
+- **Review attribution**: your reviews are recorded with your hashed key ID;
+  knowledge entries show who confirmed them.
 
 ## Security model
 
 1. **API key required** — constant-time comparison, per-key rate limit
-   (60 requests/minute), 401/429 otherwise. The key is the same admin key
-   used for the REST API; treat it as a credential: store it in your
-   agent's secret store, rotate via the StarGate owners, and never log it.
-2. **Read-only by construction** — every tool is a query. There is no
-   write, execute, or remediation tool on this server. Agents cannot
-   change anything on any cluster.
+   (60 requests/minute), 401/429 otherwise. Per-user keys available via
+   `STARGATE_ADDITIONAL_API_KEYS`. Store in your agent's secret store.
+2. **Read + review, never execute** — query tools are read-only. Review
+   tools write opinions to the feedback and knowledge tables only. There
+   is NO tool that executes anything, touches a cluster, or triggers
+   remediation. The execution boundary (dashboard approval + GeoLux
+   precheck + gated executor) is unchanged.
 3. **Audited** — every MCP request is logged (method, tool, hashed key id)
-   in the platform logs; abuse is traceable.
+   in the platform logs; reviews are attributed; abuse is traceable.
 4. **Transport** — TLS via the OpenShift route; the `/mcp` path bypasses
    the browser OAuth flow (agents have no cookies) and relies solely on
    the API key. Request bodies are capped at 4 MiB.
@@ -122,6 +204,9 @@ The synthesis model is configurable via `STARGATE_ASK_MODEL`
 - Rate limits are per-key and shared across your agent's sessions.
 - MCP sessions are stateless: every call is independent; there is no
   conversation memory server-side (your agent holds the conversation).
+- Review tools require the investigation to have a root_cause to publish
+  to the knowledge base; investigations without a diagnosis are recorded
+  but not published.
 
 ## Getting a key
 
@@ -139,3 +224,5 @@ not prevent data reads with a valid key.
 | 429 Too Many Requests | Rate limit (60/min) | Wait 60 seconds |
 | Empty answer from `ask` | Question didn't match any context | Try naming a workload, failure class, or asking about provisioning/reclamation/proofs |
 | Slow first answer | LLM synthesis in progress | Normal — ~2 seconds; cached on repeat |
+| "already reviewed" | Investigation was previously approved | This is correct behavior — the review is already published |
+| "no root_cause" on review | Investigation has no diagnosis | The review is recorded but nothing is published to the knowledge base |
