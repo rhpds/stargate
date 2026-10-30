@@ -50,6 +50,7 @@ logger = logging.getLogger("stargate.cluster_saturation")
 MIN_WINDOW_FAILS = 20        # a cluster must fail at least this much in-window to matter
 MIN_WINDOW_TOTAL = 50        # and see at least this much traffic
 RATE_MULTIPLIER = 2.0        # window failure rate must exceed baseline x this
+CORROBORATED_RATE_MULTIPLIER = 1.3  # ... OR this, when BOTH correlation signals confirm
 MIN_BASELINE_TOTAL = 100     # baseline volume below this = insufficient history
 MIN_DISTINCT_CLASSES = 5     # "five different symptom tickets"
 MIN_DIVERGENT_LABS = 2       # labs failing here while passing elsewhere
@@ -196,6 +197,7 @@ def detect_cluster_saturation(
     min_window_fails: int = MIN_WINDOW_FAILS,
     min_window_total: int = MIN_WINDOW_TOTAL,
     rate_multiplier: float = RATE_MULTIPLIER,
+    corroborated_rate_multiplier: float = CORROBORATED_RATE_MULTIPLIER,
     min_baseline_total: int = MIN_BASELINE_TOTAL,
     min_distinct_classes: int = MIN_DISTINCT_CLASSES,
     min_divergent_labs: int = MIN_DIVERGENT_LABS,
@@ -246,21 +248,36 @@ def detect_cluster_saturation(
         distinct = len(classes)
         top_classes = sorted(classes.items(), key=lambda kv: -kv[1])[:8]
 
-        # --- Signal 1: rate spike vs own baseline -------------------------
-        baseline_sufficient = b["total"] >= min_baseline_total
-        rate_spike = (
-            w["fail"] >= min_window_fails
-            and w["total"] >= min_window_total
-            and baseline_sufficient
-            and w_rate >= max(b_rate * rate_multiplier, b_rate + 0.05)
-        )
-
         # --- Signal 2: symptom diversity -----------------------------------
         diversity = distinct >= min_distinct_classes and w["fail"] >= min_window_fails
 
         # --- Signal 3: lab differential -------------------------------------
         divergent = _compute_differential(lab_outcomes, cluster) if lab_outcomes else []
         differential = len(divergent) >= min_divergent_labs
+
+        # --- Signal 1: rate spike vs own baseline ---------------------------
+        # Two paths:
+        #   absolute:    rate >= baseline x RATE_MULTIPLIER on its own
+        #   corroborated: rate >= baseline x CORROBORATED_RATE_MULTIPLIER when
+        #                BOTH correlation signals confirm. Justification: a
+        #                slowly-degrading cluster contaminates its own baseline
+        #                (documented: ocpv08 was already failing Sep 30 before
+        #                the Oct 13 saturation, RHDPOPS-24544), compressing the
+        #                observed multiplier. Moderate elevation + diversity +
+        #                differential is stronger evidence than a 2x spike alone.
+        baseline_sufficient = b["total"] >= min_baseline_total
+        absolute_spike = w_rate >= max(b_rate * rate_multiplier, b_rate + 0.05)
+        corroborated_spike = (
+            w_rate >= b_rate * corroborated_rate_multiplier
+            and diversity
+            and differential
+        )
+        rate_spike = (
+            w["fail"] >= min_window_fails
+            and w["total"] >= min_window_total
+            and baseline_sufficient
+            and (absolute_spike or corroborated_spike)
+        )
 
         signals = [rate_spike, diversity, differential]
         n_signals = sum(signals)
@@ -296,6 +313,7 @@ def detect_cluster_saturation(
             "signals": {
                 "rate_spike": {
                     "present": rate_spike,
+                    "path": "absolute" if absolute_spike else ("corroborated" if corroborated_spike else None),
                     "window_rate": round(w_rate, 4),
                     "baseline_rate": round(b_rate, 4),
                     "rate_multiplier_observed": round(w_rate / b_rate, 2) if b_rate > 0 else None,
@@ -338,6 +356,7 @@ def detect_cluster_saturation(
         "thresholds": {
             "min_window_fails": min_window_fails,
             "rate_multiplier": rate_multiplier,
+            "corroborated_rate_multiplier": corroborated_rate_multiplier,
             "min_distinct_classes": min_distinct_classes,
             "min_divergent_labs": min_divergent_labs,
         },

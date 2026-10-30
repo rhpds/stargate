@@ -181,6 +181,7 @@ def test_report_structure(sat_db):
     assert set(report["thresholds"]) == {
         "min_window_fails",
         "rate_multiplier",
+        "corroborated_rate_multiplier",
         "min_distinct_classes",
         "min_divergent_labs",
     }
@@ -252,3 +253,57 @@ def test_dashboard_saturation_endpoint(client):
     # Invalid ISO date is a 400, not a 500.
     bad = client.get("/dashboard/saturation", params={"window_start": "not-a-date"})
     assert bad.status_code == 400
+
+
+def test_chronic_degradation_corroboration(sat_db):
+    """Slowly-degrading cluster: elevated baseline compresses the observed
+    multiplier below 2x, but diversity + differential corroborate a moderate
+    (1.4x) elevation. This is the real ocpv08 pattern: documented as degraded
+    Sep 30 (Summit Retest row 11), saturated Oct 13 (RHDPOPS-24544) — the
+    7-day baseline includes the degradation, so the spike looks small."""
+    from tests.conftest import TestSession, test_engine
+    from db.database import Base
+
+    Base.metadata.create_all(bind=test_engine)
+    db = TestSession()
+    try:
+        win = NOW - timedelta(hours=3)
+        base = NOW - timedelta(days=4)
+
+        # ocpvCHRONIC: ~15% failure baseline (degraded for 2 weeks),
+        # window pushes to ~21% — only 1.4x, below the absolute 2x threshold.
+        for i in range(20):
+            _mk_eval(db, f"lab-chb-{i}", "ocpvCHRONIC", "pass", at=base, count=10)
+        for fc, n in [("vmi_not_running", 4), ("pods_not_ready", 4), ("showroom_not_ready", 4),
+                      ("datavolume_failed", 3), ("service_has_no_endpoints", 3)]:
+            _mk_eval(db, "lab-ch-broken1", "ocpvCHRONIC", "fail", fc, at=base, count=n)
+            _mk_eval(db, "lab-ch-broken2", "ocpvCHRONIC", "fail", fc, at=base, count=n)
+        # Window: same mix, higher rate — ~21% over sufficient traffic.
+        for i in range(18):
+            _mk_eval(db, f"lab-ch-{i}", "ocpvCHRONIC", "pass", at=win, count=5)
+        for fc, n in [("vmi_not_running", 3), ("pods_not_ready", 2), ("showroom_not_ready", 2),
+                      ("datavolume_failed", 2), ("service_has_no_endpoints", 1),
+                      ("route_missing", 1), ("namespace_missing", 1)]:
+            _mk_eval(db, "lab-ch-fail1", "ocpvCHRONIC", "fail", fc, at=win, count=n)
+            _mk_eval(db, "lab-ch-fail2", "ocpvCHRONIC", "fail", fc, at=win, count=n)
+        # The window-failing labs pass on the healthy cluster (differential).
+        _mk_eval(db, "lab-ch-fail1", "ocpvB", "pass", at=win, count=6)
+        _mk_eval(db, "lab-ch-fail2", "ocpvB", "pass", at=win, count=6)
+        db.commit()
+
+        report = detect_cluster_saturation(
+            db, window_start=NOW - timedelta(hours=6), window_end=NOW
+        )
+        c = _get(report, "ocpvCHRONIC")
+        rs = c["signals"]["rate_spike"]
+        assert rs["rate_multiplier_observed"] < 2.0, "precondition: below absolute threshold"
+        assert c["signals"]["symptom_diversity"]["present"]
+        assert c["signals"]["lab_differential"]["present"]
+        assert c["saturated"], (
+            "corroboration path must fire: moderate rate elevation + both "
+            f"correlation signals. signals={c['signals']}"
+        )
+        assert rs["path"] == "corroborated"
+    finally:
+        db.rollback()
+        db.close()
