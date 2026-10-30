@@ -260,3 +260,28 @@ def test_correlate_uses_episode_onset_fallback(ch_db, monkeypatch):
     out = correlate_changes_for_lab(ch_db, "lab-flap", now=NOW)
     assert out["onset"] is not None
     assert out["onset_mode"] == "continuous-episode"
+
+
+def test_jira_episode_onset_fallback(ch_db, monkeypatch):
+    """Jira correlation falls back to episode onset for flapping labs."""
+    # seed flapping lab: fails every 2h across the last 24h, passes interleaved
+    for h in range(12):
+        ch_db.execute(text(
+            "INSERT INTO evaluations (run_id, stage_id, outcome, evaluated_at, lab_code, cluster_name) "
+            "VALUES (:r, 'showroom-healthy', :o, :at, 'lab-flap', 'ocpvA')"
+        ), {"r": f"jf{h}", "o": "fail" if h % 2 == 0 else "pass",
+            "at": NOW - timedelta(hours=24 - h * 2)})
+    ch_db.commit()
+
+    def fake_search(jql, max_results=25):
+        return [{"key": "RHDPOPS-777", "summary": "flap lab degraded", "status": "Open",
+                 "issue_type": "Bug", "priority": "Major", "labels": [], "assignee": "",
+                 "created": "2026-10-19T09:00:00.000+0000", "updated": "2026-10-19T10:00:00.000+0000",
+                 "resolved": None, "url": "u"}]
+
+    monkeypatch.setattr("engine.jira_changes._search", fake_search)
+    monkeypatch.setattr("engine.jira_changes._search_terms", lambda lc, cn: ["lab-flap"])
+    out = correlate_issues_for_lab(ch_db, "lab-flap", now=NOW)
+    assert out["onset"] is not None, "episode fallback must define onset for flapping labs"
+    assert out["onset_mode"] == "continuous-episode"
+    assert out["issues"], "search must run once onset exists"

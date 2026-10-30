@@ -44,7 +44,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from engine.github_changes import failure_onset
+from engine.github_changes import failure_episode_onset, failure_onset
 
 logger = logging.getLogger("stargate.jira_changes")
 
@@ -170,14 +170,20 @@ def correlate_issues_for_lab(
     from db.models import LabMapping
 
     projects = projects or DEFAULT_PROJECTS
-    if onset is None:
-        onset = failure_onset(db, lab_code, now=now)
-    if onset is None:
-        return {"lab_code": lab_code, "onset": None, "issues": [],
-                "note": "no failure onset found in evaluation history"}
-
     mapping = db.query(LabMapping).filter(LabMapping.lab_code == lab_code).first()
     ci_name = mapping.ci_name if mapping else None
+    onset_mode = "explicit" if onset else None
+    if onset is None:
+        onset = failure_onset(db, lab_code, now=now)
+        onset_mode = "clean-break" if onset else None
+    if onset is None:
+        onset = failure_episode_onset(db, lab_code, now=now)
+        onset_mode = "continuous-episode" if onset else None
+    if onset is None:
+        return {"lab_code": lab_code, "ci_name": ci_name, "onset": None,
+                "search_terms": [], "issues": [],
+                "note": "no failure onset found in evaluation history"}
+
     terms = _search_terms(lab_code, ci_name)
 
     issues: List[Dict[str, Any]] = []
@@ -211,6 +217,7 @@ def correlate_issues_for_lab(
         "lab_code": lab_code,
         "ci_name": ci_name,
         "onset": onset.isoformat(),
+        "onset_mode": onset_mode,
         "lookback_hours": lookback_hours,
         "search_terms": terms,
         "projects": projects,
