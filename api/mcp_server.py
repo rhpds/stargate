@@ -364,3 +364,51 @@ def get_cluster_saturation(window_hours: int = 6) -> str:
         return "\n".join(lines)
     finally:
         db.close()
+
+
+@mcp.tool()
+def get_recent_changes(lab_code: Optional[str] = None, lookback_hours: int = 72) -> str:
+    """Changes that could explain current or recent failures: GitHub PRs
+    merged in the platform repos (agnosticv, agnosticd) and recently
+    updated Jira tickets (RHDPOPS, GPTEINFRA). With lab_code, correlates
+    against that lab's failure onset: PRs touching its AgnosticV files and
+    tickets mentioning it, with resolved-in-window (the fix) annotated.
+    RHDP has no formal change management — this IS the change record."""
+    from engine.github_changes import list_recent_changes, correlate_changes_for_lab
+    from engine.jira_changes import list_recent_incidents, correlate_issues_for_lab
+
+    if lab_code:
+        db = _db()
+        try:
+            prs = correlate_changes_for_lab(db, lab_code, lookback_hours=lookback_hours)
+            issues = correlate_issues_for_lab(db, lab_code, lookback_hours=max(lookback_hours * 2, 168))
+        finally:
+            db.close()
+        lines = [f"Change correlation for {lab_code} (onset: {prs.get('onset', 'unknown')}):"]
+        if prs.get("changes"):
+            lines.append(f"  GitHub PRs in window ({prs['prs_merged_in_window']} merged, {prs['lab_specific_changes']} lab-path match, {prs['fleet_wide_changes']} fleet-wide):")
+            for pr in prs["changes"][:10]:
+                lines.append(f"    [{pr['correlation']}] {pr['repo']}#{pr['number']} — {pr['title'][:70]} (merged {pr['merged_at'][:16]}, {pr['author']})")
+        else:
+            lines.append(f"  GitHub: {prs.get('note', 'no matches')}")
+        if issues.get("issues"):
+            lines.append(f"  Jira issues mentioning this lab ({len(issues['issues'])}):")
+            for i in issues["issues"][:10]:
+                align = "; ".join(i.get("alignment", [])) or "no temporal alignment"
+                lines.append(f"    {i['key']} [{i['status']}] {i['summary'][:60]} — {align}")
+        else:
+            lines.append(f"  Jira: {issues.get('note', 'no matches')}")
+        return "\n".join(lines)
+
+    prs = list_recent_changes(hours=lookback_hours)
+    incidents = list_recent_incidents(hours=max(lookback_hours, 168))
+    lines = [f"Recent changes (last {lookback_hours}h PRs, 7d tickets):"]
+    lines.append(f"  GitHub ({prs['count']} merged PRs):")
+    for pr in prs["merged_prs"][:15]:
+        lines.append(f"    {pr['repo']}#{pr['number']} — {pr['title'][:70]} (merged {pr['merged_at'][:16]}, {pr['author']})")
+    lines.append(f"  Jira ({incidents['count']} recently updated):")
+    for i in incidents["issues"][:15]:
+        lines.append(f"    {i['key']} [{i['status']}] {i['summary'][:65]}")
+    if not incidents.get("issues") and incidents.get("count", 0) == 0:
+        lines.append("    (Jira credentials not configured or search failed — set STARGATE_JIRA_EMAIL/STARGATE_JIRA_TOKEN)")
+    return "\n".join(lines)

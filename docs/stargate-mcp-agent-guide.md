@@ -45,7 +45,7 @@ For clients that need a command instead of a URL, wrap it with `mcp-remote`
 or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 (initialize → tools/list → tools/call).
 
-## The tools (11 total)
+## The tools (12 total)
 
 ### Query tools (read-only)
 
@@ -60,6 +60,7 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
 | **get_cluster_saturation** | Which clusters show the capacity-saturation signature (rate spike + diverse symptoms + labs failing here while passing elsewhere), with severity and remediation guidance |
+| **get_recent_changes** | GitHub PRs (merged + in review) and Jira tickets, optionally correlated to a lab's failure onset — RHDP has no formal change management, so this IS the change record |
 
 ### Review tools (opinions only — no execution)
 

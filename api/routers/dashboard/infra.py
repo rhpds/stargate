@@ -311,6 +311,48 @@ def _emit_saturation_events(report: Dict) -> None:
         ))
 
 
+# ---------------------------------------------------------------------------
+# Change correlation (GitHub PRs + Jira) — no formal change management exists,
+# so attribute failures to merged PRs and tracked tickets instead.
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/change-correlation")
+def dashboard_change_correlation(
+    lab_code: Optional[str] = None,
+    lookback_hours: int = 72,
+    hours: int = 168,
+    db: Session = Depends(get_db),
+):
+    """Correlate failures with changes — GitHub PRs and Jira issues.
+
+    With lab_code: finds the lab's failure onset, then returns PRs merged
+    before onset (path-matched to the lab's AgnosticV files, fleet-wide
+    changes flagged) and Jira issues mentioning the lab (created-near-onset
+    and resolved-in-window annotated).
+
+    Without lab_code: recent merged PRs and recently updated ops tickets —
+    the 'what changed recently?' view for open investigations.
+    """
+    result: Dict = {"generated_at": datetime.now(timezone.utc).isoformat()}
+
+    if lab_code:
+        from engine.github_changes import correlate_changes_for_lab as correlate_prs
+        from engine.jira_changes import correlate_issues_for_lab as correlate_jira
+
+        result["pull_requests"] = correlate_prs(db, lab_code, lookback_hours=lookback_hours)
+        # Jira lookback is longer: tickets lag detection, and resolution
+        # timestamps are the strongest fix signal.
+        result["jira_issues"] = correlate_jira(db, lab_code, lookback_hours=max(lookback_hours * 2, 168))
+        return result
+
+    from engine.github_changes import list_recent_changes
+    from engine.jira_changes import list_recent_incidents
+
+    result["pull_requests"] = list_recent_changes(hours=lookback_hours)
+    result["jira_issues"] = list_recent_incidents(hours=hours)
+    return result
+
+
 @router.get("/dashboard/saturation")
 def dashboard_saturation(
     window_hours: int = 6,
