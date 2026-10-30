@@ -186,3 +186,26 @@ classes:
       - "Check if the lab's Git repository is accessible"
       - "Verify the content URL in the AgnosticV catalog item"
       - "This is a content/packaging issue, not an infrastructure problem"
+
+  json_decode_error:
+    pattern: "(Expecting value: line 1 column 1|JSONDecodeError|json: cannot unmarshal|error decoding JSON)"
+    description: "External API returned a non-JSON body (usually a 5xx HTML error page) and the playbook called response.json() without checking the response type. Validated by the Oct 21-22 2026 incident: sso.redhat.com and api.openshift.com returned 5xx and the Assisted Installer integration crashed (Confluence 511804406; fix AI#8 / agd-v2#227)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Root cause is an external dependency returning 5xx — check sso.redhat.com and api.openshift.com status"
+      - "Do NOT re-provision immediately — the failure is external and will persist while the dependency is down"
+      - "Fix AI#8 / agd-v2#227 adds defensive response-type checking and retry — verify it is deployed"
+      - "If recurring, check whether the AI (Assisted Installer) service has a status page or health endpoint"
+
+  cluster_capacity_saturated:
+    pattern: "(cluster.*saturat|memory.*saturat|capacity.*exhaust.*cluster|no.*healthy.*cluster|cluster.*full)"
+    description: "Cluster-level resource saturation causing diverse provision failures — the correlation signature is many DIFFERENT symptom classes (vmi_not_running, datavolume_failed, pods_not_ready, showroom_not_ready) on the SAME cluster in the SAME window. Validated by the Oct 13-14 2026 incident: ocpv06 memory-saturated, ocpv08 sick nodes (RHDPOPS-24544; Confluence 501907733). Single-message matching is insufficient — see incident-validation-2026-10.md"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Check node memory and NotReady status on the affected cluster"
+      - "oc get nodes; oc describe node for the saturated cluster"
+      - "If confirmed: disable the cluster in the catalog, let the queue drain, re-enable with headroom"
+      - "Do NOT chase individual symptom failures — they share one cause"
+      - "This class requires correlation across evaluations, not single-message matching"
