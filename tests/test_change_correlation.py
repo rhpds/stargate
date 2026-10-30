@@ -222,3 +222,41 @@ def test_correlate_issues_no_onset(ch_db, monkeypatch):
     out = correlate_issues_for_lab(ch_db, "lab-never-failed")
     assert out["onset"] is None
     assert out["issues"] == []
+
+
+def test_failure_episode_onset_for_flapping_lab(ch_db):
+    """Flapping labs (fails + passes interleaved) get episode onset:
+    failures happening continuously since the episode start."""
+    from engine.github_changes import failure_episode_onset
+    # flapping: fails at 2h intervals across the last 24h, passes interleaved
+    for h in range(12):
+        at = NOW - timedelta(hours=24 - h * 2)
+        ch_db.execute(text(
+            "INSERT INTO evaluations (run_id, stage_id, outcome, evaluated_at, lab_code, cluster_name) "
+            "VALUES (:r, 'showroom-healthy', :o, :at, 'lab-flap', 'ocpvA')"
+        ), {"r": f"flap{h}", "o": "fail" if h % 2 == 0 else "pass", "at": at})
+    ch_db.commit()
+
+    clean = failure_onset(ch_db, "lab-flap", hours=48, now=NOW)
+    assert clean is None, "flapping lab has no clean-break onset"
+    episode = failure_episode_onset(ch_db, "lab-flap", hours=48, now=NOW)
+    assert episode is not None, "episode onset must be defined for flapping labs"
+    assert episode <= NOW - timedelta(hours=22), "episode covers the continuous failure run"
+
+
+def test_correlate_uses_episode_onset_fallback(ch_db, monkeypatch):
+    """Correlation falls back to episode onset for flapping labs."""
+    monkeypatch.setattr("engine.github_changes.fetch_merged_prs", lambda **kw: [])
+    monkeypatch.setattr("engine.github_changes.fetch_prs_in_review", lambda **kw: [])
+    monkeypatch.setattr("engine.github_changes._lab_path_candidates", lambda lc, ap: ["lab-flap"])
+    for h in range(8):
+        at = NOW - timedelta(hours=16 - h * 2)
+        ch_db.execute(text(
+            "INSERT INTO evaluations (run_id, stage_id, outcome, evaluated_at, lab_code, cluster_name) "
+            "VALUES (:r, 'showroom-healthy', :o, :at, 'lab-flap', 'ocpvA')"
+        ), {"r": f"fb{h}", "o": "fail" if h % 2 == 0 else "pass", "at": at})
+    ch_db.commit()
+
+    out = correlate_changes_for_lab(ch_db, "lab-flap", now=NOW)
+    assert out["onset"] is not None
+    assert out["onset_mode"] == "continuous-episode"

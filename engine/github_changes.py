@@ -269,12 +269,65 @@ def _pr_matches_lab(pr_files: List[str], candidates: List[str]) -> Tuple[bool, b
 
 
 def failure_onset(db, lab_code: str, hours: int = 168, now: Optional[datetime] = None) -> Optional[datetime]:
-    """First failure after the lab's last pass in the window.
+    """First failure after the lab's last pass in the window (clean break).
 
     The triage question is "when did this lab break?" — onset is the
     first fail evaluated after the most recent pass. If the lab has only
     failed in the window, onset is its first failure.
     """
+    rows = _lab_evaluations(db, lab_code, hours, now)
+    last_pass: Optional[datetime] = None
+    first_fail: Optional[datetime] = None
+    for at, outcome in rows:
+        if outcome == "pass":
+            last_pass = at
+            first_fail = None  # reset: failures must come after the last pass
+        elif outcome == "fail" and first_fail is None:
+            first_fail = at
+    return first_fail
+
+
+def failure_episode_onset(
+    db,
+    lab_code: str,
+    hours: int = 168,
+    now: Optional[datetime] = None,
+    bucket_hours: int = 6,
+) -> Optional[datetime]:
+    """Start of the current continuous-failure episode.
+
+    Flapping labs (intermittent failures with passes in between) never
+    produce a clean-break onset, yet they are exactly what change
+    correlation is for. Episode onset: walk 6h buckets backward from now;
+    the episode started when buckets stop containing failures.
+
+    Returns None if the lab has no failures at all in the window.
+    """
+    now = now or datetime.now(timezone.utc)
+    rows = _lab_evaluations(db, lab_code, hours, now)
+    fails = [at for at, outcome in rows if outcome == "fail"]
+    if not fails:
+        return None
+
+    newest_fail = max(fails)
+    # Bucket from the newest failure backward; contiguous non-empty buckets
+    # extend the episode. Onset = start of the oldest bucket in the chain.
+    episode_start = newest_fail
+    cursor = newest_fail
+    while True:
+        bucket_start = cursor - timedelta(hours=bucket_hours)
+        bucket_fails = [f for f in fails if bucket_start <= f < cursor]
+        if not bucket_fails:
+            break
+        episode_start = min(episode_start, bucket_fails[0])
+        if bucket_start <= now - timedelta(hours=hours):
+            break  # reached the window edge
+        cursor = bucket_start
+    return episode_start
+
+
+def _lab_evaluations(db, lab_code: str, hours: int, now: Optional[datetime]) -> List[Tuple[datetime, str]]:
+    """(evaluated_at, outcome) for a lab in the window, oldest first."""
     from db.models import EvaluationRecord
 
     now = now or datetime.now(timezone.utc)
@@ -288,16 +341,11 @@ def failure_onset(db, lab_code: str, hours: int = 168, now: Optional[datetime] =
         .order_by(EvaluationRecord.evaluated_at.asc())
         .all()
     )
-    last_pass: Optional[datetime] = None
-    first_fail: Optional[datetime] = None
+    out = []
     for r in rows:
         at = r.evaluated_at if r.evaluated_at.tzinfo else r.evaluated_at.replace(tzinfo=timezone.utc)
-        if r.outcome == "pass" and at >= since:
-            last_pass = at
-            first_fail = None  # reset: failures must come after the last pass
-        elif r.outcome == "fail" and first_fail is None:
-            first_fail = at
-    return first_fail
+        out.append((at, r.outcome))
+    return out
 
 
 def correlate_changes_for_lab(
@@ -321,6 +369,10 @@ def correlate_changes_for_lab(
 
     if onset is None:
         onset = failure_onset(db, lab_code, now=now)
+        onset_mode = "clean-break" if onset else None
+    if onset is None:
+        onset = failure_episode_onset(db, lab_code, now=now)
+        onset_mode = "continuous-episode" if onset else None
     if onset is None:
         return {
             "lab_code": lab_code,
@@ -380,6 +432,7 @@ def correlate_changes_for_lab(
         "lab_code": lab_code,
         "agnosticv_path": agnosticv_path,
         "onset": onset.isoformat(),
+        "onset_mode": onset_mode,
         "lookback_hours": lookback_hours,
         "prs_merged_in_window": len(prs),
         "changes": lab_changes + fleet_changes,
