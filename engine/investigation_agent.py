@@ -266,6 +266,35 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_cluster_saturation",
+            "description": "Cluster capacity saturation correlation: failure-rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere. Diverse unrelated failures on ONE cluster usually mean saturation, not multiple bugs — 'chasing five different symptom tickets when the fix is the cluster was full' (validated against the Oct 13-14 2026 ocpv08 incident, RHDPOPS-24544). Check this when failures span multiple labs or unrelated components on the same cluster.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "window_hours": {"type": "integer", "description": "Analysis window in hours (default 6, max 48)"},
+                    "cluster": {"type": "string", "description": "Optional: focus on one cluster; omit for fleet-wide report"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_knowledge",
+            "description": "Search the documented operational knowledge base: 111-class failure taxonomy (with remediation guidance), RHDP Confluence RCA record (post-mortems, troubleshooting guides, incident write-ups), and the incident-window validation study. Use this when an error message or symptom matches a possibly-known root cause — documented examples include OVN MTU mismatch, operator channel drift, OLM snapshot staleness, account bloat, SSO 5xx crashes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Error text, symptom, or failure class to look up"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -740,6 +769,10 @@ def _dispatch_tool(name: str, args: Dict, cluster: str, kubeconfig_dir: str) -> 
         return tool_query_lifecycle_outcomes(args.get("namespace", ""), args.get("days", 14))
     elif name == "query_recent_changes":
         return tool_query_recent_changes(args.get("lab_code", ""), args.get("lookback_hours", 72))
+    elif name == "query_cluster_saturation":
+        return tool_query_cluster_saturation(args.get("cluster", "") or cluster, args.get("window_hours", 6))
+    elif name == "search_knowledge":
+        return tool_search_knowledge(args.get("query", ""))
     elif name == "list_reclamation_artifacts":
         return tool_list_reclamation_artifacts(args.get("namespace", ""), cluster, kubeconfig_dir)
     else:
@@ -762,6 +795,12 @@ Investigation strategy:
 7. Before concluding a failure is novel, call query_recent_changes with the lab code —
    a merged AgnosticV PR or resolved RHDPOPS/GPTEINFRA ticket in the 72h before onset
    is often the root cause (RHDP has no formal change management; this IS the change record)
+8. If failures span multiple labs or unrelated components on ONE cluster, call
+   query_cluster_saturation — diverse symptoms on one cluster usually mean capacity
+   saturation, not multiple bugs
+9. Before writing the diagnosis, call search_knowledge with the key error text —
+   the team's documented RCA record (Confluence post-mortems, incident validation,
+   taxonomy remediation guidance) may already name this root cause
 
 Failure-class playbooks (follow EVERY step — do not stop early):
 - pods_crashlooping: Check which container is failing (init or main), get its logs, find the GIT_REPO_URL env var — that's where the fix goes
@@ -1222,3 +1261,74 @@ def tool_query_recent_changes(lab_code: str = "", lookback_hours: int = 72) -> s
         return "\n".join(lines)
     except Exception as e:  # noqa: BLE001 — tool must never crash the agent loop
         return f"change query failed: {e}"
+
+
+def tool_query_cluster_saturation(cluster: str = "", window_hours: int = 6) -> str:
+    """Saturation correlation for one cluster or the whole fleet."""
+    try:
+        from engine.cluster_saturation import detect_cluster_saturation
+        from db.database import get_session_factory
+        factory = get_session_factory()
+        db = factory()
+        try:
+            report = detect_cluster_saturation(db, window_hours=min(max(int(window_hours or 6), 1), 48))
+        finally:
+            db.close()
+
+        lines = [f"Cluster saturation report (last {report['window']['hours']}h vs "
+                 f"{report['baseline_days']}d baseline, {report['clusters_analyzed']} clusters):"]
+        if not report["saturated_clusters"]:
+            lines.append("  No clusters show the saturation signature.")
+        for c in report["saturated_clusters"]:
+            entry = next(x for x in report["clusters"] if x["cluster"] == c)
+            rs, sd, ld = entry["signals"]["rate_spike"], entry["signals"]["symptom_diversity"], entry["signals"]["lab_differential"]
+            lines.append(f"  {c}: {entry['severity']} (confidence {entry['confidence']})")
+            lines.append(f"    failure rate {rs['window_rate']:.1%} vs {rs['baseline_rate']:.1%} baseline "
+                         f"({rs['rate_multiplier_observed']}x via {rs['path']})")
+            lines.append(f"    {sd['distinct_failure_classes']} distinct failure classes; "
+                         + ", ".join(f"{t['class']} ({t['count']})" for t in sd["top_classes"][:4]))
+            lines.append(f"    {ld['divergent_lab_count']} labs failing here while passing elsewhere")
+            lines.append(f"    {entry.get('interpretation', '')[:220]}")
+        lines.append("  If saturated: check node memory/NotReady, disable the cluster in the catalog, "
+                     "let the queue drain. Do NOT chase individual symptom failures.")
+        if cluster:
+            focused = [c for c in report["clusters"] if c["cluster"] == cluster]
+            if focused:
+                c = focused[0]
+                rs = c["signals"]["rate_spike"]
+                lines.append(f"  Focused — {cluster}: severity={c['severity']} saturated={c['saturated']} "
+                             f"rate={rs['window_rate']:.1%} vs {rs['baseline_rate']:.1%} baseline, "
+                             f"diversity={c['signals']['symptom_diversity']['distinct_failure_classes']} classes, "
+                             f"differential={c['signals']['lab_differential']['divergent_lab_count']} labs")
+        return "\n".join(lines)
+    except Exception as e:  # noqa: BLE001
+        return f"saturation query failed: {e}"
+
+
+_knowledge_cache: list = []
+
+
+def tool_search_knowledge(query: str) -> str:
+    """Retrieve documented root causes and guidance from the knowledge corpus."""
+    try:
+        from engine.stargate_qa import _knowledge_corpus, _retrieve
+
+        global _knowledge_cache
+        if not _knowledge_cache:
+            _knowledge_cache = _knowledge_corpus()
+
+        hits = _retrieve(query, _knowledge_cache, k=4)
+        if not hits:
+            return f"No documented knowledge matches '{query[:80]}'."
+        lines = [f"Knowledge base results for '{query[:60]}':"]
+        for h in hits:
+            source = h.get("source", "?")
+            text = (h.get("text") or "").strip()
+            lines.append(f"  [{source[:70]}]")
+            lines.append(f"    {text[:450]}")
+        lines.append("  Sources prefixed 'taxonomy:' are failure classes with remediation guidance; "
+                     "'confluence/' are the team's documented RCA; 'incident-validation' is the "
+                     "retrospective validation study.")
+        return "\n".join(lines)
+    except Exception as e:  # noqa: BLE001
+        return f"knowledge search failed: {e}"
