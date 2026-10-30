@@ -17,8 +17,16 @@ class TestRequireAdmin:
 
     def test_accepts_valid_api_key(self):
         from api.routers._shared import require_admin
-        with patch("api.routers._shared.ADMIN_API_KEY", "test-key"):
+        with patch("api.routers._shared.ADMIN_API_KEY", "test-key"), \
+             patch("api.routers._shared._ALL_VALID_KEYS", ["test-key"]):
             require_admin(request=None, api_key="test-key")
+
+    def test_accepts_additional_api_key(self):
+        """Per-user keys from STARGATE_ADDITIONAL_API_KEYS also work."""
+        from api.routers._shared import require_admin
+        with patch("api.routers._shared.ADMIN_API_KEY", "admin-key"), \
+             patch("api.routers._shared._ALL_VALID_KEYS", ["admin-key", "billy-key"]):
+            require_admin(request=None, api_key="billy-key")
 
     def test_accepts_oauth_user_header(self):
         from api.routers._shared import require_admin
