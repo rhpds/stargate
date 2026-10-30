@@ -40,6 +40,15 @@ _DOC_FILES = (
     "integration-findings.md",
     "proof-lab-ecosystem.md",
     "post-summit-babylon-integration.md",
+    # Confluence-sourced operational knowledge (validated, read-only)
+    "confluence/demo-platform-provision-failure-classification.md",
+    "confluence/troubleshooting-destroy-with-babylon.md",
+    "confluence/troubleshooting-provision-with-babylon.md",
+    "confluence/anarchy-troubleshooting-general-guide.md",
+    "confluence/troubleshooting-anarchy.md",
+    "confluence/incident-management.md",
+    "confluence/replik8s-snapshot-age-issue.md",
+    "confluence/dbpool2-server-space-issue.md",
 )
 
 _STOPWORDS = {

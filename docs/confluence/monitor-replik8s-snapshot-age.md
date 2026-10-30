@@ -1,0 +1,5 @@
+# Monitor: replik8s-snapshot-age
+# Confluence ID: 286753723
+# URL: https://redhat.atlassian.net/wiki/spaces/RHPDS/pages/286753723
+
+Description This monitor checks that the replik8s last snapshot age on the 2 production primary babylon servers less than 2 and 4 hours old. This monitor will provide the following information to the script, and compares the UTC date times between now and when the last backup was taken (requires parsing a YAML string out of the OCP ConfigMap "babylon". See the below code for details $ oc get configmap -n babylon-cross-cluster-backup babylon -o jsonpath={.data.status} | yq eval .recoveryPoints[-1] - 2023-01-08T09:35:39.273804Z Once this is determined, it uses a configurable option --critical or --warning (in seconds) to provide enough information to check if the critical and warning values are exceeded. We use 4 hours and 2 hours (14400s and 7200s, respectively) to provide Icinga detail for the check. Detailed troubleshooting procedure on confluence link below https://docs.engineering.redhat.com/display/RHPDS/Replik8s+Snapshot+Age+Issue
