@@ -262,7 +262,9 @@ def _extract_structured_fields(analysis: str) -> dict:
     if not analysis:
         return {"root_cause": None, "remediation_suggestion": None, "verdict": None, "confidence": None}
 
-    heading = r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\d+\.\s*)?(?:\*\*)?%s(?:\*\*)?\s*:?[ \t]*\n?"
+    # Allow emoji and other unicode decoration between the section number
+    # and the heading text (the Sonnet agent produces "### 2. 🔍 Root Cause").
+    heading = r"(?:^|\n)\s*(?:#{1,6}\s*)?(?:\d+\.\s*)?(?:[^\w\n]{0,4}\s*)?(?:\*\*)?%s(?:\*\*)?\s*:?[ \t]*\n?"
     next_heading = r"(?=\n\s*(?:#{1,6}\s*|(?:\d+\.\s*)?\*\*)|\Z)"
 
     def section(name: str, limit=None):
@@ -271,7 +273,14 @@ def _extract_structured_fields(analysis: str) -> dict:
         return value[:limit] if value and limit else value
 
     root_cause = section(r"Root Cause", 500)
-    remediation = section(r"(?:Recommended |Shadow )?Remediation(?: Strategy)?")
+    remediation = section(r"(?:Recommended |Shadow )?Remediation(?: Strategy)?", 2000)
+    # Trim trailing verdict/confidence that bleed into the remediation section
+    if remediation:
+        import re as _re
+        remediation = _re.split(
+            r'\n\s*(?:Verdict|Confidence|Owner|Shadow Remediation)\s*[:\n]',
+            remediation, flags=_re.IGNORECASE
+        )[0].strip()
     verdict = None
 
     v_match = re.search(r'(?:verdict|Verdict)[:\s*]*\*?\*?(TRANSIENT|ACTIONABLE|UNKNOWN)\*?\*?', analysis, re.IGNORECASE)
