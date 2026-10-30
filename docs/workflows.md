@@ -16,7 +16,7 @@ For agent/MCP access, see [mcp-agent-guide.md](mcp-agent-guide.md).
 │  ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌──────────┐    │
 │  │ SCANNER  │───▶│ RUBRIC   │───▶│ CLASSIFIER   │───▶│ SONNET   │    │
 │  │ (5m/15m/ │    │ EVALUATE │    │ (LLM + regex │    │ AGENT    │    │
-│  │  1h)     │    │          │    │  + taxonomy) │    │ (8 tools)│    │
+│  │  1h)     │    │          │    │  + taxonomy) │    │ (10 tools)│    │
 │  └────┬─────┘    └────┬─────┘    └──────┬───────┘    └────┬─────┘    │
 │       │               │                 │                  │          │
 │       ▼               ▼                 ▼                  ▼          │
@@ -310,17 +310,23 @@ GET /dashboard/causal-chain?investigation_id=N
 │ Any Agent  │────▶│ StarGate MCP     │────▶│ Platform    │
 │ (Cursor,   │     │ Server           │     │ Data        │
 │ Claude,    │     │                  │     │             │
-│ custom)    │     │ 8 read-only      │     │ - episodes  │
-│            │     │ tools + ask      │     │ - evals     │
-└────────────┘     │                  │     │ - chains    │
-                   │ Auth: API key    │     │ - taxonomy  │
-                   │ Rate: 60/min     │     │ - proofs    │
-                   │ Audit: logged    │     │ - artifacts │
+│ custom)    │     │ 8 query tools    │     │ - episodes  │
+│            │     │ + ask (RAG)      │     │ - evals     │
+│            │     │ + review_diagnosis│    │ - chains    │
+│            │     │ + comment_action │     │ - taxonomy  │
+└────────────┘     │                  │     │ - proofs    │
+                   │ Auth: API key    │     │ - artifacts │
+                   │ Rate: 60/min     │     │ - knowledge │
+                   │ Audit: logged    │     │   base      │
                    └──────────────────┘     └─────────────┘
 ```
 
-See [mcp-agent-guide.md](mcp-agent-guide.md) for connection configs and
-example questions.
+**10 tools total**: 8 read-only query tools, `ask` (natural-language RAG),
+and 2 review tools (diagnosis review + action comments). Review tools
+record opinions only — no execution, no cluster access, no remediation.
+
+See [stargate-mcp-agent-guide.md](stargate-mcp-agent-guide.md) for
+connection configs and example questions.
 
 ---
 

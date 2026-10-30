@@ -13,7 +13,7 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures; all 4 AAP controllers (prod + event) are collected
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — `GET /dashboard/causal-chain`: symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
-- **MCP Server** — 8 read-only tools + natural-language `ask` (RAG over 256+ documents) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 10 tools (8 query + 2 review) + natural-language `ask` (RAG over 256+ documents) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **GeoLux Governance** — Pre-approval constraint checks (safe/unsafe/unknown) on investigation-sourced remediation actions; GeoLux advises, the human decides, the gated executor acts
 - **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging; no auto-remediation on provisioning clusters (verified via live RBAC probes)
 - **Provisioning Intelligence** — Aggregates data from Babylon (AnarchySubjects, ResourcePools), Labagator (session schedule), AAP (provisioning jobs from all 4 controllers), Demolition (smoke tests), and AgnosticV (deployment constraints)
@@ -35,7 +35,7 @@ Frontend (React 19 + Vite + Tailwind 4)
     +-- Policy Engine (deterministic recommendations)
     +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
-    +-- MCP Server (8 read-only tools + natural-language ask, at /mcp)
+    +-- MCP Server (10 tools (8 query + 2 review) + natural-language ask, at /mcp)
     +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15
@@ -188,7 +188,7 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes (succeeded / failed / stalled / controller_lag / collection_unavailable / indeterminate)
 - **reclamation-outcome/v1** — reclamation outcomes (reclaimed / destroy_failed / destroy_stalled / resource_leak / indeterminate) with artifact enumeration
 - **Causal chains** — `GET /dashboard/causal-chain` assembles the full evidence chain per investigation with `missing_legs` honesty
-- **MCP server** — 8 read-only tools + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP server** — 10 tools (8 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **GeoLux governance** — pre-approval constraint checks on remediation actions
 - **Platform workflows** — step-through event flow diagrams in [docs/workflows.md](docs/workflows.md)
 - **Proof lab** — 19/20 failure classes proven (13 remediation-proof, 6 detection-proof); gates decay on failure
