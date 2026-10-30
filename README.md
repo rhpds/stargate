@@ -10,9 +10,13 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 - **Rubric Evaluation** — Evaluates each lab namespace against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, etc.)
 - **AI Classification** — Unclassified failures are sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for automated failure class proposals
 - **Durable Investigations** — Idempotent source events are claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
-- **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures
-- **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging
-- **Provisioning Intelligence** — Aggregates data from Babylon (AnarchySubjects, ResourcePools), Labagator (session schedule), AAP (provisioning jobs), Demolition (smoke tests), and AgnosticV (deployment constraints)
+- **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures; all 4 AAP controllers (prod + event) are collected
+- **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
+- **Causal Chains** — `GET /dashboard/causal-chain`: symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
+- **MCP Server** — 8 read-only tools + natural-language `ask` (RAG over 256+ documents) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **GeoLux Governance** — Pre-approval constraint checks (safe/unsafe/unknown) on investigation-sourced remediation actions; GeoLux advises, the human decides, the gated executor acts
+- **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging; no auto-remediation on provisioning clusters (verified via live RBAC probes)
+- **Provisioning Intelligence** — Aggregates data from Babylon (AnarchySubjects, ResourcePools), Labagator (session schedule), AAP (provisioning jobs from all 4 controllers), Demolition (smoke tests), and AgnosticV (deployment constraints)
 - **Capacity Forecasting** — Projects resource demand based on upcoming session schedules
 
 ## Architecture
@@ -22,13 +26,17 @@ Frontend (React 19 + Vite + Tailwind 4)
     |
     OAuth Proxy (Red Hat SSO)
     |
-    FastAPI (Python 3.9)
+    FastAPI (Python 3.11)
     |
     +-- Scanner Workers (per-cluster, tiered schedule)
     +-- Babylon Worker (control plane collector)
-    +-- LLM Integration (Granite via LiteLLM)
+    +-- AAP Collector (4 controllers: prod0, prod1, event0, event1)
+    +-- LLM Integration (llama-scout for classify, qwen3-14b for ask, Sonnet for investigations)
     +-- Policy Engine (deterministic recommendations)
+    +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
+    +-- MCP Server (8 read-only tools + natural-language ask, at /mcp)
+    +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15
 ```
@@ -37,7 +45,7 @@ Frontend (React 19 + Vite + Tailwind 4)
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.11+
 - Node.js 22+
 - PostgreSQL 15
 - `oc` CLI (for cluster scanning)
@@ -177,11 +185,32 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 
 ### Outcome Contracts (Shipped)
 
-- **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes
-- **reclamation-outcome/v1** — reclamation outcomes with artifact enumeration
-- **Causal chains** — GET /dashboard/causal-chain assembles the full evidence chain per investigation
-- **MCP server** — 8 read-only tools + natural-language ask (RAG) at /mcp for any agent
-- **Platform workflows** — step-through event flow diagrams in docs/workflows.md
+- **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes (succeeded / failed / stalled / controller_lag / collection_unavailable / indeterminate)
+- **reclamation-outcome/v1** — reclamation outcomes (reclaimed / destroy_failed / destroy_stalled / resource_leak / indeterminate) with artifact enumeration
+- **Causal chains** — `GET /dashboard/causal-chain` assembles the full evidence chain per investigation with `missing_legs` honesty
+- **MCP server** — 8 read-only tools + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **GeoLux governance** — pre-approval constraint checks on remediation actions
+- **Platform workflows** — step-through event flow diagrams in [docs/workflows.md](docs/workflows.md)
+- **Proof lab** — 19/20 failure classes proven (13 remediation-proof, 6 detection-proof); gates decay on failure
+
+## MCP Access
+
+Anyone with an MCP-compatible agent (Claude, Cursor, etc.) can query the
+platform in plain English:
+
+```json
+{
+  "mcpServers": {
+    "stargate": {
+      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
+      "headers": { "X-API-Key": "YOUR-KEY" }
+    }
+  }
+}
+```
+
+See [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md) for
+the full guide.
 
 ## Roadmap
 
