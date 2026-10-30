@@ -89,6 +89,27 @@ def _knowledge_corpus() -> List[Dict]:
     from pathlib import Path
 
     docs: List[Dict] = []
+
+    # Always-present platform overview (matched by "stargate", "platform",
+    # "what is", "overview" — the most common demo questions)
+    docs.append({
+        "source": "doc:platform-overview",
+        "text": (
+            "StarGate is a lifecycle intelligence platform for the Red Hat Demo "
+            "Platform (RHDP). It monitors lab environments across multiple OpenShift "
+            "clusters, classifies failures using a qualified LLM and deterministic "
+            "taxonomy, investigates anomalies with an AI agent (Sonnet with tool "
+            "calls), and proves when remediation worked via verification evals. "
+            "Key capabilities: provisioning outcome contracts (provisioning-outcome/v1), "
+            "reclamation outcome contracts (reclamation-outcome/v1), causal chains "
+            "(symptom to evidence to diagnosis to remedy to proof), a proof lab "
+            "validating 19 of 20 failure classes on synthetic ground truth, and an "
+            "MCP server for natural-language access from any AI tool. The platform "
+            "collects from 4 AAP controllers (prod0, prod1, event0, event1), scans "
+            "8 clusters, and processes millions of evaluations."
+        ),
+    })
+
     try:
         from engine.failure_class_loader import get_all_classes
         for cls in get_all_classes():
