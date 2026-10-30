@@ -6,7 +6,7 @@ surfaces through the Model Context Protocol (MCP) — any MCP-compatible agent
 chains, the failure taxonomy, and the proof lab, or just ask questions in
 plain English.
 
-- **Endpoint:** `https://YOUR-STARGATE-API-ROUTE/mcp`
+- **Endpoint:** `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp`
 - **Protocol:** MCP Streamable HTTP (stateless, JSON responses)
 - **Auth:** platform API key (`X-API-Key` header) — request one from the
   StarGate owners; never commit it to a repo or paste it in shared channels
@@ -23,7 +23,7 @@ Most MCP clients accept a server config like:
 {
   "mcpServers": {
     "stargate": {
-      "url": "https://YOUR-STARGATE-API-ROUTE/mcp",
+      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
       "headers": {
         "X-API-Key": "YOUR-STARGATE-API-KEY"
       }
@@ -32,11 +32,19 @@ Most MCP clients accept a server config like:
 }
 ```
 
+For Claude Code:
+```bash
+claude mcp add stargate \
+  --transport http \
+  --url https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
+  --header "X-API-Key: YOUR-STARGATE-API-KEY"
+```
+
 For clients that need a command instead of a URL, wrap it with `mcp-remote`
 or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 (initialize → tools/list → tools/call).
 
-## The tools
+## The tools (8 total)
 
 | Tool | What it answers |
 |---|---|
@@ -49,6 +57,19 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
 
+## Performance
+
+The `ask` tool has three response tiers:
+
+| Question type | Response time |
+|---------------|--------------|
+| Simple taxonomy lookup ("what is X?") | **Instant** (no LLM — the retrieved entry is the answer) |
+| Complex questions (first ask) | **~2 seconds** (qwen3-14b synthesis with cited sources) |
+| Any question asked twice | **Instant** (5-minute cache) |
+
+The synthesis model is configurable via `STARGATE_ASK_MODEL`
+(default: `qwen3-14b`).
+
 ## Example questions (via `ask` or your agent's tool use)
 
 - "Did sandbox-abc123 get reclaimed, and did anything leak?"
@@ -56,6 +77,7 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 - "Show me the causal chain for the last investigation of sandbox-xyz"
 - "Which failure classes are proven in the proof lab, and which are only detection-proven?"
 - "What provisioning failures happened in the last day?"
+- "What is the StarGate platform?"
 
 ## Answer semantics (what the platform guarantees)
 
@@ -91,10 +113,12 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 ## Limitations (honest)
 
 - `ask` synthesis uses the platform's production LLM (metered under
-  `mcp-ask`); if the LLM is unreachable, you still get the retrieved
-  context without synthesis.
-- The knowledge corpus is the taxonomy plus key docs — it does not include
-  every historical investigation; ask `get_causal_chain` for those.
+  `mcp-ask`, model: qwen3-14b); if the LLM is unreachable, you still get
+  the retrieved context without synthesis.
+- The knowledge corpus covers the taxonomy (91 classes), 9 doc files
+  (workflows, architecture, runbook, etc. — 165+ sections), and a
+  platform overview — it does not include every historical investigation;
+  ask `get_causal_chain` for those.
 - Rate limits are per-key and shared across your agent's sessions.
 - MCP sessions are stateless: every call is independent; there is no
   conversation memory server-side (your agent holds the conversation).
@@ -105,3 +129,13 @@ Ask the StarGate owners for a platform API key. Keys are rotated by
 re-deploying the `stargate-secrets` Secret; if you suspect a key has
 leaked, report it immediately — the rate limit bounds scraping but does
 not prevent data reads with a valid key.
+
+## Troubleshooting
+
+| Problem | Likely cause | Fix |
+|---------|-------------|-----|
+| 401 Unauthorized | Missing or wrong API key | Check the `X-API-Key` header |
+| 405 Method Not Allowed | Wrong path (no trailing slash) | Use `/mcp/` not `/mcp` |
+| 429 Too Many Requests | Rate limit (60/min) | Wait 60 seconds |
+| Empty answer from `ask` | Question didn't match any context | Try naming a workload, failure class, or asking about provisioning/reclamation/proofs |
+| Slow first answer | LLM synthesis in progress | Normal — ~2 seconds; cached on repeat |
