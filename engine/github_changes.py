@@ -316,22 +316,30 @@ def correlate_changes_for_lab(
     """
     from db.models import LabMapping
 
+    mapping = db.query(LabMapping).filter(LabMapping.lab_code == lab_code).first()
+    agnosticv_path = mapping.agnosticv_path if mapping else None
+
     if onset is None:
         onset = failure_onset(db, lab_code, now=now)
     if onset is None:
         return {
             "lab_code": lab_code,
+            "agnosticv_path": agnosticv_path,
             "onset": None,
+            "lookback_hours": lookback_hours,
+            "prs_merged_in_window": 0,
             "changes": [],
             "in_flight": [],
-            "note": "no failure onset found in evaluation history",
+            "lab_specific_changes": 0,
+            "fleet_wide_changes": 0,
+            "repos_scanned": repos or DEFAULT_REPOS,
+            "note": "no failure onset found in evaluation history (window: "
+                    "first failure after last pass, last 168h)",
         }
 
     since = onset - timedelta(hours=lookback_hours)
     prs = fetch_merged_prs(repos=repos, since=since, until=onset, token=token)
 
-    mapping = db.query(LabMapping).filter(LabMapping.lab_code == lab_code).first()
-    agnosticv_path = mapping.agnosticv_path if mapping else None
     candidates = _lab_path_candidates(lab_code, agnosticv_path)
 
     lab_changes: List[Dict[str, Any]] = []
