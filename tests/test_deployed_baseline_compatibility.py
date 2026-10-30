@@ -30,4 +30,4 @@ def test_review_ledger_and_bounded_query_helpers_are_available():
 def test_no_model_protocol_upgrade_is_smuggled_into_baseline_release():
     from engine.adjudication import PROTOCOL_VERSION
 
-    assert PROTOCOL_VERSION == "adjudication-v2.2"
+    assert PROTOCOL_VERSION == "adjudication-v2.5"
