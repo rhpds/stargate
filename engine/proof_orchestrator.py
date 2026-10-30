@@ -283,6 +283,30 @@ def run_proof_cycle(
     except Exception as e:
         logger.warning("Pipeline rubric GeoLux evaluation failed: %s", e)
 
+    # 3c. Record the recommend stage from the StarGate catalog mapping, and
+    # carry the GeoLux classification into the HITL action as advisory
+    # context — the recommendation no longer evaporates.
+    catalog_recommendations = []
+    try:
+        from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
+        catalog_recommendations = sorted(
+            action for action, fcs in ACTION_TO_FAILURE_CLASSES.items()
+            if failure_class in [fc.lower() for fc in fcs]
+        )
+        pipeline.record_stage(failure_class, "recommend", "stargate-catalog", {
+            "tdd": "green" if catalog_recommendations else "yellow",
+            "edd": "green" if catalog_recommendations else "yellow",
+            "cdd": "green",
+            "bdd": "green",
+        }, evidence={
+            "tdd": [f"Catalog actions: {catalog_recommendations or 'none'}"],
+            "edd": [f"Actionable: {bool(catalog_recommendations)}"],
+            "cdd": [f"Failure class: {failure_class}"],
+            "bdd": [f"Sources: stargate catalog + geolux classification"],
+        })
+    except Exception as e:
+        logger.warning("Pipeline rubric recommend evaluation failed: %s", e)
+
     # 4. HITL gate — create pending action and stop
     if mode == "manual" and db:
         from db.models import PendingAction
@@ -293,6 +317,8 @@ def run_proof_cycle(
                 "source": "proof_orchestrator",
                 "failure_class": failure_class,
                 "detected_class": detected_class,
+                "geolux_classification": geolux_result.get("hypothesis") or {},
+                "catalog_recommendations": catalog_recommendations,
             },
             confidence=0.95,
             proposed_by="proof_system",
@@ -462,6 +488,15 @@ def continue_proof_cycle(
             result["success"] = True
             result["proof_mode"] = "investigation"
         else:
+            # Record the failure so consecutive_passes resets and the gate
+            # decays — without this, a proven class could fail forever while
+            # its gate stayed full_auto (observed: image_pull_backoff with 4
+            # FAIL cycles and gate=full_auto, passes=4).
+            tracker.record_verification(failure_class, False, {
+                "verify_clean": False,
+                "detection_correct": detection_correct,
+                "note": "cycle failed: detection incorrect or timed out and namespace not clean after remediation",
+            })
             result["success"] = False
             result["proof_mode"] = "failed"
 

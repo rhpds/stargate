@@ -21,7 +21,7 @@
         ],
         "generation": 1,
         "name": "control",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1329851157",
         "uid": "1bf10219-6105-4d2a-8384-35a69ed0ef80"
       },
@@ -215,7 +215,7 @@
         ],
         "generation": 1,
         "name": "dbserver",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1331500363",
         "uid": "80923046-8a4e-41ed-b9c3-343195219933"
       },
@@ -409,7 +409,7 @@
         ],
         "generation": 1,
         "name": "haproxy",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1329855653",
         "uid": "3596671e-ceb3-46d1-99be-decb474d2083"
       },
@@ -609,7 +609,7 @@
         ],
         "generation": 1,
         "name": "node01",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1329853632",
         "uid": "4d6b6cb7-c3f6-4aad-8d34-6f5735d99a33"
       },
@@ -809,7 +809,7 @@
         ],
         "generation": 1,
         "name": "windows",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1331459008",
         "uid": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
       },

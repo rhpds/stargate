@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from db.database import get_db
+from engine.llm_json import parse_llm_json
 from api.routers._shared import (
     _load_latest_scan,
     _load_latest_babylon,
@@ -99,8 +100,9 @@ def dashboard_recommendation_reasoning(request: Request, db: Session = Depends(g
             prompt_version=prompt.get("version"),
         )
         if llm_result.get("success"):
-            analysis = json.loads(llm_result["content"])
-            return {**analysis, "llm_used": True, "recommendation_count": len(recs)}
+            analysis = parse_llm_json(llm_result["content"])
+            if analysis is not None:
+                return {**analysis, "llm_used": True, "recommendation_count": len(recs)}
     except Exception:
         pass
 
@@ -341,7 +343,7 @@ def dashboard_capacity_analysis(request: Request, db: Session = Depends(get_db),
     return {
         "pool_velocities": pool_velocities,
         "workload_complexities": {k: {"score": v["score"], "estimated_minutes": v["estimated_provision_minutes"]} for k, v in complexities.items()},
-        "llm_analysis": json.loads(llm_result["content"]) if llm_result and llm_result.get("success") else None,
+        "llm_analysis": parse_llm_json(llm_result["content"]) if llm_result and llm_result.get("success") else None,
         "llm_error": llm_result.get("error") if llm_result and not llm_result.get("success") else None,
         "evidence_summary": f"{len(pool_velocities)} pools tracked, {len(complexities)} labs scored",
     }

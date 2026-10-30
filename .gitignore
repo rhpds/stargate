@@ -47,6 +47,7 @@ receipts/
 uv.lock
 scheduler.log
 test-receipts/*.json
+test-receipts/*.xml
 !test-receipts/.gitkeep
 scan-history/
 backups/
@@ -56,3 +57,6 @@ podman-compose.local.yml
 
 # Captured production state — large, not needed in repo
 fixtures/live-*/
+runs/
+docs/archive/
+docs/pitch-kit.md

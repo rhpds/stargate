@@ -108,6 +108,7 @@ PIPELINE_STAGES = [
     "cluster-health", "run-created", "provision-complete", "namespace-ready",
     "deployment-ready", "storage-clone-ready", "route-ready", "vm-runtime-ready",
     "smoke-test-ready", "showroom-healthy", "model-endpoint-ready",
+    "destroy-complete",
 ]
 
 # Event bus — singleton

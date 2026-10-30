@@ -96,7 +96,7 @@ __meta__:
   owners:
     maintainer:
     - name: Jack Kershaw
-      email: jkershaw@redhat.com
+      email: platform-team@redhat.com
   catalog:
     display_name: "StarGate Platform — Continuous Operations"
     category: Infrastructure

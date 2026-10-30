@@ -41,7 +41,7 @@
           "kubevirt.io/created-by": "22841505-3384-437a-ad73-e5dd306b30bb"
         },
         "name": "bastion-2cf6p",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",
@@ -128,7 +128,7 @@
           "kubevirt.io/created-by": "0184fd49-fd7b-45ac-b7da-2022a4ad7350"
         },
         "name": "controller-2cf6p",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",
@@ -215,7 +215,7 @@
           "kubevirt.io/created-by": "4b15717d-1ef1-4a67-a71c-82740f3e8d4a"
         },
         "name": "node1-2cf6p",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",
@@ -302,7 +302,7 @@
           "kubevirt.io/created-by": "6626e924-c2a8-46a6-a29c-12807731966a"
         },
         "name": "node2-2cf6p",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",
@@ -389,7 +389,7 @@
           "kubevirt.io/created-by": "9a0efbc7-d528-4f25-acd5-c11307b86b9c"
         },
         "name": "ssap-2cf6p",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",

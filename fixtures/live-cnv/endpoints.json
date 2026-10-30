@@ -11,7 +11,7 @@
           "service.kubernetes.io/headless": ""
         },
         "name": "bastion",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329315",
         "uid": "880f74e4-0498-46be-9077-94648c06734c"
       },
@@ -24,7 +24,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-bastion-ps87z",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "438c7429-65ce-4c73-af6f-a1dfd90b7289"
               }
             }
@@ -71,7 +71,7 @@
           "endpoints.kubernetes.io/managed-by": "endpoint-controller"
         },
         "name": "bastion-ssh",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329965",
         "uid": "c4307c93-ae33-475a-9be3-538951dab409"
       },
@@ -84,7 +84,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-bastion-ps87z",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "438c7429-65ce-4c73-af6f-a1dfd90b7289"
               }
             }
@@ -108,7 +108,7 @@
           "service.kubernetes.io/headless": ""
         },
         "name": "controller",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329393",
         "uid": "0bd04b83-4557-4555-a914-b360074d34c0"
       },
@@ -121,7 +121,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-controller-js5q2",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "3f5d001f-7400-458f-9804-f99a66342399"
               }
             }
@@ -154,7 +154,7 @@
           "service.kubernetes.io/headless": ""
         },
         "name": "node1",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329432",
         "uid": "621c4b04-9d0b-4540-92d7-89e81f1f0149"
       },
@@ -167,7 +167,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-node1-bfpkv",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "45ef1f36-3584-44c2-bf4b-fd08388668bd"
               }
             }
@@ -194,7 +194,7 @@
           "service.kubernetes.io/headless": ""
         },
         "name": "node2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329461",
         "uid": "25f4dff6-0e39-4ba6-b2bf-9eadd6f9e18f"
       },
@@ -207,7 +207,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-node2-z8zj2",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "ed74f0f1-37cb-4596-8113-2b50001f79ac"
               }
             }
@@ -231,7 +231,7 @@
           "service.kubernetes.io/headless": ""
         },
         "name": "ssap",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329524",
         "uid": "a22316be-3eb1-46f5-97e7-aba3b9ca9984"
       },
@@ -244,7 +244,7 @@
               "targetRef": {
                 "kind": "Pod",
                 "name": "virt-launcher-ssap-2blsn",
-                "namespace": "sandbox-2cf6p-ocp4-cluster",
+                "namespace": "sandbox-XXXXX-ocp4-cluster",
                 "uid": "c5a4e5df-3079-4276-a82d-a0bb27aa9310"
               }
             }

@@ -1,0 +1,18 @@
+{
+  "schema_version": "stargate.classifier-cases/v1",
+  "description": "Frozen failure-classification cases authored from the StarGate taxonomy. Cases 1-8 use failure language the taxonomy regex patterns match literally; cases 9-12 paraphrase the same failure modes so that pattern matching fails and semantic classification is required. References are authored diagnostic expectations from the taxonomy, not independent human ground truth.",
+  "cases": [
+    {"id": "fc-01", "expected_class": "ceph_health_warning", "evidence": "Failure message: Ceph cluster reports HEALTH_WARN with 3 degraded PGs and slow OSD requests on osd-4. Criteria results: cluster health check failed. Cluster: cluster-X."},
+    {"id": "fc-02", "expected_class": "ingress_5xx_spike", "evidence": "Failure message: Route payments-api returning HTTP 502 bad gateway intermittently since 14:00. Criteria results: route health probe failed. Cluster: cluster-X."},
+    {"id": "fc-03", "expected_class": "oom_killed", "evidence": "Failure message: Pod stargate-api terminated with exit code 137, last state OOMKilled after 6h9m runtime. Criteria results: pod restart detected. Cluster: cluster-X."},
+    {"id": "fc-04", "expected_class": "image_pull_backoff", "evidence": "Failure message: Back-off pulling image quay.io/example/app:v2, ErrImagePull after 3 retries. Criteria results: workload unavailable. Cluster: cluster-X."},
+    {"id": "fc-05", "expected_class": "vm_provisioning_timeout", "evidence": "Failure message: AAP job 8842 stuck at 'Wait till VM is running' for 600s, VMI does not exist in namespace. Criteria results: provisioning job failed. Source: babylon."},
+    {"id": "fc-06", "expected_class": "node_disk_pressure", "evidence": "Failure message: Node worker03 reports DiskPressure condition, filesystem /var/lib/containers at 96 percent. Criteria results: node health degraded. Cluster: cluster-X."},
+    {"id": "fc-07", "expected_class": "readiness_probe_failed", "evidence": "Failure message: Liveness probe failed: HTTP probe failed with statuscode 500 on pod api-7d9f. Criteria results: pod unhealthy. Cluster: cluster-X."},
+    {"id": "fc-08", "expected_class": "host_capacity_exhausted", "evidence": "Failure message: Troshka builder cannot place VM: no host has room for 64GB flavor, insufficient ram on all candidate hosts. Criteria results: environment build failed. Source: troshka."},
+    {"id": "fc-09", "expected_class": "ingress_5xx_spike", "evidence": "Failure message: The edge keeps resetting connections to the frontend pods and users see service temporarily unavailable pages during peak hours. Criteria results: user-reported outage. Cluster: cluster-X."},
+    {"id": "fc-10", "expected_class": "oom_killed", "evidence": "Failure message: The container exceeded its memory limit again and the kernel killed the process; the pod has restarted five times today. Criteria results: repeated pod restarts. Cluster: cluster-X."},
+    {"id": "fc-11", "expected_class": "showroom_not_reachable", "evidence": "Failure message: Attendees cannot load the lab guide; the page never finishes rendering and eventually gives up at the edge after 60s. Criteria results: workshop blocked. Source: summit."},
+    {"id": "fc-12", "expected_class": "ec2_capacity_exhausted", "evidence": "Failure message: The cloud provider refused to start the requested instance types; no capacity available in the availability zone this morning. Criteria results: provisioning failed. Source: babylon."}
+  ]
+}

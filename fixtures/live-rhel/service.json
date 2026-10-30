@@ -7,7 +7,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T18:34:02Z",
         "name": "lab",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331220488",
         "uid": "51108031-be1e-4ccc-b564-15a424915119"
       },
@@ -45,7 +45,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T18:34:01Z",
         "name": "rhel",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331220463",
         "uid": "14d22864-8529-41b6-93a4-b3bbb16ca2d2"
       },
@@ -82,7 +82,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T18:34:03Z",
         "name": "rhel-ssh",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331220569",
         "uid": "bfbe508c-ee01-44c0-bb0a-f24267092ffd"
       },
@@ -121,7 +121,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T18:36:39Z",
         "name": "showroom",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331226147",
         "uid": "6ccc2e16-be6e-4378-9298-ef68c02f3e58"
       },

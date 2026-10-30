@@ -21,10 +21,14 @@ class FailureClass:
 
 CATEGORY_MAP = {
     "k8s-events": "pod_health",
+    "k8s_events": "pod_health",  # actual source key declared in failure-classes/k8s-events.yaml
     "alertmanager": "cluster_health",
     "infrastructure": "infrastructure",
     "summit": "provisioning",
     "aap": "provisioning",
+    "aap2_grafana": "provisioning",  # actual source key declared in failure-classes/aap.yaml
+    "workshop_provision": "provisioning",  # failure-classes/workshop-provision.yaml
+    "reclamation": "reclamation",  # failure-classes/reclamation.yaml
 }
 
 

@@ -42,11 +42,31 @@ class TestFailureClassSchema:
     def test_category_mapping(self):
         for source, expected in [
             ("k8s-events", "pod_health"),
+            ("k8s_events", "pod_health"),
             ("alertmanager", "cluster_health"),
             ("infrastructure", "infrastructure"),
             ("summit", "provisioning"),
             ("aap", "provisioning"),
+            ("aap2_grafana", "provisioning"),
             ("other", "general"),
         ]:
             result = normalize_raw_class({"name": "t", "source": source})
             assert result["category"] == expected, f"source={source}"
+
+    def test_real_catalog_sources_map_to_intended_categories(self):
+        """The YAML-declared source keys must hit the map — regression for AAP
+        classes normalizing to 'general' because the map said 'aap' while
+        aap.yaml declares source: aap2_grafana."""
+        from engine.failure_class_loader import get_all_classes
+
+        classes = get_all_classes()
+        assert classes, "taxonomy failed to load"
+        unmapped = sorted({
+            cls["_source"] for cls in classes
+            if cls.get("_source") and normalize_raw_class(cls)["category"] == "general"
+        })
+        # troshka has no category mapping by design; everything else must map
+        assert unmapped == ["troshka"], f"sources falling back to 'general': {unmapped}"
+        aap = [c for c in classes if c.get("_source") == "aap2_grafana"]
+        assert aap, "AAP catalog missing"
+        assert all(normalize_raw_class(c)["category"] == "provisioning" for c in aap)
