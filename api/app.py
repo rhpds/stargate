@@ -102,6 +102,10 @@ try:
             if not _is_valid_api_key(provided):
                 return JSONResponse({"detail": "Invalid or missing API key"}, status_code=401)
 
+            # Pass the caller's key for attribution in review tools
+            import os as _os
+            _os.environ["_MCP_CALLER_KEY"] = provided
+
             # Per-key sliding-window rate limit (defense in depth; the key
             # is already required, but a leaked key should not allow
             # unbounded scraping).
