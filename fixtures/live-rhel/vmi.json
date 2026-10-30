@@ -22,7 +22,7 @@
           "vm.cnv.io/name": "rhel"
         },
         "name": "rhel",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",

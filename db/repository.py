@@ -543,176 +543,18 @@ def get_namespaces_for_cluster(db: Session, cluster_name: str, limit: int = 200)
 # --- Materialized view refresh functions ---
 
 def refresh_cluster_summary(db: Session) -> None:
-    from db.models import EvaluationRecord, MVClusterSummary
-    from sqlalchemy import func
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVClusterSummary).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(
-            EvaluationRecord.cluster_name,
-            EvaluationRecord.outcome,
-            EvaluationRecord.failure_class,
-            EvaluationRecord.lab_code,
-        )
-        .filter(
-            EvaluationRecord.cluster_name.isnot(None),
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    clusters: dict = {}
-    for cluster_name, outcome, failure_class, lab_code in rows:
-        if cluster_name not in clusters:
-            clusters[cluster_name] = {"p": 0, "f": 0, "w": 0, "fc": {}, "labs": set(), "labs_f": set()}
-        c = clusters[cluster_name]
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            c["p"] += 1
-        elif o == "fail":
-            c["f"] += 1
-            if failure_class:
-                c["fc"][failure_class] = c["fc"].get(failure_class, 0) + 1
-            if lab_code:
-                c["labs_f"].add(lab_code)
-        elif o == "warn":
-            c["w"] += 1
-        if lab_code:
-            c["labs"].add(lab_code)
-
-    now = datetime.now(timezone.utc)
-    for name, c in clusters.items():
-        total = c["p"] + c["f"] + c["w"]
-        healthy = c["p"] + c["w"]
-        db.add(MVClusterSummary(
-            cluster_name=name,
-            total_evaluations=total,
-            passed=c["p"],
-            failed=c["f"],
-            warned=c["w"],
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            failure_classes=c["fc"],
-            labs_seen=len(c["labs"]),
-            labs_failing=len(c["labs_f"]),
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_clusters
+    refresh_clusters(db, datetime.now(timezone.utc))
 
 
 def refresh_pipeline_stages(db: Session) -> None:
-    from db.models import EvaluationRecord, MVPipelineStage
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVPipelineStage).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(EvaluationRecord.stage_id, EvaluationRecord.outcome)
-        .filter(
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    stages: dict = {}
-    for stage_id, outcome in rows:
-        if stage_id not in stages:
-            stages[stage_id] = {"p": 0, "f": 0, "w": 0}
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            stages[stage_id]["p"] += 1
-        elif o == "fail":
-            stages[stage_id]["f"] += 1
-        elif o == "warn":
-            stages[stage_id]["w"] += 1
-
-    now = datetime.now(timezone.utc)
-    for sid, s in stages.items():
-        total = s["p"] + s["f"] + s["w"]
-        healthy = s["p"] + s["w"]
-        db.add(MVPipelineStage(
-            stage_id=sid,
-            pass_count=s["p"],
-            fail_count=s["f"],
-            warn_count=s["w"],
-            total=total,
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_stages
+    refresh_stages(db, datetime.now(timezone.utc))
 
 
 def refresh_lab_eval_summary(db: Session) -> None:
-    from db.models import EvaluationRecord, MVLabEvalSummary
-    from sqlalchemy import func
-    from datetime import datetime, timezone, timedelta
-
-    db.query(MVLabEvalSummary).delete()
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    rows = (
-        db.query(
-            EvaluationRecord.lab_code,
-            EvaluationRecord.cluster_name,
-            EvaluationRecord.outcome,
-            EvaluationRecord.failure_class,
-            EvaluationRecord.evaluated_at,
-        )
-        .filter(
-            EvaluationRecord.lab_code.isnot(None),
-            EvaluationRecord.evaluated_at >= cutoff,
-            ~EvaluationRecord.run_id.like("k8s-mine-%"),
-            ~EvaluationRecord.run_id.like("alert-mine-%"),
-            ~EvaluationRecord.run_id.like("prom-mine-%"),
-        )
-        .all()
-    )
-
-    labs: dict = {}
-    for lab_code, cluster_name, outcome, failure_class, evaluated_at in rows:
-        key = (lab_code, cluster_name or "")
-        if key not in labs:
-            labs[key] = {"p": 0, "f": 0, "w": 0, "fc": {}, "last": None}
-        l = labs[key]
-        o = outcome.lower() if outcome else ""
-        if o == "pass":
-            l["p"] += 1
-        elif o == "fail":
-            l["f"] += 1
-            if failure_class:
-                l["fc"][failure_class] = l["fc"].get(failure_class, 0) + 1
-        elif o == "warn":
-            l["w"] += 1
-        if evaluated_at and (l["last"] is None or evaluated_at > l["last"]):
-            l["last"] = evaluated_at
-
-    now = datetime.now(timezone.utc)
-    for (lab_code, cluster_name), l in labs.items():
-        total = l["p"] + l["f"] + l["w"]
-        healthy = l["p"] + l["w"]
-        top_fc = max(l["fc"], key=l["fc"].get) if l["fc"] else None
-        db.add(MVLabEvalSummary(
-            lab_code=lab_code,
-            cluster_name=cluster_name or None,
-            total_evals=total,
-            passed=l["p"],
-            failed=l["f"],
-            warned=l["w"],
-            top_failure_class=top_fc,
-            health_rate=round(healthy / total * 100, 1) if total > 0 else 0,
-            last_evaluated_at=l["last"],
-            updated_at=now,
-        ))
-    db.commit()
+    from db.summary_refresh import refresh_labs
+    refresh_labs(db, datetime.now(timezone.utc))
 
 
 def get_all_cluster_summaries(db: Session) -> dict:
@@ -1485,15 +1327,26 @@ def create_investigation(
 def start_investigation(db: Session, job_id: str) -> None:
     record = db.query(InvestigationRecord).filter(
         InvestigationRecord.job_id == job_id
-    ).first()
+    ).with_for_update().first()
     if record:
-        record.status = "running"
-        record.started_at = datetime.now(timezone.utc)
-        db.commit()
+        from engine.functional_alignment import claim_source_events, find_knowledge, gate_enabled
         try:
-            from engine.functional_alignment import claim_source_events, find_knowledge, gate_enabled
+            if record.status != "queued":
+                raise ValueError("Investigation is not queued")
+            record.status = "running"
+            record.started_at = datetime.now(timezone.utc)
             if gate_enabled("diagnosis_claims"):
-                claim_source_events(db, record)
+                source_id = (db.query(EvaluationRecord.source_event_id).filter(
+                    EvaluationRecord.id == record.triggering_eval_id,
+                ).scalar() if record.triggering_eval_id else None)
+                if source_id:
+                    if not claim_source_events(db, record):
+                        raise ValueError("Source evidence claim unavailable; diagnosis not started")
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        try:
             if gate_enabled("knowledge_retrieval"):
                 matches = find_knowledge(db, record.lab_code, record.failure_class or "")
                 record.knowledge_match = {"matches": matches} if matches else None
@@ -1541,14 +1394,133 @@ def complete_investigation(
             create_jira_draft, finish_source_event_claims, gate_enabled,
             queue_slack_delivery,
         )
-        if gate_enabled("diagnosis_claims"):
-            finish_source_event_claims(db, record, success=not bool(error), reason=error or "")
+        finish_source_event_claims(db, record, success=bool(analysis) and not bool(error),
+                                   reason=error or ("" if analysis else "empty diagnosis"))
         if not error and gate_enabled("slack_delivery"):
             queue_slack_delivery(db, record)
         if not error and gate_enabled("jira_drafting"):
             create_jira_draft(db, record)
     except Exception:
         db.rollback()
+    # ACTIONABLE investigations queue a human-review remediation action —
+    # the investigate -> suggest -> approve link. Never executes: the
+    # approval queue is human-review only (the same pattern as deepfield
+    # incidents), honoring the no-auto-remediation constraint.
+    try:
+        verdict = str(((trust_dimensions or {}).get("verdict")) or "").strip().upper()
+        if not error and verdict == "ACTIONABLE":
+            _queue_investigation_action(db, record)
+    except Exception:
+        db.rollback()
+
+
+def _queue_investigation_action(db: Session, record) -> Optional[int]:
+    """Queue a human-review remediation for an ACTIONABLE investigation.
+
+    The investigation's remediation_suggestion is advisory text; the queued
+    action carries the catalog-mapped remediation candidates plus the full
+    lineage (investigation id, job id, triggering eval) so an approver can
+    trace the evidence chain. Idempotent per investigation.
+    """
+    from db.models import PendingAction
+
+    suggestion = (record.remediation_suggestion or "").strip()
+    if not suggestion:
+        return None
+
+    classes = {c.strip().lower() for c in (record.failure_class or "").split(",") if c.strip()}
+    catalog_actions = set()
+    try:
+        from engine.catalog_loader import ACTION_TO_FAILURE_CLASSES
+        catalog_actions.update(
+            action for action, fcs in ACTION_TO_FAILURE_CLASSES.items()
+            if classes & {fc.lower() for fc in fcs}
+        )
+    except Exception:
+        pass
+    # Also match the remediation catalog's allowed_when conditions — the
+    # reclamation entries (investigate_stuck_teardown, reclaim_sandbox_placement,
+    # launchpad_reclaim_*) live there, not in the hardcoded policy map.
+    try:
+        from engine.catalog_loader import load_catalog
+        for entry in load_catalog():
+            for condition in entry.allowed_when:
+                parts = condition.split("==")
+                if (len(parts) == 2 and parts[0].strip() == "failure_class"
+                        and parts[1].strip().lower() in classes):
+                    catalog_actions.add(entry.id)
+                    break
+    except Exception:
+        pass
+    catalog_actions = sorted(catalog_actions)
+
+    existing = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "investigation",
+        PendingAction.target == record.namespace,
+        PendingAction.status.in_(("pending", "approved")),
+    ).all()
+    if any((a.parameters or {}).get("investigation_id") == record.id for a in existing):
+        return None
+
+    action = PendingAction(
+        action_type=catalog_actions[0] if catalog_actions else "investigation_remediation",
+        target=record.namespace,
+        proposed_by="investigation",
+        parameters={
+            "investigation_id": record.id,
+            "job_id": record.job_id,
+            "triggering_eval_id": record.triggering_eval_id,
+            "failure_class": record.failure_class,
+            "root_cause": (record.root_cause or "")[:500],
+            "remediation_suggestion": suggestion[:2000],
+            "catalog_actions": catalog_actions,
+            "cluster": record.cluster,
+        },
+        confidence=0.8,
+        status="pending",
+        proposed_at=datetime.now(timezone.utc),
+    )
+    db.add(action)
+    db.commit()
+    return action.id
+
+
+def link_remediation_verification(db: Session, max_links: int = 50) -> int:
+    """Link executed remediations to the passing eval that verified them.
+
+    The verify leg of the investigate -> suggest -> approve -> verify loop:
+    for each unresolved remediation, find the first passing evaluation for
+    the same lab after the remediation was applied and record it as
+    verification_eval_id. Returns the number of remediations verified.
+    """
+    from db.models import EvaluationRecord, RemediationRecord
+
+    unresolved = db.query(RemediationRecord).filter(
+        RemediationRecord.resolved.is_(None),
+    ).order_by(RemediationRecord.id.desc()).limit(max_links).all()
+    linked = 0
+    for remediation in unresolved:
+        try:
+            applied_at = remediation.applied_at
+            if applied_at is None:
+                continue
+            if applied_at.tzinfo is None:
+                applied_at = applied_at.replace(tzinfo=timezone.utc)
+            verification = db.query(EvaluationRecord.id).filter(
+                EvaluationRecord.lab_code == remediation.run_id,
+                EvaluationRecord.outcome == "pass",
+                EvaluationRecord.evaluated_at > applied_at,
+            ).order_by(EvaluationRecord.evaluated_at.asc()).first()
+            if verification:
+                remediation.verification_eval_id = verification.id
+                remediation.resolved = True
+                remediation.resolved_at = datetime.now(timezone.utc)
+                linked += 1
+        except Exception:
+            continue
+    if linked:
+        db.commit()
+    return linked
 
 
 def fail_investigation(db: Session, job_id: str, error: str) -> None:
@@ -1561,9 +1533,8 @@ def fail_investigation(db: Session, job_id: str, error: str) -> None:
         record.completed_at = datetime.now(timezone.utc)
         db.commit()
         try:
-            from engine.functional_alignment import finish_source_event_claims, gate_enabled
-            if gate_enabled("diagnosis_claims"):
-                finish_source_event_claims(db, record, success=False, reason=error)
+            from engine.functional_alignment import finish_source_event_claims
+            finish_source_event_claims(db, record, success=False, reason=error)
         except Exception:
             db.rollback()
 
@@ -1657,3 +1628,137 @@ def link_investigation_to_resolution(
     if record:
         record.resolved_by_id = resolution_id
         db.commit()
+
+
+def build_causal_chain(
+    db: Session,
+    investigation_id: Optional[int] = None,
+    namespace: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Assemble the causal chain for an investigation: symptom -> evidence ->
+    diagnosis -> (adjudication) -> action -> remediation -> verification.
+
+    The smoking-gun artifact: one view over the lineage keys (triggering_eval_id,
+    investigation_id on actions, verification_eval_id on remediations) that
+    shows whether a demonstrated cause is cited, a remedy was applied, and a
+    passing eval proved resolution. Missing legs are reported explicitly —
+    an incomplete chain is honest about what is not yet proven.
+    """
+    from db.models import EvaluationRecord, InvestigationRecord, PendingAction, RemediationRecord
+
+    query = db.query(InvestigationRecord)
+    if investigation_id is not None:
+        inv = query.filter(InvestigationRecord.id == investigation_id).first()
+    elif namespace:
+        inv = query.filter(
+            (InvestigationRecord.namespace == namespace)
+            | (InvestigationRecord.lab_code == namespace),
+        ).order_by(InvestigationRecord.id.desc()).first()
+    else:
+        raise ValueError("investigation_id or namespace is required")
+    if not inv:
+        return {"found": False, "reason": "no investigation found"}
+
+    def _eval_summary(e):
+        if not e:
+            return None
+        return {
+            "id": e.id, "outcome": e.outcome, "failure_class": e.failure_class,
+            "message": (e.message or "")[:200], "evaluated_at": e.evaluated_at.isoformat() if e.evaluated_at else None,
+        }
+
+    # T0: the symptom that triggered the investigation
+    symptom = None
+    if inv.triggering_eval_id:
+        symptom = _eval_summary(
+            db.query(EvaluationRecord).filter(EvaluationRecord.id == inv.triggering_eval_id).first())
+
+    # Evidence collected by the agent
+    evidence = [
+        {"tool": tc.get("tool"), "args": tc.get("args"), "result_preview": (tc.get("result_preview") or "")[:200]}
+        for tc in (inv.tool_calls or []) if isinstance(tc, dict)
+    ]
+
+    # Adjudication (if the blind review ran)
+    adjudication = None
+    try:
+        from db.models import AdjudicationRecord
+        adj = db.query(AdjudicationRecord).filter(
+            AdjudicationRecord.investigation_id == inv.id,
+        ).order_by(AdjudicationRecord.id.desc()).first()
+        if adj:
+            adjudication = {
+                "status": adj.status, "models": adj.models, "judge": adj.judge,
+                "reason": adj.reason, "completed_at": adj.completed_at.isoformat() if adj.completed_at else None,
+            }
+    except Exception:
+        pass
+
+    # The queued / approved action
+    action = None
+    pending = db.query(PendingAction).filter(
+        PendingAction.proposed_by == "investigation",
+        PendingAction.target == inv.namespace,
+    ).order_by(PendingAction.id.desc()).all()
+    for candidate in pending:
+        if (candidate.parameters or {}).get("investigation_id") == inv.id:
+            action = {
+                "id": candidate.id, "action_type": candidate.action_type,
+                "status": candidate.status, "parameters": candidate.parameters,
+                "proposed_at": candidate.proposed_at.isoformat() if candidate.proposed_at else None,
+            }
+            break
+
+    # The executed remediation and its verification eval (T2)
+    remediation = None
+    verification = None
+    rem = db.query(RemediationRecord).filter(
+        RemediationRecord.notes == f"investigation:{inv.id}",
+    ).order_by(RemediationRecord.id.desc()).first()
+    if rem:
+        remediation = {
+            "id": rem.id, "remediation_id": rem.remediation_id,
+            "action_taken": (rem.action_taken or "")[:200],
+            "applied_at": rem.applied_at.isoformat() if rem.applied_at else None,
+            "resolved": rem.resolved,
+        }
+        if rem.verification_eval_id:
+            verification = _eval_summary(
+                db.query(EvaluationRecord).filter(EvaluationRecord.id == rem.verification_eval_id).first())
+
+    verdict = ((inv.trust_dimensions or {}).get("verdict")) if inv.trust_dimensions else None
+    chain = {
+        "found": True,
+        "investigation": {
+            "id": inv.id, "job_id": inv.job_id, "namespace": inv.namespace,
+            "lab_code": inv.lab_code, "cluster": inv.cluster,
+            "failure_class": inv.failure_class, "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None,
+        },
+        "symptom": symptom,
+        "evidence": evidence,
+        "evidence_count": len(evidence),
+        "diagnosis": {
+            "root_cause": inv.root_cause,
+            "remediation_suggestion": inv.remediation_suggestion,
+            "verdict": verdict,
+            "confidence": (inv.trust_dimensions or {}).get("confidence") if inv.trust_dimensions else None,
+        },
+        "adjudication": adjudication,
+        "action": action,
+        "remediation": remediation,
+        "verification": verification,
+    }
+    chain["chain_complete"] = bool(
+        symptom and inv.root_cause and remediation and verification and verification["outcome"] == "pass"
+    )
+    chain["missing_legs"] = [
+        leg for leg, present in [
+            ("symptom_eval", bool(symptom)),
+            ("diagnosis", bool(inv.root_cause)),
+            ("action", bool(action)),
+            ("remediation", bool(remediation)),
+            ("verification_eval", bool(verification)),
+        ] if not present
+    ]
+    return chain

@@ -484,12 +484,16 @@ export default function ProofDashboard() {
   const existingNames = new Set(fromApi.map((e: any) => e.name));
   const defaults = KNOWN_INJECTORS.filter(n => !existingNames.has(n)).map(n => ({ name: n, status: 'UNTESTED', cycles_completed: 0, consecutive_passes: 0, gate: 'manual', last_run: null }));
   const entries: any[] = [...fromApi, ...defaults];
-  void matrix.data?.summary;
 
+  // Proof state lives in gate (accumulated consecutive passes), not status —
+  // status is the CURRENT cycle phase (INJECTED/DETECTED/...) and resets at
+  // each cycle start, so counting it showed 0 proven forever.
+  const summary = matrix.data?.summary;
   const totalClasses = entries.length;
-  const provenCount = entries.filter((e: any) => e.status === 'PROVEN').length;
-  const verifiedCount = entries.filter((e: any) => e.status === 'VERIFIED').length;
-  const untestedCount = entries.filter((e: any) => e.status === 'UNTESTED' || !e.status).length;
+  const provenCount = summary?.proven ?? entries.filter((e: any) => e.gate === 'full_auto' || e.gate === 'investigation_proven').length;
+  const provenRemediation = summary?.proven_remediation ?? entries.filter((e: any) => e.gate === 'full_auto').length;
+  const provenDetection = summary?.proven_detection ?? entries.filter((e: any) => e.gate === 'investigation_proven').length;
+  const untestedCount = entries.filter((e: any) => (e.consecutive_passes ?? 0) === 0 && (e.cycles_completed ?? 0) === 0).length;
 
   if (matrix.isLoading) {
     return (
@@ -546,11 +550,12 @@ export default function ProofDashboard() {
         </div>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Summary stats — proof state by gate (accumulated passes), not cycle phase */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <MetricCard label="Total Failure Classes" value={totalClasses} />
-        <MetricCard label="Proven" value={provenCount} />
-        <MetricCard label="Verified" value={verifiedCount} />
+        <MetricCard label="Proven (any gate)" value={provenCount} />
+        <MetricCard label="Proven — remediation" value={provenRemediation} />
+        <MetricCard label="Proven — detection" value={provenDetection} />
         <MetricCard label="Untested" value={untestedCount} />
       </div>
 

@@ -7,7 +7,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:48Z",
         "name": "bastion",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329314",
         "uid": "3ab3d9cf-1f26-4b0d-8632-a2682f192ba6"
       },
@@ -69,7 +69,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:14:06Z",
         "name": "bastion-ssh",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329964",
         "uid": "a78d94be-3b7b-41a7-be98-06f5a75ead37"
       },
@@ -108,7 +108,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:50Z",
         "name": "controller",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329391",
         "uid": "2a211538-347e-45dc-bdac-58dfd45c5c11"
       },
@@ -152,7 +152,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:53Z",
         "name": "node1",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329431",
         "uid": "59a8f92b-016f-4758-aed3-aaa22ac0318f"
       },
@@ -189,7 +189,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:53Z",
         "name": "node2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329460",
         "uid": "9e4b774b-b5f8-4e43-a357-d3a729318f84"
       },
@@ -226,7 +226,7 @@
       "metadata": {
         "creationTimestamp": "2026-05-06T13:13:54Z",
         "name": "ssap",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "resourceVersion": "1330329523",
         "uid": "d70183b7-bc57-4b34-b4a6-dfa317925afb"
       },

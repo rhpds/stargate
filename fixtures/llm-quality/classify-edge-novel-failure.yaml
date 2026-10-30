@@ -7,9 +7,9 @@ context_type: classification
 evidence:
   lab_code: "LB0203"
   failure_class: "unknown"
-  cluster_name: "sandbox-p8v2x-troshka04"
+  cluster_name: "sandbox-XXXXX-troshka04"
   summary: |
-    Lab LB0203 on Troshka host sandbox-p8v2x-troshka04 failed during VM provisioning.
+    Lab LB0203 on Troshka host sandbox-XXXXX-troshka04 failed during VM provisioning.
     The deploy pipeline reached the vm-topology stage but encountered an unexpected error:
     "topology constraint violation: requested CPU topology (sockets=2, cores=4, threads=2)
     incompatible with host NUMA layout (nodes=1, cpus=16)". The VM was defined with a
@@ -22,7 +22,7 @@ evidence:
     2026-07-07T08:02:15Z - topology constraint violation error
     2026-07-07T08:02:16Z - Pipeline failed at vm-topology stage
   related: |
-    Other VMs on sandbox-p8v2x-troshka04 with single-socket topologies are running normally.
+    Other VMs on sandbox-XXXXX-troshka04 with single-socket topologies are running normally.
     Host CPU model: AMD EPYC 7543 32-Core (but only 16 allocated to Troshka).
     VM definition requested: sockets=2, cores=4, threads=2 (total 16 vCPUs).
   remediations: ""

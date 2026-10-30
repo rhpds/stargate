@@ -128,6 +128,8 @@ def call_llm(
     db: Optional[Session] = None,
     prompt_version: Optional[str] = None,
     model: Optional[str] = None,
+    response_format: Optional[Dict] = None,
+    thinking_token_budget: Optional[int] = None,
 ) -> Dict:
     ctx = context or {}
 
@@ -156,7 +158,15 @@ def call_llm(
         "temperature": temperature,
     }
     if "qwen" in use_model.lower():
-        payload["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+        # Raw HTTP JSON, not an SDK invocation: extension fields belong on
+        # the wire directly. A template flag is not proof thinking is disabled.
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
+    if response_format is not None:
+        payload.update(response_format=response_format, num_retries=0, max_retries=0, fallbacks=[])
+    if thinking_token_budget is not None:
+        if type(thinking_token_budget) is not int or not 0 <= thinking_token_budget < max_tokens:
+            raise ValueError("invalid_thinking_token_budget")
+        payload["thinking_token_budget"] = thinking_token_budget
     body = json.dumps(payload).encode()
 
     ssl_ctx = ssl.create_default_context()
@@ -180,6 +190,8 @@ def call_llm(
     prompt_tokens = None
     completion_tokens = None
     total_tokens = None
+    reasoning_tokens = None
+    reasoning_present = None
     error_type = None
     error_message = None
 
@@ -195,6 +207,12 @@ def call_llm(
         prompt_tokens = usage.get("prompt_tokens")
         completion_tokens = usage.get("completion_tokens")
         total_tokens = usage.get("total_tokens")
+        details = usage.get("completion_tokens_details") or {}
+        reported_reasoning = details.get("reasoning_tokens")
+        if type(reported_reasoning) is int and reported_reasoning >= 0:
+            reasoning_tokens = reported_reasoning
+        message = choices[0].get("message", {}) if choices else {}
+        reasoning_present = bool(message.get("reasoning_content") or message.get("reasoning"))
 
         success = True
         _circuit.record_success()
@@ -275,8 +293,10 @@ def call_llm(
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
+            "reasoning_tokens": reasoning_tokens,
             "cost_estimate": cost_estimate,
         },
+        "reasoning_present": reasoning_present,
         "finish_reason": finish_reason,
         "error": error_message if not success else None,
     }

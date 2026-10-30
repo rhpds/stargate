@@ -1,0 +1,33 @@
+id: reclamation-failures
+version: "1.0"
+description: Reclamation (destroy/teardown) outcome classifications
+source: reclamation
+
+classes:
+  destroy_failed:
+    pattern: "destroy-failed|destroy-error|[Dd]estroy.*job.*failed|destroy.*failed"
+    description: AnarchySubject destroy job explicitly failed (towerJobs destroy status failed/error/canceled) or state is destroy-failed/destroy-error
+    severity: high
+    team: platform-ops
+    remediation:
+      - Inspect the destroy job events for the failure reason
+      - "oc get anarchysubject {name} -n babylon-anarchy-events -o jsonpath={.status.towerJobs.destroy}"
+      - Check whether the workload namespace still exists before retrying
+
+  teardown_incomplete:
+    pattern: "teardown.*incomplete|destroy.*succeeded.*subject.*remains"
+    description: Destroy job succeeded but the AnarchySubject still exists — teardown did not complete
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Inspect the AnarchySubject post-destroy state
+      - "oc get anarchysubject {name} -n babylon-anarchy-events -o wide"
+
+  teardown_namespace_lingering:
+    pattern: "namespace.*lingering|teardown.*namespace.*still exists"
+    description: AnarchySubject is gone but the workload namespace still exists — reclamation left the namespace behind
+    severity: low
+    team: platform-ops
+    remediation:
+      - Verify whether the sandbox API owns the namespace lifecycle
+      - "oc get namespace {namespace}"

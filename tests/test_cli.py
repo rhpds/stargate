@@ -12,7 +12,7 @@ class TestValidateRubric:
         out = capsys.readouterr().out
         assert "namespace-ready" in out
         assert "deployment-ready" in out
-        assert "Validated 11 rubrics" in out
+        assert "Validated 12 rubrics" in out
 
     def test_validate_single_file(self, capsys):
         rc = main(["validate-rubric", "rubrics/platform/namespace-ready.yaml"])

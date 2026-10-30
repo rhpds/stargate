@@ -16,9 +16,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"bastion\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"bastion\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"bastion\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"bastion\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -36,7 +36,7 @@
           "vm.kubevirt.io/name": "bastion"
         },
         "name": "virt-launcher-bastion-ps87z",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -63,7 +63,7 @@
               "--uid",
               "e2e8898a-f66e-40cc-8944-73c5351a2b19",
               "--namespace",
-              "sandbox-2cf6p-ocp4-cluster",
+              "sandbox-XXXXX-ocp4-cluster",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",
@@ -427,9 +427,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"controller\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"controller\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"controller\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"controller\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -447,7 +447,7 @@
           "vm.kubevirt.io/name": "controller"
         },
         "name": "virt-launcher-controller-js5q2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -474,7 +474,7 @@
               "--uid",
               "27a88f89-4be3-48d2-b109-b0027a84257e",
               "--namespace",
-              "sandbox-2cf6p-ocp4-cluster",
+              "sandbox-XXXXX-ocp4-cluster",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",
@@ -838,9 +838,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"node1\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"node1\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"node1\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"node1\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -858,7 +858,7 @@
           "vm.kubevirt.io/name": "node1"
         },
         "name": "virt-launcher-node1-bfpkv",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -885,7 +885,7 @@
               "--uid",
               "5448b5cb-c41e-4dcf-8595-8d44c3099efc",
               "--namespace",
-              "sandbox-2cf6p-ocp4-cluster",
+              "sandbox-XXXXX-ocp4-cluster",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",
@@ -1249,9 +1249,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"node2\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"node2\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"node2\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"node2\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -1269,7 +1269,7 @@
           "vm.kubevirt.io/name": "node2"
         },
         "name": "virt-launcher-node2-z8zj2",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -1296,7 +1296,7 @@
               "--uid",
               "9d6e783f-37da-4418-bede-5bac3aa668ae",
               "--namespace",
-              "sandbox-2cf6p-ocp4-cluster",
+              "sandbox-XXXXX-ocp4-cluster",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",
@@ -1660,9 +1660,9 @@
           "kubevirt.io/pci-topology-version": "v3",
           "kubevirt.io/vm-generation": "1",
           "openshift.io/scc": "kubevirt-controller",
-          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"ssap\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "post.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--unfreeze\", \"--name\", \"ssap\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "post.hook.backup.velero.io/container": "compute",
-          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"ssap\", \"--namespace\", \"sandbox-2cf6p-ocp4-cluster\"]",
+          "pre.hook.backup.velero.io/command": "[\"/usr/bin/virt-freezer\", \"--freeze\", \"--name\", \"ssap\", \"--namespace\", \"sandbox-XXXXX-ocp4-cluster\"]",
           "pre.hook.backup.velero.io/container": "compute",
           "pre.hook.backup.velero.io/timeout": "60s",
           "seccomp.security.alpha.kubernetes.io/pod": "localhost/kubevirt/kubevirt.json",
@@ -1680,7 +1680,7 @@
           "vm.kubevirt.io/name": "ssap"
         },
         "name": "virt-launcher-ssap-2blsn",
-        "namespace": "sandbox-2cf6p-ocp4-cluster",
+        "namespace": "sandbox-XXXXX-ocp4-cluster",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -1707,7 +1707,7 @@
               "--uid",
               "848f0e7c-880d-4329-987d-9fdc3c4a4061",
               "--namespace",
-              "sandbox-2cf6p-ocp4-cluster",
+              "sandbox-XXXXX-ocp4-cluster",
               "--kubevirt-share-dir",
               "/var/run/kubevirt",
               "--ephemeral-disk-dir",

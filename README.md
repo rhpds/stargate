@@ -8,7 +8,7 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 
 - **Cluster Scanning** — Monitors 8+ OpenShift clusters for node health, pod failures, VM status, and namespace readiness on a tiered schedule (5m/15m/1h)
 - **Rubric Evaluation** — Evaluates each lab namespace against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, etc.)
-- **AI Classification** — Unclassified failures are sent to an LLM (Granite 3.2 8B via LiteLLM) for automated failure class proposals
+- **AI Classification** — Unclassified failures are sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for automated failure class proposals
 - **Durable Investigations** — Idempotent source events are claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures
 - **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging
@@ -96,7 +96,7 @@ All configuration via environment variables:
 | `STARGATE_LABAGATOR_URL` | Labagator API base URL | (required for lab data) |
 | `STARGATE_DEMOLITION_URL` | Demolition API base URL | (required for smoke tests) |
 | `STARGATE_DASHBOARD_URL` | Public dashboard URL (for Slack notifications) | (optional) |
-| `STARGATE_LLM_MODEL` | LLM model name | `granite-3-2-8b-instruct` |
+| `STARGATE_LLM_MODEL` | LLM model name | `llama-scout-17b` |
 | `STARGATE_ADMIN_API_KEY` | Admin API authentication key | (required for API key auth) |
 | `STARGATE_SSL_VERIFY` | Verify TLS certificates | `true` |
 | `STARGATE_AGNOSTICV_TOKEN` | GitHub token for AgnosticV repo | (optional) |
@@ -173,6 +173,15 @@ Pod restarts, deployment rollouts, health checks, log collection. These are idem
 AnarchySubject lifecycle (retry/destroy via Anarchy), pool scaling (via Poolboy), namespace management (via Sandbox API), workload re-provisioning (via AgnosticD/ArgoCD). These go through RHDP controllers to maintain state consistency and audit trails.
 
 Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`, `rhdp_sandbox_api`, `rhdp_poolboy`) so the action executor routes to the correct API. A pre-flight check prevents remediation during active provisioning.
+
+
+### Outcome Contracts (Shipped)
+
+- **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes
+- **reclamation-outcome/v1** — reclamation outcomes with artifact enumeration
+- **Causal chains** — GET /dashboard/causal-chain assembles the full evidence chain per investigation
+- **MCP server** — 8 read-only tools + natural-language ask (RAG) at /mcp for any agent
+- **Platform workflows** — step-through event flow diagrams in docs/workflows.md
 
 ## Roadmap
 

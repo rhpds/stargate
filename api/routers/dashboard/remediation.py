@@ -442,6 +442,10 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
             start_investigation(_db, job_id)
 
             evidence_lines = [f"Failure class: {failure_class}", f"Namespace: {lab_code}", f"Cluster: {cluster}"]
+            from engine.functional_alignment import investigation_source_evidence
+            source_evidence = investigation_source_evidence(_db, job_id)
+            if source_evidence:
+                evidence_lines.append(source_evidence)
 
             from db.models import EvaluationRecord
             recent = _db.query(EvaluationRecord).filter(
@@ -1495,3 +1499,23 @@ def run_remediation_playbook(req: PlaybookRunRequest, db: Session = Depends(get_
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     }
+
+
+@router.get("/dashboard/causal-chain")
+def get_causal_chain(
+    investigation_id: Optional[int] = None,
+    namespace: Optional[str] = None,
+    db: Session = Depends(get_db), _auth=Depends(require_admin),
+):
+    """Assemble the causal chain for an investigation.
+
+    The smoking-gun artifact: symptom eval -> collected evidence -> diagnosis
+    -> adjudication -> action -> remediation -> verification eval, with the
+    missing legs reported explicitly. Query by investigation_id or namespace
+    (latest investigation for the namespace).
+    """
+    from db.repository import build_causal_chain
+    try:
+        return build_causal_chain(db, investigation_id=investigation_id, namespace=namespace)
+    except ValueError as e:
+        raise HTTPException(422, str(e))

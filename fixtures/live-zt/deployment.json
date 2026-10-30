@@ -18,7 +18,7 @@
           "helm.sh/chart": "zerotouch-1.10.2"
         },
         "name": "showroom",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "resourceVersion": "1329877065",
         "uid": "86bd5f8e-8812-4691-8572-35f8a847e3c3"
       },

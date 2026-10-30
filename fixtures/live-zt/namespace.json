@@ -13,7 +13,7 @@
       "cost_management_optimizations": "true",
       "created-by": "sandbox-api",
       "guid": "zz95m",
-      "kubernetes.io/metadata.name": "sandbox-zz95m-zt-ansiblebu",
+      "kubernetes.io/metadata.name": "sandbox-XXXXX-zt-ansiblebu",
       "mutatepods.kubemacpool.io": "ignore",
       "mutatevirtualmachines.kubemacpool.io": "ignore",
       "pod-security.kubernetes.io/audit": "restricted",
@@ -22,7 +22,7 @@
       "pod-security.kubernetes.io/warn-version": "latest",
       "serviceUuid": "4e371c22-f70a-5e7e-95d9-383a0c8bf690"
     },
-    "name": "sandbox-zz95m-zt-ansiblebu",
+    "name": "sandbox-XXXXX-zt-ansiblebu",
     "resourceVersion": "1329846523",
     "uid": "bcd4670e-839f-4d0e-b50b-0800295a0634"
   },

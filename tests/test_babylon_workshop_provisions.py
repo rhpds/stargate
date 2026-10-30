@@ -105,3 +105,32 @@ def test_successful_empty_query_is_distinct_from_failure(monkeypatch):
     assert result["total"] == 0
     assert result["query"]["ok"] is True
     assert result["finding_count"] == 0
+
+
+def test_cluster_wide_mode_queries_all_namespaces(monkeypatch):
+    """WorkshopProvisions for user sandboxes live in per-user namespaces;
+    STARGATE_WORKSHOP_PROVISION_NAMESPACES=-A must query cluster-wide."""
+    ready = {
+        "type": "Ready",
+        "status": "True",
+        "reason": "Complete",
+        "message": "provision ready",
+        "lastTransitionTime": datetime.now(timezone.utc).isoformat(),
+    }
+    calls = []
+
+    def fake_query(args, timeout=60):
+        calls.append(list(args))
+        return ({"items": [_item(conditions=[ready])]}, {"ok": True})
+
+    monkeypatch.setenv("STARGATE_WORKSHOP_PROVISION_NAMESPACES", "-A")
+    monkeypatch.setattr(babylon_worker, "_oc_json_with_status", fake_query)
+
+    result = babylon_worker.collect_workshop_provisions()
+
+    assert calls == [["get", "workshopprovisions", "-A", "-o", "json"]]
+    assert result["total"] == 1
+    assert result["query"]["ok"] is True
+    assert result["state_counts"] == {"ready": 1}
+    assert len(result["succeeded"]) == 1
+    assert result["succeeded"][0]["name"] == "example-provision"

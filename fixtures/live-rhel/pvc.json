@@ -41,7 +41,7 @@
           "kubevirt.io/created-by": "797c4ac9-7f4a-4285-86a1-76dd4bc586a0"
         },
         "name": "rhel-2dclz",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "ownerReferences": [
           {
             "apiVersion": "cdi.kubevirt.io/v1beta1",
@@ -105,7 +105,7 @@
           "kubernetes.io/pvc-protection"
         ],
         "name": "showroom-terminal-lab-user-home",
-        "namespace": "sandbox-2dclz-zt-rhelbu",
+        "namespace": "sandbox-XXXXX-zt-rhelbu",
         "resourceVersion": "1331226139",
         "uid": "0757744c-707c-46f6-8115-c75263e18307"
       },

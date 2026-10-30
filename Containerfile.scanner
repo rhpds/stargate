@@ -17,6 +17,7 @@ COPY cli/ cli/
 COPY collectors/ collectors/
 COPY engine/ engine/
 COPY events/ events/
+COPY contracts/ contracts/
 COPY constraints/ constraints/
 COPY db/ db/
 COPY rubrics/ rubrics/

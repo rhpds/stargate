@@ -7,7 +7,7 @@
   "failed": 0,
   "gate_passed": true,
   "namespace": "stargate-test",
-  "cluster": "ocpv-infra01",
+  "cluster": "cluster-infra-1",
   "sa": "stargate-executor",
   "evidence": "Real oc create/scale/delete on infra01 stargate-test namespace. Rollback capture\u2192delete\u2192restore verified."
 }

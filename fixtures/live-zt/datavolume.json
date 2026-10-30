@@ -18,7 +18,7 @@
           "kubevirt.io/created-by": "1bf10219-6105-4d2a-8384-35a69ed0ef80"
         },
         "name": "control-zz95m",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -98,7 +98,7 @@
           "kubevirt.io/created-by": "80923046-8a4e-41ed-b9c3-343195219933"
         },
         "name": "dbserver-zz95m",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -178,7 +178,7 @@
           "kubevirt.io/created-by": "3596671e-ceb3-46d1-99be-decb474d2083"
         },
         "name": "haproxy-zz95m",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -258,7 +258,7 @@
           "kubevirt.io/created-by": "4d6b6cb7-c3f6-4aad-8d34-6f5735d99a33"
         },
         "name": "node01-zz95m",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",
@@ -338,7 +338,7 @@
           "kubevirt.io/created-by": "7ae7ab3b-7973-4f9c-902e-b55732b8e595"
         },
         "name": "windows-zz95m",
-        "namespace": "sandbox-zz95m-zt-ansiblebu",
+        "namespace": "sandbox-XXXXX-zt-ansiblebu",
         "ownerReferences": [
           {
             "apiVersion": "kubevirt.io/v1",

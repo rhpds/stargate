@@ -20,6 +20,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from contracts.outcome_contracts import ProvisionOutcome, resolve_provision_outcome
+
+# Contract outcome → failure-class string for WorkshopProvision findings.
+# The class strings are part of the taxonomy (failure-classes/workshop-provision.yaml);
+# resolution semantics live in contracts/outcome_contracts.py.
+WORKSHOP_PROVISION_CLASSES = {
+    ProvisionOutcome.FAILED: "workshop_provision_failed",
+    ProvisionOutcome.CONTROLLER_LAG: "workshop_provision_controller_lag",
+    ProvisionOutcome.STALLED: "workshop_provision_stalled",
+}
+
 SECRETS_DIR = Path(__file__).parent.parent / "secrets"
 _kc_default = SECRETS_DIR / "kubeconfig-ocp-us-east-1"
 KUBECONFIG = str(_kc_default if _kc_default.exists() else SECRETS_DIR / "kubeconfig")
@@ -203,19 +214,29 @@ def _parse_timestamp(value: str) -> Optional[datetime]:
 
 
 def collect_workshop_provisions() -> Dict:
-    """Collect actionable WorkshopProvision state from the Babylon control plane."""
-    namespaces = [
-        value.strip() for value in os.environ.get(
-            "STARGATE_WORKSHOP_PROVISION_NAMESPACES", "babylon-catalog-prod",
-        ).split(",") if value.strip()
+    """Collect actionable WorkshopProvision state from the Babylon control plane.
+
+    STARGATE_WORKSHOP_PROVISION_NAMESPACES selects the namespaces to query
+    (comma-separated), or "-A" for all namespaces. WorkshopProvisions for
+    user sandboxes live in per-user namespaces (user-*-redhat-com), so "-A"
+    is the correct setting for the RHDP control plane; the legacy default
+    covers the catalog namespace only.
+    """
+    raw_namespaces = os.environ.get(
+        "STARGATE_WORKSHOP_PROVISION_NAMESPACES", "babylon-catalog-prod",
+    )
+    cluster_wide = raw_namespaces.strip() == "-A"
+    namespaces = [] if cluster_wide else [
+        value.strip() for value in raw_namespaces.split(",") if value.strip()
     ]
     items = []
     namespace_queries = {}
-    for namespace in namespaces:
-        data, status = _oc_json_with_status(
-            ["get", "workshopprovisions", "-n", namespace, "-o", "json"], timeout=60,
-        )
-        namespace_queries[namespace] = status
+    query_targets = ["-A"] if cluster_wide else namespaces
+    for target in query_targets:
+        args = ["get", "workshopprovisions"]
+        args += ["-A"] if target == "-A" else ["-n", target]
+        data, status = _oc_json_with_status(args + ["-o", "json"], timeout=60)
+        namespace_queries[target] = status
         if data is not None:
             items.extend(data.get("items", []))
     failed_queries = {
@@ -237,6 +258,7 @@ def collect_workshop_provisions() -> Dict:
     now = datetime.now(timezone.utc)
     stall_hours = int(os.environ.get("STARGATE_WORKSHOP_PROVISION_STALL_HOURS", "1"))
     findings = []
+    succeeded = []
     state_counts: Dict[str, int] = {}
     for item in items:
         metadata = item.get("metadata", {})
@@ -259,22 +281,29 @@ def collect_workshop_provisions() -> Dict:
         )
         transition_age = (now - last_transition) if last_transition else None
 
-        failure_class = None
         condition = failed or ready or progressing or {}
-        if failed:
-            failure_class = "workshop_provision_failed"
-        elif generation is not None and observed_generation is not None and generation > observed_generation:
-            failure_class = "workshop_provision_controller_lag"
-        elif ready and ready.get("status") == "False" and transition_age and transition_age >= timedelta(hours=stall_hours):
-            failure_class = "workshop_provision_stalled"
-        elif not ready and age_hours is not None and age_hours >= stall_hours:
-            failure_class = "workshop_provision_stalled"
+        outcome = resolve_provision_outcome({
+            # Findings are only built from successful queries (failed queries
+            # return early above), so collection is healthy here.
+            "collection_ok": True,
+            "workshopprovision_failed_condition": failed is not None,
+            "controller_lag": (
+                generation is not None and observed_generation is not None
+                and generation > observed_generation
+            ),
+            "workshopprovision_stalled": bool(
+                (ready and ready.get("status") == "False" and transition_age
+                 and transition_age >= timedelta(hours=stall_hours))
+                or (not ready and age_hours is not None and age_hours >= stall_hours)
+            ),
+        })
+        failure_class = WORKSHOP_PROVISION_CLASSES.get(outcome)
 
         state = "failed" if failed else "ready" if ready and ready.get("status") == "True" else "pending"
         state_counts[state] = state_counts.get(state, 0) + 1
+        labels = metadata.get("labels", {}) or {}
+        owner_refs = metadata.get("ownerReferences", []) or []
         if failure_class:
-            labels = metadata.get("labels", {}) or {}
-            owner_refs = metadata.get("ownerReferences", []) or []
             findings.append({
                 "name": metadata.get("name", ""),
                 "namespace": metadata.get("namespace", ""),
@@ -289,12 +318,20 @@ def collect_workshop_provisions() -> Dict:
                 "catalog_item": labels.get("babylon.gpte.redhat.com/catalogItemName", spec.get("catalogItem", "")),
                 "conditions": conditions,
             })
+        if state == "ready":
+            succeeded.append({
+                "name": metadata.get("name", ""),
+                "namespace": metadata.get("namespace", ""),
+                "owner": owner_refs[0].get("name", "") if owner_refs else "",
+                "catalog_item": labels.get("babylon.gpte.redhat.com/catalogItemName", spec.get("catalogItem", "")),
+            })
 
     return {
         "query": query,
         "total": len(items),
         "state_counts": state_counts,
         "finding_count": len(findings),
+        "succeeded": succeeded,
         "stall_threshold_hours": stall_hours,
         "findings": findings,
     }
@@ -604,12 +641,15 @@ def run_collection() -> Dict:
         results["demolition"] = {"error": str(e)}
         print(f"    Demolition error: {e}")
 
-    # Monitoring gap detectors — stuck teardowns + resource leaks
-    kubeconfig = os.environ.get("STARGATE_EXECUTOR_KUBECONFIG", "")
+    # Monitoring gap detectors — stuck teardowns + resource leaks. These
+    # observe the Babylon control plane (AnarchySubjects live in the sharded
+    # babylon-anarchy-* namespaces there), NOT the executor's stargate-test
+    # scope: default to the worker's control-plane kubeconfig, overridable.
+    gap_kubeconfig = os.environ.get("STARGATE_GAP_KUBECONFIG", KUBECONFIG)
     print("  Detecting stuck teardowns...")
     try:
         from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
-        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=kubeconfig)
+        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=gap_kubeconfig)
         st = results["stuck_teardowns"]
         print(f"    {st.get('stuck_count', 0)} stuck (threshold {st.get('threshold_hours', 2)}h)")
     except Exception as e:
@@ -619,7 +659,7 @@ def run_collection() -> Dict:
     print("  Detecting resource leaks...")
     try:
         from collectors.cleanup.collect_leaks import detect_resource_leaks
-        results["resource_leaks"] = detect_resource_leaks(kubeconfig=kubeconfig)
+        results["resource_leaks"] = detect_resource_leaks(kubeconfig=gap_kubeconfig)
         rl = results["resource_leaks"]
         print(f"    {rl.get('orphaned_count', 0)} orphaned PVs ({rl.get('orphaned_capacity_gi', 0)} Gi)")
     except Exception as e:
@@ -629,7 +669,7 @@ def run_collection() -> Dict:
     print("  Checking operator health...")
     try:
         from collectors.cleanup.collect_operator_health import detect_operator_issues
-        results["operator_health"] = detect_operator_issues(kubeconfig=kubeconfig)
+        results["operator_health"] = detect_operator_issues(kubeconfig=gap_kubeconfig)
         oh = results["operator_health"]
         print(f"    {oh.get('unhealthy_count', 0)} unhealthy operator pods across {len(oh.get('namespaces_checked', []))} namespaces")
     except Exception as e:

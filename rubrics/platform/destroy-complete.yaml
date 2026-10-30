@@ -1,0 +1,48 @@
+id: destroy-complete
+version: v0.1.0
+stage: destroy-complete
+timeout_seconds: 120
+entry_criteria: []
+exit_criteria:
+  - name: destroy_job_succeeded
+    required: true
+  - name: anarchysubject_gone
+    required: true
+  - name: namespace_gone
+    required: false
+  - name: pvs_released
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  destroy_failed:
+    when:
+      - destroy_job_succeeded == false
+    recommended_action: inspect_destroy_job
+  teardown_incomplete:
+    when:
+      - destroy_job_succeeded == true
+      - anarchysubject_gone == false
+    recommended_action: inspect_anarchy_destroy_state
+  teardown_namespace_lingering:
+    when:
+      - anarchysubject_gone == true
+      - namespace_gone == false
+    recommended_action: investigate_stuck_teardown
+  resource_leak_pv:
+    when:
+      - anarchysubject_gone == true
+      - pvs_released == false
+    recommended_action: investigate_resource_leak
+allowed_remediations:
+  - inspect_destroy_job
+  - inspect_anarchy_destroy_state
+  - investigate_stuck_teardown
+  - investigate_resource_leak
+forbidden_remediations:
+  - delete_namespace

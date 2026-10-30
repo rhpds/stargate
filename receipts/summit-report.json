@@ -419,7 +419,7 @@
   },
   "correlation": [],
   "aap": {
-    "event0": "https://event0.apps.ocpv-infra01.dal12.infra.demo.redhat.com",
+    "event0": "https://event0.apps.cluster-infra-1.region-a.infra.demo.redhat.com",
     "total_jobs": 9024,
     "total_failed": 992,
     "overall_success_rate": 88.3,

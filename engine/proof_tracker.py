@@ -96,7 +96,12 @@ class ProofTracker:
         else:
             fc["status"] = "FAILED"
             fc["cycles_failed"] += 1
+            # Gate decays with consecutive passes: a proven class that starts
+            # failing loses its promotion (proven_ever keeps the history).
+            if fc.get("gate") in ("full_auto", "investigation_proven", "low_risk_auto"):
+                fc["proven_ever"] = True
             fc["consecutive_passes"] = 0
+            fc["gate"] = "manual"
         fc["history"].append({
             "event": "verified", "ts": datetime.now(timezone.utc).isoformat(),
             "clean": clean, "evidence": evidence,
@@ -117,7 +122,10 @@ class ProofTracker:
         else:
             fc["status"] = "FAILED"
             fc["cycles_failed"] += 1
+            if fc.get("gate") in ("full_auto", "investigation_proven", "low_risk_auto"):
+                fc["proven_ever"] = True
             fc["consecutive_passes"] = 0
+            fc["gate"] = "manual"
         fc["history"].append({
             "event": "investigation_verified", "ts": datetime.now(timezone.utc).isoformat(),
             "detection_correct": detection_correct, "evidence": evidence,
@@ -140,11 +148,31 @@ class ProofTracker:
         return self._get_fc(failure_class)["status"]
 
     def get_summary(self) -> Dict:
+        """Summary by accumulated proof state (gate), not current cycle phase.
+
+        status reflects the phase of the cycle currently in flight
+        (INJECTED/DETECTED/VERIFIED) and resets to INJECTED when the next
+        cycle starts, so counting it reported 0 proven forever while the
+        table showed classes at proven gates. Accumulated proof is the gate:
+        full_auto / investigation_proven have met the consecutive-pass
+        threshold; low_risk_auto has at least one pass.
+        """
         fcs = self._data["failure_classes"]
         return {
             "total": len(fcs),
-            "proven": sum(1 for fc in fcs.values() if fc["status"] == "PROVEN"),
-            "verified": sum(1 for fc in fcs.values() if fc["status"] == "VERIFIED"),
-            "untested": sum(1 for fc in fcs.values() if fc["status"] == "UNTESTED"),
-            "failed": sum(1 for fc in fcs.values() if fc["status"] == "FAILED"),
+            "proven": sum(
+                1 for fc in fcs.values()
+                if fc.get("gate") in ("full_auto", "investigation_proven")
+            ),
+            "proven_remediation": sum(
+                1 for fc in fcs.values() if fc.get("gate") == "full_auto"
+            ),
+            "proven_detection": sum(
+                1 for fc in fcs.values() if fc.get("gate") == "investigation_proven"
+            ),
+            "passed_not_proven": sum(
+                1 for fc in fcs.values() if fc.get("gate") == "low_risk_auto"
+            ),
+            "failed": sum(1 for fc in fcs.values() if fc.get("status") == "FAILED"),
+            "proven_ever": sum(1 for fc in fcs.values() if fc.get("proven_ever")),
         }

@@ -17,6 +17,8 @@ from sqlalchemy.orm import Session
 
 import re as _re
 
+from engine.llm_json import parse_llm_json
+
 logger = logging.getLogger("stargate.auto_llm")
 
 MAX_CALLS_PER_CYCLE = 20
@@ -194,7 +196,18 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
     except Exception:
         pass
 
-    evidence_parts.append("""## Known Failure Classes
+    # Known classes from the taxonomy — the same list the qualification
+    # flywheel measured (91.7% for the deployed model). The previous
+    # hardcoded sandbox list drifts from the taxonomy and starves the
+    # classifier of most known classes.
+    try:
+        from engine.failure_class_loader import get_all_classes
+        class_names = sorted(c["name"] for c in get_all_classes())
+        evidence_parts.append(
+            "## Known Failure Classes\n- " + ", ".join(class_names)
+        )
+    except Exception:
+        evidence_parts.append("""## Known Failure Classes
 - pods_not_ready, pods_crashlooping, deployment_missing, route_missing
 - service_missing, service_has_no_endpoints, namespace_missing
 - datavolume_missing, datavolume_not_ready, datavolume_failed
@@ -205,11 +218,19 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
     evidence = "\n\n".join(evidence_parts)
 
     _classify_prompt = load_prompt("classify")
+    # Render the prompt's task/format template — the output contract the
+    # qualification flywheel measured. Sending evidence alone (the previous
+    # behavior) left the model to invent its own JSON schema, which failed
+    # the quality gate on every call (observed 2026-10-29: "classified 0,
+    # errors 20" with responses shaped as {"failure_classification": ...}).
+    user_content = (
+        _classify_prompt.get("user_template", "{evidence}").replace("{evidence}", evidence)
+    )
     llm_result = call_llm(
         endpoint="classify",
         messages=[
             {"role": "system", "content": _classify_prompt.get("system", "You are a failure classification expert for OpenShift lab environments. Respond with valid JSON only.")},
-            {"role": "user", "content": evidence},
+            {"role": "user", "content": user_content},
         ],
         max_tokens=_classify_prompt.get("max_tokens", 500),
         temperature=_classify_prompt.get("temperature", 0.1),
@@ -223,16 +244,30 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
         logger.warning(f"LLM classify failed: {llm_result.get('error')}")
         return None
 
-    # Quality gate — evaluate response across TDD/EDD/CDD/BDD dimensions
+    # Quality gate — evaluate response across TDD/EDD/CDD/BDD dimensions.
+    # The evidence dict mirrors the evaluator's designed shape (short
+    # citation keys + stage/message); the production-shaped keys alone made
+    # the citation checks unverifiable.
     from engine.llm_quality_gate import check_response_quality
     quality_passed, quality_result = check_response_quality(
         prompt_type="classify",
         response=llm_result["content"],
-        evidence={"raw": evidence, "stage_id": str(ev.stage_id), "message": ev.message or ""},
+        evidence={
+            "raw": evidence,
+            "stage_id": str(ev.stage_id),
+            "message": ev.message or "",
+            "lab_code": ev.lab_code,
+            "cluster_name": ev.cluster_name,
+            "failure_class": ev.failure_class,
+        },
         metadata={"lab_code": ev.lab_code, "cluster_name": ev.cluster_name},
     )
     quality_outcome = quality_result.overall_outcome.value if quality_result else None
-    quality_details = quality_result.model_dump() if quality_result else None
+    # mode="json": the result carries a timestamp datetime, and the plain
+    # model_dump() left it unserializable — every quality-passing classify
+    # crashed the proposal INSERT with "Object of type datetime is not JSON
+    # serializable" (the reason no proposal had persisted since June 2).
+    quality_details = quality_result.model_dump(mode="json") if quality_result else None
 
     if not quality_passed:
         logger.warning("LLM quality gate REJECTED for %s/%s: outcome=%s",
@@ -242,13 +277,17 @@ def _classify_failure(db: Session, ev) -> Optional[Dict]:
     proposed_class = ev.failure_class or "unknown"
     conditions = []
     confidence = 0.0
-    try:
-        parsed = json.loads(llm_result["content"])
-        proposed_class = parsed.get("proposed_class", proposed_class)
-        conditions = parsed.get("conditions", [])
-        confidence = parsed.get("confidence", 0.0)
-    except (json.JSONDecodeError, ValueError):
-        pass
+    parsed = parse_llm_json(llm_result["content"])
+    if parsed:
+        candidate = parsed.get("proposed_class")
+        if isinstance(candidate, str) and _re.match(r"^[a-z][a-z0-9_]*$", candidate.strip()):
+            proposed_class = candidate.strip()
+        raw_conditions = parsed.get("conditions")
+        if isinstance(raw_conditions, list):
+            conditions = raw_conditions
+        raw_confidence = parsed.get("confidence")
+        if isinstance(raw_confidence, (int, float)) and not isinstance(raw_confidence, bool):
+            confidence = float(raw_confidence)
 
     proposal = ProposedClassification(
         run_id=ev.run_id,

@@ -70,7 +70,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       throw new Error(`Rate limited — retry after ${retryAfter}s`);
     }
     if (response.status === 403) {
-      if (response.url.includes('/admin/')) {
+      // Response.url is a string in browsers but can be undefined in
+      // polyfills/mocks; guard before inspecting the path.
+      const url = response.url || '';
+      if (url.includes('/admin/')) {
         throw new Error('Session expired — please refresh the page to re-authenticate');
       }
       throw new Error('Unauthorized — check API key');

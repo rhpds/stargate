@@ -200,7 +200,7 @@ classes:
       - "oc describe pod {pod} -n {namespace} | grep -A10 Events"
 
   teardown_stuck:
-    pattern: "(destroy.*failed|destroying.*stuck|teardown.*timeout|AnarchySubject.*destroy)"
+    pattern: "(destroying.*stuck|stuck in destroying|teardown.*timeout|teardown.*stuck|destroy-stuck)"
     severity: high
     remediation:
       - Check AnarchySubject state in babylon-anarchy-events namespace
