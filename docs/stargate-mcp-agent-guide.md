@@ -45,7 +45,7 @@ For clients that need a command instead of a URL, wrap it with `mcp-remote`
 or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 (initialize → tools/list → tools/call).
 
-## The tools (10 total)
+## The tools (11 total)
 
 ### Query tools (read-only)
 
@@ -59,6 +59,7 @@ or any Streamable-HTTP client shim; the endpoint speaks standard MCP
 | **get_failure_classes** | The failure taxonomy: classes, patterns, severity, remediation guidance |
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
+| **get_cluster_saturation** | Which clusters show the capacity-saturation signature (rate spike + diverse symptoms + labs failing here while passing elsewhere), with severity and remediation guidance |
 
 ### Review tools (opinions only — no execution)
 

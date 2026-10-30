@@ -48,9 +48,11 @@ signature present in captured evidence.**
 
 ## Follow-up work
 
-- `cluster_capacity_saturated` requires cluster-context correlation (many diverse
-  symptom failures on one cluster in one window = saturation), not single-message
-  regex. Candidate for the correlation layer, not the pattern matcher.
+- ~~`cluster_capacity_saturated` requires cluster-context correlation~~ — **BUILT**:
+  `engine/cluster_saturation.py` + `GET /dashboard/saturation` + MCP tool
+  `get_cluster_saturation`. Correlation signature: rate spike vs own baseline +
+  symptom diversity + lab differential. Validated against this incident (see
+  retrospective run below).
 - Pre-flight failures (incident #5) are structurally invisible to AAP-log collection.
   A Catalog/Babylon-side pre-flight event feed would close this.
 - Billy's 90-day analysis is the human equivalent of StarGate's reliability dashboard.
