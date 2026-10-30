@@ -233,3 +233,38 @@ classes:
       - Check operator conditions
       - "oc get csv -n {namespace}"
       - "oc get events -n {namespace} --field-selector=type=Warning"
+
+  operator_retry_exhausted:
+    pattern: "(retry.*exhausted|retries.*exceeded|max.*retries|retry.*limit|RETRY_LIMIT)"
+    description: "OpenShift operator exhausted its retry limit — intermittent AgnosticD operator failures where retry logic gives up before success (validated against Confluence)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Check the operator's retry count configuration
+      - "Consider increasing retries or moving retry variables to AgnosticV (per Confluence recommendation)"
+      - "oc get csv -n {namespace} to check operator health"
+      - Check if the failure is transient (retry succeeded on next attempt)
+
+  certificate_lets_encrypt:
+    pattern: "(Let'?s Encrypt|letsencrypt|acme.*challenge|acme.*fail|LE.*rate.limit)"
+    description: "Let's Encrypt certificate issuance or renewal failure — rate limits, ACME challenge failures, or service misconfiguration (validated against Confluence)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - Check Let's Encrypt rate limits for the domain
+      - Verify ACME challenge DNS/HTTP configuration
+      - Check if cert-manager is handling the certificate (migration in progress per Confluence)
+      - "oc get certificate -n {namespace}"
+      - "oc describe certificate -n {namespace}"
+
+  certificate_cert_manager:
+    pattern: "(cert-manager.*fail|certificaterequest.*denied|certificaterequest.*fail|cert-manager.*error)"
+    description: "cert-manager certificate issuance failure — cert-manager itself failing (distinct from Let's Encrypt upstream issues; validated against Confluence)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - Check cert-manager pod health
+      - "oc get certificaterequest -n {namespace}"
+      - "oc describe certificaterequest -n {namespace}"
+      - Check cert-manager issuer/clusterissuer configuration
+      - Review cert-manager events for the specific failure reason
