@@ -268,3 +268,36 @@ classes:
       - "oc describe certificaterequest -n {namespace}"
       - Check cert-manager issuer/clusterissuer configuration
       - Review cert-manager events for the specific failure reason
+
+  olm_snapshot_stale:
+    pattern: "(catalog.*snapshot.*stale|snapshot.*from.*used|CatalogSource.*stale|subscription.*cannot resolve|InstallPlan.*not.*created)"
+    description: "OLM catalog snapshot is date-pinned and went stale — operator shipped a new version but the subscription cannot resolve against the old snapshot (validated: RHDPOPS-24487 snapshot from Aug 31 used Sep 29; RHDPOPS-24480 devworkspace-operator never resolved; RHDPOPS-24495 InstallPlan not created after 30 retries)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Check CatalogSource snapshot age: oc get catalogsource -n openshift-marketplace"
+      - "Stale snapshot + cluster load compounds: subscription spins without resolving"
+      - "Fix: rolling or version-pinned OLM snapshot updates"
+      - "This is distinct from CSV propagation timeout — the catalog itself is outdated"
+
+  operator_channel_changed:
+    pattern: "(operator.*channel.*changed|channel.*pipelines-|subscription.*channel.*upstream|OLM subscription.*break)"
+    description: "Upstream operator channel changed and broke the OLM subscription during deployment — a moving dependency, not outdated content (validated: Camel workshop GPTEINFRA-17464 — OpenShift Pipelines operator channel changed upstream; fix PR agnosticv#27528 pinned pipelines-1.17)"
+    severity: medium
+    team: lab-developer
+    remediation:
+      - "Pin the operator channel in AgnosticV (one-line fix)"
+      - "Variablize the channel for easier future updates"
+      - "Broken is not outdated — investigate before retiring the item"
+      - "Check: oc get subscription -n {namespace}"
+
+  ceph_near_full:
+    pattern: "(ceph.*near.*full|blockpool.*near.*full|ceph.*health.*HEALTH_WARN.*full|osd.*above.*full ratio|nearfull)"
+    description: "Ceph/ODF storage approaching capacity — starts refusing writes at threshold, PVC-dependent provisions hang (validated: ocpvdev01 Ceph blockpool near-full RHDPOPS-24130 Blocker; ocpvirt3 24 PVCs stuck Pending 8 days GPTEINFRA-17674; Confluence 501907733 issue 6)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Check Ceph health and capacity: ceph health detail, ceph df"
+      - "oc get storagecluster -n openshift-storage"
+      - "Team gap: alerts fire at near-full, needed at 70% headroom"
+      - "Free space or add capacity before PVC creation hangs fleet-wide"

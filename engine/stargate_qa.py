@@ -61,6 +61,27 @@ _DOC_FILES = (
     "confluence/environment-level-annotation-missing.md",
     "confluence/infrastructure-pain-points.md",
     "incident-validation-2026-10.md",
+    # Ops workflows, runbooks, and monitor catalog (read-only)
+    "confluence/workflow-destroy-failure-triage.md",
+    "confluence/workflow-failed-item-triage.md",
+    "confluence/workflow-jsm-customer-tickets.md",
+    "confluence/rhdp-cloud-alerts-jsm-response-guide.md",
+    "confluence/self-paced-multi-asset-labs-ops-guide.md",
+    "confluence/fix-it-dont-retire-it.md",
+    "confluence/rhdp-event-ops-runbook-master-plan.md",
+    "confluence/during-event-workshop-healthcheck-runbook.md",
+    "confluence/cloud-guardrails-overview.md",
+    "confluence/controller-scheduler-migration.md",
+    "confluence/ocp-shared-cluster-scheduling.md",
+    "confluence/summit-retest-tenant-lab-handover.md",
+    "confluence/summit-2026-retest-failures-feedback.md",
+    "confluence/rh1-ai-deployment-testing.md",
+    "confluence/fleetview-cnv-capacity-cost-planning.md",
+    "confluence/fix-cnv-paused-vms-recovery-toolkit.md",
+    "confluence/rhdp-ops-sla-health-monitoring.md",
+    "confluence/infrastructure-monitoring-alerting-metrics-logging.md",
+    "confluence/monitor-rhdp-aap2-jobs-status.md",
+    "confluence/custommonitor-ceph-monitoring.md",
 )
 
 _STOPWORDS = {
