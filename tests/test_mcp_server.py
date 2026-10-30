@@ -126,3 +126,127 @@ class TestMCPEndpointAuth:
     def test_other_paths_unaffected(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
+
+
+class TestMCPServerReviewTools:
+    """Review tools: opinions only, zero execution."""
+
+    def test_review_and_comment_are_registered(self):
+        import asyncio
+        from api.mcp_server import mcp
+        tools = asyncio.run(mcp.list_tools())
+        names = {t.name for t in tools}
+        assert "review_diagnosis" in names
+        assert "comment_action" in names
+
+    def test_review_nonexistent_investigation(self, db, monkeypatch):
+        from api.mcp_server import review_diagnosis
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        result = review_diagnosis(99999, True, "test")
+        assert "ERROR" in result
+        assert "not found" in result
+
+    def test_comment_nonexistent_action(self, db, monkeypatch):
+        from api.mcp_server import comment_action
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        result = comment_action(99999, "test comment")
+        assert "ERROR" in result
+
+    def test_comment_empty_rejected(self):
+        from api.mcp_server import comment_action
+        result = comment_action(1, "")
+        assert "ERROR" in result
+
+    def test_review_creates_knowledge_entry(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from datetime import datetime, timezone
+        from db.models import InvestigationRecord, KnowledgeEntry
+        from api.mcp_server import review_diagnosis
+
+        inv = InvestigationRecord(
+            job_id="job-review-test", lab_code="sandbox-review",
+            cluster="ocpv06", namespace="sandbox-review",
+            failure_class="pods_crashlooping", trigger_type="auto_anomalous",
+            status="complete", triggering_eval_id=None,
+            created_at=datetime.now(timezone.utc),
+            root_cause="database dependency unreachable",
+            remediation_suggestion="restart the deployment",
+        )
+        db.add(inv)
+        db.commit()
+
+        result = review_diagnosis(inv.id, True, "confirmed by ops")
+        assert "APPROVED" in result
+        assert "knowledge base" in result
+
+        entry = db.query(KnowledgeEntry).filter(
+            KnowledgeEntry.investigation_id == inv.id).one()
+        assert entry.root_cause == "database dependency unreachable"
+        assert entry.remediation == "restart the deployment"
+        assert entry.active is True
+        assert entry.reviewed_by.startswith("mcp:")
+
+    def test_review_rejected_no_knowledge(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from datetime import datetime, timezone
+        from db.models import InvestigationRecord, KnowledgeEntry
+        from api.mcp_server import review_diagnosis
+
+        inv = InvestigationRecord(
+            job_id="job-review-reject", lab_code="sandbox-reject",
+            cluster="ocpv06", namespace="sandbox-reject",
+            failure_class="oom_killed", trigger_type="auto_anomalous",
+            status="complete", triggering_eval_id=None,
+            created_at=datetime.now(timezone.utc),
+            root_cause="memory limit too low",
+            remediation_suggestion="increase memory limit",
+        )
+        db.add(inv)
+        db.commit()
+
+        result = review_diagnosis(inv.id, False, "wrong diagnosis")
+        assert "REJECTED" in result
+        assert "not be used" in result
+
+        entries = db.query(KnowledgeEntry).filter(
+            KnowledgeEntry.investigation_id == inv.id).count()
+        assert entries == 0
+
+    def test_review_idempotent(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from datetime import datetime, timezone
+        from db.models import InvestigationRecord, KnowledgeEntry
+        from api.mcp_server import review_diagnosis
+
+        inv = InvestigationRecord(
+            job_id="job-review-idem", lab_code="sandbox-idem",
+            cluster="ocpv06", namespace="sandbox-idem",
+            failure_class="pods_crashlooping", trigger_type="auto_anomalous",
+            status="complete", triggering_eval_id=None,
+            created_at=datetime.now(timezone.utc),
+            root_cause="bad image tag",
+            remediation_suggestion="fix the image tag",
+            review_state="reviewed",
+        )
+        db.add(inv)
+        db.flush()
+
+        # Create the published knowledge entry (as if already reviewed)
+        entry = KnowledgeEntry(
+            signature="sandbox-idem:pods_crashlooping", version=1, active=True,
+            root_cause="bad image tag", remediation="fix the image tag",
+            provenance={"investigation_id": inv.id},
+            investigation_id=inv.id,
+            reviewed_by="mcp:test", reviewed_at=datetime.now(timezone.utc),
+        )
+        db.add(entry)
+        db.commit()
+
+        # Second review of already-reviewed + published investigation
+        result = review_diagnosis(inv.id, True, "confirming again")
+        assert "already reviewed" in result

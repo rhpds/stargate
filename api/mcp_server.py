@@ -133,6 +133,145 @@ def get_failure_classes() -> str:
 
 
 @mcp.tool()
+def review_diagnosis(investigation_id: int, approved: bool, notes: str = "") -> str:
+    """Review a diagnosis: record your agreement or disagreement. This is an
+    opinion only — it does NOT execute anything, touch any cluster, or
+    trigger remediation. Approved diagnoses with a root cause and
+    remediation suggestion are published to the knowledge base (versioned,
+    attributed to you) so future investigations benefit from what you've
+    confirmed. Rejected diagnoses are marked for re-examination.
+
+    Provide the investigation_id (from query_evaluations, get_causal_chain,
+    or ask), whether you approve (true/false), and optional notes explaining
+    your reasoning.
+    """
+    import hashlib
+    from datetime import datetime, timezone
+    from db.database import get_session_factory
+    from db.models import InvestigationRecord, KnowledgeEntry
+
+    db = _db()
+    _owns_session = True
+    try:
+        inv = db.query(InvestigationRecord).filter(
+            InvestigationRecord.id == investigation_id).first()
+        if not inv:
+            return f"ERROR: investigation {investigation_id} not found"
+
+        # Idempotent: skip if already reviewed AND published
+        if inv.review_state == "reviewed":
+            existing = db.query(KnowledgeEntry).filter(
+                KnowledgeEntry.investigation_id == investigation_id,
+                KnowledgeEntry.active == True,
+            ).first()
+            if existing:
+                return (
+                    f"Investigation {investigation_id} already reviewed and published "
+                    f"as knowledge entry v{existing.version} by {existing.reviewed_by}. "
+                    f"No changes made."
+                )
+
+        # Record the review on the investigation
+        inv.review_state = "reviewed" if approved else "rejected"
+        inv.reviewed_at = datetime.now(timezone.utc)
+        reviewer_id = "mcp:" + hashlib.sha256(
+            __import__("os").environ.get("_MCP_CALLER_KEY", "unknown").encode()
+        ).hexdigest()[:8]
+
+        result_parts = [f"Review recorded for investigation {investigation_id}: {'APPROVED' if approved else 'REJECTED'}"]
+
+        # If approved and we have a diagnosis, publish to the knowledge base
+        if approved and inv.root_cause and inv.remediation_suggestion:
+            signature = f"{inv.lab_code}:{inv.failure_class}".lower()
+            prior = db.query(KnowledgeEntry).filter_by(
+                signature=signature, active=True
+            ).order_by(KnowledgeEntry.version.desc()).first()
+            version = (prior.version + 1) if prior else 1
+            now = datetime.now(timezone.utc)
+            if prior:
+                prior.active = False
+                prior.retired_at = now
+            entry = KnowledgeEntry(
+                signature=signature, version=version, active=True,
+                root_cause=inv.root_cause,
+                remediation=inv.remediation_suggestion,
+                metadata_json={"lab_code": inv.lab_code, "failure_class": inv.failure_class,
+                              "review_notes": notes[:500] if notes else None},
+                provenance={"investigation_id": inv.id, "job_id": inv.job_id,
+                           "evidence_hash": inv.evidence_hash},
+                confidence=(inv.trust_dimensions or {}).get("confidence"),
+                investigation_id=inv.id,
+                reviewed_by=reviewer_id, reviewed_at=now,
+            )
+            db.add(entry)
+            result_parts.append(
+                f"Published to knowledge base as {signature} v{version}. "
+                f"Future investigations for this failure class will reference this diagnosis."
+            )
+        elif approved:
+            result_parts.append(
+                "NOTE: this investigation has no root_cause/remediation_suggestion, "
+                "so nothing was published to the knowledge base. The review is recorded."
+            )
+        else:
+            result_parts.append(
+                "Marked as rejected. This diagnosis will not be used as reference knowledge."
+            )
+
+        if notes:
+            result_parts.append(f"Notes: {notes[:200]}")
+
+        db.commit()
+        return " | ".join(result_parts)
+    except Exception as error:
+        db.rollback()
+        return f"ERROR reviewing diagnosis: {str(error)[:200]}"
+
+
+@mcp.tool()
+def comment_action(action_id: int, comment: str) -> str:
+    """Add a comment to a pending remediation action. Your comment is
+    visible to whoever reviews or approves the action in the dashboard.
+    This does NOT approve, reject, or execute anything — it's context
+    for the human approver.
+
+    Provide the action_id (from get_causal_chain or ask) and your comment.
+    """
+    from datetime import datetime, timezone
+    from db.database import get_session_factory
+    from db.models import PendingAction
+
+    if not comment or not comment.strip():
+        return "ERROR: comment cannot be empty"
+
+    db = _db()
+    try:
+        action = db.query(PendingAction).filter(PendingAction.id == action_id).first()
+        if not action:
+            return f"ERROR: action {action_id} not found"
+
+        params = dict(action.parameters or {})
+        comments = params.get("reviewer_comments", [])
+        comments.append({
+            "comment": comment.strip()[:500],
+            "at": datetime.now(timezone.utc).isoformat(),
+            "via": "mcp",
+        })
+        params["reviewer_comments"] = comments
+        action.parameters = params
+        db.commit()
+
+        return (
+            f"Comment added to action {action_id} ({action.action_type} → {action.target}). "
+            f"The approver will see it when reviewing this action. "
+            f"This does NOT approve or execute anything."
+        )
+    except Exception as error:
+        db.rollback()
+        return f"ERROR adding comment: {str(error)[:200]}"
+
+
+@mcp.tool()
 def get_proof_matrix() -> str:
     """Proof-lab state: per failure class — status, cycles, consecutive
     passes, gate (full_auto = remediation-proven, investigation_proven =
