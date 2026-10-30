@@ -251,6 +251,21 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_recent_changes",
+            "description": "GitHub PRs merged in the platform repos and Jira tickets updated recently, optionally correlated to a lab's failure onset. RHDP has no formal change management — this is the change record. Per the Failed Item Triage workflow, ALWAYS check this before concluding a failure is novel: a merged AgnosticV PR or a resolved RHDPOPS/GPTEINFRA ticket in the 72h before onset is often the root cause (documented examples: agnosticv#28356 pin fix, RHDPOPS-24554 account bloat, GPTEINFRA-18139 image pull denied).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lab_code": {"type": "string", "description": "Optional lab code — correlates changes to that lab's failure onset (path-matched PRs, tickets mentioning the lab)"},
+                    "lookback_hours": {"type": "integer", "description": "PR lookback window in hours (default 72)"},
+                },
+                "required": [],
+            },
+        },
+    },
 ]
 
 
@@ -723,6 +738,8 @@ def _dispatch_tool(name: str, args: Dict, cluster: str, kubeconfig_dir: str) -> 
         return tool_get_storage_diagnosis(args.get("namespace", ""), cluster, kubeconfig_dir)
     elif name == "query_lifecycle_outcomes":
         return tool_query_lifecycle_outcomes(args.get("namespace", ""), args.get("days", 14))
+    elif name == "query_recent_changes":
+        return tool_query_recent_changes(args.get("lab_code", ""), args.get("lookback_hours", 72))
     elif name == "list_reclamation_artifacts":
         return tool_list_reclamation_artifacts(args.get("namespace", ""), cluster, kubeconfig_dir)
     else:
@@ -742,6 +759,9 @@ Investigation strategy:
 4. Use get_lab_identity result to find the AgnosticV config, then fetch_github_file to read it
 5. Check resolution history to see if this is a known pattern
 6. Check pool status if the issue might be capacity-related
+7. Before concluding a failure is novel, call query_recent_changes with the lab code —
+   a merged AgnosticV PR or resolved RHDPOPS/GPTEINFRA ticket in the 72h before onset
+   is often the root cause (RHDP has no formal change management; this IS the change record)
 
 Failure-class playbooks (follow EVERY step — do not stop early):
 - pods_crashlooping: Check which container is failing (init or main), get its logs, find the GIT_REPO_URL env var — that's where the fix goes
@@ -1151,3 +1171,54 @@ def _call_llm_with_tools(
                 db.commit()
             except Exception as metric_error:
                 logger.debug("Failed to persist tool-call metric: %s", metric_error)
+
+
+def tool_query_recent_changes(lab_code: str = "", lookback_hours: int = 72) -> str:
+    """Recent GitHub PRs and Jira tickets, optionally correlated to a lab's onset."""
+    try:
+        from engine.github_changes import correlate_changes_for_lab, list_recent_changes
+        from engine.jira_changes import correlate_issues_for_lab, list_recent_incidents
+
+        if lab_code:
+            from db.database import get_session_factory
+            factory = get_session_factory()
+            db = factory()
+            try:
+                prs = correlate_changes_for_lab(db, lab_code, lookback_hours=lookback_hours)
+                issues = correlate_issues_for_lab(
+                    db, lab_code, lookback_hours=max(lookback_hours * 2, 168)
+                )
+            finally:
+                db.close()
+            lines = [f"Change correlation for {lab_code} (failure onset: {prs.get('onset') or 'not determined'}):"]
+            lines.append(f"  PRs merged in {lookback_hours}h before onset: {prs['prs_merged_in_window']} "
+                         f"({prs['lab_specific_changes']} lab-path match, {prs['fleet_wide_changes']} fleet-wide)")
+            for pr in prs.get("changes", [])[:10]:
+                match = ", ".join(pr.get("matching_files", [])[:3]) or pr.get("correlation", "")
+                lines.append(f"    {pr['repo']}#{pr['number']} [{pr.get('correlation')}] {pr['title'][:65]} "
+                             f"(merged {pr['merged_at'][:16]} by {pr['author']}) {match[:80]}")
+            if not prs.get("changes"):
+                lines.append(f"    {prs.get('note', 'no matching PRs')}")
+            if issues.get("issues"):
+                lines.append(f"  Jira issues mentioning this lab ({len(issues['issues'])}):")
+                for i in issues["issues"][:10]:
+                    align = "; ".join(i.get("alignment", [])) or "no temporal alignment"
+                    lines.append(f"    {i['key']} [{i['status']}] {i['summary'][:60]} — {align}")
+            else:
+                lines.append(f"    Jira: {issues.get('note', 'no matching tickets')}")
+            return "\n".join(lines)
+
+        prs = list_recent_changes(hours=lookback_hours)
+        incidents = list_recent_incidents(hours=max(lookback_hours, 168))
+        lines = [f"Recent changes (PRs last {lookback_hours}h, tickets last 7d):"]
+        for pr in prs.get("merged_prs", [])[:12]:
+            lines.append(f"    {pr['repo']}#{pr['number']} {pr['title'][:70]} (merged {pr['merged_at'][:16]})")
+        for i in incidents.get("issues", [])[:12]:
+            lines.append(f"    {i['key']} [{i['status']}] {i['summary'][:65]}")
+        if not prs.get("merged_prs"):
+            lines.append("    GitHub: no merged PRs in window (or API unavailable)")
+        if not incidents.get("issues"):
+            lines.append("    Jira: no updated tickets (or credentials not configured)")
+        return "\n".join(lines)
+    except Exception as e:  # noqa: BLE001 — tool must never crash the agent loop
+        return f"change query failed: {e}"
