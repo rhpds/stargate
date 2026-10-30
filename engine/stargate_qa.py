@@ -18,9 +18,12 @@ does not answer the question. Read-only; no remediation authority.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import os
 import re
+import time as _time
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("stargate.qa")
@@ -187,10 +190,6 @@ _ANSWER_CONTRACT = (
     "under 250 words."
 )
 
-
-import hashlib
-import time as _time
-
 # Response cache: repeated questions answered instantly.
 _CACHE_TTL_SECONDS = 300  # 5 minutes
 _cache: Dict[str, tuple] = {}  # question_hash -> (timestamp, answer)
@@ -293,8 +292,11 @@ def ask_stargate(question: str) -> str:
     context = "\n\n".join(context_parts)[:6000]  # 6K, not 20K
 
     from api.llm import call_llm
+    # qwen3-14b: measured 6.6s for 6K context vs llama-scout-17b's 30s+
+    # timeout on the same input. The ask tool values speed over depth.
     result = call_llm(
         endpoint="mcp-ask",
+        model=os.environ.get("STARGATE_ASK_MODEL", "qwen3-14b"),
         messages=[
             {"role": "system", "content": _ANSWER_CONTRACT},
             {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
