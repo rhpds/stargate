@@ -353,6 +353,66 @@ def dashboard_change_correlation(
     return result
 
 
+# ---------------------------------------------------------------------------
+# LLM gateway health (racmaas / maas-rhdp model endpoints)
+# ---------------------------------------------------------------------------
+
+@router.get("/dashboard/llm-health")
+def dashboard_llm_health(
+    force: bool = False,
+    db: Session = Depends(get_db),
+):
+    """Model-endpoint health across the inference gateways.
+
+    Probes each configured gateway's models with minimal completions;
+    records results as evaluations (stage model-endpoint-ready) so
+    degradation is visible as a trend. Configure gateways via
+    STARGATE_LLM_HEALTH_TARGETS (JSON: name/url/api_key_env).
+    """
+    from collectors.llm_health import probe_gateways, record_probe_evaluations
+
+    report = probe_gateways(force=force)
+    try:
+        recorded = record_probe_evaluations(report, db)
+    except Exception:  # noqa: BLE001 — recording must never break the probe
+        logger.exception("llm-health evaluation recording failed")
+        recorded = 0
+
+    if report.get("failing"):
+        from events.models import Event as StarGateEvent
+        from api.routers._shared import _event_bus
+
+        recent = {
+            (e.metadata or {}).get("gateway")
+            for e in _event_bus.history
+            if e.event_type == "llm_gateway_degraded"
+        }
+        gateways_failing = sorted({f.split("/")[0] for f in report["failing_models"]})
+        for gw in gateways_failing:
+            if gw in recent:
+                continue
+            failing = [f.split("/", 1)[1] for f in report["failing_models"] if f.startswith(gw + "/")]
+            _event_bus.emit(StarGateEvent(
+                event_type="llm_gateway_degraded",
+                cluster_name=gw,
+                outcome="fail",
+                failure_class="model_endpoint_error",
+                priority=7.0,
+                message=f"LLM gateway {gw}: {len(failing)} models failing ({', '.join(failing[:4])})",
+                metadata={
+                    "gateway": gw,
+                    "failing_models": failing,
+                    "remediation": (
+                        "Check the model deployments on the serving cluster "
+                        "(vLLM/KServe pods, Gaudi accelerator health). StarGate's "
+                        "own inference may be affected if it uses these models."
+                    ),
+                },
+            ))
+    report["evaluations_recorded"] = recorded
+    return report
+
+
 @router.get("/dashboard/saturation")
 def dashboard_saturation(
     window_hours: int = 6,
