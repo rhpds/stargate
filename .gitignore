@@ -59,3 +59,4 @@ podman-compose.local.yml
 fixtures/live-*/
 runs/
 docs/archive/
+docs/pitch-kit.md

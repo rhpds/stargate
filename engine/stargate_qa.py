@@ -135,11 +135,27 @@ _NAMESPACE_PATTERN = re.compile(r"\b(?:sandbox|user|lab|lb|summit)-[a-z0-9][a-z0
 
 
 def _structured_context(question: str) -> List[str]:
-    """Live operational context for namespaces mentioned in the question."""
+    """Live operational context for namespaces mentioned in the question.
+
+    Also provides direct answers for data questions (counts, statuses,
+    recent episodes) without LLM synthesis — the data IS the answer.
+    """
     from engine.investigation_agent import (
         tool_query_evaluations, tool_query_lifecycle_outcomes,
     )
     contexts: List[str] = []
+
+    # Direct-answer path for fleet-level questions — no namespace needed
+    question_lower = question.lower()
+    if any(word in question_lower for word in ("recent", "last", "latest", "today", "recently")):
+        if any(word in question_lower for word in ("episode", "lifecycle", "provisioning", "reclamation", "outcome")):
+            try:
+                from api.mcp_server import get_recent_episodes
+                episodes = get_recent_episodes(hours=24)
+                contexts.append(f"[recent lifecycle episodes]\n{episodes[:2000]}")
+            except Exception:
+                pass
+
     namespaces = list(dict.fromkeys(_NAMESPACE_PATTERN.findall(question)))[:3]
     for namespace in namespaces:
         try:
@@ -155,7 +171,7 @@ def _structured_context(question: str) -> List[str]:
     try:
         from api.mcp_server import _proof_matrix_summary
         summary = _proof_matrix_summary()
-        if "prove" in question.lower() or "proof" in question.lower():
+        if "prove" in question_lower or "proof" in question_lower:
             contexts.append(f"[proof lab]\n{summary}")
     except Exception:
         pass
@@ -172,8 +188,69 @@ _ANSWER_CONTRACT = (
 )
 
 
+import hashlib
+import time as _time
+
+# Response cache: repeated questions answered instantly.
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+_cache: Dict[str, tuple] = {}  # question_hash -> (timestamp, answer)
+
+
+def _cache_key(question: str) -> str:
+    return hashlib.sha256(question.lower().strip().encode()).hexdigest()[:16]
+
+
+def _cache_get(question: str) -> str | None:
+    key = _cache_key(question)
+    entry = _cache.get(key)
+    if entry and _time.time() - entry[0] < _CACHE_TTL_SECONDS:
+        return entry[1]
+    if entry:
+        del _cache[key]
+    return None
+
+
+def _cache_put(question: str, answer: str) -> None:
+    # Bounded: keep at most 100 entries (LRU-ish via TTL eviction).
+    if len(_cache) > 100:
+        oldest = min(_cache, key=lambda k: _cache[k][0])
+        del _cache[oldest]
+    _cache[_cache_key(question)] = (_time.time(), answer)
+
+
+def _is_simple_taxonomy_lookup(question: str, knowledge: List[Dict]) -> bool:
+    """Detect 'what is X?' style questions answerable from one taxonomy hit.
+
+    These skip LLM synthesis entirely — the retrieved taxonomy entry IS
+    the answer, formatted with its source. This makes the most common
+    demo questions instant.
+    """
+    if not knowledge or len(knowledge) != 1:
+        return False
+    source = knowledge[0].get("source", "")
+    if not source.startswith("taxonomy:"):
+        return False
+    # Short question, single strong taxonomy match, no namespace mentions
+    if len(question) > 120:
+        return False
+    if _NAMESPACE_PATTERN.search(question):
+        return False
+    # Check for question-word patterns that suggest a definition lookup
+    question_lower = question.lower()
+    return any(word in question_lower for word in (
+        "what is", "what's", "what does", "tell me about", "explain",
+        "how does", "how do", "define", "meaning of",
+    ))
+
+
 def ask_stargate(question: str) -> str:
     """Answer a natural-language question about the platform.
+
+    Performance tiers:
+    - Cached questions: instant (up to 5-minute TTL)
+    - Simple taxonomy lookups ("what is X?"): instant (no LLM — the
+      retrieved entry IS the answer)
+    - Everything else: LLM synthesis with reduced context (target < 10s)
 
     Hybrid retrieval: live operational data for namespaces mentioned in the
     question, plus lexical retrieval over the taxonomy and documentation.
@@ -183,8 +260,21 @@ def ask_stargate(question: str) -> str:
     if not question:
         return "Ask a question about the platform: labs, failures, provisioning, reclamation, proofs."
 
+    # Tier 1: cached — instant
+    cached = _cache_get(question)
+    if cached is not None:
+        return cached
+
     corpus = _knowledge_corpus()
     knowledge = _retrieve(question, corpus)
+
+    # Tier 2: simple taxonomy lookup — skip LLM entirely
+    if _is_simple_taxonomy_lookup(question, knowledge):
+        doc = knowledge[0]
+        answer = f"{doc['text'][:800]}\n\n[source: {doc['source']}]"
+        _cache_put(question, answer)
+        return answer
+
     structured = _structured_context(question)
 
     if not knowledge and not structured:
@@ -194,11 +284,13 @@ def ask_stargate(question: str) -> str:
             "reclamation, or the proof lab."
         )
 
+    # Tier 3: LLM synthesis — but lean: fewer docs, tighter context,
+    # shorter output. Target < 10 seconds.
     context_parts = []
-    for doc in knowledge:
-        context_parts.append(f"[source: {doc['source']}]\n{doc['text'][:1200]}")
-    context_parts.extend(structured)
-    context = "\n\n".join(context_parts)[:20000]
+    for doc in knowledge[:3]:  # top 3, not top 5
+        context_parts.append(f"[source: {doc['source']}]\n{doc['text'][:800]}")  # 800, not 1200
+    context_parts.extend(structured[:2])  # max 2 structured contexts
+    context = "\n\n".join(context_parts)[:6000]  # 6K, not 20K
 
     from api.llm import call_llm
     result = call_llm(
@@ -207,9 +299,9 @@ def ask_stargate(question: str) -> str:
             {"role": "system", "content": _ANSWER_CONTRACT},
             {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
         ],
-        max_tokens=600,
+        max_tokens=300,  # 300, not 600 — shorter answers generate faster
         temperature=0.1,
-        timeout=45,
+        timeout=30,  # 30s, not 45s — fail faster, degrade to context
     )
     if not result.get("success"):
         # Still useful: return the retrieved context without synthesis.
@@ -220,4 +312,5 @@ def ask_stargate(question: str) -> str:
             f"LLM synthesis unavailable ({str(result.get('error'))[:100]}). "
             f"Retrieved context:\n\n{sources}\n\n{context[:3000]}"
         )
+    _cache_put(question, result["content"])
     return result["content"]
