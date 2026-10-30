@@ -43,6 +43,27 @@ CONFIDENCE_THRESHOLD: float = float(os.environ.get("STARGATE_CONFIDENCE_THRESHOL
 # --- Auth ---
 
 ADMIN_API_KEY = os.environ.get("STARGATE_ADMIN_API_KEY", "")
+
+# Additional API keys for per-user access (comma-separated in
+# STARGATE_ADDITIONAL_API_KEYS). Each gets the same admin access but with
+# individual audit trail via the hashed key ID in MCP logs.
+_ADDITIONAL_KEYS = [
+    k.strip() for k in os.environ.get("STARGATE_ADDITIONAL_API_KEYS", "").split(",")
+    if k.strip()
+]
+
+_ALL_VALID_KEYS = [ADMIN_API_KEY] + _ADDITIONAL_KEYS if ADMIN_API_KEY else _ADDITIONAL_KEYS
+
+
+def _is_valid_api_key(api_key: str) -> bool:
+    """Check against the admin key and any additional per-user keys."""
+    import hmac
+    if not api_key or not _ALL_VALID_KEYS:
+        return False
+    return any(
+        hmac.compare_digest(api_key.encode(), valid.encode())
+        for valid in _ALL_VALID_KEYS
+    )
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 if not ADMIN_API_KEY:
@@ -74,8 +95,7 @@ def _origin_from_url(url: str) -> str:
 
 def require_admin(request: Request = None, api_key: str = Security(_api_key_header)):
     """Require API key or trusted proxy auth. Used for mutating admin operations."""
-    import hmac
-    if api_key and ADMIN_API_KEY and hmac.compare_digest(api_key, ADMIN_API_KEY):
+    if _is_valid_api_key(api_key):
         return
     if request and TRUST_PROXY_AUTH:
         oauth_user = request.headers.get("x-forwarded-user", "")
@@ -88,8 +108,7 @@ def require_admin(request: Request = None, api_key: str = Security(_api_key_head
 
 def require_admin_read(request: Request = None, api_key: str = Security(_api_key_header)):
     """Read-only admin access: API key or trusted OAuth proxy."""
-    import hmac
-    if api_key and ADMIN_API_KEY and hmac.compare_digest(api_key, ADMIN_API_KEY):
+    if _is_valid_api_key(api_key):
         return
     if request and TRUST_PROXY_AUTH:
         oauth_user = request.headers.get("x-forwarded-user", "")

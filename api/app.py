@@ -96,13 +96,10 @@ try:
         and an audit log line for every MCP request (agents are external
         actors — their access must be traceable)."""
         if request.url.path.startswith("/mcp"):
-            import hmac as _hmac
             import time as _time
-            from api.routers._shared import ADMIN_API_KEY
+            from api.routers._shared import _is_valid_api_key
             provided = request.headers.get("X-API-Key", "")
-            if not ADMIN_API_KEY or not _hmac.compare_digest(
-                provided.encode(), ADMIN_API_KEY.encode()
-            ):
+            if not _is_valid_api_key(provided):
                 return JSONResponse({"detail": "Invalid or missing API key"}, status_code=401)
 
             # Per-key sliding-window rate limit (defense in depth; the key
