@@ -133,3 +133,56 @@ classes:
       - "Review AAP job logs for actual duration vs configured timeout"
       - Consider increasing the AAP2 controller job timeout (Confluence recommends 6h for CNV/Equinix)
       - Check if the timeout is configurable via AgnosticV common.yaml
+
+  ansible_playbook_bug:
+    pattern: "(Invalid data passed to 'loop|Finalization of task args|dict2items requires|AnsibleUndefined)"
+    description: "Ansible playbook bug in AgnosticD/governor code — loop argument errors, task argument resolution failures, template type mismatches. Distinct from infrastructure failures (validated against Confluence: Troubleshooting Destroy)"
+    severity: high
+    team: lab-developer
+    remediation:
+      - "This is a code bug in the playbook, not an infrastructure issue"
+      - "Check the failing task name in the AAP job logs"
+      - "File a PR against the agnosticd or governor repository"
+      - "Do NOT retry the job — it will fail the same way"
+
+  cascade_failure:
+    pattern: "(Previous Task Failed|cascade|downstream.*failure|dependency.*failed)"
+    description: "Downstream failure caused by an earlier task failure in the same playbook run — the root cause is upstream, not at this task (validated against Confluence: Troubleshooting Provision)"
+    severity: medium
+    team: platform-ops
+    remediation:
+      - "The root cause is the PREVIOUS task that failed, not this one"
+      - "Check the AAP job logs for the first failure in the run"
+      - "Fix the upstream failure and this will resolve"
+      - "Do NOT remediate at this level"
+
+  ocp_config_missing:
+    pattern: "(ocp_console_embed_domain is empty|openshift_cluster_ingress_domain.*not set|required.*variable.*empty|config.*missing)"
+    description: "Required OpenShift configuration variable is empty or missing — typically ocp_console_embed_domain or openshift_cluster_ingress_domain (validated against Confluence and production evidence)"
+    severity: medium
+    team: lab-developer
+    remediation:
+      - "Set the missing configuration variable in the AgnosticV catalog item"
+      - "Check common.yaml for the required variables"
+      - "This is a catalog item configuration issue, not an infrastructure problem"
+
+  storage_cluster_timeout:
+    pattern: "(Failed to gather.*StorageCluster|storage.*cluster.*timeout|odf.*timeout|ocs.*waiting)"
+    description: "Timed out waiting for StorageCluster/ODF to become ready — storage infrastructure not converging within the expected window (validated against production evidence: 47+ occurrences/week)"
+    severity: high
+    team: platform-ops
+    remediation:
+      - "Check StorageCluster status and health"
+      - "oc get storagecluster -n openshift-storage"
+      - "Check Ceph health: ceph health detail"
+      - "This may indicate underlying Ceph/ODF degradation"
+
+  lab_content_missing:
+    pattern: "(lab.*content.*missing|content.*not.*found|git.*clone.*fail.*content|workshop.*files.*missing)"
+    description: "Lab content (Git repository, workshop files, or configuration) is missing or inaccessible — classifier-proposed at 0.86 confidence across 14 production cases"
+    severity: medium
+    team: lab-developer
+    remediation:
+      - "Check if the lab's Git repository is accessible"
+      - "Verify the content URL in the AgnosticV catalog item"
+      - "This is a content/packaging issue, not an infrastructure problem"
