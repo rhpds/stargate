@@ -49,6 +49,18 @@ _DOC_FILES = (
     "confluence/incident-management.md",
     "confluence/replik8s-snapshot-age-issue.md",
     "confluence/dbpool2-server-space-issue.md",
+    # Incident RCA and reliability analysis (validated ground truth, read-only)
+    "confluence/rhdp-provisioning-reliability-90-day-analysis-oct-2026.md",
+    "confluence/ovn-mtu-incident-ocp-dev-days-oct-2026.md",
+    "confluence/post-mortem-actions-tracker-2026.md",
+    "confluence/cnv-cluster-ops-known-issues-oct-2026.md",
+    "confluence/olm-csv-propagation-timeout.md",
+    "confluence/acm-demo-kubeletconfig-type-mismatch.md",
+    "confluence/oadp-imagepullbackoff.md",
+    "confluence/workshop-seat-display-multiuserservices.md",
+    "confluence/environment-level-annotation-missing.md",
+    "confluence/infrastructure-pain-points.md",
+    "incident-validation-2026-10.md",
 )
 
 _STOPWORDS = {
