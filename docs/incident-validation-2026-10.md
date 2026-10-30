@@ -48,11 +48,25 @@ signature present in captured evidence.**
 
 ## Follow-up work
 
-- ~~`cluster_capacity_saturated` requires cluster-context correlation~~ — **BUILT**:
-  `engine/cluster_saturation.py` + `GET /dashboard/saturation` + MCP tool
-  `get_cluster_saturation`. Correlation signature: rate spike vs own baseline +
-  symptom diversity + lab differential. Validated against this incident (see
-  retrospective run below).
+- ~~`cluster_capacity_saturated` requires cluster-context correlation~~ — **BUILT AND
+  RETROSPECTIVELY VALIDATED**: `engine/cluster_saturation.py` + `GET /dashboard/saturation`
+  + MCP tool `get_cluster_saturation`. Correlation signature: rate spike vs own baseline +
+  symptom diversity + lab differential.
+
+  **Validation result (Oct 30 2026, retrospective on this incident):**
+  ocpv08 fires as `critical` saturation (confidence 0.99, corroborated path) across
+  24h/36h/48h window choices — 9.0% failure rate vs 5.6% baseline (1.6x, 749 fails,
+  17 distinct classes, 3 divergent labs). ocpv07 (similar diversity, no differential,
+  no elevation) and ocpv06 (100% rate but insufficient baseline) correctly NOT flagged.
+
+  **Calibration lesson:** the first detector version fired only 2 of 3 signals
+  ("watch") because ocpv08's 7-day baseline was contaminated — the cluster was
+  documented as already degraded Sep 30 (Summit Retest row 11), so the window
+  multiplier compressed to 1.4-1.7x against the 2x threshold. Fix: a corroborated
+  rate-spike path (>= 1.3x when BOTH correlation signals confirm). A slowly
+  degrading cluster contaminates its own baseline; moderate elevation plus
+  diversity plus differential is stronger evidence than a 2x spike alone.
+
 - Pre-flight failures (incident #5) are structurally invisible to AAP-log collection.
   A Catalog/Babylon-side pre-flight event feed would close this.
 - Billy's 90-day analysis is the human equivalent of StarGate's reliability dashboard.

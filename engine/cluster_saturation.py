@@ -313,7 +313,7 @@ def detect_cluster_saturation(
             "signals": {
                 "rate_spike": {
                     "present": rate_spike,
-                    "path": "absolute" if absolute_spike else ("corroborated" if corroborated_spike else None),
+                    "path": ("absolute" if absolute_spike else "corroborated") if rate_spike else None,
                     "window_rate": round(w_rate, 4),
                     "baseline_rate": round(b_rate, 4),
                     "rate_multiplier_observed": round(w_rate / b_rate, 2) if b_rate > 0 else None,
