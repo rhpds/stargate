@@ -141,12 +141,24 @@ def _gateway_via_native_health(target: Dict[str, str]) -> Optional[List[Dict[str
         })
     for e in body.get("unhealthy_endpoints", []):
         err = str(e.get("error", ""))[:200]
+        model = _strip_prefix(str(e.get("model", "?")))
+        # Config-shaped failures: the gateway's model ENTRY is malformed
+        # (e.g. 'converse/us.anthropic...' — a prefix LiteLLM's router
+        # rejects: 'LLM Provider NOT provided'). The underlying model often
+        # works via its normal name — verified live: claude-sonnet-4-6 works
+        # at 1.1s while its converse/* health entry fails. These are gateway
+        # config bugs, not availability outages — classify distinctly so the
+        # alert means 'endpoints down', not 'config needs cleanup'.
+        if "LLM Provider NOT provided" in err or "BadRequestError" in err:
+            failure_class = "model_config_invalid"
+        else:
+            failure_class = "model_endpoint_error"
         results.append({
             "gateway": gateway,
-            "model": _strip_prefix(str(e.get("model", "?"))),
+            "model": model,
             "api_base": e.get("api_base", ""),
             "outcome": "fail",
-            "failure_class": "model_endpoint_error",
+            "failure_class": failure_class,
             "latency_seconds": None,
             "message": f"unhealthy: {err[:120]}",
             "error": err,
@@ -256,22 +268,29 @@ def probe_gateways(force: bool = False) -> Dict[str, Any]:
 
     fails = [r for r in results if r["outcome"] == "fail"]
     warns = [r for r in results if r["outcome"] == "warn"]
+    availability_fails = [r for r in fails if r["failure_class"] != "model_config_invalid"]
+    config_invalid = [r for r in fails if r["failure_class"] == "model_config_invalid"]
     report = {
         "gateways": mode_by_gateway,
         "models_probed": len(results),
         "passing": len(results) - len(fails) - len(warns),
         "warned": len(warns),
-        "failing": len(fails),
-        "failing_models": sorted({f"{r['gateway']}/{r['model']}" for r in fails}),
+        "failing": len(availability_fails),
+        "failing_models": sorted({f"{r['gateway']}/{r['model']}" for r in availability_fails}),
+        "config_invalid": len(config_invalid),
+        "config_invalid_models": sorted({f"{r['gateway']}/{r['model']}" for r in config_invalid}),
         "slow_models": sorted({f"{r['gateway']}/{r['model']}" for r in warns}),
         "results": results,
         "slow_threshold_seconds": SLOW_WARN_SECONDS,
         "probed_at": datetime.now(timezone.utc).isoformat(),
         "note": (
             "Primary signal is the gateway's native LiteLLM /health (server-side "
-            "per-endpoint probes). Prometheus /metrics (real-traffic latency per "
-            "model) is not enabled on current deployments — enabling it would add "
-            "passive load-aware signal."
+            "per-endpoint probes). 'config_invalid' entries are malformed gateway "
+            "model definitions (e.g. converse/* prefixes the router rejects) — "
+            "the underlying model often works via its normal name; verify before "
+            "alarming. Prometheus /metrics (real-traffic latency per model) is "
+            "not enabled on current deployments — enabling it would add passive "
+            "load-aware signal."
         ),
     }
     _health_cache["data"] = report

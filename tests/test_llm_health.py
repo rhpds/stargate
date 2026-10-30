@@ -167,3 +167,39 @@ def test_dashboard_llm_health_endpoint(client, monkeypatch):
     assert body["failing"] == 1
     assert "racmaas/gpt-oss-120b" in body["failing_models"]
     assert body["evaluations_recorded"] == 2
+
+
+def test_config_invalid_vs_outage_classification():
+    """Malformed gateway model entries (converse/* prefixes the LiteLLM
+    router rejects) are config bugs, not availability outages. Verified
+    live: claude-sonnet-4-6 works at 1.1s while its converse/* health
+    entry fails with 'LLM Provider NOT provided'."""
+    target = {"name": "primary", "url": "https://gw.example.com", "api_key": "k"}
+    health = {
+        "healthy_endpoints": [
+            {"model": "openai/granite-2b-cpu", "api_base": "http://x/v1"},
+        ],
+        "unhealthy_endpoints": [
+            {"model": "converse/us.anthropic.claude-sonnet-4-6", "api_base": "",
+             "error": "litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call."},
+            {"model": "openai/gpt-oss-120b", "api_base": "http://y/v1",
+             "error": "litellm.InternalServerError: Connection error."},
+        ],
+        "healthy_count": 1, "unhealthy_count": 2,
+    }
+
+    def fake_api(t, path, payload=None, timeout=45):
+        if path == "/health":
+            return 200, health
+        if path == "/v1/models":
+            return 200, {"data": [{"id": "granite-2b-cpu"}]}
+        return 404, None
+
+    with patch("collectors.llm_health._api", side_effect=fake_api):
+        report = probe_gateways(force=True) if False else None
+        # probe_gateways reads env targets; call the gateway fn directly
+        results = _gateway_via_native_health(target)
+
+    by_model = {r["model"]: r for r in results}
+    assert by_model["us.anthropic.claude-sonnet-4-6"]["failure_class"] == "model_config_invalid"
+    assert by_model["gpt-oss-120b"]["failure_class"] == "model_endpoint_error"
