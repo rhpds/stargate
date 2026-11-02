@@ -108,6 +108,22 @@ def ingest_aap_failures(db: Session, failures: Iterable[Dict], historical: bool 
         record = db.query(SourceEvent).filter_by(
             source_system="aap", source_instance=instance, source_event_id=event_id,
         ).first()
+        if not record:
+            # Secondary dedupe by job — ONLY for replay-format records
+            # (event_id == "job-<n>"): live collection uses job-{id}-{digest}
+            # event_ids and one AAP job legitimately emits MULTIPLE task-level
+            # events, so collapsing live records by job_id would lose events.
+            # The same job ingested from both paths (live + replay) must
+            # update one record, not duplicate — found live on the prod0
+            # replay: 42,850 twins, 5,205 double-counted evaluations.
+            job_id_str = str(raw.get("job_id") or "")
+            if (job_id_str and job_id_str not in ("None", "")
+                    and re.fullmatch(r"job-\d+", event_id or "")):
+                record = db.query(SourceEvent).filter(
+                    SourceEvent.source_system == "aap",
+                    SourceEvent.source_instance == instance,
+                    SourceEvent.job_id == job_id_str,
+                ).first()
         if record:
             record.last_seen_at = now
             if record.evidence_hash != digest:
