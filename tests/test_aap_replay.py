@@ -153,3 +153,80 @@ def test_gzip_detected_by_magic_not_suffix(tmp_path):
         f.write(record)
     out = list(iter_records(weird))
     assert len(out) == 1 and out[0]["job_id"] == 7
+
+
+def test_tar_archive_streaming(tmp_path):
+    """The bastion archive format: one big tar.gz of per-job files (some
+    gzipped members, a directory entry, non-job files to skip). Members
+    stream one at a time; each yields one record."""
+    import tarfile
+    import gzip as gz
+    import io
+
+    def job_json(job_id, status="failed"):
+        return json.dumps({
+            "job_id": job_id,
+            "metadata": {"job_metadata": {
+                "job_id": job_id, "status": status,
+                "created": "2026-05-01T00:00:00+00:00",
+                "finished": "2026-05-01T00:10:00+00:00",
+                "guid": f"g{job_id}",
+            }},
+            "events": [{"failed": True, "task": "t", "role": "r",
+                        "stdout": "fatal: boom"}],
+        })
+
+    tar_path = tmp_path / "job_to_999.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as tar:
+        # directory entry — must be skipped
+        dirinfo = tarfile.TarInfo("job_to_999/")
+        dirinfo.type = tarfile.DIRTYPE
+        tar.addfile(dirinfo)
+        # plain JSON member
+        data = job_json(1).encode()
+        info = tarfile.TarInfo("job_to_999/job_1.json")
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+        # gzipped member (the real archive's format)
+        raw = job_json(2, status="successful").encode()
+        gzdata = gz.compress(raw)
+        info = tarfile.TarInfo("job_to_999/job_2.json.gz.transform-ignored")
+        info.size = len(gzdata)
+        tar.addfile(info, io.BytesIO(gzdata))
+        # non-job file — skipped
+        info = tarfile.TarInfo("job_to_999/README.txt")
+        info.size = 5
+        tar.addfile(info, io.BytesIO(b"hello"))
+
+    records = list(iter_records(tar_path))
+    assert len(records) == 2
+    assert records[0]["job_id"] == 1
+    assert records[1]["job_id"] == 2
+
+    # through the full adapter: gzipped member decodes, outcomes normalize
+    adapted = [adapt(r, "prod0") for r in records]
+    assert adapted[0]["outcome"] == "fail"
+    assert adapted[1]["outcome"] == "pass"
+    assert adapted[0]["error"]  # fatal: line extracted
+
+
+def test_tar_bad_member_does_not_stop_stream(tmp_path):
+    """One corrupt member never kills the archive stream."""
+    import tarfile
+    import io
+
+    tar_path = tmp_path / "bad.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as tar:
+        good = json.dumps({"job_id": 1, "metadata": {"job_metadata": {
+            "job_id": 1, "status": "failed"}}}).encode()
+        info = tarfile.TarInfo("job_1.json")
+        info.size = len(good)
+        tar.addfile(info, io.BytesIO(good))
+        # a member whose content is not JSON
+        bad = b"not json at all {{{"
+        info = tarfile.TarInfo("job_2.json")
+        info.size = len(bad)
+        tar.addfile(info, io.BytesIO(bad))
+
+    records = list(iter_records(tar_path))
+    assert len(records) == 1 and records[0]["job_id"] == 1
