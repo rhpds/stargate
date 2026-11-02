@@ -203,3 +203,63 @@ def test_config_invalid_vs_outage_classification():
     by_model = {r["model"]: r for r in results}
     assert by_model["us.anthropic.claude-sonnet-4-6"]["failure_class"] == "model_config_invalid"
     assert by_model["gpt-oss-120b"]["failure_class"] == "model_endpoint_error"
+
+
+def test_run_health_check_emits_events(client, monkeypatch):
+    """The shared pipeline (endpoint + scheduled loop) emits
+    llm_gateway_degraded events for availability failures, with
+    config-invalid models in metadata."""
+    from api.routers._shared import _event_bus
+    _event_bus.history.clear()
+
+    fake_report = {
+        "gateways": {"racmaas": "native"},
+        "models_probed": 3, "passing": 1, "warned": 0,
+        "failing": 2,
+        "failing_models": ["racmaas/gpt-oss-120b", "racmaas/qwen3-235b"],
+        "config_invalid": 1,
+        "config_invalid_models": ["racmaas/converse-x"],
+        "slow_models": [],
+        "results": [
+            {"gateway": "racmaas", "model": "gpt-oss-120b", "outcome": "fail",
+             "failure_class": "model_endpoint_error", "message": "conn",
+             "probed_at": "2026-11-01T15:00:00+00:00"},
+            {"gateway": "racmaas", "model": "qwen3-235b", "outcome": "fail",
+             "failure_class": "model_endpoint_error", "message": "conn",
+             "probed_at": "2026-11-01T15:00:00+00:00"},
+        ],
+        "probed_at": "2026-11-01T15:00:00+00:00",
+    }
+    monkeypatch.setattr("collectors.llm_health.probe_gateways",
+                        lambda force=False: fake_report)
+
+    from collectors.llm_health import run_health_check
+    from db.database import Base
+    from tests.conftest import TestSession, test_engine
+
+    Base.metadata.create_all(bind=test_engine)
+    db = TestSession()
+    try:
+        report = run_health_check(db, force=True)
+    finally:
+        db.rollback()
+        db.close()
+
+    assert report["evaluations_recorded"] == 2
+    events = [e for e in _event_bus.history if e.event_type == "llm_gateway_degraded"]
+    assert len(events) == 1
+    e = events[0]
+    assert e.cluster_name == "racmaas"
+    assert e.metadata["failing_models"] == ["gpt-oss-120b", "qwen3-235b"]
+    assert e.metadata["config_invalid_models"] == ["converse-x"]
+    assert "remediation" in e.metadata
+    _event_bus.history.clear()
+
+
+def test_loop_skips_when_no_targets(monkeypatch):
+    """The scheduled loop's guard: no targets configured → no probe."""
+    monkeypatch.setenv("STARGATE_LLM_HEALTH_TARGETS", "")
+    monkeypatch.setenv("STARGATE_LITELLM_URL", "")
+    monkeypatch.setenv("STARGATE_LITELLM_API_KEY", "")
+    from collectors.llm_health import _targets
+    assert _targets() == []
