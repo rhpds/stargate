@@ -230,3 +230,44 @@ def test_tar_bad_member_does_not_stop_stream(tmp_path):
 
     records = list(iter_records(tar_path))
     assert len(records) == 1 and records[0]["job_id"] == 1
+
+
+def test_live_and_replay_formats_dedupe_by_job(tmp_path, monkeypatch):
+    """Live collection uses job-{id}-{digest} event_ids; the replay uses
+    job-{id}. The same job from both paths must produce ONE source_event
+    and ONE evaluation — found live on the prod0 replay (42,850 twins)."""
+    from engine.functional_alignment import ingest_aap_failures
+    from db.database import Base
+    from db.models import SourceEvent, EvaluationRecord
+    from tests.conftest import TestSession, test_engine
+
+    Base.metadata.create_all(bind=test_engine)
+    db = TestSession()
+    try:
+        # live-format record (no event_id → digest-suffixed)
+        live = {"job_id": 307871, "controller": "prod0", "outcome": "fail",
+                "error": "fatal: boom", "failing_task": "t",
+                "finished": "2026-10-20T00:00:00+00:00", "guid": "g1"}
+        r1 = ingest_aap_failures(db, [live])
+        assert r1["created"] == 1 and r1["evaluations_created"] == 1
+
+        # replay-format record: same job, different (engine-generated) event_id
+        replay = {"job_id": 307871, "controller": "prod0", "outcome": "fail",
+                  "event_id": "job-307871", "error": "fatal: boom",
+                  "failing_task": "t",
+                  "finished": "2026-10-20T00:00:00+00:00", "guid": "g1"}
+        r2 = ingest_aap_failures(db, [replay])
+        assert r2["created"] == 0, "same job must not create a second event"
+        assert r2["evaluations_created"] == 0, "same job must not double-count"
+
+        events = db.query(SourceEvent).filter(
+            SourceEvent.source_instance == "prod0",
+            SourceEvent.job_id == "307871").all()
+        assert len(events) == 1
+        evals = db.query(EvaluationRecord).filter(
+            EvaluationRecord.source_event_id == events[0].id).all()
+        assert len(evals) == 1
+    finally:
+        db.rollback()
+        db.close()
+        Base.metadata.drop_all(bind=test_engine)
