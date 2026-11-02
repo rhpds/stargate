@@ -1,0 +1,49 @@
+id: storage-catalog-health
+version: v0.1.0
+stage: storage-catalog-health
+timeout_seconds: 30
+entry_criteria: []
+exit_criteria:
+  # Storage headroom + OLM catalog freshness — the ops team's own gap
+  # table (Confluence 501907733, issues 5-6): Ceph alerts wanted at 70%
+  # not near-full; OLM snapshots go stale silently. None = not applicable
+  # or unobserved — the evaluator skips None criteria.
+  - name: ceph_headroom_ok
+    required: false
+  - name: pvc_pending_ok
+    required: false
+  - name: olm_catalogs_ready
+    required: false
+outcomes:
+  pass:
+    when: all_required_exit_criteria_pass
+  warn:
+    when: optional_criteria_fail
+  fail:
+    when: any_required_exit_criteria_fail
+failure_classes:
+  # Ceph utilization >= 70% (the team's requested headroom threshold;
+  # validated: RHDPOPS-24130 blockpool near-full was a Blocker). Near-full
+  # Ceph refuses writes and PVC-dependent provisions hang fleet-wide.
+  ceph_near_full:
+    when:
+      - ceph_headroom_ok == false
+    recommended_action: check_storage_headroom
+  # PVCs Pending > 1h cluster-wide — the documented '24 PVCs stuck for 8
+  # days' signature (GPTEINFRA-17674). Usually downstream of Ceph trouble.
+  pvc_binding_stuck:
+    when:
+      - pvc_pending_ok == false
+    recommended_action: check_storage_headroom
+  # CatalogSources not READY or custom snapshots older than 45d — the
+  # documented stale-snapshot failures (RHDPOPS-24487/24480/24495):
+  # subscriptions spin without resolving, InstallPlans never appear.
+  olm_catalog_stale:
+    when:
+      - olm_catalogs_ready == false
+    recommended_action: check_olm_catalogs
+allowed_remediations:
+  - check_storage_headroom
+  - check_olm_catalogs
+forbidden_remediations:
+  - delete_namespace

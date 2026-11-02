@@ -91,9 +91,15 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
 
     if optional_failures:
         optional_names = ", ".join(c.name for c in optional_failures)
+        # Classify warns too: an optional-criteria failure with a matching
+        # class (e.g. ceph_headroom_ok == false → ceph_near_full) carries
+        # the class so downstream consumers (events, dashboards, MTTR by
+        # class) see WHY it warned, not just that it did.
+        failure_class = _classify_failure(rubric, evidence)
         return EvaluationResult(
             stage_id=rubric.stage,
             outcome=StageOutcome.WARN,
+            failure_class=failure_class,
             message=f"Optional criteria failed: {optional_names}",
             criteria_results=criteria_results,
             timeout_seconds=timeout,

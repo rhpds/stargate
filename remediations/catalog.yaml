@@ -1760,3 +1760,26 @@
   allowed_when:
   - failure_class == e2e_tests_failing
   commands: []
+- id: check_storage_headroom
+  risk: low
+  mode: recommend_only
+  scope: cluster
+  requires_approval: false
+  allowed_when:
+  - failure_class == ceph_near_full
+  - failure_class == pvc_binding_stuck
+  commands:
+  - oc get cephcluster -n openshift-storage -o jsonpath='{.items[0].status.ceph.capacity}'
+  - oc get pvc -A --field-selector=status.phase=Pending
+  forbidden_when: []
+- id: check_olm_catalogs
+  risk: low
+  mode: recommend_only
+  scope: cluster
+  requires_approval: false
+  allowed_when:
+  - failure_class == olm_catalog_stale
+  commands:
+  - oc get catalogsource -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STATE:.status.connectionState.lastObservedState,CREATED:.metadata.creationTimestamp
+  - oc get installplan -A --no-headers | grep -c Pending || true
+  forbidden_when: []
