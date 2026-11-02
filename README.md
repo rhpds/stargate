@@ -7,13 +7,18 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — monitors, ev
 StarGate provides a unified dashboard for managing the lifecycle of provisioned labs, demos, and workshops:
 
 - **Cluster Scanning** — Monitors 8+ OpenShift clusters for node health, pod failures, VM status, and namespace readiness on a tiered schedule (5m/15m/1h)
-- **Rubric Evaluation** — Evaluates each lab namespace against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, etc.)
+- **Rubric Evaluation** — Evaluates each lab namespace against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, storage-catalog-health, etc.)
 - **AI Classification** — Unclassified failures are sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for automated failure class proposals
 - **Durable Investigations** — Idempotent source events are claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures; all 4 AAP controllers (prod + event) are collected
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — `GET /dashboard/causal-chain`: symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
-- **MCP Server** — 10 tools (8 query + 2 review) + natural-language `ask` (RAG over 256+ documents) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 12 tools (10 query + 2 review) + natural-language `ask` (RAG over 351+ documents, including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **Change Correlation** — RHDP has no formal change management, so StarGate is the change record: GitHub PRs (merged + in review) and Jira tickets correlated against failure onset, path-matched to each lab's AgnosticV files; the investigation agent checks it before calling any failure novel
+- **Saturation Correlation** — Detects the capacity-saturation signature (rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere); validated against the documented Oct 13-14 2026 ocpv08 incident
+- **Platform Health Monitoring** — Four loops watching what the platform depends on: LLM gateway model endpoints (native LiteLLM /health, 15m), external dependencies (SSO/api.openshift.com/registry — the Oct 21 5xx lesson, 5m), storage headroom + OLM catalog freshness (Ceph at 70%, stuck PVCs, stale snapshots, 5m), and saturation correlation. All persist as evaluations so degradation is a trend
+- **Partner Catalog Visibility** — The breakdown the biweekly report lacks: registered partner items with documented baselines, current failure rates, and delta-vs-baseline
+- **Incident Validation** — Retrospective accuracy audits against documented incidents: detection 4/4 on Confluence-documented incidents, attribution gaps quantified honestly (see `docs/incident-validation-2026-10.md`)
 - **GeoLux Governance** — Pre-approval constraint checks (safe/unsafe/unknown) on investigation-sourced remediation actions; GeoLux advises, the human decides, the gated executor acts
 - **Auto-Remediation** — Per-lab execution mode (recommend-only, low-risk-auto, full-auto) with risk-filtered catalog actions, rate limiting, and audit logging; no auto-remediation on provisioning clusters (verified via live RBAC probes)
 - **Provisioning Intelligence** — Aggregates data from Babylon (AnarchySubjects, ResourcePools), Labagator (session schedule), AAP (provisioning jobs from all 4 controllers), Demolition (smoke tests), and AgnosticV (deployment constraints)
@@ -32,10 +37,12 @@ Frontend (React 19 + Vite + Tailwind 4)
     +-- Babylon Worker (control plane collector)
     +-- AAP Collector (4 controllers: prod0, prod1, event0, event1)
     +-- LLM Integration (llama-scout for classify, qwen3-14b for ask, Sonnet for investigations)
+    +-- Platform Health Loops (LLM gateways 15m, external deps 5m, storage/OLM 5m)
+    +-- Change Correlation (GitHub PRs + Jira vs failure onset)
     +-- Policy Engine (deterministic recommendations)
     +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
-    +-- MCP Server (10 tools (8 query + 2 review) + natural-language ask, at /mcp)
+    +-- MCP Server (12 tools + natural-language ask, at /mcp)
     +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15
@@ -188,7 +195,10 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes (succeeded / failed / stalled / controller_lag / collection_unavailable / indeterminate)
 - **reclamation-outcome/v1** — reclamation outcomes (reclaimed / destroy_failed / destroy_stalled / resource_leak / indeterminate) with artifact enumeration
 - **Causal chains** — `GET /dashboard/causal-chain` assembles the full evidence chain per investigation with `missing_legs` honesty
-- **MCP server** — 10 tools (8 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP server** — 12 tools (10 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **Change correlation** — GitHub PRs + Jira tickets vs failure onset: `GET /dashboard/change-correlation`; RHDP has no formal change management, so this is the change record
+- **Saturation correlation** — `GET /dashboard/saturation`: rate spike + diverse symptoms + lab differential, validated on the documented Oct 13-14 2026 incident
+- **Platform health** — `GET /dashboard/llm-health`, `/dashboard/dependency-health`, `/dashboard/partner-visibility`: the dependencies and channels nobody was watching
 - **GeoLux governance** — pre-approval constraint checks on remediation actions
 - **Platform workflows** — step-through event flow diagrams in [docs/workflows.md](docs/workflows.md)
 - **Proof lab** — 19/20 failure classes proven (13 remediation-proof, 6 detection-proof); gates decay on failure
