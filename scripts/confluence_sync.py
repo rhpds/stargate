@@ -113,7 +113,7 @@ def _release_notes_body() -> str:
 
     try:
         out = subprocess.run(
-            ["git", "log", "--since=8 weeks ago", "--date=short",
+            ["git", "log", "--since=8 weeks ago", "--date=short", "--no-merges",
              "--pretty=format:%h|%ad|%s"],
             capture_output=True, text=True, timeout=30,
             cwd=Path(__file__).parent.parent,
@@ -160,7 +160,7 @@ def _release_notes_hash() -> str:
     import subprocess
     try:
         out = subprocess.run(
-            ["git", "log", "--since=8 weeks ago", "--pretty=format:%h %s"],
+            ["git", "log", "--since=8 weeks ago", "--no-merges", "--pretty=format:%h %s"],
             capture_output=True, text=True, timeout=30,
             cwd=Path(__file__).parent.parent,
         ).stdout
