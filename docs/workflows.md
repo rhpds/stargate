@@ -361,6 +361,33 @@ INJECT ──▶ DETECT ──▶ GEOLUX ──▶ RECOMMEND ──▶ HITL ─�
 
 ---
 
+## 8. Platform Health Monitoring (the dependencies and the fleet)
+
+Four monitoring loops watch what the platform itself depends on. Each
+persists as evaluations so degradation is a trend (dashboards, MTTR,
+correlation) rather than a snapshot, and each emits events with
+remediation guidance.
+
+| Loop | Interval | Stage / check | What it catches |
+|------|----------|---------------|-----------------|
+| **LLM gateway health** | 15m | `model-endpoint-ready` | Model endpoints down or degraded — live-found: the entire Gaudi pool (3× gpt-oss-120b) scaled to zero, qwen3-235b deleted deployment, stale ny-* replicas. Config bugs (malformed gateway entries) are classified `model_config_invalid`, separate from availability outages |
+| **External dependency health** | 5m | `dependency-health` | SSO / api.openshift.com / registry 5xx and unreachable — the Oct 14/21 2026 signature where 546+ provisions failed downstream while nothing watched the dependency. 4xx = up (a base URL answering 401/404 is healthy) |
+| **Storage + OLM catalogs** | 5m (Tier 1b) | `storage-catalog-health` | Ceph utilization ≥ 70% (the team's requested threshold — alerts wanted at 70, not near-full), PVCs Pending > 1h (live-found: 23 PVCs stuck 80 days on ocpv03), CatalogSources not READY or custom snapshots > 45d stale |
+| **Saturation correlation** | on demand | `GET /dashboard/saturation` | The capacity-saturation signature: rate spike + diverse symptoms + labs failing here while passing elsewhere. Validated on the Oct 13-14 ocpv08 incident (RHDPOPS-24544) |
+
+**Partner catalog visibility** (`GET /dashboard/partner-visibility`): the
+breakdown the biweekly report lacks — 13 registered partner items with
+Billy's documented 90-day baselines, current failure rates, and
+delta-vs-baseline. The worst documented: RH OpenStack Services on OCP
+Lab at 90.9% (internal version at 31%).
+
+All four are config-driven (env vars documented in `.env.example`) and
+land in the same tables as everything else — model/dependency/storage
+degradation correlates with workload failures through the standard
+machinery.
+
+---
+
 ## Key Tables (where the data lives)
 
 | Table | What it holds | Written by |
