@@ -296,6 +296,8 @@ def on_startup():
     if os.environ.get("STARGATE_API_BABYLON_COLLECTION", "false").lower() == "true":
         tb = threading.Thread(target=_babylon_collection_loop, daemon=True)
         tb.start()
+    tllm = threading.Thread(target=_llm_health_loop, daemon=True)
+    tllm.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
     tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
@@ -1051,6 +1053,37 @@ def _corpus_mining_loop():
         except Exception as e:
             logger.warning("Corpus mining failed: %s", e)
         _shutdown_event.wait(1800)
+
+
+def _llm_health_loop():
+    """Probe LLM gateway health on a schedule (default 15m).
+
+    Activated by the presence of gateway targets (STARGATE_LLM_HEALTH_TARGETS
+    or the primary STARGATE_LITELLM_URL/KEY) — no separate flag to forget.
+    Evaluations are deduped per gateway-hour, so the history is hourly while
+    alert freshness follows the probe interval.
+    """
+    import time as _tl
+    _tl.sleep(60)  # let startup settle before the first probe
+    logger = logging.getLogger("stargate")
+    interval = int(os.environ.get("STARGATE_LLM_HEALTH_INTERVAL_SECONDS", "900"))
+    while not _shutdown_event.is_set():
+        try:
+            from collectors.llm_health import _targets, run_health_check
+            if not _targets():
+                logger.debug("llm-health loop: no targets configured, sleeping")
+            else:
+                from db.database import background_session
+                with background_session() as db:
+                    report = run_health_check(db, force=True)
+                logger.info(
+                    "LLM health: %d endpoints, %d failing (%d config-invalid), %d evaluations recorded",
+                    report.get("models_probed", 0), report.get("failing", 0),
+                    report.get("config_invalid", 0), report.get("evaluations_recorded", 0),
+                )
+        except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
+            logger.warning("LLM health loop failed: %s", e)
+        _shutdown_event.wait(interval)
 
 
 def _auto_start_scanner():

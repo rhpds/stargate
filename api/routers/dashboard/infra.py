@@ -364,59 +364,15 @@ def dashboard_llm_health(
 ):
     """Model-endpoint health across the inference gateways.
 
-    Probes each configured gateway's models with minimal completions;
-    records results as evaluations (stage model-endpoint-ready) so
-    degradation is visible as a trend. Configure gateways via
-    STARGATE_LLM_HEALTH_TARGETS (JSON: name/url/api_key_env).
+    Probes each configured gateway's models; records results as
+    evaluations (stage model-endpoint-ready) so degradation is visible
+    as a trend. The scheduled background loop (15m) uses the same
+    pipeline. Configure gateways via STARGATE_LLM_HEALTH_TARGETS (JSON:
+    name/url/api_key_env).
     """
-    from collectors.llm_health import probe_gateways, record_probe_evaluations
+    from collectors.llm_health import run_health_check
 
-    report = probe_gateways(force=force)
-    try:
-        recorded = record_probe_evaluations(report, db)
-    except Exception:  # noqa: BLE001 — recording must never break the probe
-        logger.exception("llm-health evaluation recording failed")
-        recorded = 0
-
-    if report.get("failing"):
-        from events.models import Event as StarGateEvent
-        from api.routers._shared import _event_bus
-
-        recent = {
-            (e.metadata or {}).get("gateway")
-            for e in _event_bus.history
-            if e.event_type == "llm_gateway_degraded"
-        }
-        gateways_failing = sorted({f.split("/")[0] for f in report["failing_models"]})
-        for gw in gateways_failing:
-            if gw in recent:
-                continue
-            failing = [f.split("/", 1)[1] for f in report["failing_models"] if f.startswith(gw + "/")]
-            _event_bus.emit(StarGateEvent(
-                event_type="llm_gateway_degraded",
-                cluster_name=gw,
-                outcome="fail",
-                failure_class="model_endpoint_error",
-                priority=7.0,
-                message=f"LLM gateway {gw}: {len(failing)} models failing ({', '.join(failing[:4])})",
-                metadata={
-                    "gateway": gw,
-                    "failing_models": failing,
-                    "config_invalid_models": [
-                        f.split("/", 1)[1] for f in report.get("config_invalid_models", [])
-                        if f.startswith(gw + "/")
-                    ],
-                    "remediation": (
-                        "Check the model deployments on the serving cluster "
-                        "(vLLM/KServe pods, Gaudi accelerator health). Config-invalid "
-                        "entries are malformed gateway model definitions — the model "
-                        "may work via its normal name; fix the LiteLLM entry. "
-                        "StarGate's own inference may be affected if it uses these models."
-                    ),
-                },
-            ))
-    report["evaluations_recorded"] = recorded
-    return report
+    return run_health_check(db, force=force)
 
 
 @router.get("/dashboard/saturation")
