@@ -74,8 +74,14 @@ FIELD_MAP = {
 
 
 def open_maybe_gzip(path: Path):
-    """Open plain or gzipped text transparently."""
-    if path.suffix == ".gz":
+    """Open plain or gzipped text transparently — detected by magic bytes.
+
+    The ETL archive mixes suffixes (job_N.json.gz AND
+    job_N.json.gz.transform-ignored), so the sniff is content-based.
+    """
+    with open(path, "rb") as probe:
+        magic = probe.read(2)
+    if magic == b"\x1f\x8b":
         return gzip.open(path, "rt", errors="replace")
     return open(path, "r", errors="replace")
 
@@ -184,8 +190,9 @@ def adapt_etl_extract(raw: Dict, controller_hint: str = "") -> Optional[Dict]:
     # the pipeline branches on outcome == "fail" (evaluation creation, new
     # state) — raw "failed" would silently suppress everything
     status = str(jm.get("status") or "").lower()
-    outcome = {"failed": "fail", "successful": "pass", "success": "pass",
-               "canceled": "canceled", "cancelled": "canceled"}.get(status, status or "fail")
+    outcome = {"failed": "fail", "error": "fail", "successful": "pass",
+               "success": "pass", "canceled": "canceled",
+               "cancelled": "canceled"}.get(status, status or "fail")
 
     return {
         "job_id": jm.get("job_id") or raw.get("job_id"),
