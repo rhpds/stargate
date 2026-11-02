@@ -104,6 +104,7 @@ class ClusterState:
     ns_rotation_index: int = 0
     scan_count: int = 0
     ns_outcomes: Dict[str, str] = field(default_factory=dict)
+    storage_catalog_data: Optional[Dict] = None
 
 
 class ClusterWorker:
@@ -155,7 +156,9 @@ class ClusterWorker:
             result["nodes"] = t1
             result["tiers_run"].append(1)
             self.state.last_node_scan = now
+            self._tier1_storage_catalog()
             self.persist_cluster_health()
+            self.persist_storage_catalog_health()
 
         # Tier 2: Pod delta
         if now - self.state.last_pod_scan >= self.TIER2_INTERVAL:
@@ -590,9 +593,178 @@ class ClusterWorker:
         except Exception:
             pass
 
-    def persist_cluster_health(self):
-        """Persist cluster-health evaluation from Tier 1 node data."""
-        if not self.api_url or not self.state.node_data:
+    def _tier1_storage_catalog(self) -> Dict:
+        """Tier 1b: storage headroom + OLM catalog freshness.
+
+        The team's own gap table (Confluence 501907733, issues 5-6): Ceph
+        alerts fire only when already near-full (wanted: 70% headroom
+        alerts), and OLM catalog snapshots go stale silently. Validated
+        signatures: RHDPOPS-24130 (blockpool near-full, Blocker),
+        GPTEINFRA-17674 (24 image PVCs stuck Pending 8 days),
+        RHDPOPS-24487/24480 (date-pinned catalog snapshots going stale).
+
+        Three signals, each None when not applicable (non-ODF clusters).
+        """
+        data: Dict = {}
+        prev = self.state.storage_catalog_data or {}
+
+        # --- Ceph headroom: .status.ceph.capacity on the CephCluster ---
+        try:
+            r = subprocess.run(
+                ["oc", "get", "cephcluster", "-n", "openshift-storage", "-o", "json"],
+                capture_output=True, text=True, timeout=20, env=self._env,
+            )
+            if r.returncode == 0:
+                items = json.loads(r.stdout or "{}").get("items", [])
+                if items:
+                    cap = (items[0].get("status") or {}).get("ceph", {}).get("capacity", {})
+                    total = cap.get("bytesTotal") or 0
+                    used = cap.get("bytesUsed") or 0
+                    if total > 0:
+                        data["ceph"] = {
+                            "utilization_pct": round(100.0 * used / total, 1),
+                            "bytes_total": total,
+                            "bytes_used": used,
+                            "phase": (items[0].get("status") or {}).get("phase"),
+                            "last_updated": cap.get("lastUpdated"),
+                        }
+                    else:
+                        data["ceph"] = prev.get("ceph")  # capacity not reported yet
+                else:
+                    # Definitively no ODF on this cluster: vacuously healthy.
+                    data["ceph"] = {"not_installed": True, "utilization_pct": None}
+            else:
+                data["ceph"] = prev.get("ceph")  # transient failure — keep last good
+        except Exception as e:
+            data["ceph"] = prev.get("ceph")
+            logger.debug("%s: ceph capacity check failed: %s", self.state.name, e)
+
+        # --- Pending PVCs: the documented 'stuck for 8 days' signature ---
+        # (status.phase is not a valid PVC field selector — filter client-side)
+        try:
+            r = subprocess.run(
+                ["oc", "get", "pvc", "-A", "-o", "json"],
+                capture_output=True, text=True, timeout=30, env=self._env,
+            )
+            if r.returncode == 0:
+                all_pvcs = json.loads(r.stdout or "{}").get("items", [])
+                items = [
+                    p for p in all_pvcs
+                    if (p.get("status") or {}).get("phase") == "Pending"
+                ]
+                now = time.time()
+                max_age = 0
+                for pvc in items:
+                    created = (pvc.get("metadata") or {}).get("creationTimestamp", "")
+                    try:
+                        ts = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                        age = now - ts.timestamp()
+                        max_age = max(max_age, age)
+                    except (ValueError, AttributeError):
+                        pass
+                data["pending_pvcs"] = {
+                    "count": len(items),
+                    "max_age_seconds": round(max_age),
+                }
+            else:
+                data["pending_pvcs"] = prev.get("pending_pvcs")
+        except Exception as e:
+            data["pending_pvcs"] = prev.get("pending_pvcs")
+            logger.debug("%s: pending PVC check failed: %s", self.state.name, e)
+
+        # --- CatalogSource readiness + freshness ---
+        try:
+            r = subprocess.run(
+                ["oc", "get", "catalogsource", "-A", "-o", "json"],
+                capture_output=True, text=True, timeout=20, env=self._env,
+            )
+            if r.returncode == 0:
+                items = json.loads(r.stdout or "{}").get("items", [])
+                now = time.time()
+                not_ready, stale = [], []
+                for src in items:
+                    name = (src.get("metadata") or {}).get("name", "?")
+                    ns = (src.get("metadata") or {}).get("namespace", "?")
+                    conn = ((src.get("status") or {}).get("connectionState") or {})
+                    if conn.get("lastObservedState") != "READY":
+                        not_ready.append(f"{ns}/{name}")
+                    # Non-marketplace sources are custom snapshots (the
+                    # documented staleness case) — flag beyond 45 days.
+                    if ns != "openshift-marketplace":
+                        created = (src.get("metadata") or {}).get("creationTimestamp", "")
+                        try:
+                            ts = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                            if now - ts.timestamp() > 45 * 86400:
+                                stale.append(f"{ns}/{name}")
+                        except (ValueError, AttributeError):
+                            pass
+                data["catalogs"] = {
+                    "total": len(items),
+                    "not_ready": not_ready,
+                    "stale_custom": stale,
+                }
+            else:
+                data["catalogs"] = prev.get("catalogs")
+        except Exception as e:
+            data["catalogs"] = prev.get("catalogs")
+            logger.debug("%s: catalog source check failed: %s", self.state.name, e)
+
+        self.state.storage_catalog_data = data
+        return data
+
+    def _cluster_health_evidence(self) -> Dict:
+        """Build the cluster-health evidence dict (v0.1.0 criteria only)."""
+        n = self.state.node_data
+        return {
+            "cluster_reachable": True,
+            "cpu_usage_acceptable": (n.get("avg_cpu", 0) or 0) < 80,
+            "memory_usage_acceptable": True,
+            "no_critical_alerts": n.get("status") != "critical",
+            "nodes_healthy": n.get("hot_nodes", 0) == 0,
+        }
+
+    def _storage_catalog_evidence(self) -> Dict:
+        """Build storage-catalog-health evidence (tri-state).
+
+        - ceph not installed on the cluster → vacuously True (nothing to
+          fill); collection never succeeded yet → None (criterion
+          unobserved, stage indeterminate — honest "don't know")
+        - False = the condition the ops gap table asked to catch: Ceph
+          at 70%+ (wanted: alerts at 70, not near-full), PVCs Pending
+          beyond 1h, catalog sources not READY or stale custom snapshots
+        """
+        sc = self.state.storage_catalog_data or {}
+        evidence: Dict = {}
+        ceph = sc.get("ceph")
+        if ceph is None:
+            evidence["ceph_headroom_ok"] = None  # never collected — unobserved
+        elif ceph.get("not_installed"):
+            evidence["ceph_headroom_ok"] = True  # no ODF → vacuously fine
+        else:
+            evidence["ceph_headroom_ok"] = ceph.get("utilization_pct", 0) < 70
+        pvcs = sc.get("pending_pvcs")
+        evidence["pvc_pending_ok"] = (
+            (pvcs.get("count", 0) == 0 or pvcs.get("max_age_seconds", 0) < 3600)
+            if pvcs is not None else None
+        )
+        cats = sc.get("catalogs")
+        evidence["olm_catalogs_ready"] = (
+            (not cats.get("not_ready") and not cats.get("stale_custom"))
+            if cats is not None else None
+        )
+        return evidence
+
+    def _persist_stage_evaluation(self, stage_id: str, demo_id: str, evidence: Dict,
+                                  run_prefix: str) -> None:
+        """Post a run + stage + evidence + evaluate to the API.
+
+        Shared plumbing for the Tier 1 stage evaluations (cluster-health,
+        storage-catalog-health). Evidence values of None are not posted as
+        individual evidence items (not-applicable criteria are not
+        'fail') but are carried in the evaluate body for the rubric's
+        None-skip semantics.
+        """
+        if not self.api_url:
             return
 
         import urllib.error as urllib_error
@@ -611,20 +783,11 @@ class ClusterWorker:
                         raise
                 time.sleep(0.25 * (2 ** attempt))
 
-        n = self.state.node_data
-        evidence = {
-            "cluster_reachable": True,
-            "cpu_usage_acceptable": (n.get("avg_cpu", 0) or 0) < 80,
-            "memory_usage_acceptable": True,
-            "no_critical_alerts": n.get("status") != "critical",
-            "nodes_healthy": n.get("hot_nodes", 0) == 0,
-        }
-
         try:
-            run_id = f"cluster-health-{self.state.name}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-%f')}"
+            run_id = f"{run_prefix}-{self.state.name}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-%f')}"
             body = json.dumps({
                 "run_id": run_id,
-                "demo_id": "cluster-health",
+                "demo_id": demo_id,
                 "namespace": self.state.name,
                 "requested_by": "scheduler",
                 "lab_code": self.state.name,
@@ -638,13 +801,15 @@ class ClusterWorker:
             send(req)
 
             req = urllib_req.Request(
-                f"{self.api_url}/runs/{run_id}/stages/cluster-health/start",
+                f"{self.api_url}/runs/{run_id}/stages/{stage_id}/start",
                 method="POST",
                 headers=self._api_headers(),
             )
             send(req)
 
             for key, val in evidence.items():
+                if val is None:
+                    continue  # not-applicable criteria: record nothing, not "fail"
                 ev_body = json.dumps({
                     "type": "cluster_metric",
                     "source": "scheduler",
@@ -652,7 +817,7 @@ class ClusterWorker:
                     "result": "pass" if val else "fail",
                 }).encode()
                 req = urllib_req.Request(
-                    f"{self.api_url}/runs/{run_id}/stages/cluster-health/evidence",
+                    f"{self.api_url}/runs/{run_id}/stages/{stage_id}/evidence",
                     data=ev_body,
                     headers=self._api_headers(),
                 )
@@ -660,13 +825,37 @@ class ClusterWorker:
 
             body = json.dumps({"evidence": evidence}).encode()
             req = urllib_req.Request(
-                f"{self.api_url}/runs/{run_id}/stages/cluster-health/evaluate",
+                f"{self.api_url}/runs/{run_id}/stages/{stage_id}/evaluate",
                 data=body,
                 headers=self._api_headers(),
             )
             send(req)
         except Exception as e:
-            logger.warning("Failed to persist cluster health: %s", e)
+            logger.warning("Failed to persist %s evaluation: %s", stage_id, e)
+
+    def persist_cluster_health(self):
+        """Persist cluster-health evaluation from Tier 1 node data."""
+        if not self.api_url or not self.state.node_data:
+            return
+        self._persist_stage_evaluation(
+            "cluster-health", "cluster-health",
+            self._cluster_health_evidence(), "cluster-health",
+        )
+
+    def persist_storage_catalog_health(self):
+        """Persist storage-catalog-health evaluation from Tier 1b data.
+
+        Separate stage from cluster-health by design: the storage/catalog
+        criteria are new and must not change cluster-health semantics for
+        evidence recorded before them (replay, synthetic pipelines).
+        """
+        if not self.api_url or not self.state.storage_catalog_data:
+            return
+        self._persist_stage_evaluation(
+            "storage-catalog-health", "storage-catalog-health",
+            self._storage_catalog_evidence(), "storage-catalog-health",
+        )
+
 
     def format_status(self) -> str:
         """One-line status for this cluster."""
@@ -779,3 +968,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main() or 0)
+
