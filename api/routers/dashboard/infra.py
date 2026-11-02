@@ -375,6 +375,24 @@ def dashboard_llm_health(
     return run_health_check(db, force=force)
 
 
+@router.get("/dashboard/dependency-health")
+def dashboard_dependency_health(
+    force: bool = False,
+    db: Session = Depends(get_db),
+):
+    """External dependency health: SSO, api.openshift.com, registry.
+
+    5xx and unreachable are the provision-breaking signatures (validated
+    by the Oct 14/21 2026 SSO incidents where 546+ provisions failed
+    downstream while nothing watched the dependency). The scheduled loop
+    (5m) uses the same pipeline. Configure via
+    STARGATE_DEPENDENCY_HEALTH_TARGETS (JSON list; empty list disables).
+    """
+    from collectors.dependency_health import run_health_check as run_dep_check
+
+    return run_dep_check(db, force=force)
+
+
 @router.get("/dashboard/saturation")
 def dashboard_saturation(
     window_hours: int = 6,
