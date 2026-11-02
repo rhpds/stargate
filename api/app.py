@@ -298,6 +298,8 @@ def on_startup():
         tb.start()
     tllm = threading.Thread(target=_llm_health_loop, daemon=True)
     tllm.start()
+    tdep = threading.Thread(target=_dependency_health_loop, daemon=True)
+    tdep.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
     tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
@@ -1083,6 +1085,36 @@ def _llm_health_loop():
                 )
         except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
             logger.warning("LLM health loop failed: %s", e)
+        _shutdown_event.wait(interval)
+
+
+def _dependency_health_loop():
+    """Probe external dependencies (SSO, api.openshift.com, registry) every 5m.
+
+    Validated by the Oct 14/21 2026 incidents: SSO 5xx crashed provisions
+    downstream while nothing watched the dependency itself. Explicitly
+    disabled by setting STARGATE_DEPENDENCY_HEALTH_TARGETS to an empty list.
+    """
+    import time as _td
+    _td.sleep(90)  # settle after the LLM probe to stagger startup load
+    logger = logging.getLogger("stargate")
+    interval = int(os.environ.get("STARGATE_DEPENDENCY_HEALTH_INTERVAL_SECONDS", "300"))
+    while not _shutdown_event.is_set():
+        try:
+            from collectors.dependency_health import _targets, run_health_check
+            if not _targets():
+                logger.debug("dependency-health loop: disabled (empty target list)")
+            else:
+                from db.database import background_session
+                with background_session() as db:
+                    report = run_health_check(db, force=True)
+                logger.info(
+                    "Dependency health: %d dependencies, %d failing, %d evaluations recorded",
+                    report.get("dependencies_probed", 0), report.get("failing", 0),
+                    report.get("evaluations_recorded", 0),
+                )
+        except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
+            logger.warning("Dependency health loop failed: %s", e)
         _shutdown_event.wait(interval)
 
 
