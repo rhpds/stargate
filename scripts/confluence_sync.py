@@ -48,6 +48,134 @@ DOCS = [
 REPO_URL = "https://github.com/rhpds/stargate"
 
 
+# ---------------------------------------------------------------------------
+# Generated pages (built at sync time from repo state, not from a .md file)
+# ---------------------------------------------------------------------------
+
+def _taxonomy_body() -> str:
+    """The failure taxonomy, grouped by source file — the team's own
+    troubleshooting knowledge, structured and queryable."""
+    import html as _html
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from engine.failure_class_loader import get_all_classes
+
+    classes = get_all_classes()
+    by_source: dict = {}
+    for c in classes:
+        by_source.setdefault(c.get("_source_file", "other"), []).append(c)
+
+    parts = [
+        "<p>The structured version of the team's troubleshooting knowledge: "
+        f"{len(classes)} failure classes with detection patterns, severity, "
+        "owning team, and remediation guidance. 19 of these came directly "
+        "from this space's troubleshooting pages and post-mortems; the rest "
+        "from production failure patterns. Queryable live via the MCP "
+        "<code>get_failure_classes</code> tool.</p>"
+    ]
+    for source_file in sorted(by_source):
+        group = sorted(by_source[source_file], key=lambda c: c["name"])
+        parts.append(f"<h2>{_html.escape(source_file)} ({len(group)} classes)</h2>")
+        parts.append("<table><tbody><tr><th>Class</th><th>Severity</th><th>Team</th>"
+                     "<th>Description</th><th>Remediation</th></tr>")
+        for c in group:
+            remediation = "".join(
+                f"<li>{_html.escape(str(r))}</li>" for r in (c.get("remediation") or [])
+            )
+            remediation = f"<ul>{remediation}</ul>" if remediation else "—"
+            desc = _html.escape(str(c.get("description") or ""))
+            pattern = _html.escape(str(c.get("pattern") or ""))
+            parts.append(
+                f"<tr><td><strong><code>{_html.escape(c['name'])}</code></strong>"
+                f"<br/><em>pattern:</em> <code>{pattern[:120]}</code></td>"
+                f"<td>{_html.escape(str(c.get('severity') or '?'))}</td>"
+                f"<td>{_html.escape(str(c.get('team') or '?'))}</td>"
+                f"<td>{desc}</td><td>{remediation}</td></tr>"
+            )
+        parts.append("</tbody></table>")
+    return "\n".join(parts)
+
+
+def _taxonomy_hash() -> str:
+    """Hash of all taxonomy YAML sources — changes when any class changes."""
+    import hashlib
+    fc_dir = Path(__file__).parent.parent / "failure-classes"
+    h = hashlib.sha256()
+    for path in sorted(fc_dir.glob("*.yaml")):
+        h.update(path.read_bytes())
+    return h.hexdigest()[:16]
+
+
+def _release_notes_body() -> str:
+    """Commits to main, grouped by the Friday they ship."""
+    import datetime as _dt
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "log", "--since=8 weeks ago", "--date=short",
+             "--pretty=format:%h|%ad|%s"],
+            capture_output=True, text=True, timeout=30,
+            cwd=Path(__file__).parent.parent,
+        ).stdout.strip()
+    except Exception:
+        out = ""
+    if not out:
+        return "<p>No recent commits found.</p>"
+
+    commits = []
+    for line in out.split("\n"):
+        parts = line.split("|", 2)
+        if len(parts) == 3:
+            commits.append({"sha": parts[0], "date": parts[1], "subject": parts[2]})
+
+    today = _dt.date.today()
+    # the release Friday for a given day: the next Friday (or today if Friday)
+    days_ahead = (4 - today.weekday()) % 7  # Monday=0 ... Friday=4
+    this_friday = today + _dt.timedelta(days=days_ahead)
+
+    groups: dict = {}
+    for c in commits:
+        d = _dt.date.fromisoformat(c["date"])
+        days_ahead = (4 - d.weekday()) % 7
+        friday = d + _dt.timedelta(days=days_ahead)
+        groups.setdefault(friday, []).append(c)
+
+    parts = ["<p>Releases go out <strong>Fridays</strong>. Commits to main, "
+             "grouped by the Friday they ship. Current week is "
+             "<em>queued</em> until it ships.</p>"]
+    for friday in sorted(groups, reverse=True):
+        label = (f"Queued for Friday {friday.isoformat()}" if friday == this_friday
+                 else f"Released Friday {friday.isoformat()}")
+        parts.append(f"<h2>{label}</h2><ul>")
+        for c in groups[friday]:
+            import html as _html
+            parts.append(f"<li><code>{c['sha']}</code> {_html.escape(c['subject'])}</li>")
+        parts.append("</ul>")
+    return "\n".join(parts)
+
+
+def _release_notes_hash() -> str:
+    import hashlib
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["git", "log", "--since=8 weeks ago", "--pretty=format:%h %s"],
+            capture_output=True, text=True, timeout=30,
+            cwd=Path(__file__).parent.parent,
+        ).stdout
+    except Exception:
+        out = ""
+    return hashlib.sha256(out.encode()).hexdigest()[:16]
+
+
+# (title, body builder, hash builder) — generated pages
+GENERATED_DOCS = [
+    ("StarGate Failure Taxonomy", _taxonomy_body, _taxonomy_hash),
+    ("StarGate Release Notes", _release_notes_body, _release_notes_hash),
+]
+
+
 def _auth():
     email = os.environ.get("STARGATE_CONFLUENCE_EMAIL", "")
     token = os.environ.get("STARGATE_CONFLUENCE_TOKEN", "")
@@ -232,6 +360,46 @@ def main():
     children = existing_children()
     created = updated = unchanged = 0
 
+    def sync_one(title: str, body: str, source_hash: str, footer_note: str):
+        nonlocal created, updated, unchanged
+        existing = children.get(title)
+        if existing is None:
+            if check_only:
+                print(f"  DRIFT: {title} — missing on Confluence")
+                return
+            page = _request("POST", "/api/v2/pages", {
+                "spaceId": SPACE_ID, "status": "current", "title": title,
+                "parentId": PARENT_ID,
+                "body": {"representation": "storage", "value": body},
+            })
+            if page:
+                set_sync_label(page["id"], source_hash)
+                print(f"  created: {title}")
+                created += 1
+            return
+
+        full = _request("GET", f"/api/v2/pages/{existing['id']}?body-format=storage")
+        if not full:
+            print(f"  ERROR: could not fetch existing page for {title}")
+            return
+        current_hash = get_sync_label(existing["id"])
+        if current_hash == source_hash:
+            unchanged += 1
+            return
+        if check_only:
+            print(f"  DRIFT: {title} — content changed in repo")
+            return
+        result = _request("PUT", f"/api/v2/pages/{existing['id']}", {
+            "id": existing["id"], "status": "current", "title": title,
+            "body": {"representation": "storage", "value": body},
+            "version": {"number": full["version"]["number"] + 1,
+                        "message": f"sync: {footer_note}"},
+        })
+        if result:
+            set_sync_label(existing["id"], source_hash)
+            print(f"  updated: {title} → v{result['version']['number']}")
+            updated += 1
+
     for filename, title in DOCS:
         path = docs_dir / filename
         if not path.exists():
@@ -244,50 +412,16 @@ def main():
             f"docs/{filename}</a> — the repo is the source of truth; edits belong there. "
             "This page refreshes on release (Fridays).</em></p>"
         )
+        sync_one(title, body, source_hash, f"from repo docs/{filename}")
 
-        existing = children.get(title)
-        if existing is None:
-            if check_only:
-                print(f"  DRIFT: {title} — missing on Confluence")
-                continue
-            page = _request("POST", "/api/v2/pages", {
-                "spaceId": SPACE_ID, "status": "current", "title": title,
-                "parentId": PARENT_ID,
-                "body": {"representation": "storage", "value": body},
-            })
-            if page:
-                set_sync_label(page["id"], source_hash)
-                print(f"  created: {title}")
-                created += 1
-            continue
-
-        # the children listing omits version/body — fetch the full page
-        existing = _request("GET", f"/api/v2/pages/{existing['id']}?body-format=storage")
-        if not existing:
-            print(f"  ERROR: could not fetch existing page for {title}")
-            continue
-        # Compare via the sync LABEL (source-hash), not the rendered body:
-        # Confluence normalizes storage XHTML on every save, so a body
-        # compare never converges. Labels are preserved verbatim.
-        current_hash = get_sync_label(existing["id"])
-        if current_hash == source_hash:
-            unchanged += 1
-            continue
-
-        if check_only:
-            print(f"  DRIFT: {title} — content changed in repo")
-            continue
-
-        result = _request("PUT", f"/api/v2/pages/{existing['id']}", {
-            "id": existing["id"], "status": "current", "title": title,
-            "body": {"representation": "storage", "value": body},
-            "version": {"number": existing["version"]["number"] + 1,
-                        "message": f"sync from repo docs/{filename}"},
-        })
-        if result:
-            set_sync_label(existing["id"], source_hash)
-            print(f"  updated: {title} → v{result['version']['number']}")
-            updated += 1
+    for title, body_fn, hash_fn in GENERATED_DOCS:
+        source_hash = hash_fn()
+        body = body_fn() + (
+            '<hr/><p><em>Generated from the repository at sync time — '
+            "failure-classes/*.yaml and git history respectively. The repo is the "
+            "source of truth; this page refreshes on release (Fridays).</em></p>"
+        )
+        sync_one(title, body, source_hash, "generated page refresh")
 
     action = "would update" if check_only else "synced"
     print(f"\n{action}: {created} created, {updated} updated, {unchanged} unchanged")
