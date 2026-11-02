@@ -199,10 +199,12 @@ The synthesis model is configurable via `STARGATE_ASK_MODEL`
 - `ask` synthesis uses the platform's production LLM (metered under
   `mcp-ask`, model: qwen3-14b); if the LLM is unreachable, you still get
   the retrieved context without synthesis.
-- The knowledge corpus covers the taxonomy (91 classes), 9 doc files
-  (workflows, architecture, runbook, etc. — 165+ sections), and a
-  platform overview — it does not include every historical investigation;
-  ask `get_causal_chain` for those.
+- The knowledge corpus covers the taxonomy (111 classes), 43 doc files
+  (workflows, architecture, runbook, the RHDP Confluence RCA record —
+  post-mortems, troubleshooting guides, incident write-ups — and the
+  incident-window validation study; 351+ documents total). It does not
+  include every historical investigation; ask `get_causal_chain` for
+  those.
 - Rate limits are per-key and shared across your agent's sessions.
 - MCP sessions are stateless: every call is independent; there is no
   conversation memory server-side (your agent holds the conversation).
