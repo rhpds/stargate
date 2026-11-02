@@ -128,7 +128,8 @@ WorkshopProvision collection, and functional-alignment feature gates, is in
 |--------|------|-----|
 | Labagator | Lab catalog, session schedule, attendee counts | REST API |
 | Babylon | ResourcePools, AnarchySubjects, CatalogItems | `oc` CLI via kubeconfigs |
-| AAP | Provisioning job status, failure analysis | REST API (event0, event1 controllers) |
+| AAP | Provisioning job status, failure analysis | REST API (all 4 controllers: prod0, prod1, event0, event1) |
+| AAP ETL archive | Historical job failures beyond API retention (14+ months) | Replay engine (`cli/aap_replay.py`) from bastion extracts — idempotent, historical timestamps preserved |
 | Demolition | Smoke test results per lab | REST API |
 | AgnosticV | Lab deployment constraints, cloud config | Git clone |
 | Sandbox API | Rate limits, queue depth, DB health | Prometheus metrics scrape |
@@ -137,14 +138,17 @@ WorkshopProvision collection, and functional-alignment feature gates, is in
 ## Project Structure
 
 ```
-api/                    FastAPI application and routers
-cli/                    Scanner scheduler and worker processes
+api/                    FastAPI application and routers (incl. MCP server)
+cli/                    Scanner scheduler, worker processes, AAP replay engine
 collectors/             Data source collectors (AAP, Babylon, Demolition, etc.)
+config/                 Maintained config (partner catalog registry)
 constraints/            AgnosticV constraint loading and classification
+contracts/              Outcome contracts (provisioning-outcome/v1, reclamation-outcome/v1)
 db/                     SQLAlchemy models and repository
 deploy/                 Helm charts, Tekton pipelines, OpenShift manifests
 engine/                 Core logic: rubric evaluation, policy, remediation, LLM
 events/                 Event bus and nano-agent pipeline
+failure-classes/        Failure taxonomy (111 classes, YAML — 19 sourced from the team's Confluence RCA record)
 frontend/               React 19 + Vite + Tailwind 4 dashboard
 normalizers/            Data normalization across sources
 prompts/                LLM prompt templates (YAML)
@@ -176,6 +180,7 @@ tests/                  Test suite
 | `scripts/deploy-infra01.sh` | Full Helm-based deploy with secrets and OAuth setup |
 | `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning |
 | `scripts/test-auto-remediation.sh` | E2E auto-remediation test suite |
+| `scripts/confluence_sync.py` | Mirror docs to the Confluence page tree (idempotent, label-based change detection; run post-release) |
 
 ## Remediation Architecture
 
@@ -224,41 +229,42 @@ the full guide.
 
 ## Roadmap
 
-### Ops Stability (Immediate)
+### Done (Oct–Nov 2026)
 
-- [ ] **Cluster scanner SA tokens** — Create `stargate-scanner` SA with `cluster-reader` role and 1-year token on each cluster. Use `scripts/refresh-kubeconfigs.sh`.
-- [x] ~~Remove ocpv10~~ — Done. DNS unreachable, removed from scanner config.
+- [x] **Scanner SA tokens** — `stargate-scanner` SA + kubeconfigs on ocpv03/06/07/08/09 (ocpv04 pending cluster/token).
+- [x] **Outcome contracts** — `provisioning-outcome/v1`, `reclamation-outcome/v1` with tri-state evidence.
+- [x] **Incident validation** — retrospective accuracy audits against documented incidents: detection 4/4, attribution gaps quantified honestly (`docs/incident-validation-2026-10.md`).
+- [x] **Saturation correlation** — rate-spike + symptom-diversity + lab-differential detector, validated on the documented Oct 13-14 ocpv08 incident.
+- [x] **Change correlation** — GitHub PRs (merged + in review) and Jira tickets vs failure onset. RHDP has no formal change management; this is the change record.
+- [x] **Platform health monitoring** — LLM gateway endpoints (15m), external dependencies (SSO/api/registry, 5m), storage headroom + OLM catalog freshness (5m), all persisted as evaluations.
+- [x] **Partner catalog visibility** — the breakdown the biweekly report lacked, with documented baselines.
+- [x] **MCP server** — 12 tools at `/mcp`, any AI agent, plain English, cited answers.
+- [x] **Knowledge corpus** — 351 documents including the team's Confluence RCA record and the incident validation study.
+- [x] **Confluence mirror** — 12-page tree with idempotent sync (`scripts/confluence_sync.py`).
+- [x] **AAP replay engine** — historical ETL archives into the platform, idempotent, historical timestamps preserved; partner channel (14 months) replayed.
 
-### RHDP Integration (Current Sprint)
+### Current
 
-- [x] **RHDP-aware execution router** — Action executor routes RHDP-managed actions through `engine/rhdp_client.py` (Anarchy, Poolboy, Sandbox API) instead of raw `oc` commands.
-- [x] **Pre-flight checks** — Skip remediation when AnarchySubject is mid-provision (`provisioning`, `starting` states).
-- [x] **Catalog execution_method** — Each remediation entry declares whether it's Kubernetes-native or RHDP-managed.
-- [ ] **E2E test with Launchpad labs** — Deploy labs via Launchpad, enable `low_risk_auto` in StarGate, inject failures, verify RHDP-routed remediation works end-to-end.
-- [ ] **Approval queue UX** — Show action parameters, risk level, execution method (Kubernetes vs RHDP), and result after approval.
+- [ ] **Adoption** — the remaining features ARE usage: first MCP calls by the team, first `review_diagnosis` (publishes the first knowledge entry), first classification reviews. Eight API keys distributed.
+- [ ] **Alert wiring** — `SlackConsumer` exists but no webhook is configured; monitors emit events nobody receives. One env var.
+- [ ] **Replay the remaining controllers** — prod0 in progress; event0 next; prod1/event1 behind bastion auth. Includes the deeper `archive/` directories (19GB on prod0 alone).
+- [ ] **Partner controller in live collection** — the replay exposed that the partner AAP is not among the 4 live-collected controllers.
+- [ ] **Value metrics endpoint** — detection lead time, coverage trend, investigation quality, action precision; computable from existing data.
 
-### RHDP Deployment Pipeline (Short-Term)
+### Medium-Term
 
-- [x] **AgnosticV Catalog Item** — StarGate packaged as a proper CI with dev/integration/prod stages.
-- [x] **Git-SHA image tagging** — `scripts/build-and-tag.sh` produces reproducible tagged images.
-- [ ] **AgnosticD role** — Create Ansible role `stargate_deploy` wrapping Helm install for RHDP pipeline.
-- [ ] **Devel deployment** — Deploy StarGate dev CI on CNV cluster via AgnosticV/Babylon.
-- [ ] **Integration gate** — Test on staging cluster before promoting to prod.
-- [ ] **CI review with Ashok/Tony** — Get CI structure reviewed and approved for the pipeline.
+- [ ] **Close the feedback loop** — review pending LLM proposals (614+), promote accurate ones to deterministic rules.
+- [ ] **Remediation effectiveness tracking** — measure success rates by action type; auto-promote proven remediations.
+- [ ] **Pre-flight event feed** — pre-flight failures (no AAP job) are invisible by construction; needs a Babylon-side feed (team decision).
+- [ ] **Devel deployment via AgnosticV** — AgnosticD role + pipeline stages for dev/integration before prod.
 
-### Intelligence (Medium-Term)
+### Longer-Term
 
-- [ ] **Close the feedback loop** — Review pending LLM proposals, promote accurate ones to deterministic rules.
-- [x] **Durable source-event and investigation foundation** — Idempotent AAP events, diagnosis claims, covered-event links, delivery ledgers, reviewed knowledge, and trend records are implemented behind promotion gates.
-- [ ] **Promote enriched Slack delivery** — Enable post-diagnosis delivery only after its stage-gate receipt and canary pass.
-- [ ] **Remediation effectiveness tracking** — Measure success rates by action type. Auto-promote proven remediations from `manual_approval` to `auto_execute`.
+- [ ] **Multi-tenant RBAC** — team leads see only their labs.
+- [ ] **Prometheus /metrics expansion** — API latency, scan cycles, remediation success %, LLM cost.
+- [ ] **AgnosticV webhook sync** — auto-detect new lab configs without restart.
 
-### Platform (Longer-Term)
-
-- [ ] **Multi-tenant RBAC** — Team leads see only their labs.
-- [ ] **Prometheus /metrics** — API latency, scan cycles, failure rates, remediation success %, LLM cost.
-- [ ] **AgnosticV webhook sync** — Auto-detect new lab configs without restart.
-- [ ] **Promote functional trend detection** — Validate durable event-rate and catalog-regression signals before enabling the gate.
+Working rules live in [CONTRIBUTING.md](CONTRIBUTING.md): PRs only, Friday releases.
 
 ## License
 
