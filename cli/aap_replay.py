@@ -83,26 +83,27 @@ def open_maybe_gzip(path: Path):
 def iter_records(path: Path) -> Iterator[Dict]:
     """Stream records from one extract file.
 
-    Handles both JSON-lines and JSON-array files (auto-detected by first
-    non-whitespace character), line-by-line for the former.
+    Three shapes, auto-detected: one-JSON-per-file (the aap2-etl extract
+    format — each job is its own file), JSON-lines, and JSON arrays.
     """
     with open_maybe_gzip(path) as handle:
-        first = handle.read(1)
-        handle.seek(0)
-        if first == "[":
-            # JSON array: stream-decode incrementally
-            try:
-                data = json.load(handle)
-                if isinstance(data, list):
-                    for item in data:
-                        if isinstance(item, dict):
-                            yield item
+        content = handle.read()
+    text = content.strip()
+    if not text:
+        return
+    first = text[0]
+    if first == "{":
+        # single JSON object = one job record (aap2-etl extract format),
+        # OR a JSON-lines file whose first record is an object — try the
+        # whole-file parse first, fall back to line mode.
+        try:
+            item = json.loads(text)
+            if isinstance(item, dict):
+                yield item
                 return
-            except json.JSONDecodeError as e:
-                logger.warning("%s: array parse failed (%s) — trying line mode", path.name, e)
-                handle.seek(0)
-        # JSON lines (the common ETL shape)
-        for line in handle:
+        except json.JSONDecodeError:
+            pass
+        for line in text.split("\n"):
             line = line.strip().rstrip(",")
             if not line or line in ("[", "]"):
                 continue
@@ -111,11 +112,107 @@ def iter_records(path: Path) -> Iterator[Dict]:
                 if isinstance(item, dict):
                     yield item
             except json.JSONDecodeError:
-                continue  # malformed line in a huge file: skip, count it
+                continue
+        return
+    if first == "[":
+        try:
+            data = json.loads(text)
+            if isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict):
+                        yield item
+        except json.JSONDecodeError as e:
+            logger.warning("%s: array parse failed (%s)", path.name, e)
+        return
+    # plain JSON-lines
+    for line in text.split("\n"):
+        line = line.strip().rstrip(",")
+        if not line or line in ("[", "]"):
+            continue
+        try:
+            item = json.loads(line)
+            if isinstance(item, dict):
+                yield item
+        except json.JSONDecodeError:
+            continue
+
+
+def adapt_etl_extract(raw: Dict, controller_hint: str = "") -> Optional[Dict]:
+    """Adapt the aap2-etl extract format (one job per file).
+
+    Structure: job_id (top), metadata.job_metadata (identity, timestamps,
+    status), events[] (the failed event carries task/role/error),
+    retry_analysis. Samples from the partner bastion, Oct 2026.
+    """
+    jm = (raw.get("metadata") or {}).get("job_metadata") or {}
+    if not jm and not raw.get("job_id"):
+        return None
+    if not jm.get("job_id") and not raw.get("job_id"):
+        return None
+
+    # error text: first failed event wins
+    error_text, failing_task, role = "", "", ""
+    for ev in raw.get("events") or []:
+        if ev.get("failed"):
+            failing_task = str(ev.get("task") or "")
+            role = str(ev.get("role") or "")
+            ed = ev.get("event_data") or {}
+            res = ed.get("res") or {}
+            error_text = str(res.get("msg") or res.get("stderr") or "")[:2000]
+            if not error_text:
+                # Ansible failure blocks: prefer fatal:/FAILED! lines over
+                # the TASK banner that leads the stdout block
+                stdout = str(ev.get("stdout") or "")
+                fatal_lines = [
+                    l.strip() for l in stdout.split("\n")
+                    if l.strip().startswith(("fatal:", "FAILED!", "ERROR!"))
+                ]
+                if fatal_lines:
+                    error_text = fatal_lines[-1][:2000]
+                elif stdout:
+                    error_text = stdout.split("\n")[-1].strip()[:2000]
+            break
+
+    # catalog item from job_name: "<ns> <catalog.item-with-tier> <uuid>"
+    job_name = str(jm.get("job_name") or "")
+    catalog_item = ""
+    parts = job_name.split()
+    if len(parts) >= 2:
+        catalog_item = parts[1] if "." in parts[1] else (parts[1] if len(parts[1]) > 4 else "")
+
+    # normalize AAP status vocabulary to the ingestion path's expectations:
+    # the pipeline branches on outcome == "fail" (evaluation creation, new
+    # state) — raw "failed" would silently suppress everything
+    status = str(jm.get("status") or "").lower()
+    outcome = {"failed": "fail", "successful": "pass", "success": "pass",
+               "canceled": "canceled", "cancelled": "canceled"}.get(status, status or "fail")
+
+    return {
+        "job_id": jm.get("job_id") or raw.get("job_id"),
+        "event_id": f"job-{jm.get('job_id') or raw.get('job_id')}",
+        "controller": controller_hint or "partner",
+        "outcome": outcome,
+        "error": error_text,
+        "failing_task": failing_task,
+        "play": "",
+        "role": role,
+        "guid": jm.get("guid") or "",
+        "catalog_item": jm.get("display_name") if jm.get("display_name") not in (None, "", "unknown") else catalog_item,
+        "stage": f"aap-{jm.get('action') or 'provision'}",
+        "type": jm.get("action"),
+        "provider": jm.get("cloud_provider"),
+        "cluster": jm.get("sandbox_openshift_cluster") if jm.get("sandbox_openshift_cluster") not in (None, "", "none") else "",
+        "controller_url": "",
+        "job_url": "",
+        "finished": jm.get("finished") or jm.get("created"),
+    }
 
 
 def adapt(raw: Dict, controller_hint: str = "") -> Optional[Dict]:
     """Map an extract record onto the ingestion shape. None = not a job record."""
+    # aap2-etl extract format (nested metadata.job_metadata)
+    if (raw.get("metadata") or {}).get("job_metadata"):
+        return adapt_etl_extract(raw, controller_hint)
     out: Dict = {}
     for target, candidates in FIELD_MAP.items():
         for c in candidates:
@@ -157,6 +254,7 @@ def run(
         "created": 0, "updated": 0, "evaluations": 0,
     }
     class_counts: Counter = Counter()
+    outcome_counts: Counter = Counter()
     date_min, date_max = None, None
 
     db = None
@@ -177,7 +275,7 @@ def run(
                 if not batch or dry_run:
                     return {"created": 0, "updated": 0, "evaluations_created": 0}
                 from engine.functional_alignment import ingest_aap_failures
-                return ingest_aap_failures(db, batch)
+                return ingest_aap_failures(db, batch, historical=True)
 
             for record in iter_records(path):
                 line_no += 1
@@ -194,7 +292,18 @@ def run(
                     date_max = ts if date_max is None else max(date_max, ts)
                 if dry_run:
                     fc = record.get("failure_class")
-                    class_counts[fc or "(classified at ingest)"] += 1
+                    if not fc or fc == "unclassified":
+                        # preview what ingest-time classification WOULD do
+                        try:
+                            from engine.failure_class_loader import classify_by_pattern
+                            fc, _ = classify_by_pattern(
+                                f"{adapted.get('error', '')} {adapted.get('failing_task', '')} {adapted.get('role', '')}",
+                                source="aap2_grafana",
+                            )
+                        except Exception:
+                            fc = "unclassified"
+                    class_counts[fc or "unclassified"] += 1
+                    outcome_counts[adapted.get("outcome") or "?"] += 1
                 batch.append(adapted)
                 if len(batch) >= batch_size:
                     result = flush(batch)
@@ -220,6 +329,7 @@ def run(
 
     if dry_run:
         totals["classification_preview"] = dict(class_counts.most_common(15))
+        totals["outcome_preview"] = dict(outcome_counts)
     totals["date_range"] = [date_min, date_max]
     return totals
 
@@ -234,7 +344,15 @@ def main():
     parser.add_argument("--resume", action="store_true", help="resume from checkpoint state")
     args = parser.parse_args()
 
-    paths = [Path(p) for p in args.paths]
+    paths: List[Path] = []
+    for p in args.paths:
+        path = Path(p)
+        if path.is_dir():
+            # directory: expand to its files (sorted — chronological order
+            # matters for the ETL extract naming: job_<id>)
+            paths.extend(sorted(path.iterdir()))
+        else:
+            paths.append(path)
     missing = [p for p in paths if not p.exists()]
     if missing:
         print(f"missing files: {missing}", file=sys.stderr)

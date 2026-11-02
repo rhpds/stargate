@@ -70,8 +70,14 @@ def _parse_time(value) -> Optional[datetime]:
         return None
 
 
-def ingest_aap_failures(db: Session, failures: Iterable[Dict]) -> Dict:
-    """Idempotently persist normalized AAP failures and one evaluation each."""
+def ingest_aap_failures(db: Session, failures: Iterable[Dict], historical: bool = False) -> Dict:
+    """Idempotently persist normalized AAP failures and one evaluation each.
+
+    historical=True (replay mode): evaluations carry the job's own
+    occurred_at instead of ingestion time, so replayed history lands in
+    its true period instead of polluting current windows. Live collection
+    leaves it False — evaluation time IS now for live events.
+    """
     created = updated = evaluations = 0
     for raw in failures:
         clean = bounded_evidence(raw)
@@ -141,10 +147,11 @@ def ingest_aap_failures(db: Session, failures: Iterable[Dict]) -> Dict:
 
         existing_eval = db.query(EvaluationRecord.id).filter(EvaluationRecord.source_event_id == record.id).first()
         if record.outcome == "fail" and not existing_eval:
+            eval_time = (record.occurred_at or now) if historical else now
             db.add(EvaluationRecord(
                 run_id=f"source-aap-{record.id}", stage_id="aap-provisioning", outcome="fail",
                 failure_class=record.failure_class, message=record.normalized_error[:2000],
-                criteria_results={"source_event_id": record.id}, evaluated_at=now,
+                criteria_results={"source_event_id": record.id}, evaluated_at=eval_time,
                 lab_code=record.guid or record.catalog_item, cluster_name=record.cluster,
                 source_event_id=record.id,
             ))

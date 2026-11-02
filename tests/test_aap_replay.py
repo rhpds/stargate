@@ -116,6 +116,8 @@ def test_replay_ingests_idempotently(tmp_path, monkeypatch):
     assert events[0].occurred_at.year == 2025  # historical timestamp preserved
     evals = db.query(EvaluationRecord).filter(EvaluationRecord.source_event_id.isnot(None)).all()
     assert len(evals) == 5
+    # historical mode: evaluations land in the JOB's period, not replay day
+    assert all(e.evaluated_at.year == 2025 for e in evals)
 
     # re-run WITHOUT resume → same records, zero new creates (idempotent)
     result2 = run([f], controller="prod0", dry_run=False)
@@ -126,3 +128,15 @@ def test_replay_ingests_idempotently(tmp_path, monkeypatch):
     db.rollback()
     db.close()
     Base.metadata.drop_all(bind=test_engine)
+
+
+def test_outcome_vocabulary_normalized():
+    """AAP statuses (failed/successful/canceled) must normalize to the
+    ingestion path's fail/pass vocabulary — raw 'failed' silently
+    suppresses evaluation creation (found live during the partner replay)."""
+    from cli.aap_replay import adapt_etl_extract
+    for status, expected in (("failed", "fail"), ("successful", "pass"),
+                             ("canceled", "canceled"), ("cancelled", "canceled")):
+        raw = {"job_id": 1, "metadata": {"job_metadata": {"job_id": 1, "status": status}}}
+        a = adapt_etl_extract(raw, "partner")
+        assert a["outcome"] == expected, f"{status} → {a['outcome']}, want {expected}"
