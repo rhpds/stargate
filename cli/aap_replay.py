@@ -91,7 +91,13 @@ def iter_records(path: Path) -> Iterator[Dict]:
 
     Three shapes, auto-detected: one-JSON-per-file (the aap2-etl extract
     format — each job is its own file), JSON-lines, and JSON arrays.
+    Tar archives (.tar.gz) stream their members — each member is one job
+    file (the bastion archive format: job_to_250000.tar.gz, 19GB, ~250k
+    members; tarfile streams lazily, never loading the whole archive).
     """
+    if path.suffix == ".tar" or path.name.endswith(".tar.gz"):
+        yield from _iter_tar_members(path)
+        return
     with open_maybe_gzip(path) as handle:
         content = handle.read()
     text = content.strip()
@@ -141,6 +147,52 @@ def iter_records(path: Path) -> Iterator[Dict]:
                 yield item
         except json.JSONDecodeError:
             continue
+
+
+def _iter_tar_members(path: Path) -> Iterator[Dict]:
+    """Stream job records from a tar archive of per-job files.
+
+    Members may be plain JSON or gzipped JSON (detected by magic bytes in
+    the member name ending .gz or by content sniffing). Each member is one
+    aap2-etl job file; extraction is streamed one member at a time.
+    """
+    import tarfile
+    import io
+
+    with tarfile.open(path, "r:gz") as tar:
+        for member in tar:
+            if not member.isfile():
+                continue  # skip the archive's directory entries
+            name = member.name
+            if not (name.endswith(".json") or ".json.gz" in name or ".json." in name):
+                continue  # skip non-job files
+            try:
+                f = tar.extractfile(member)
+                if f is None:
+                    continue
+                data = f.read()
+            except Exception as e:  # noqa: BLE001 — one bad member never stops the stream
+                logger.debug("%s: member %s failed: %s", path.name, name, e)
+                continue
+            text = _decode_maybe_gzip(data)
+            if not text:
+                continue
+            try:
+                item = json.loads(text)
+                if isinstance(item, dict):
+                    yield item
+            except json.JSONDecodeError:
+                continue
+
+
+def _decode_maybe_gzip(data: bytes) -> str:
+    """Decode bytes as text, transparently gunzipping by magic bytes."""
+    if data[:2] == b"\x1f\x8b":
+        try:
+            return gzip.decompress(data).decode("utf-8", errors="replace")
+        except OSError:
+            return ""
+    return data.decode("utf-8", errors="replace")
 
 
 def adapt_etl_extract(raw: Dict, controller_hint: str = "") -> Optional[Dict]:
