@@ -393,6 +393,20 @@ def dashboard_dependency_health(
     return run_dep_check(db, force=force)
 
 
+@router.get("/dashboard/partner-visibility")
+def dashboard_partner_visibility(
+    days: int = 7,
+    db: Session = Depends(get_db),
+):
+    """Partner-channel catalog visibility — the breakdown the biweekly
+    report lacks (Billy's 90-day analysis: partner at 16.8%, items in the
+    50-90% range, 'nobody's been watching them'). Current failure rates
+    for registered partner items vs their documented baselines."""
+    from engine.partner_visibility import partner_visibility
+
+    return partner_visibility(db, days=min(max(days, 1), 90))
+
+
 @router.get("/dashboard/saturation")
 def dashboard_saturation(
     window_hours: int = 6,
