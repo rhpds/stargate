@@ -135,8 +135,21 @@ def test_outcome_vocabulary_normalized():
     ingestion path's fail/pass vocabulary — raw 'failed' silently
     suppresses evaluation creation (found live during the partner replay)."""
     from cli.aap_replay import adapt_etl_extract
-    for status, expected in (("failed", "fail"), ("successful", "pass"),
+    for status, expected in (("failed", "fail"), ("error", "fail"),
+                             ("successful", "pass"),
                              ("canceled", "canceled"), ("cancelled", "canceled")):
         raw = {"job_id": 1, "metadata": {"job_metadata": {"job_id": 1, "status": status}}}
         a = adapt_etl_extract(raw, "partner")
         assert a["outcome"] == expected, f"{status} → {a['outcome']}, want {expected}"
+
+
+def test_gzip_detected_by_magic_not_suffix(tmp_path):
+    """ETL names mix suffixes (job_N.json.gz.transform-ignored) — gzip must
+    be detected by magic bytes, not the filename."""
+    import gzip as gz
+    record = '{"job_id": 7, "metadata": {"job_metadata": {"job_id": 7, "status": "failed"}}}'
+    weird = tmp_path / "job_7.json.gz.transform-ignored"
+    with gz.open(weird, "wt") as f:
+        f.write(record)
+    out = list(iter_records(weird))
+    assert len(out) == 1 and out[0]["job_id"] == 7
