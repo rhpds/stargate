@@ -10,9 +10,12 @@ from alembic import context
 config = context.config
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# disable_existing_loggers=False: fileConfig's default (True) silently
+# disables every logger created before it runs (e.g. the app's
+# stargate.mcp audit logger) — found via a dead MCP audit trail that
+# passed standalone but died in any suite that touched migrations.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 import os
 import sys
