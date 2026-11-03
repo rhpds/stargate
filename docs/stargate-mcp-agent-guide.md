@@ -18,32 +18,54 @@ English; and review diagnoses to build the platform's knowledge base.
 
 ## Connecting your agent
 
-Most MCP clients accept a server config like:
+**Keep the key out of configs, shell history, and process lists** — put it
+in an environment variable and let the config expand it:
+
+```bash
+# once, in your shell profile (~/.zshrc / ~/.bashrc):
+export STARGATE_API_KEY="your-key-here"
+```
+
+Most MCP clients accept a server config with env-var expansion
+(`${VAR}` is expanded by Claude Desktop and Claude Code):
 
 ```json
 {
   "mcpServers": {
     "stargate": {
+      "type": "http",
       "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
       "headers": {
-        "X-API-Key": "YOUR-STARGATE-API-KEY"
+        "X-API-Key": "${STARGATE_API_KEY}"
       }
     }
   }
 }
 ```
 
-For Claude Code:
+For Claude Code (the URL is a positional argument — older CLI versions
+used an `--url` flag that no longer exists):
+
 ```bash
-claude mcp add stargate \
-  --transport http \
-  --url https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
-  --header "X-API-Key: YOUR-STARGATE-API-KEY"
+claude mcp add --transport http stargate \
+  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
+  --header "X-API-Key: ${STARGATE_API_KEY}"
 ```
 
-For clients that need a command instead of a URL, wrap it with `mcp-remote`
-or any Streamable-HTTP client shim; the endpoint speaks standard MCP
-(initialize → tools/list → tools/call).
+For clients that need a command instead of a URL, wrap it with
+`mcp-remote`; the endpoint speaks standard MCP (initialize → tools/list →
+tools/call). Note the stdio wrapper passes the header as a process
+argument, so the env-var form matters here too:
+
+```bash
+claude mcp add stargate -- npx -y mcp-remote \
+  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
+  --header "X-API-Key: ${STARGATE_API_KEY}"
+```
+
+(Thanks to community feedback on the key-handling anti-pattern and the
+stale CLI syntax — both fixed here. If you find another rough edge, the
+repo is public: contributions welcome.)
 
 ## The tools (12 total)
 
