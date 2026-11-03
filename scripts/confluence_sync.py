@@ -200,7 +200,8 @@ def _request(method: str, path: str, payload=None):
     )
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            return json.loads(resp.read().decode())
+            body = resp.read().decode()
+            return json.loads(body) if body.strip() else {"status": resp.status}
     except urllib.error.HTTPError as e:
         print(f"HTTP {e.code} on {method} {path}: {e.read().decode()[:200]}")
         return None
