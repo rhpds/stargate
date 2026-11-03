@@ -37,12 +37,15 @@ API = "https://redhat.atlassian.net/wiki"
 DOCS = [
     ("workflows.md", "StarGate Workflows — Event Flows and Data Locations"),
     ("architecture.md", "StarGate Architecture"),
+    ("reference-architecture.md", "StarGate Production Reference Architecture — As Is"),
     ("runbook.md", "StarGate Runbook"),
     ("configuration.md", "StarGate Configuration Reference"),
     ("incident-validation-2026-10.md", "StarGate Incident Validation — Oct 2026"),
     ("config-management.md", "StarGate Config Management (ConfigMap + AAP pattern)"),
     ("proof-lab-ecosystem.md", "StarGate Proof Lab Ecosystem"),
     ("evidence-observation-semantics.md", "StarGate Evidence and Observation Semantics"),
+    ("cascade-integration-design.md", "StarGate Cascade Integration Design — Proposed"),
+    ("stargate-mcp-agent-guide.md", "StarGate MCP Agent Guide (Mirrored)"),
 ]
 
 REPO_URL = "https://github.com/rhpds/stargate"
