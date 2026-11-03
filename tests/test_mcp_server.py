@@ -250,3 +250,39 @@ class TestMCPServerReviewTools:
         # Second review of already-reviewed + published investigation
         result = review_diagnosis(inv.id, True, "confirming again")
         assert "already reviewed" in result
+
+
+def test_mcp_audit_log_emits():
+    """The /mcp audit emission must actually emit — it was silently dead
+    (TWO NameErrors on unimported names, _logging and json, each hidden
+    by except: pass) until a real client connected Nov 3 2026 and left
+    no trace. Unit-tests the extracted pure function directly: no app,
+    no client, no subprocess (the suite's effects guard blocks those),
+    no ordering dependence.
+    """
+    import logging
+
+    records = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    handler = _Capture()
+    mcp_log = logging.getLogger("stargate.mcp")
+    mcp_log.disabled = False  # order-independent: alembic's fileConfig may have disabled it
+    mcp_log.addHandler(handler)
+    mcp_log.setLevel(logging.INFO)
+    try:
+        from api.app import emit_mcp_audit
+        emit_mcp_audit("test-key-for-ci", "initialize", "", "/mcp/")
+    finally:
+        mcp_log.removeHandler(handler)
+
+    msgs = [r.getMessage() for r in records]
+    assert msgs, "the mcp audit line must emit"
+    assert "method=initialize" in msgs[0]
+    assert "key_id=" in msgs[0]  # attribution present
+    import hashlib
+    expected = hashlib.sha256(b"test-key-for-ci").hexdigest()[:8]
+    assert expected in msgs[0]  # correct key_id derivation
