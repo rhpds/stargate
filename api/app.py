@@ -4,6 +4,7 @@ Thin shell that configures middleware, lifecycle hooks, and includes domain rout
 All endpoint implementations live in api/routers/*.py.
 """
 
+import json
 import logging
 import os
 import time as _time
@@ -131,15 +132,11 @@ try:
                     tool = str((payload.get("params") or {}).get("name", ""))[:60]
                 except Exception:
                     pass
-                _logging.getLogger("stargate.mcp").info(
-                    "mcp request: method=%s tool=%s key_id=%s path=%s",
-                    method or "-", tool or "-",
-                    _hmac.compare_digest(provided.encode(), provided.encode()) and
-                    __import__("hashlib").sha256(provided.encode()).hexdigest()[:8],
-                    request.url.path,
-                )
+                emit_mcp_audit(provided, method, tool, request.url.path)
             except Exception:
-                pass
+                logging.getLogger("stargate.mcp").exception(
+                    "mcp audit logging failed"
+                )
 
             try:
                 await _ensure_mcp_running()
@@ -150,6 +147,24 @@ try:
 except Exception as _mcp_error:  # pragma: no cover - mcp is optional at import
     import logging as _logging
     _logging.getLogger("stargate").warning("MCP server not mounted: %s", _mcp_error)
+
+def emit_mcp_audit(api_key: str, method: str, tool: str, path: str) -> None:
+    """Emit the /mcp audit line with key attribution.
+
+    Extracted from the middleware so it is unit-testable in isolation.
+    (The inline version was silently dead until Nov 3 2026 — TWO
+    NameErrors on unimported names, _logging and json, each hidden by
+    except: pass. Found when a real client connected and the audit
+    trail showed nothing.)
+    """
+    import hashlib
+    logging.getLogger("stargate.mcp").info(
+        "mcp request: method=%s tool=%s key_id=%s path=%s",
+        method or "-", tool or "-",
+        hashlib.sha256((api_key or "").encode()).hexdigest()[:8],
+        path,
+    )
+
 
 _cors_origins = os.environ.get("STARGATE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8090").split(",")
 app.add_middleware(
