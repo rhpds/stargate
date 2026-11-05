@@ -46,6 +46,7 @@ DOCS = [
     ("evidence-observation-semantics.md", "StarGate Evidence and Observation Semantics"),
     ("cascade-integration-design.md", "StarGate Cascade Integration Design — Proposed"),
     ("stargate-mcp-agent-guide.md", "StarGate MCP Agent Guide (Mirrored)"),
+    ("investigation-workflow.md", "StarGate Investigation Workflow"),
 ]
 
 REPO_URL = "https://github.com/rhpds/stargate"
