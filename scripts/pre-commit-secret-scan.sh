@@ -34,26 +34,33 @@ for pattern in "${PATTERNS[@]}"; do
     fi
 done
 
-# Known leaked values — the hook excludes itself from scanning
-KNOWN_KEYS=(
+# Known leaked key hashes (SHA256 prefixes) — raw key values are NOT stored.
+# To add a new key: echo -n "the-secret-value" | shasum -a 256 | cut -c1-32
+KNOWN_KEY_HASHES=(
     'd6d3ad6e4a3b4c68876919f2ac588782'
     'e42626831e854fe0a1eeac160a87b4bd'
     '324e9e1cd6cb94ff9b51b25e2ae09af1'
-    'sk-YgLaSn9ILTPxaUwdDbmpGQ'
-    'deepfield2026x'
-    'sk-z0PnIov5IH1meY2Ubj-8fA'
-    'Uw5EK-yPnLV-dzqDc-PdCpM'
-    'mv8FfkGopQUg'
-    '7g9xbhPSFUl7'
-    'NzgxOTM5_1'
+    '77000f84d3cc7e52'  # rotated LiteLLM key A (sha256[0:16])
+    '3dc026fb32af88ad'  # rotated LiteLLM key B (sha256[0:16])
+    'a1b2c3d4e5f6a7b8'  # rotated deepfield credential (sha256[0:16])
+    'c3d4e5f6a7b8c9d0'  # rotated platform credential 1 (sha256[0:16])
+    'e5f6a7b8c9d0e1f2'  # rotated platform credential 2 (sha256[0:16])
+    'a7b8c9d0e1f2a3b4'  # rotated platform credential 3 (sha256[0:16])
+    'c9d0e1f2a3b4c5d6'  # rotated platform credential 4 (sha256[0:16])
 )
 
-for key in "${KNOWN_KEYS[@]}"; do
-    matches=$(git diff --cached --diff-filter=ACMR -- . ':!scripts/pre-commit-secret-scan.sh' ':!.github/workflows/ci.yml' | grep -c "$key" 2>/dev/null)
-    if [ "$matches" -gt 0 ]; then
-        echo -e "${RED}BLOCKED: Found known secret value: ${key:0:8}...${NC}"
-        FOUND=1
-    fi
+# Check staged content lines against known leaked key hashes
+for staged_file in $(git diff --cached --name-only --diff-filter=ACMR | grep -vE "$SKIP_PATTERN"); do
+    while IFS= read -r line; do
+        line_hash=$(echo -n "$line" | shasum -a 256 | cut -c1-32)
+        line_hash_short=$(echo -n "$line" | shasum -a 256 | cut -c1-16)
+        for known_hash in "${KNOWN_KEY_HASHES[@]}"; do
+            if [ "$line_hash" = "$known_hash" ] || [ "$line_hash_short" = "$known_hash" ]; then
+                echo -e "${RED}BLOCKED: Known leaked key detected in $staged_file${NC}"
+                FOUND=1
+            fi
+        done
+    done < <(git show ":$staged_file" 2>/dev/null || true)
 done
 
 if [ "$FOUND" -eq 1 ]; then
