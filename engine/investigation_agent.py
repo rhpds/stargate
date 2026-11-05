@@ -801,6 +801,16 @@ Investigation strategy:
 9. Before writing the diagnosis, call search_knowledge with the key error text —
    the team's documented RCA record (Confluence post-mortems, incident validation,
    taxonomy remediation guidance) may already name this root cause
+10. For lifecycle tracing (namespace gone, no outcome recorded, "did provision ever start?"):
+   query the HUB CLUSTERS where Babylon/Anarchy control plane runs:
+   - ocp-us-east-1: the primary hub (babylon-anarchy-0 through 5, babylon-admin)
+   - ocp-us-west-2: the events hub (babylon-anarchy-events, summit catalogs)
+   Use oc_read with cluster="ocp-us-east-1" or "ocp-us-west-2" to query:
+   - oc get anarchysubject -A | grep <guid> (did the subject ever exist? what state?)
+   - oc get resourceclaim -A | grep <guid> (who requested it, what pool?)
+   - oc get anarchyrun -A -l anarchy.gpte.redhat.com/subject=<subject-name>
+   These clusters hold the AUTHORITATIVE lifecycle state — a missing namespace on a
+   provisioning cluster does NOT mean the workload never existed
 
 Failure-class playbooks (follow EVERY step — do not stop early):
 - pods_crashlooping: Check which container is failing (init or main), get its logs, find the GIT_REPO_URL env var — that's where the fix goes
