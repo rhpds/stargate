@@ -225,7 +225,8 @@ platform in plain English:
 ```
 
 See [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md) for
-the full guide.
+the full guide, and [docs/mcp-tool-cookbook.md](docs/mcp-tool-cookbook.md)
+for per-tool examples — what to ask, what each tool returns.
 
 ## Roadmap
 

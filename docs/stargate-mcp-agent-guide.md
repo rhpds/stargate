@@ -69,6 +69,10 @@ repo is public: contributions welcome.)
 
 ## The tools (12 total)
 
+For per-tool examples — the questions to ask, the arguments, and real
+responses from production — see the **[MCP Tool
+Cookbook](mcp-tool-cookbook.md)**. The tables below are the summary.
+
 ### Query tools (read-only)
 
 | Tool | What it answers |
