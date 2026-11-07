@@ -18,6 +18,7 @@ I actually ask?"*
 | "What happened to lab X?" | `query_lifecycle_outcomes`, then `query_evaluations` |
 | "Why did it fail?" | `get_causal_chain` (by namespace, or ask for the latest) |
 | "Is anything on fire right now?" | `get_cluster_saturation`, `get_recent_episodes` |
+| "Is this one bug or many? What's systematically broken?" | `get_known_issues` |
 | "Did something change before it broke?" | `get_recent_changes` (with the lab code) |
 | "What does this error mean?" | `ask`, or `get_failure_classes` for the full taxonomy |
 | "Did it clean up after itself?" | `list_reclamation_artifacts` |
@@ -440,9 +441,83 @@ at 30k chars.
 
 ---
 
+### 11. `get_known_issues` — is this one bug or many?
+
+**What it does:** Groups completed investigations that share one root
+cause into fleet-level issues — so the platform says "this is ONE bug
+affecting N workloads" instead of presenting N separate diagnoses
+nobody acts on. Every issue lands in a bucket by who owns the fix:
+**platform** (infra-side: router, node, cluster, capacity),
+**platform_self** (StarGate's own evaluator/rubric is the diagnosed
+fault), or **lab_family** (a shared chart/config bug spanning labs).
+Per issue: signature, scope, root-cause and remediation excerpts, and
+a representative investigation id for `get_causal_chain`.
+
+**Ask things like:**
+- "Is this one bug or many?"
+- "What's systematically broken right now?"
+- "Are any of these failures StarGate's own fault?"
+- "What single fix would eliminate the most failures?"
+
+**Arguments:**
+
+| Arg | Type | Default | Meaning |
+|---|---|---|---|
+| `window_hours` | int | 24 | Lookback (1–168) |
+| `bucket` | string (optional) | "" | Filter to one bucket: `platform`, `platform_self`, `lab_family`, `unknown` (empty = all) |
+
+**Example call and real response (trimmed):**
+
+> `get_known_issues(window_hours=24)`
+>
+> ```
+> Known issues (last 24h): 3 issues covering 22 investigations across 19 namespaces
+>   Buckets: 1 platform, 1 platform_self, 1 lab_family
+>
+>   [platform_self] StarGate self-issue: showroom_not_ready across 4 namespaces
+>     signature: showroom_not_ready|artifact:evaluator
+>     4 investigations across 4 namespaces, first seen 2026-11-06T15:00Z, last seen 2026-11-06T19:00Z
+>     root cause: the showroom_not_ready rubric was misapplied to a lab family that never deploys a showroom — ...
+>     remediation: fix the evaluator's namespace-existence probe ...
+>     representative investigation: #2422 (get_causal_chain(investigation_id=2422) for the full chain)
+>
+>   [lab_family] showroom_not_ready across 10 namespaces — zerotouch-1.10.2
+>     signature: showroom_not_ready|artifact:zerotouch-1.10.2
+>     10 investigations across 10 namespaces, first seen 2026-11-06T02:00Z, last seen 2026-11-06T18:00Z
+>     root cause: zerotouch-1.10.2 Helm chart bug — nginx/proxy container port and SCC config ...
+>     remediation: fix the chart's proxy container ports and the SCC ...
+>     representative investigation: #2439 (get_causal_chain(investigation_id=2439) for the full chain)
+>
+>   [platform] showroom_not_ready on ocpv07: platform-side pattern
+>     signature: showroom_not_ready|cluster:ocpv07
+>     8 investigations across 5 namespaces on ocpv07, first seen 2026-11-06T06:00Z, last seen 2026-11-06T19:30Z
+>     root cause: router-ingress-rhdp-net pod restarted 114 times (CrashLoopBackOff); ingress routing flaps ...
+>     representative investigation: #2451 (get_causal_chain(investigation_id=2451) for the full chain)
+>
+>   Guidance: platform_self issues are StarGate bugs — file them in the stargate repo. platform issues are
+>   infra-side — check the named component on the named cluster. lab_family issues are chart/config bugs —
+>   one fix eliminates the whole class. Use get_causal_chain(investigation_id=...) for any issue's full
+>   evidence chain.
+> ```
+>
+> (All three buckets firing on the same symptom class in one window:
+> the same `showroom_not_ready` surface trace has three different
+> owners — a StarGate rubric bug, a Helm chart bug, and an unstable
+> ingress router. Without this rollup that's 22 separate
+> investigations; with it, it's three fixes.)
+
+**Good to know:** detection groups only COMPLETE investigations with
+an ACTIONABLE diagnosis — transient noise never becomes a known issue.
+`platform_self` issues are StarGate's own bugs: file them in the
+stargate repo. One `lab_family` fix often eliminates an entire failure
+class. Follow up with `get_causal_chain` on the representative
+investigation id for any issue's full evidence chain.
+
+---
+
 ## Review tools (opinions only — nothing executes)
 
-### 11. `review_diagnosis` — confirm or reject a diagnosis
+### 12. `review_diagnosis` — confirm or reject a diagnosis
 
 **What it does:** Records your agreement or disagreement with an
 investigation's diagnosis. **Approved** diagnoses with a root cause +
@@ -486,7 +561,7 @@ future investigation of that failure class.
 
 ---
 
-### 12. `comment_action` — context for the approver
+### 13. `comment_action` — context for the approver
 
 **What it does:** Adds a comment to a pending remediation action,
 visible to whoever reviews or approves it in the dashboard. Does NOT
@@ -529,6 +604,8 @@ you:  "Any provisioning failures in the last 24 hours?"
       → get_recent_episodes(24, provisioning) — scan for fail rows
 you:  "What changed recently?"
       → get_recent_changes(48)         — PRs + Jira for context
+you:  "What's systematically broken right now?"
+      → get_known_issues(24)           — one bug or many? whose fix?
 ```
 
 ### The "user says my lab is broken" triage (2 minutes)

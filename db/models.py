@@ -519,6 +519,11 @@ class InvestigationRecord(Base):
     reviewed_by = Column(String(255), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     knowledge_match = Column(JSON, nullable=True)
+    # Recurrence tracking: deduped trigger attempts attach here instead of
+    # spawning a duplicate investigation for a failure we already diagnosed.
+    recurrence_count = Column(Integer, nullable=False, default=0)
+    last_recurrence_at = Column(DateTime(timezone=True), nullable=True)
+    recurrence_log = Column(JSON, nullable=True)  # [{"eval_id", "at", "note"}] capped at 50
 
 
 class AdjudicationRecord(Base):
@@ -540,6 +545,41 @@ class AdjudicationRecord(Base):
     total_tokens = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class KnownIssue(Base):
+    """Fleet-level rollup of investigations that share one root cause.
+
+    An 'issue' is what the platform should show when ten investigations of
+    ten namespaces all trace to one Helm chart bug or one unstable router.
+    Buckets: platform (infra-side), platform_self (StarGate's own evaluator
+    or rubric at fault), lab_family (chart/config artifact shared by labs).
+    Upserted by the known-issues detector, keyed on a stable signature.
+    """
+    __tablename__ = "known_issues"
+    __table_args__ = (
+        Index("idx_known_issue_status", "status"),
+        Index("idx_known_issue_bucket", "bucket"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signature = Column(String(255), unique=True, nullable=False, index=True)
+    bucket = Column(String(30), nullable=False, default="unknown")
+    title = Column(String(500), nullable=False)
+    failure_class = Column(String(255), nullable=True)
+    cluster = Column(String(100), nullable=True)
+    artifact_refs = Column(JSON, nullable=True)          # top extracted refs, capped
+    namespace_count = Column(Integer, nullable=False, default=0)
+    investigation_count = Column(Integer, nullable=False, default=0)
+    investigation_ids = Column(JSON, nullable=True)      # capped list, newest first
+    representative_investigation_id = Column(Integer, nullable=True)
+    top_root_cause_excerpt = Column(Text, nullable=True)
+    remediation_excerpt = Column(Text, nullable=True)
+    first_seen = Column(DateTime(timezone=True), nullable=True)
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(30), nullable=False, default="open")  # open|mitigated|closed
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class SourceEvent(Base):

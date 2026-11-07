@@ -11,6 +11,8 @@ Exposes the platform's query surfaces as MCP tools over Streamable HTTP at
 - get_failure_classes: the classification taxonomy (wire format)
 - get_proof_matrix: proof-lab state (gates, proven counts)
 - get_recent_episodes: recent lifecycle episodes
+- get_known_issues: fleet-level rollup — investigations sharing one
+  root cause, bucketed platform / platform_self / lab_family
 
 Read-only: no remediation, no execution, no mutation. Authentication is the
 platform API key (X-API-Key), enforced by the app middleware on /mcp paths.
@@ -360,6 +362,115 @@ def get_cluster_saturation(window_hours: int = 6) -> str:
             "  Remediation for saturated clusters: check node memory and NotReady status; "
             "if confirmed, disable the cluster in the catalog and let the queue drain. "
             "Do not chase individual symptom failures — they share one cause."
+        )
+        return "\n".join(lines)
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def get_known_issues(window_hours: int = 24, bucket: str = "") -> str:
+    """Fleet-level known-issue rollup: completed investigations that share
+    one root cause, grouped into issues bucketed by who owns the fix —
+    platform (infra-side: router, node, cluster, capacity), platform_self
+    (StarGate's own evaluator/rubric at fault), or lab_family (a shared
+    chart/config bug spanning labs). Says "one bug affecting N workloads"
+    instead of N separate diagnoses. Per issue: signature, scope
+    (investigations, namespaces, cluster), root-cause and remediation
+    excerpts, and a representative investigation id — call
+    get_causal_chain on it for the full evidence chain."""
+    from engine.known_issues import detect_known_issues
+
+    window_hours = min(max(window_hours, 1), 168)
+    bucket = (bucket or "").strip()
+    valid_buckets = ("platform", "platform_self", "lab_family", "unknown")
+    if bucket and bucket not in valid_buckets:
+        return (
+            "ERROR: bucket must be one of "
+            + ", ".join(valid_buckets) + " (or empty for all)"
+        )
+
+    db = _db()
+    try:
+        report = detect_known_issues(db, window_hours=window_hours)
+        issues = [
+            i for i in (report.get("issues") or [])
+            if not bucket or i.get("bucket") == bucket
+        ]
+
+        if not issues:
+            scope = f" in bucket {bucket}" if bucket else ""
+            return (
+                f"No known issues in the last {window_hours}h{scope} — no failure "
+                f"class spans 3+ namespaces with a shared root cause."
+            )
+
+        summary = report.get("summary") or {}
+        if bucket:
+            covered_inv = sum(i.get("investigation_count", 0) for i in issues)
+            covered_ns = sum(i.get("namespace_count", 0) for i in issues)
+        else:
+            covered_inv = summary.get("investigations_covered", 0)
+            covered_ns = summary.get("namespaces_covered", 0)
+
+        def _ts(value):
+            text = str(value or "?")
+            return text[:-6] + "Z" if text.endswith("+00:00") else text
+
+        def _count(value, noun):
+            return f"{value} {noun}" + ("" if value == 1 else "s")
+
+        lines = [
+            f"Known issues (last {report.get('window_hours', window_hours)}h"
+            + (f", bucket {bucket}" if bucket else "")
+            + f"): {_count(len(issues), 'issue')} covering "
+            + f"{_count(covered_inv, 'investigation')} across "
+            + f"{_count(covered_ns, 'namespace')}"
+        ]
+        if not bucket:
+            parts = [f"{summary.get(b, 0)} {b}" for b in valid_buckets if summary.get(b, 0)]
+            if parts:
+                lines.append("  Buckets: " + ", ".join(parts))
+
+        for issue in issues:
+            lines.append("")
+            lines.append(f"  [{issue.get('bucket')}] {issue.get('title')}")
+            lines.append(f"    signature: {issue.get('signature')}")
+            scope_line = (
+                f"{_count(issue.get('investigation_count', 0), 'investigation')} across "
+                f"{_count(issue.get('namespace_count', 0), 'namespace')}"
+            )
+            if issue.get("cluster"):
+                scope_line += f" on {issue['cluster']}"
+            lines.append(
+                f"    {scope_line}, first seen {_ts(issue.get('first_seen'))}, "
+                f"last seen {_ts(issue.get('last_seen'))}"
+            )
+            refs = [
+                r for r in (issue.get("artifact_refs") or [])
+                if r and r not in str(issue.get("signature") or "")
+            ]
+            if refs:
+                lines.append(f"    artifacts: {', '.join(refs)}")
+            if issue.get("top_root_cause_excerpt"):
+                lines.append(f"    root cause: {issue['top_root_cause_excerpt']}")
+            if issue.get("remediation_excerpt"):
+                lines.append(f"    remediation: {issue['remediation_excerpt']}")
+            rep = issue.get("representative_investigation_id")
+            if rep:
+                lines.append(
+                    f"    representative investigation: #{rep} "
+                    f"(get_causal_chain(investigation_id={rep}) for the full chain)"
+                )
+
+        lines.append("")
+        lines.append(
+            "  Guidance: platform_self issues are StarGate bugs — file them in "
+            "the stargate repo. platform issues are infra-side — check the named "
+            "component on the named cluster. lab_family issues are chart/config "
+            "bugs — one fix eliminates the whole class. Use "
+            "get_causal_chain(investigation_id=...) for any issue's full "
+            "evidence chain."
         )
         return "\n".join(lines)
     finally:

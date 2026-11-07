@@ -321,11 +321,12 @@ GET /dashboard/causal-chain?investigation_id=N
                    └──────────────────┘     └─────────────┘
 ```
 
-**12 tools total**: 9 read-only query tools, `ask` (natural-language RAG),
+**13 tools total**: 10 read-only query tools, `ask` (natural-language RAG),
 `get_cluster_saturation` (capacity correlation), `get_recent_changes`
-(GitHub PRs + Jira change correlation), and 2 review tools (diagnosis
-review + action comments). Review tools record opinions only — no
-execution, no cluster access, no remediation.
+(GitHub PRs + Jira change correlation), `get_known_issues` (fleet-level
+rollup of investigations sharing one root cause), and 2 review tools
+(diagnosis review + action comments). Review tools record opinions only —
+no execution, no cluster access, no remediation.
 
 The **investigation agent** (separate from MCP) has 15 tools including
 `query_recent_changes`, `query_cluster_saturation`, and `search_knowledge`

@@ -319,6 +319,8 @@ def on_startup():
     tsh.start()
     tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
     tf.start()
+    tki = threading.Thread(target=_known_issues_loop, daemon=True)
+    tki.start()
     if os.environ.get("STARGATE_AUTO_INVESTIGATE", "false").lower() == "true":
         ti = threading.Thread(target=_investigation_queue_loop, daemon=True)
         ti.start()
@@ -385,6 +387,40 @@ def _functional_alignment_loop():
             if db:
                 db.rollback()
             logging.getLogger("stargate.functional").warning("Functional alignment cycle failed: %s", exc)
+        finally:
+            if db:
+                db.close()
+        _shutdown_event.wait(300)
+
+
+def _known_issues_loop():
+    """Detect and persist fleet-level known issues every 5 minutes.
+
+    Groups completed investigations that share one root cause into
+    known_issues rows (platform / platform_self / lab_family buckets) so
+    "ten investigations, one chart bug" is visible as one issue. Read +
+    upsert only — no execution authority. Runs on every replica; the
+    signature upsert is idempotent so concurrent runs are harmless.
+    """
+    import time as _ki_time
+    _ki_time.sleep(90)
+    while not _shutdown_event.is_set():
+        db = None
+        try:
+            from engine.functional_alignment import gate_enabled
+            from engine.known_issues import detect_known_issues, upsert_known_issues
+            if gate_enabled("known_issues", default=True):
+                db = get_session_factory()()
+                report = detect_known_issues(db)
+                result = upsert_known_issues(db, report)
+                if result.get("upserted"):
+                    logging.getLogger("stargate.known_issues").info(
+                        "Known issues refreshed: %s issue(s), %s retired",
+                        result.get("upserted"), result.get("retired"))
+        except Exception as exc:
+            if db:
+                db.rollback()
+            logging.getLogger("stargate.known_issues").warning("Known issues cycle failed: %s", exc)
         finally:
             if db:
                 db.close()

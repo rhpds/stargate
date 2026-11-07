@@ -1519,3 +1519,56 @@ def get_causal_chain(
         return build_causal_chain(db, investigation_id=investigation_id, namespace=namespace)
     except ValueError as e:
         raise HTTPException(422, str(e))
+
+
+# ---------------------------------------------------------------------------
+# Fleet-level known issues
+# ---------------------------------------------------------------------------
+
+_KNOWN_ISSUE_BUCKETS = frozenset({"platform", "platform_self", "lab_family", "unknown"})
+
+
+@router.get("/dashboard/known-issues")
+def dashboard_known_issues(
+    window_hours: int = 24,
+    bucket: Optional[str] = None,
+    include_retired: bool = False,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin),
+):
+    """Fleet-level known issues — completed investigations grouped by shared root cause.
+
+    One bug affecting N workloads shows as ONE issue (artifact or cluster
+    signature), not N separate diagnoses. Read-only: detects fresh groups,
+    merges persisted status from the known_issues table so manual
+    mitigations and retirements show, and never upserts.
+    """
+    from db.models import KnownIssue
+    from engine.known_issues import detect_known_issues
+
+    window_hours = max(1, min(168, window_hours))
+    if bucket is not None and bucket not in _KNOWN_ISSUE_BUCKETS:
+        raise HTTPException(
+            status_code=400,
+            detail="bucket must be one of: " + ", ".join(sorted(_KNOWN_ISSUE_BUCKETS)),
+        )
+
+    report = detect_known_issues(db, window_hours=window_hours)
+
+    # Merge persisted status by signature (manual states must survive here).
+    persisted_status = {row.signature: row.status for row in db.query(KnownIssue).all()}
+
+    issues = []
+    for issue in report.get("issues", []):
+        status = persisted_status.get(issue.get("signature"))
+        issue["persisted_status"] = status
+        if bucket is not None and issue.get("bucket") != bucket:
+            continue
+        if not include_retired and status == "retired":
+            continue
+        issues.append(issue)
+
+    report["issues"] = issues
+    report["bucket_filter"] = bucket
+    report["include_retired"] = include_retired
+    return report

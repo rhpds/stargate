@@ -47,7 +47,7 @@ class TestMCPServerTools:
         expected = {
             "query_lifecycle_outcomes", "list_reclamation_artifacts",
             "get_causal_chain", "query_evaluations", "get_failure_classes",
-            "get_proof_matrix", "get_recent_episodes",
+            "get_proof_matrix", "get_recent_episodes", "get_known_issues",
         }
         assert expected <= names, f"missing tools: {expected - names}"
 
@@ -120,7 +120,7 @@ class TestMCPEndpointAuth:
         assert {
             "query_lifecycle_outcomes", "list_reclamation_artifacts",
             "get_causal_chain", "query_evaluations", "get_failure_classes",
-            "get_proof_matrix", "get_recent_episodes",
+            "get_proof_matrix", "get_recent_episodes", "get_known_issues",
         } <= names
 
     def test_other_paths_unaffected(self, client):
@@ -250,6 +250,148 @@ class TestMCPServerReviewTools:
         # Second review of already-reviewed + published investigation
         result = review_diagnosis(inv.id, True, "confirming again")
         assert "already reviewed" in result
+
+
+def _known_issues_report():
+    """Canned two-issue report matching the engine.known_issues contract
+    (one platform_self, one lab_family). Tests patch the engine with this
+    so they pin the MCP surface, not the detection logic."""
+    return {
+        "window_hours": 24,
+        "generated_at": "2026-11-06T20:00:00Z",
+        "issues": [
+            {
+                "signature": "showroom_not_ready|artifact:evaluator",
+                "bucket": "platform_self",
+                "title": "StarGate self-issue: showroom_not_ready across 4 namespaces",
+                "failure_class": "showroom_not_ready",
+                "cluster": None,
+                "artifact_refs": ["evaluator"],
+                "namespace_count": 4,
+                "investigation_count": 4,
+                "investigation_ids": [2422, 2425, 2431, 2435],
+                "representative_investigation_id": 2422,
+                "top_root_cause_excerpt": "StarGate evaluation race during normal namespace teardown",
+                "remediation_excerpt": "fix the evaluator's namespace-existence probe",
+                "first_seen": "2026-11-06T15:00:00Z",
+                "last_seen": "2026-11-06T19:00:00Z",
+                "verdict_counts": {"ACTIONABLE": 4, "TRANSIENT": 0, "other": 0},
+            },
+            {
+                "signature": "showroom_not_ready|artifact:zerotouch-1.10.2",
+                "bucket": "lab_family",
+                "title": "showroom_not_ready across 10 namespaces — zerotouch-1.10.2",
+                "failure_class": "showroom_not_ready",
+                "cluster": None,
+                "artifact_refs": ["zerotouch-1.10.2"],
+                "namespace_count": 10,
+                "investigation_count": 10,
+                "investigation_ids": [2439, 2440, 2441],
+                "representative_investigation_id": 2439,
+                "top_root_cause_excerpt": "Helm chart bug: nginx/proxy port and SCC config",
+                "remediation_excerpt": "fix the chart's proxy container ports and the SCC",
+                "first_seen": "2026-11-06T02:00:00Z",
+                "last_seen": "2026-11-06T18:00:00Z",
+                "verdict_counts": {"ACTIONABLE": 9, "TRANSIENT": 1, "other": 0},
+            },
+        ],
+        "summary": {
+            "issues": 2,
+            "platform": 0,
+            "platform_self": 1,
+            "lab_family": 1,
+            "unknown": 0,
+            "investigations_covered": 14,
+            "namespaces_covered": 14,
+        },
+    }
+
+
+class TestMCPKnownIssuesTool:
+    """get_known_issues: formats the fleet rollup from
+    engine.known_issues.detect_known_issues. The engine is patched —
+    these tests never depend on the real detection logic."""
+
+    @pytest.fixture
+    def patched_engine(self, monkeypatch):
+        report = _known_issues_report()
+        captured = {}
+
+        def fake_detect(db, window_hours=24, min_namespaces=3):
+            captured["window_hours"] = window_hours
+            return {**report, "window_hours": window_hours}
+
+        monkeypatch.setattr("engine.known_issues.detect_known_issues", fake_detect)
+        return report, captured
+
+    def test_formats_both_issues_and_guidance(self, db, monkeypatch, patched_engine):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from api.mcp_server import get_known_issues
+
+        result = get_known_issues()
+
+        assert "StarGate self-issue: showroom_not_ready across 4 namespaces" in result
+        assert "showroom_not_ready across 10 namespaces — zerotouch-1.10.2" in result
+        assert "[platform_self]" in result
+        assert "[lab_family]" in result
+        assert "Buckets: 1 platform_self, 1 lab_family" in result
+        assert "14 investigations across 14 namespaces" in result
+        assert "representative investigation: #2422" in result
+        assert "Guidance:" in result
+
+    def test_bucket_filter_returns_only_that_bucket(self, db, monkeypatch, patched_engine):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from api.mcp_server import get_known_issues
+
+        result = get_known_issues(bucket="lab_family")
+
+        assert "[lab_family]" in result
+        assert "zerotouch-1.10.2" in result
+        assert "10 investigations across 10 namespaces" in result
+        assert "StarGate self-issue" not in result
+        assert "[platform_self]" not in result
+
+    def test_empty_report_says_no_known_issues(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        monkeypatch.setattr(
+            "engine.known_issues.detect_known_issues",
+            lambda db, window_hours=24, min_namespaces=3: {
+                "window_hours": window_hours,
+                "generated_at": "2026-11-06T20:00:00Z",
+                "issues": [],
+                "summary": {"issues": 0, "platform": 0, "platform_self": 0,
+                            "lab_family": 0, "unknown": 0,
+                            "investigations_covered": 0, "namespaces_covered": 0},
+            },
+        )
+        from api.mcp_server import get_known_issues
+
+        result = get_known_issues()
+        assert "No known issues in the last 24h" in result
+        assert "shared root cause" in result
+
+    def test_window_hours_is_clamped_not_crashed(self, db, monkeypatch, patched_engine):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from api.mcp_server import get_known_issues
+
+        result = get_known_issues(window_hours=99999)
+
+        _, captured = patched_engine
+        assert captured["window_hours"] == 168  # clamped, not passed through
+        assert "Known issues (last 168h)" in result
+
+    def test_invalid_bucket_is_rejected(self, db, monkeypatch, patched_engine):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        from api.mcp_server import get_known_issues
+
+        result = get_known_issues(bucket="bogus")
+        assert result.startswith("ERROR")
+        assert "platform_self" in result  # the message names the valid buckets
 
 
 def test_mcp_audit_log_emits():
