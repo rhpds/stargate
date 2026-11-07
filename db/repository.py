@@ -1,5 +1,6 @@
 """Database repository — CRUD operations for StarGate persistence."""
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -1558,6 +1559,91 @@ def get_recent_investigation(
     return q.order_by(InvestigationRecord.created_at.desc()).first()
 
 
+def get_recent_complete_investigation(
+    db: Session, lab_code: str, failure_class: str, hours: int = 24,
+) -> Optional[InvestigationRecord]:
+    """Most recent COMPLETE investigation for lab_code whose failure_class
+    contains the given failure_class (comma-joined multi-class safe),
+    within `hours`, that has a root_cause and an ACTIONABLE verdict.
+    Returns InvestigationRecord or None.
+
+    TRANSIENT verdicts never match: a self-resolving diagnosis must not
+    suppress re-investigation. trust_dimensions is JSON, so the verdict
+    check runs in Python over the newest candidates (limit 10) instead of
+    a non-portable JSON path query.
+    """
+    if not lab_code or not failure_class:
+        return None
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    candidates = (
+        db.query(InvestigationRecord)
+        .filter(
+            InvestigationRecord.lab_code == lab_code,
+            InvestigationRecord.status == "complete",
+            InvestigationRecord.root_cause.isnot(None),
+            InvestigationRecord.root_cause != "",
+            InvestigationRecord.failure_class.contains(failure_class),
+            InvestigationRecord.created_at >= cutoff,
+        )
+        .order_by(InvestigationRecord.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    for inv in candidates:
+        if (inv.trust_dimensions or {}).get("verdict") == "ACTIONABLE":
+            return inv
+    return None
+
+
+def record_investigation_recurrence(
+    db: Session,
+    investigation_id: int,
+    triggering_eval_id: Optional[int] = None,
+    note: Optional[str] = None,
+) -> Optional[InvestigationRecord]:
+    """Attach a deduped trigger attempt to an existing investigation.
+
+    Debounced: only records if last_recurrence_at is None or older than
+    STARGATE_INVESTIGATE_RECURRENCE_DEBOUNCE_MINUTES (default 30) minutes —
+    scan cycles re-emit the same failure every 5-15 minutes and must not
+    inflate the count. Bumps recurrence_count, sets last_recurrence_at,
+    appends {"eval_id": triggering_eval_id, "at": now_iso, "note": note}
+    to recurrence_log (capped at 50 entries, oldest dropped). Commits.
+
+    Returns the updated record, or None when the investigation does not
+    exist or the write was debounced.
+    """
+    record = db.query(InvestigationRecord).filter(
+        InvestigationRecord.id == investigation_id
+    ).first()
+    if not record:
+        return None
+
+    debounce_minutes = int(os.environ.get(
+        "STARGATE_INVESTIGATE_RECURRENCE_DEBOUNCE_MINUTES", "30",
+    ))
+    now = datetime.now(timezone.utc)
+    if record.last_recurrence_at is not None:
+        last = record.last_recurrence_at
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        if (now - last).total_seconds() < debounce_minutes * 60:
+            return None
+
+    record.recurrence_count = (record.recurrence_count or 0) + 1
+    record.last_recurrence_at = now
+    log = list(record.recurrence_log or [])
+    log.append({
+        "eval_id": triggering_eval_id,
+        "at": now.isoformat(),
+        "note": note,
+    })
+    record.recurrence_log = log[-50:]
+    db.commit()
+    db.refresh(record)
+    return record
+
+
 def count_investigations_for_catalog_item(
     db: Session, catalog_item: str, hours: int = 1,
 ) -> int:
@@ -1734,6 +1820,8 @@ def build_causal_chain(
             "lab_code": inv.lab_code, "cluster": inv.cluster,
             "failure_class": inv.failure_class, "status": inv.status,
             "created_at": inv.created_at.isoformat() if inv.created_at else None,
+            "recurrence_count": inv.recurrence_count or 0,
+            "last_recurrence_at": inv.last_recurrence_at.isoformat() if inv.last_recurrence_at else None,
         },
         "symptom": symptom,
         "evidence": evidence,

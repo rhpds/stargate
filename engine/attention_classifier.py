@@ -211,9 +211,19 @@ def should_auto_investigate(
 
     Returns (proceed: bool, reason: str, attention: str | None).
     attention is 'stuck' or 'anomalous' when proceed is True.
+
+    Side effect: the known-diagnosis dedup gate (step 4) WRITES — it calls
+    record_investigation_recurrence to attach the deduped trigger to the
+    existing investigation it matched. Both investigation creation paths
+    (events/consumers.py InvestigationConsumer and api/app.py
+    _scan_for_investigations) funnel through this gate, so the recurrence
+    recording lives here. A recurrence write failure is logged and never
+    blocks the gate decision.
     """
     from db.repository import (
         get_recent_investigation,
+        get_recent_complete_investigation,
+        record_investigation_recurrence,
         count_investigations_for_catalog_item,
         count_investigations_today,
     )
@@ -225,6 +235,7 @@ def should_auto_investigate(
     # --- env-var knobs ---
     dedup_hours = int(os.environ.get("STARGATE_INVESTIGATE_DEDUP_HOURS", "4"))
     pattern_dedup_hours = int(os.environ.get("STARGATE_INVESTIGATE_PATTERN_DEDUP_HOURS", "2"))
+    known_hours = int(os.environ.get("STARGATE_INVESTIGATE_KNOWN_HOURS", "24"))
     max_per_catalog_hour = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_CATALOG_HOUR", "3"))
     max_per_day = int(os.environ.get("STARGATE_INVESTIGATE_MAX_PER_DAY", "200"))
     skip_self_resolve_pct = int(os.environ.get("STARGATE_INVESTIGATE_SKIP_SELF_RESOLVE_PCT", "50"))
@@ -264,7 +275,30 @@ def should_auto_investigate(
     if recent:
         return False, f"already investigated within {dedup_hours}h", None
 
-    # 4. Pattern dedup: reuse a representative investigation for matching
+    # 4. Known-diagnosis dedup: a COMPLETE investigation with an ACTIONABLE
+    #    diagnosis for this lab+failure_class within known_hours means we
+    #    already know what is wrong — record a recurrence on it instead of
+    #    paying ~$0.20 to re-find the same diagnosis. TRANSIENT diagnoses
+    #    never match (filtered inside get_recent_complete_investigation), so
+    #    self-resolving failures keep the shorter dedup windows only.
+    if known_hours > 0 and failure_class:
+        known = get_recent_complete_investigation(db, lab_code, failure_class, hours=known_hours)
+        if known:
+            try:
+                record_investigation_recurrence(
+                    db, known.id, triggering_eval_id=None,
+                    note=f"deduped trigger: {failure_class}",
+                )
+            except Exception as exc:
+                logger.warning(
+                    "recurrence write failed for investigation #%s; "
+                    "skipping trigger anyway: %s", known.id, exc,
+                )
+            return False, (
+                f"known-diagnosis recurrence attached to investigation #{known.id}"
+            ), attention
+
+    # 5. Pattern dedup: reuse a representative investigation for matching
     # catalog/failure/cluster patterns instead of investigating every sandbox.
     if pattern_dedup_hours > 0 and failure_class:
         from sqlalchemy import and_, or_
@@ -296,17 +330,17 @@ def should_auto_investigate(
                 f"{representative.lab_code} ({representative.job_id})"
             ), None
 
-    # 5. Rate limit per catalog item per hour
+    # 6. Rate limit per catalog item per hour
     cat_count = count_investigations_for_catalog_item(db, catalog_item, hours=1)
     if max_per_catalog_hour > 0 and cat_count >= max_per_catalog_hour:
         return False, f"rate limit: {cat_count}/{max_per_catalog_hour} for {catalog_item} this hour", None
 
-    # 6. Daily budget across all automatic investigation types.
+    # 7. Daily budget across all automatic investigation types.
     investigations_today = count_investigations_today(db)
     if investigations_today >= max_per_day:
         return False, f"daily investigation budget: {investigations_today}/{max_per_day}", None
 
-    # 7. Resolution profile — skip watch_and_wait with high self-resolve rate
+    # 8. Resolution profile — skip watch_and_wait with high self-resolve rate
     try:
         from engine.resolution_classifier import build_resolution_profiles
         profiles = build_resolution_profiles()
@@ -323,7 +357,7 @@ def should_auto_investigate(
     except Exception as exc:
         logger.debug("resolution profile check skipped: %s", exc)
 
-    # 8. Learned suppression — skip if past investigations consistently say TRANSIENT
+    # 9. Learned suppression — skip if past investigations consistently say TRANSIENT
     #    BUT override if this namespace has been failing continuously for >4h with no passes
     try:
         from db.models import InvestigationRecord, EvaluationRecord
