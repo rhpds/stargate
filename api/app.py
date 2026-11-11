@@ -1302,6 +1302,67 @@ def _mv_refresh_loop():
                 last_snapshot_cleanup = _time.monotonic()
                 if deleted:
                     logger.info("Expired scan snapshots deleted: %d", deleted)
+                # Run-detail retention (evidence/evaluations/stages/runs
+                # cascade) and GeoLux pipeline retention. Bounded drain so a
+                # large backlog (Nov 2026: evidence at 70.5M rows) clears
+                # over hours without unbounded transactions.
+                run_retention_days = int(os.environ.get("STARGATE_RUN_RETENTION_DAYS", "90"))
+                if run_retention_days > 0:
+                    max_batches = int(os.environ.get("STARGATE_RETENTION_MAX_BATCHES", "20"))
+                    total = 0
+                    for _ in range(max_batches):
+                        deleted = repository.cleanup_old_runs(db, days=run_retention_days)
+                        total += deleted
+                        if not deleted:
+                            break
+                    if total:
+                        logger.info("Run detail older than %dd deleted: %d rows", run_retention_days, total)
+                glx_retention_days = int(os.environ.get("STARGATE_GLX_RETENTION_DAYS", "60"))
+                if glx_retention_days > 0:
+                    total = 0
+                    for _ in range(int(os.environ.get("STARGATE_RETENTION_MAX_BATCHES", "20"))):
+                        deleted = repository.cleanup_old_glx(db, days=glx_retention_days)
+                        total += deleted
+                        if not deleted:
+                            break
+                    if total:
+                        logger.info("GeoLux pipeline rows older than %dd deleted: %d", glx_retention_days, total)
+                # Database size budget: the PVC fills silently otherwise
+                # (storage-health watches Ceph, not this volume).
+                budget_gb = int(os.environ.get("STARGATE_DB_SIZE_BUDGET_GB", "60"))
+                if budget_gb > 0 and db.get_bind().dialect.name == "postgresql":
+                    from sqlalchemy import text as _sql_text
+                    size_bytes = db.execute(
+                        _sql_text("select pg_database_size(current_database())")
+                    ).scalar() or 0
+                    status, pct = repository.check_db_size_budget(size_bytes, budget_gb)
+                    if status in ("warn", "critical"):
+                        logger.warning(
+                            "Database size %.1f%% of %dGB budget (%s)",
+                            pct, budget_gb, status,
+                        )
+                        try:
+                            from events.models import Event as _RetentionEvent
+                            recent = {
+                                (e.metadata or {}).get("check")
+                                for e in _event_bus.history
+                                if e.event_type == "db_capacity_degraded"
+                            }
+                            if status not in recent:
+                                _event_bus.emit(_RetentionEvent(
+                                    event_type="db_capacity_degraded",
+                                    cluster_name="postgres",
+                                    outcome="fail" if status == "critical" else "warn",
+                                    failure_class="db_capacity",
+                                    priority=9.0 if status == "critical" else 7.0,
+                                    message=(
+                                        f"Database at {pct:.0f}% of its {budget_gb}GB budget "
+                                        f"({status}); retention windows may need tightening"
+                                    ),
+                                    metadata={"check": status, "pct": round(pct, 1)},
+                                ))
+                        except Exception as e:
+                            logger.debug(f"DB capacity event emission skipped: {e}")
             logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")
