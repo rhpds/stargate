@@ -620,6 +620,119 @@ def cleanup_old_scan_snapshots(db: Session, days: int = 7, batch_size: int = 100
     return deleted
 
 
+def cleanup_old_runs(db: Session, days: int = 90, batch_size: int = 200) -> int:
+    """Delete one bounded batch of expired runs and their detail rows.
+
+    Cascade per run: evidence -> evaluations -> stages -> runs, selected by
+    runs.started_at older than the cutoff. Runs with NULL started_at are
+    left alone (incomplete runs; deleting blind is worse than keeping).
+    Evaluations are safe to cascade: every MV refresh window is 24h
+    (summary_refresh._window), so nothing recomputes from 90-day-old rows.
+    Investigations, source_events, known_issues and audit trails are
+    deliberately NOT touched — they are the durable record, not run detail.
+
+    Callers should repeat until this returns zero. Batching keeps
+    transactions and WAL growth controlled; the Nov 2026 evidence table
+    (70.5M rows / 27GB) is the cautionary tale.
+    """
+    from db.models import RunRecord, StageRecord, EvidenceRecord, EvaluationRecord
+
+    if days <= 0 or batch_size <= 0:
+        return 0
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    run_ids = [
+        row[0]
+        for row in (
+            db.query(RunRecord.run_id)
+            .filter(RunRecord.started_at.isnot(None), RunRecord.started_at < cutoff)
+            .order_by(RunRecord.id)
+            .limit(batch_size)
+            .all()
+        )
+    ]
+    if not run_ids:
+        return 0
+    deleted = (
+        db.query(EvidenceRecord)
+        .filter(EvidenceRecord.run_id.in_(run_ids))
+        .delete(synchronize_session=False)
+    )
+    deleted += (
+        db.query(EvaluationRecord)
+        .filter(EvaluationRecord.run_id.in_(run_ids))
+        .delete(synchronize_session=False)
+    )
+    deleted += (
+        db.query(StageRecord)
+        .filter(StageRecord.run_id.in_(run_ids))
+        .delete(synchronize_session=False)
+    )
+    deleted += (
+        db.query(RunRecord)
+        .filter(RunRecord.run_id.in_(run_ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return deleted
+
+
+# The glx_* tables are written by the GeoLux pipeline sharing this database
+# (owned by the stargate role; no stargate code references them). Only the
+# high-volume event streams are retained-away; glx_constraint_definitions
+# and glx_learned_patterns are long-lived config/learning, not exhaust.
+GLX_RETENTION_TABLES = (
+    "glx_audit_events",
+    "glx_routing_decisions",
+    "glx_classifications",
+    "glx_llm_stability_records",
+    "glx_hypotheses",
+)
+
+
+def cleanup_old_glx(db: Session, days: int = 60, batch_size: int = 20000) -> int:
+    """Delete one bounded batch of expired GeoLux pipeline rows.
+
+    Raw SQL because these tables have no ORM models in this codebase.
+    Table names come from the hardcoded GLX_RETENTION_TABLES tuple —
+    never from user input. Callers should repeat until zero.
+    """
+    from sqlalchemy import text
+
+    if days <= 0 or batch_size <= 0:
+        return 0
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    total = 0
+    for table in GLX_RETENTION_TABLES:
+        result = db.execute(
+            text(
+                f"DELETE FROM {table} WHERE id IN "
+                f"(SELECT id FROM {table} WHERE created_at < :cutoff LIMIT :lim)"
+            ),
+            {"cutoff": cutoff, "lim": batch_size},
+        )
+        total += result.rowcount or 0
+    db.commit()
+    return total
+
+
+def check_db_size_budget(size_bytes: int, budget_gb: int):
+    """Classify database size against the deployment's size budget.
+
+    Pure function (no live postgres needed) so threshold logic is
+    unit-testable. pg_database_size is postgres-only; the caller supplies
+    the measurement. warn at 70% of budget, critical at 85%.
+    """
+    if budget_gb <= 0 or size_bytes <= 0:
+        return "disabled", 0.0
+    budget_bytes = budget_gb * 1024 ** 3
+    pct = 100.0 * size_bytes / budget_bytes
+    if pct >= 85.0:
+        return "critical", pct
+    if pct >= 70.0:
+        return "warn", pct
+    return "ok", pct
+
+
 def get_latest_scan_snapshot(db: Session, scan_type: str) -> Optional[dict]:
     """Get the most recent scan snapshot of a given type."""
     from db.models import ScanSnapshot

@@ -743,6 +743,43 @@ never place tokens or kubeconfig contents in values files or documentation.
 Cleanup reclaims rows for PostgreSQL reuse. It does not shrink the physical
 database file; shrinking requires a separately planned maintenance operation.
 
+### Run-detail retention
+
+Cascades `evidence` → `evaluations` → `stages` → `runs` for runs whose
+`started_at` is older than the window. Runs with NULL `started_at` are kept.
+Investigations, `source_events`, `known_issues` and audit trails are never
+touched — they are the durable record, not run detail. Evaluations are safe
+to cascade because every MV refresh window is 24 hours.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STARGATE_RUN_RETENTION_DAYS` | `90` | Days of run detail to retain; `0` disables |
+| `STARGATE_RETENTION_MAX_BATCHES` | `20` | Bounded drain batches per hourly cycle (runs and GeoLux both) |
+
+### GeoLux pipeline retention
+
+Deletes expired rows from the high-volume `glx_*` event streams
+(`glx_audit_events`, `glx_routing_decisions`, `glx_classifications`,
+`glx_llm_stability_records`, `glx_hypotheses`) — the tables written by the
+GeoLux pipeline sharing this database, ~10GB by Nov 2026.
+`glx_constraint_definitions` and `glx_learned_patterns` are long-lived
+config/learning data and are not retained away.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STARGATE_GLX_RETENTION_DAYS` | `60` | Days of GeoLux event-stream rows to retain; `0` disables |
+
+### Database size budget
+
+The hourly refresh loop measures `pg_database_size` and emits a
+`db_capacity_degraded` event when the database exceeds the budget — the PVC
+fills silently otherwise (storage-health watches the Ceph cluster, not this
+volume). Warn at 70% of budget, critical at 85%.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STARGATE_DB_SIZE_BUDGET_GB` | `60` | Capacity budget in GB; `0` disables. Default is 75% of the 80Gi PVC |
+
 ---
 
 ## AgnosticV
