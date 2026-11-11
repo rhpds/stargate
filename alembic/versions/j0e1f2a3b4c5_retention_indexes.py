@@ -37,6 +37,16 @@ def _has_index(bind, table: str, index: str) -> bool:
 
 def upgrade() -> None:
     bind = op.get_bind()
+    # Index builds on the multi-million-row glx tables exceed the
+    # server-wide 30s statement_timeout (postgresql.auto.conf) — the
+    # evaluations builds measured 30-40s each on Nov 11 2026, and
+    # glx_audit_events is bigger. Without this lift the migration is
+    # canceled mid-build and init_db silently falls back to create_all,
+    # leaving the retention job without its indexes. Scoped to this
+    # transaction only. (Amended pre-release: this migration has not
+    # shipped to any environment yet.)
+    if bind.dialect.name == "postgresql":
+        op.execute("SET LOCAL statement_timeout = 0")
     for table in _GLX_TABLES:
         index_name = f"ix_{table}_created_at"
         if not _has_index(bind, table, index_name):

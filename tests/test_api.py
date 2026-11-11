@@ -54,6 +54,41 @@ class TestRunEndpoints:
         resp = client.post("/runs", json=payload)
         assert resp.status_code == 409
 
+    def test_create_run_race_returns_existing(self, client, db, monkeypatch):
+        """Two concurrent POSTs for the same run_id: the loser of the INSERT
+        race gets an idempotent success, not a 500 that drops the whole scan
+        cycle (~4/hour observed in production, Nov 11 2026)."""
+        from db import repository as repo_module
+        from db.models import RunRecord
+
+        db.add(RunRecord(
+            run_id="race-run", demo_id="demo", namespace="ns",
+            requested_by="user", status="pending", rubric_version="v0.1.0",
+        ))
+        db.commit()
+
+        real_get_run = repo_module.get_run
+        calls = {"n": 0}
+
+        def _racy_get_run(db_arg, run_id):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return None  # pre-check misses: concurrent insert in flight
+            return real_get_run(db_arg, run_id)
+
+        monkeypatch.setattr(repo_module, "get_run", _racy_get_run)
+
+        resp = client.post("/runs", json={
+            "run_id": "race-run",
+            "demo_id": "demo",
+            "namespace": "ns",
+            "requested_by": "user",
+            "rubric_version": "v0.1.0",
+        })
+        assert resp.status_code == 201
+        assert resp.json()["run_id"] == "race-run"
+        assert calls["n"] == 2  # pre-check + race re-fetch
+
     def test_get_run(self, client):
         client.post("/runs", json={
             "run_id": "get-run",

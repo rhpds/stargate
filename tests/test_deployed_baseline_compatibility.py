@@ -10,7 +10,7 @@ def test_deployed_migration_revision_is_in_current_lineage():
     config = Config(str(root / "alembic.ini"))
     config.set_main_option("script_location", str(root / "alembic"))
     scripts = ScriptDirectory.from_config(config)
-    deployed = scripts.get_revision("j0e1f2a3b4c5")
+    deployed = scripts.get_revision("k1f2a3b4c5d6")
     assert deployed is not None
     assert deployed.revision in {r.revision for r in scripts.walk_revisions()}
     assert deployed.revision in scripts.get_heads()
