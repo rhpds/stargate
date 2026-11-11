@@ -480,3 +480,62 @@ def test_dashboard_known_issues_merges_persisted_status(db, client):
     resp = client.get("/dashboard/known-issues", headers=AUTH)
     assert resp.status_code == 200
     assert resp.json()["issues"][0]["persisted_status"] == "mitigated"
+
+
+def test_known_issues_loop_has_no_undefined_names():
+    """The background loop must actually run — regression for the Nov 10 2026
+    release, where _known_issues_loop referenced get_session_factory without
+    importing it, so every 5-minute cycle died on NameError before touching
+    the database. Symptom in production: WARNI "Known issues cycle failed:
+    name 'get_session_factory' is not defined" while the known_issues table
+    stayed empty forever. The HTTP endpoint kept working — its session comes
+    from FastAPI dependency injection — so only the background population
+    was dead. Same bug class as the #18 MCP audit NameErrors.
+
+    Source-level check in the spirit of test_mcp_audit_log_emits: no app
+    startup, no DB, no threads. Walks every module-level *_loop function in
+    api/app.py and asserts each name it loads is bound inside the function
+    (assignment, argument, import, except-as, nested def) or resolves
+    against module globals or builtins.
+    """
+    import ast
+    import builtins
+    import inspect
+
+    import api.app as app_module
+
+    tree = ast.parse(inspect.getsource(app_module))
+    module_globals = set(vars(app_module)) | set(vars(builtins))
+
+    def bindings(fn):
+        bound = set()
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                bound.add(node.id)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if node is not fn:
+                    bound.add(node.name)
+            elif isinstance(node, ast.arg):
+                bound.add(node.arg)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    bound.add((alias.asname or alias.name).split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name != "*":
+                        bound.add(alias.asname or alias.name)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                bound.add(node.name)
+        return bound
+
+    loops = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name.endswith("_loop")]
+    assert loops, "expected module-level *_loop functions in api/app.py"
+
+    failures = []
+    for fn in loops:
+        bound = bindings(fn)
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                if node.id not in bound and node.id not in module_globals:
+                    failures.append(f"{fn.name} line {node.lineno}: '{node.id}' is loaded but never bound or imported")
+    assert not failures, "undefined names in background loops:\n" + "\n".join(failures)
