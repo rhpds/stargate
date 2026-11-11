@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db.database import get_db
@@ -125,7 +126,12 @@ def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
     if not stage:
         raise HTTPException(status_code=404, detail=f"Stage {stage_id} not found")
 
-    evidence_id = req.evidence_id or f"ev-{uuid4().hex[:8]}"
+    # Server-generated IDs use the full 32-hex uuid4 space. The original
+    # 8-hex prefix (4.3B space) collided once the evidence table passed
+    # ~70M rows (Nov 2026: 70.5M rows, 27GB): every insert had a ~1.6%
+    # birthday-collision chance, producing ~10 dropped-evidence 500s per
+    # minute fleet-wide (56k UniqueViolations in 4 days of postgres logs).
+    evidence_id = req.evidence_id or f"ev-{uuid4().hex}"
     ts = datetime.fromisoformat(req.timestamp) if req.timestamp else datetime.now(timezone.utc)
     resource = EvidenceResource(**req.resource) if req.resource else None
 
@@ -141,7 +147,18 @@ def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
         timestamp=ts,
         raw_ref=req.raw_ref,
     )
-    return repository.create_evidence(db, evidence)
+    # Collision-resilient insert: a client-supplied duplicate is a 409; a
+    # server-generated collision (legacy 8-hex rows, or cosmic bad luck)
+    # redraws instead of dropping the evidence with a 500.
+    for _ in range(3):
+        try:
+            return repository.create_evidence(db, evidence)
+        except IntegrityError:
+            db.rollback()
+            if req.evidence_id:
+                raise HTTPException(status_code=409, detail=f"Evidence {req.evidence_id} already exists")
+            evidence.evidence_id = f"ev-{uuid4().hex}"
+    raise HTTPException(status_code=500, detail="Could not generate a unique evidence id")
 
 
 # ---------------------------------------------------------------------------

@@ -132,6 +132,70 @@ class TestEvidenceEndpoints:
         })
         assert resp.status_code == 201
 
+    def test_submit_evidence_server_id_is_full_uuid_width(self, client):
+        """Server-generated evidence ids must use the full 32-hex uuid4 space.
+        The original 8-hex prefix collided once the table passed ~70M rows
+        (Nov 2026): ~1.6% of inserts died on ix_evidence_evidence_id and the
+        evidence was silently dropped (scanner does not retry evidence POSTs).
+        """
+        import re
+        self._setup(client)
+        resp = client.post("/runs/ev-test-run/stages/namespace-ready/evidence", json={
+            "type": "resource_state",
+            "source": "oc",
+            "observed": {"namespace_exists": True},
+            "result": "pass",
+        })
+        assert resp.status_code == 201
+        assert re.fullmatch(r"ev-[0-9a-f]{32}", resp.json()["evidence_id"])
+
+    def test_submit_evidence_duplicate_client_id_is_409(self, client):
+        """A client-supplied duplicate evidence_id is a 409, not a 500."""
+        self._setup(client)
+        body = {
+            "type": "resource_state",
+            "source": "oc",
+            "observed": {"namespace_exists": True},
+            "result": "pass",
+            "evidence_id": "ev-client-supplied-dup",
+        }
+        assert client.post("/runs/ev-test-run/stages/namespace-ready/evidence", json=body).status_code == 201
+        resp = client.post("/runs/ev-test-run/stages/namespace-ready/evidence", json=body)
+        assert resp.status_code == 409
+
+    def test_submit_evidence_server_collision_redraws(self, client, monkeypatch):
+        """A server-side id collision must redraw instead of dropping the
+        evidence with a 500. Forces the first draw to collide with a
+        pre-existing row; the retry must succeed with the second draw."""
+        from api.routers import runs as runs_module
+
+        class _FakeUUID:
+            def __init__(self, hexstr):
+                self.hex = hexstr
+
+        self._setup(client)
+        # pre-existing row occupying the id the first draw will produce
+        seeded = client.post("/runs/ev-test-run/stages/namespace-ready/evidence", json={
+            "type": "resource_state",
+            "source": "oc",
+            "observed": {"namespace_exists": True},
+            "result": "pass",
+            "evidence_id": "ev-" + "a" * 32,
+        })
+        assert seeded.status_code == 201
+
+        draws = iter([_FakeUUID("a" * 32), _FakeUUID("b" * 32)])
+        monkeypatch.setattr(runs_module, "uuid4", lambda: next(draws))
+
+        resp = client.post("/runs/ev-test-run/stages/namespace-ready/evidence", json={
+            "type": "resource_state",
+            "source": "oc",
+            "observed": {"namespace_exists": True},
+            "result": "pass",
+        })
+        assert resp.status_code == 201
+        assert resp.json()["evidence_id"] == "ev-" + "b" * 32
+
 
 class TestEvaluateEndpoints:
     def _setup(self, client):
