@@ -64,7 +64,20 @@ def create_run(req: CreateRunRequest, db: Session = Depends(get_db), _auth=Depen
 
     # Store lab_code and cluster_name on the DB record
     from db.models import RunRecord
-    result = repository.create_run(db, run)
+    try:
+        result = repository.create_run(db, run)
+    except IntegrityError:
+        # Lost a race: a concurrent POST (e.g. a scanner retry whose first
+        # attempt was slow to respond but did commit) inserted this run_id
+        # between our existence check and the INSERT. Idempotent success —
+        # the run exists, the caller proceeds to stages. Without this, the
+        # race 500s and the whole scan cycle's evidence is dropped (4/hour
+        # observed in production, Nov 11 2026).
+        db.rollback()
+        existing = repository.get_run(db, run_id)
+        if existing is not None:
+            return existing
+        raise
     if req.lab_code or req.cluster_name:
         record = db.query(RunRecord).filter(RunRecord.run_id == run_id).first()
         if record:
