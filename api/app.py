@@ -361,6 +361,7 @@ def _functional_alignment_loop():
     while not _shutdown_event.is_set():
         db = None
         try:
+            from datetime import datetime, timezone
             from collectors.aap.collect_aap import collect_aap_jobs
             from db.database import get_session_factory
             from db.models import NotificationDelivery
@@ -407,6 +408,7 @@ def _known_issues_loop():
     while not _shutdown_event.is_set():
         db = None
         try:
+            from db.database import get_session_factory
             from engine.functional_alignment import gate_enabled
             from engine.known_issues import detect_known_issues, upsert_known_issues
             if gate_enabled("known_issues", default=True):
