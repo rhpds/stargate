@@ -49,6 +49,9 @@ DOCS = [
     ("mcp-tool-cookbook.md", "StarGate MCP Tool Cookbook — What to Ask, What You Get"),
     ("investigation-workflow.md", "StarGate Investigation Workflow"),
     ("status-update-2026-11.md", "StarGate Status Update — Failure Log Output & MCP (Nov 2026)"),
+    ("cascade-shadow-validation-plan.md", "StarGate Cascade Shadow Validation Plan"),
+    ("capacity-forecaster-plan.md", "StarGate Capacity Forecaster Plan"),
+    ("cascade-backtest-2026-11.md", "StarGate Cascade Backtest — Phase 0 Results (Nov 2026)"),
 ]
 
 REPO_URL = "https://github.com/rhpds/stargate"
