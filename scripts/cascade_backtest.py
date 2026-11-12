@@ -119,23 +119,29 @@ def build_resolution_index(resolutions):
     idx = {}
     for rr in resolutions:
         lab = rr.get("lab") or ""
-        m = re.match(r"^[a-z]+-([a-z0-9]{4,7})-", lab)
-        if not m:
-            continue
         detected = parse_ts(rr.get("detected"))
         resolved = parse_ts(rr.get("resolved")) or detected
         if detected is None:
             continue
-        idx.setdefault(m.group(1), []).append((detected, resolved, rr.get("rtype")))
+        # Key by full lab_code (evaluation-universe corpora) and by the guid
+        # segment embedded in it (AAP-universe corpora).
+        idx.setdefault(lab.lower(), []).append((detected, resolved, rr.get("rtype")))
+        m = re.match(r"^[a-z]+-([a-z0-9]{4,7})-", lab)
+        if m:
+            idx.setdefault(m.group(1), []).append((detected, resolved, rr.get("rtype")))
     return idx
 
 
 def label_resolution(row, ts, index):
-    """Resolution bucket for a corpus row via guid + time-window match."""
+    """Resolution bucket for a corpus row via lab/guid + time-window match."""
+    lab = (row.get("lab") or "").lower()
     guid = (row.get("guid") or "").lower()
-    for detected, resolved, rtype in index.get(guid, ()):
-        if detected <= ts <= (resolved or detected):
-            return rtype or "unknown"
+    for key in (lab, guid):
+        if not key:
+            continue
+        for detected, resolved, rtype in index.get(key, ()):
+            if detected <= ts <= (resolved or detected):
+                return rtype or "unknown"
     return None
 
 
