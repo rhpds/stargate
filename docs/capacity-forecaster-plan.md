@@ -198,3 +198,29 @@ Labagator, so per-room concurrency is unknowable from current data.
 Advisory mode did its job — the false alarm was free, and it exposed
 two concrete data-hygiene debts: RHSC limits need real sources, and
 roadshow events need cohort semantics.
+
+---
+
+## Event-grouped demand (Nov 13 2026) — the Summit/RH1-scale view
+
+`engine/event_demand.py`: per event, per day — session count, the
+COHORT bound (shared rotating people, roadshow semantics), the SUMMED
+bound (separate audiences, workshop semantics), and peak concurrent
+attendance from the sessions' real start/end times (sweep-line, not
+assumed durations). The two bounds are the honest answer: rotation
+semantics are not recorded in Labagator, so event demand is bounded,
+not pointed.
+
+First live output — **Red Hat One 2027** (Jan 19–21):
+
+| Day | Sessions | Cohort bound | Summed bound | Peak concurrent |
+|---|---|---|---|---|
+| Jan 19 | 17 | 120 | 1,560 | 840 |
+| Jan 20 | 25 | 120 | 2,280 | 840 |
+| Jan 21 | 16 | 120 | 1,500 | 780 |
+
+At 2–4 VMs per environment: 1,680–3,360 VMs at peak (workshop bound
+up to 9,120) against the fleet's demonstrated 15,340 slots. RH1 is
+the forward A-track case: two months of bookings firming, measurable
+forecast-vs-actual on the other side. Summit Connect's recurring
+250-attendee spikes are visible in the same frame.

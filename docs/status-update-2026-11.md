@@ -36,7 +36,7 @@ and ops (Victor) updates come from their owners.
 
 ## 2. MCP — first real usage observed; fixes shipped Nov 12
 
-The agent surface (`/mcp`, 14 tools + natural-language `ask` over 351+ docs,
+The agent surface (`/mcp`, 15 tools + natural-language `ask` over 351+ docs,
 10 per-user keys, per-request audit with hashed key attribution):
 
 - **First sustained external usage observed Nov 10–11**: an overnight agent

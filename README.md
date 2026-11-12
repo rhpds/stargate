@@ -13,7 +13,7 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures; all 4 AAP controllers (prod + event) are collected
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — `GET /dashboard/causal-chain`: symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
-- **MCP Server** — 14 tools (12 query + 2 review) + natural-language `ask` (RAG over 351+ documents, including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 15 tools (13 query + 2 review) + natural-language `ask` (RAG over 351+ documents, including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change Correlation** — RHDP has no formal change management, so StarGate is the change record: GitHub PRs (merged + in review) and Jira tickets correlated against failure onset, path-matched to each lab's AgnosticV files; the investigation agent checks it before calling any failure novel
 - **Saturation Correlation** — Detects the capacity-saturation signature (rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere); validated against the documented Oct 13-14 2026 ocpv08 incident
 - **Platform Health Monitoring** — Four loops watching what the platform depends on: LLM gateway model endpoints (native LiteLLM /health, 15m), external dependencies (SSO/api.openshift.com/registry — the Oct 21 5xx lesson, 5m), storage headroom + OLM catalog freshness (Ceph at 70%, stuck PVCs, stale snapshots, 5m), and saturation correlation. All persist as evaluations so degradation is a trend
@@ -42,7 +42,7 @@ Frontend (React 19 + Vite + Tailwind 4)
     +-- Policy Engine (deterministic recommendations)
     +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
-    +-- MCP Server (14 tools + natural-language ask, at /mcp)
+    +-- MCP Server (15 tools + natural-language ask, at /mcp)
     +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15
@@ -200,7 +200,7 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes (succeeded / failed / stalled / controller_lag / collection_unavailable / indeterminate)
 - **reclamation-outcome/v1** — reclamation outcomes (reclaimed / destroy_failed / destroy_stalled / resource_leak / indeterminate) with artifact enumeration
 - **Causal chains** — `GET /dashboard/causal-chain` assembles the full evidence chain per investigation with `missing_legs` honesty
-- **MCP server** — 14 tools (12 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP server** — 15 tools (13 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change correlation** — GitHub PRs + Jira tickets vs failure onset: `GET /dashboard/change-correlation`; RHDP has no formal change management, so this is the change record
 - **Saturation correlation** — `GET /dashboard/saturation`: rate spike + diverse symptoms + lab differential, validated on the documented Oct 13-14 2026 incident
 - **Platform health** — `GET /dashboard/llm-health`, `/dashboard/dependency-health`, `/dashboard/partner-visibility`: the dependencies and channels nobody was watching
@@ -247,7 +247,7 @@ for per-tool examples — what to ask, what each tool returns.
 - [x] **Evidence pipeline integrity** — fixed the silent ~1.6% evidence loss to random-ID collisions (56k dropped items) and the dead run-create race; both TDD'd and verified live.
 - [x] **Data retention** — run-detail cascade (90d), GeoLux streams (60d), DB size budget with warn events; the previously unbounded 43GB database now drains.
 - [x] **Revived snapshot persistence** — `scan_snapshots` sat empty (no DB URL, silent `except: pass`, no driver in the scanner image); all three fixed, history accumulating.
-- [x] **Advisory capacity forecaster** — resource profiles from AgnosticV specs, per-hour demand projection, `capacity-forecast/v1` contract (tri-state, RAG, advisory by construction), fleet supply from observed peak density, per-pool demand join, and the **authority gate** — which refused promotion on its first real evaluation (false greens) and flagged the documented event-pool exhaustion with 34 days of knowable lead time on its second (`docs/capacity-forecaster-plan.md`).
+- [x] **Advisory capacity forecaster** — resource profiles from AgnosticV specs, per-hour demand projection, `capacity-forecast/v1` contract (tri-state, RAG, advisory by construction), fleet supply from observed peak density, per-pool demand join with roadshow-cohort semantics, event-grouped demand (the Summit/RH1-scale view: cohort and summed bounds, peak concurrent from real session times), and the **authority gate** — which refused promotion on its first real evaluation (false greens), flagged the documented event-pool exhaustion with 34 days of knowable lead time on its second, and now reads PASS/eligible under the evidence-based scope declaration: demand-shock authority to the forecaster, supply-degradation to the saturation detector (`docs/capacity-forecaster-plan.md`).
 - [x] **Cascade Phase 0 backtest** — 2×2 engine matrix (both corpora × proof/OSS): hard gate PASS six times, compression 46.8–84.7%, the pin question answered empirically (`docs/cascade-backtest-2026-11.md`).
 
 ### Current
