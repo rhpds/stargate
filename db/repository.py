@@ -1963,3 +1963,37 @@ def build_causal_chain(
         ] if not present
     ]
     return chain
+
+
+def save_capacity_forecast(db: Session, *, generated_at, window_hours: int,
+                           risk: str, authority: str,
+                           supply_vm_slots=None, supply_basis=None,
+                           sessions_total: int = 0, sessions_with_profiles: int = 0,
+                           sessions_fallback: int = 0, peak_hour=None,
+                           hourly=None):
+    """Persist one capacity-forecast/v1 cycle (authority gate, A-track)."""
+    from db.models import CapacityForecastRecord
+    record = CapacityForecastRecord(
+        generated_at=generated_at, window_hours=window_hours,
+        risk=risk, authority=authority,
+        supply_vm_slots=supply_vm_slots, supply_basis=supply_basis,
+        sessions_total=sessions_total,
+        sessions_with_profiles=sessions_with_profiles,
+        sessions_fallback=sessions_fallback,
+        peak_hour=peak_hour, hourly=hourly,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def latest_capacity_forecasts(db: Session, limit: int = 20) -> list:
+    """Most recent persisted forecasts, newest first."""
+    from db.models import CapacityForecastRecord
+    return (
+        db.query(CapacityForecastRecord)
+        .order_by(CapacityForecastRecord.generated_at.desc(), CapacityForecastRecord.id.desc())
+        .limit(limit)
+        .all()
+    )

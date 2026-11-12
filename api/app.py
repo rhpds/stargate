@@ -1327,6 +1327,38 @@ def _mv_refresh_loop():
                             break
                     if total:
                         logger.info("GeoLux pipeline rows older than %dd deleted: %d", glx_retention_days, total)
+                # Persist the advisory capacity forecast (authority gate,
+                # A-track): every cycle saved so accuracy is measurable.
+                try:
+                    from api.routers.capacity import (
+                        _upcoming_sessions, _resource_profiles, fleet_supply_vm_slots)
+                    from contracts.capacity_forecast import build_capacity_forecast
+                    from engine.capacity_projector import project_resource_demand
+                    sessions = _upcoming_sessions(24)
+                    projection = project_resource_demand(
+                        sessions, _resource_profiles(), hours=24)
+                    supply = fleet_supply_vm_slots(window_hours=48)
+                    forecast = build_capacity_forecast(
+                        projection,
+                        supply_vm_slots=(supply or {}).get("vm_slots"),
+                        window_hours=24)
+                    coverage = forecast.get("coverage", {})
+                    repository.save_capacity_forecast(
+                        db,
+                        generated_at=datetime.now(timezone.utc),
+                        window_hours=24,
+                        risk=forecast["risk"].value,
+                        authority=forecast["authority"],
+                        supply_vm_slots=(supply or {}).get("vm_slots"),
+                        supply_basis=(supply or {}).get("basis"),
+                        sessions_total=coverage.get("sessions_total", 0),
+                        sessions_with_profiles=coverage.get("sessions_with_profiles", 0),
+                        sessions_fallback=coverage.get("sessions_fallback", 0),
+                        peak_hour=forecast.get("peak_hour"),
+                        hourly=forecast.get("hourly"),
+                    )
+                except Exception as e:
+                    logger.warning(f"Capacity forecast persist failed: {e}")
                 # Database size budget: the PVC fills silently otherwise
                 # (storage-health watches Ceph, not this volume).
                 budget_gb = int(os.environ.get("STARGATE_DB_SIZE_BUDGET_GB", "60"))

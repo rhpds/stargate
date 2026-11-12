@@ -714,3 +714,25 @@ class TrendSignal(Base):
     status = Column(String(30), nullable=False, default="open", index=True)
     detected_at = Column(DateTime(timezone=True), nullable=False)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class CapacityForecastRecord(Base):
+    """One persisted capacity-forecast/v1 cycle — the authority gate's
+    evidence base (A-track). Supply unobserved is NULL, never zero;
+    accuracy measurement compares these records against realized session
+    outcomes as they accumulate."""
+
+    __tablename__ = "capacity_forecasts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    generated_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    window_hours = Column(Integer, nullable=False)
+    risk = Column(String(20), nullable=False)
+    authority = Column(String(20), nullable=False, default="advisory")
+    supply_vm_slots = Column(Float, nullable=True)  # unobserved = NULL
+    supply_basis = Column(String(50), nullable=True)
+    sessions_total = Column(Integer, nullable=False, default=0)
+    sessions_with_profiles = Column(Integer, nullable=False, default=0)
+    sessions_fallback = Column(Integer, nullable=False, default=0)
+    peak_hour = Column(JSON, nullable=True)
+    hourly = Column(JSON, nullable=True)
