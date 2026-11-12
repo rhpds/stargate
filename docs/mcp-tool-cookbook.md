@@ -515,6 +515,49 @@ investigation id for any issue's full evidence chain.
 
 ---
 
+### 14. `get_capacity_forecast` — will the schedule fit the fleet?
+
+**What it does:** Advisory capacity forecast (capacity-forecast/v1):
+projected per-hour resource demand — VM slots and AI cores/GiB — from
+the upcoming session schedule and catalog resource profiles, against
+the fleet's demonstrated capacity (observed peak VM density x compute
+nodes). Honest by construction: labs without parsed resource profiles
+make demand a LOWER BOUND; risk is at most amber until both sides are
+observed; the contract ships advisory authority only.
+
+**Ask things like:**
+- "Ask StarGate for the capacity forecast for the next 24 hours"
+- "Will tomorrow morning's sessions fit the fleet?"
+- "What's our peak VM-slot demand this week, and when?"
+
+**Arguments:**
+
+| Arg | Type | Meaning |
+|---|---|---|
+| `hours` | int (default 24, max 72) | Forecast window |
+
+**Example call and real response:**
+
+> **Q:** "Ask StarGate for the capacity forecast for the next 24 hours"
+>
+> **A:** *"Capacity forecast (advisory, capacity-forecast/v1), next 24h:
+> Risk: amber. Sessions: 14 scheduled, 6 with resource profiles, 8
+> fallback. Demand is a LOWER BOUND: 8 session(s) belong to labs without
+> parsed resource profiles. Peak demand: 2026-11-13T15:00 — 210 VM slots,
+> 560.0 AI cores (observed). Hours with observed demand: 09:00 — 60 VM
+> slots (2 sessions) ... 15:00 — 210 VM slots (5 sessions). Supply
+> evidence is not yet wired: hours resolve INDETERMINATE and risk cannot
+> be green. Treat demand as a floor, not a ceiling."*
+
+**Good to know:** the supply ceiling is *what the fleet has
+demonstrated* (48h observed peak density), so deficits against it are
+early warnings, not hard walls. Catalog coverage is ~28% with parsed
+resource specs — the fallback count tells you how soft the floor is.
+Green requires fully-observed demand under observed supply with zero
+fallback sessions; it is earned, not assumed.
+
+---
+
 ## Review tools (opinions only — nothing executes)
 
 ### 12. `review_diagnosis` — confirm or reject a diagnosis
