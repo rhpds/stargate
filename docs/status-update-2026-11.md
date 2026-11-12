@@ -34,7 +34,7 @@ and ops (Victor) updates come from their owners.
 - **Alert wiring not connected** — the enhanced output emits events into a
   Slack consumer with no webhook configured. One env var.
 
-## 2. MCP — first real usage observed; fixes shipping Friday
+## 2. MCP — first real usage observed; fixes shipped Nov 12
 
 The agent surface (`/mcp`, 14 tools + natural-language `ask` over 351+ docs,
 10 per-user keys, per-request audit with hashed key attribution):
@@ -46,15 +46,19 @@ The agent surface (`/mcp`, 14 tools + natural-language `ask` over 351+ docs,
 - **The audit trail works** — verified by live reproduction Nov 11: every
   request logs method, tool, and hashed key id (this trail was silently dead
   until the Nov 3 fix).
-- **Fixed this week, shipping Friday**: the two evaluation queries that timed
+- **Fixed this week, shipped Nov 12 (out-of-band)**: the two evaluation queries that timed
   out for the overnight caller (>30s → 2.7ms and 5.6ms with new indexes,
   measured on production data).
 - **Known open**: `get_recent_changes` (change correlation) returns GitHub
   API errors — needs a GitHub token configured (config change, not code);
   occasional duplicate audit lines (cosmetic, attribution unaffected).
 
-## 3. What ships Friday (Nov 14 release)
+## 3. What shipped Nov 12 (out-of-band release)
 
-Data retention (bounds the 43GB database for the first time), the run-create
-race fix, the MCP query-timeout fix, and the migration hardening — all
-validated against production data in rolled-back transactions before merge.
+Data retention (bounds the 43GB database for the first time — draining
+from the first cycles), the run-create race fix, the MCP query-timeout
+fix (30,000ms to 1.045ms), the migration hardening, the revived
+scan_snapshots persistence, and the advisory capacity forecaster
+(endpoint + 14th MCP tool + the capacity-forecast/v1 contract) — all
+validated against production data in rolled-back transactions before
+merge, and verified live after deploy.
