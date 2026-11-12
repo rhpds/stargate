@@ -89,3 +89,35 @@ class TestGetCapacityForecastWithSupply:
         monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
         result = mcp_server.get_capacity_forecast(hours=4)
         assert "Supply evidence is not yet wired" in result
+
+
+class TestGetEventForecastTool:
+    def test_event_summary_with_bounds(self, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(
+            "collectors.labagator.collect_labagator.collect_sessions",
+            lambda event_id=None, limit=500: [
+                {"event_id": 32, "session_date": "2027-01-20",
+                 "start_time": "09:00:00", "end_time": "12:00:00",
+                 "attendees": 120, "lab_code": "LB1"}],
+            raising=False)
+        monkeypatch.setattr(
+            "collectors.labagator.collect_labagator.collect_events",
+            lambda base_url="", event_id=None: [
+                {"id": 32, "name": "Red Hat One 2027"}],
+            raising=False)
+        result = mcp_server.get_event_forecast(days=90)
+        assert "Red Hat One 2027" in result
+        assert "peak concurrent 120" in result
+        assert "bounded" in result.lower() or "Bounds" in result
+
+    def test_no_events_is_explicit(self, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(
+            "collectors.labagator.collect_labagator.collect_sessions",
+            lambda event_id=None, limit=500: [], raising=False)
+        monkeypatch.setattr(
+            "collectors.labagator.collect_labagator.collect_events",
+            lambda base_url="", event_id=None: [], raising=False)
+        result = mcp_server.get_event_forecast(days=30)
+        assert "No scheduled events" in result

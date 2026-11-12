@@ -594,3 +594,46 @@ def get_capacity_forecast(hours: int = 24) -> str:
             "Supply evidence is not yet wired: hours resolve INDETERMINATE and "
             "risk cannot be green. Treat demand as a floor, not a ceiling.")
     return "\n".join(lines)
+
+
+@mcp.tool()
+def get_event_forecast(days: int = 90) -> str:
+    """Event-grouped capacity demand (Summit/RH1-scale): per upcoming
+    event, per day — session count, cohort bound (one rotating group of
+    people), summed bound (separate audiences per session), and peak
+    concurrent attendance from real session start/end times. Demand is
+    BOUNDED, not pointed: which bound is real depends on rotation
+    semantics the schedule does not record. Compare against the fleet's
+    demonstrated supply via get_capacity_forecast."""
+    from collectors.labagator.collect_labagator import collect_sessions, collect_events
+    from engine.event_demand import project_event_demand
+
+    days = min(max(days, 7), 365)
+    sessions = collect_sessions() or []
+    events = collect_events() or []
+    names = {str(e.get("id")): str(e.get("name") or "event %s" % e.get("id"))
+             for e in events}
+    result = project_event_demand(sessions, days=days)
+
+    lines = ["Event-grouped demand (next %dd):" % days]
+    ranked = sorted(
+        result["events"].items(),
+        key=lambda kv: max((d.get("peak_concurrent") or 0)
+                           for d in kv[1]["days"].values()) if kv[1]["days"] else 0,
+        reverse=True)
+    for eid, ev in ranked[:8]:
+        name = names.get(eid, "event %s" % eid)
+        lines.append("%s:" % name)
+        for d in sorted(ev["days"]):
+            day = ev["days"][d]
+            lines.append(
+                "  %s | %d sessions | cohort bound %d | summed %d | peak concurrent %d"
+                % (d, day["sessions"], day["cohort_bound"],
+                   day["summed_bound"], day["peak_concurrent"]))
+    if not ranked:
+        lines.append("No scheduled events in the window.")
+    lines.append(
+        "Bounds, not points: cohort = one rotating audience; summed = separate "
+        "audiences. Apply the workshop profile multiplier (2-4 VMs per "
+        "environment) and compare with the fleet supply (get_capacity_forecast).")
+    return "\n".join(lines)
