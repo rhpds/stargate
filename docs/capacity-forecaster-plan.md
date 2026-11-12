@@ -99,3 +99,38 @@ the retrospective gate). Phase 3 is a config/retention change riding
 Friday's release pattern. Phase 4 follows once accuracy is being measured.
 The one-env-var alert wiring (Slack) makes any of this reach humans —
 still the cheapest unconnected value in the platform.
+
+---
+
+## First gate evaluation (Nov 13 2026) — FAIL, authority correctly withheld
+
+Run against both documented capacity incidents with real evidence
+(Labagator's actual sessions, 316 catalog profiles, the observed-peak
+supply ceiling):
+
+| Incident | Sessions in window | Forecast said | Crossing | Verdict |
+|---|---|---|---|---|
+| ocpv08/06 saturation (Oct 13–14) | 4 | **green** | none | false green |
+| event-pool exhaustion (Sep–Oct) | 57 | **green** | none | false green |
+
+**Gate verdict: fail (red) — promotion not eligible.** Both false
+greens, and the mechanisms are now understood:
+
+1. **The saturation incident is supply-side degradation** (memory-
+   saturated and sick nodes), not session-demand shock. A demand
+   forecast cannot see it by construction — that class belongs to the
+   saturation detector (validated 4/4 in the incident study). Either
+   the forecaster integrates a cluster-health supply factor, or its
+   authority scope explicitly excludes supply-degradation incidents.
+2. **The event-pool exhaustion is placement-specific**: LB1758/LB2645
+   were individual event pools, and the fleet-aggregate demand/supply
+   comparison masks pool-level exhaustion by construction. Earning
+   authority on this class requires the per-pool join (the placement
+   question deferred from Phase 1).
+
+This is the gate working as designed: authority withheld on evidence,
+the model gaps named precisely, and the advisory state enforced
+structurally. The increment list for a future promotion attempt:
+per-pool placement join; cluster-health supply factor or an explicit
+scope declaration; then forward-accuracy accumulation (A-track, already
+persisting every cycle).
