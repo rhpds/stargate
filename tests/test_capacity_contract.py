@@ -120,3 +120,24 @@ class TestEvidenceSemantics:
             {"lab": "lab-a", "attendees": 10, "vm_slots": 30}]
         fc = build_capacity_forecast(proj)
         assert fc["hourly"][0]["demand_citations"][0]["lab"] == "lab-a"
+
+
+class TestEmptyHourSemantics:
+    def test_empty_hour_is_observed_zero_demand(self):
+        """An hour with no scheduled sessions is OBSERVED zero demand —
+        headroom when supply is observed — not missing evidence. Without
+        this, green is unreachable (empty night hours read indeterminate)."""
+        proj = _projection()
+        proj["hourly"][0]["vm_slots"] = None
+        proj["hourly"][0]["sessions"] = 0
+        fc = build_capacity_forecast(proj, supply_vm_slots=20)
+        assert fc["hourly"][0]["deficit_state"] == DeficitState.HEADROOM
+
+    def test_sessions_without_units_stay_indeterminate(self):
+        """Sessions present but no profiled units — that is the true
+        unobserved case."""
+        proj = _projection()
+        proj["hourly"][0]["vm_slots"] = None
+        proj["hourly"][0]["sessions"] = 3
+        fc = build_capacity_forecast(proj, supply_vm_slots=20)
+        assert fc["hourly"][0]["deficit_state"] == DeficitState.INDETERMINATE

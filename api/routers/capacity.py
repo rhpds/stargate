@@ -4,7 +4,9 @@ Called by Launchpad to decide WHERE and WHEN to provision workloads.
 All data sourced from existing scanner cache, Babylon pool data, and evaluation history.
 """
 
+import json
 import time
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -305,9 +307,9 @@ def _resource_profiles() -> dict:
     return profiles
 
 
-def _upcoming_sessions(hours: int) -> List[Dict]:
+def _upcoming_sessions(hours: int) -> list[dict]:
     """Sessions starting inside the window, in projector shape."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import timedelta
     from collectors.labagator.collect_labagator import collect_sessions
 
     now = datetime.now(timezone.utc)
@@ -343,4 +345,99 @@ def resource_forecast(hours: int = Query(default=24, le=72)):
 
     sessions = _upcoming_sessions(hours)
     projection = project_resource_demand(sessions, _resource_profiles(), hours=hours)
-    return build_capacity_forecast(projection, window_hours=hours)
+    supply = fleet_supply_vm_slots(window_hours=48)
+    forecast = build_capacity_forecast(
+        projection,
+        supply_vm_slots=(supply or {}).get("vm_slots"),
+        window_hours=hours,
+    )
+    if supply is not None:
+        forecast["supply"] = supply
+    return forecast
+
+
+# --- Fleet supply: the evidence-based ceiling --------------------------------
+#
+# Supply = what the fleet has demonstrably sustained: per cluster, the
+# observed peak VM density over the scan-history window x current compute
+# nodes. This is a floor-of-capacity (true capacity >= the observed peak),
+# so deficits against it are early warnings — the conservative direction
+# for an advisory forecast. Source: scan-history files (the scan_snapshots
+# DB path revives with the persistence fix).
+
+_SUPPLY_CACHE: dict = {}  # (dir, window_hours) -> {"supply": ..., "ts": ...}
+_SUPPLY_TTL_SECONDS = 300.0
+
+
+def _scan_history_dir():
+    import os
+    from pathlib import Path
+    return Path(os.environ.get(
+        "STARGATE_SCAN_HISTORY_DIR", "/opt/app-root/src/scan-history"))
+
+
+def _scan_file_timestamp(path):
+    """scan-YYYYMMDD-HHMMSS.json -> aware datetime, or None."""
+    try:
+        stem = path.stem.replace("scan-", "")
+        return datetime.strptime(stem, "%Y%m%d-%H%M%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def fleet_supply_vm_slots(window_hours: int = 48):
+    """Fleet VM-slot supply from observed peak density, or None if no
+    history exists (unobserved, never zero)."""
+    import time as _time
+    from datetime import timedelta
+
+    history_dir = _scan_history_dir()
+    cache_key = (str(history_dir), window_hours)
+    cached = _SUPPLY_CACHE.get(cache_key)
+    if cached is not None and _time.time() - cached["ts"] < _SUPPLY_TTL_SECONDS:
+        return cached["supply"]
+
+    if not history_dir.is_dir():
+        return None
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+
+    peak_density: dict = {}
+    compute_nodes: dict = {}
+    for path in sorted(history_dir.glob("scan-*.json")):
+        ts = _scan_file_timestamp(path)
+        if ts is None or ts < cutoff:
+            continue
+        try:
+            clusters = json.loads(path.read_text())
+        except (ValueError, OSError):
+            continue
+        if not isinstance(clusters, list):
+            continue
+        for c in clusters:
+            name = c.get("cluster")
+            if not name:
+                continue
+            density = c.get("vms_per_node") or 0
+            nodes = c.get("compute_nodes") or 0
+            if nodes:
+                compute_nodes[name] = nodes
+            if density > peak_density.get(name, 0):
+                peak_density[name] = density
+
+    if not compute_nodes:
+        return None
+
+    per_cluster = [
+        {"cluster": name, "compute_nodes": nodes,
+         "peak_vms_per_node": peak_density.get(name, 0),
+         "vm_slots": nodes * peak_density.get(name, 0)}
+        for name, nodes in compute_nodes.items()
+    ]
+    supply = {
+        "vm_slots": sum(c["vm_slots"] for c in per_cluster),
+        "clusters": per_cluster,
+        "basis": "observed_peak_density",
+        "window_hours": window_hours,
+    }
+    _SUPPLY_CACHE[cache_key] = {"supply": supply, "ts": _time.time()}
+    return supply

@@ -48,8 +48,15 @@ class ForecastRisk(str, Enum):
     GREEN = "green"
 
 
-def _hour_state(vm_slots, supply_vm_slots, fallback_sessions) -> DeficitState:
-    if vm_slots is None or supply_vm_slots is None:
+def _hour_state(vm_slots, supply_vm_slots, fallback_sessions,
+                sessions=0) -> DeficitState:
+    if supply_vm_slots is None:
+        return DeficitState.INDETERMINATE
+    if vm_slots is None:
+        # An hour with no scheduled sessions is OBSERVED zero demand;
+        # sessions without profiles are the unobserved case.
+        if not sessions:
+            return DeficitState.HEADROOM
         return DeficitState.INDETERMINATE
     if fallback_sessions:
         return DeficitState.LOWER_BOUND_DEMAND
@@ -76,6 +83,7 @@ def build_capacity_forecast(
             entry.get("vm_slots"),
             supply_vm_slots,
             entry.get("sessions_without_profiles") or 0,
+            sessions=entry.get("sessions") or 0,
         )
         hour = dict(entry)
         hour["deficit_state"] = state
