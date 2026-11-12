@@ -263,13 +263,13 @@ def _compute_placement_score(
 # authority is earned through the retrospective gate
 # (docs/capacity-forecaster-plan.md).
 
-_PROFILE_CACHE: Dict = {"profiles": None, "ts": 0.0}
+_PROFILE_CACHE: dict = {"profiles": None, "ts": 0.0}
 _PROFILE_TTL_SECONDS = 600.0
 
 
 def _resolve_agnosticv_dir():
-    from pathlib import Path
     import os
+    from pathlib import Path
     configured = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
     if configured and Path(configured).is_dir():
         return Path(configured)
@@ -282,7 +282,7 @@ def _resolve_agnosticv_dir():
     return None
 
 
-def _resource_profiles() -> Dict:
+def _resource_profiles() -> dict:
     """All-catalog resource profiles, TTL-cached (10 min). Empty when no
     AgnosticV checkout is resolvable — the forecast stays honest about
     fallback coverage rather than erroring."""
