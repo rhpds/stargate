@@ -46,8 +46,11 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger("stargate.github_changes")
 
 DEFAULT_REPOS = [
-    "rhpds/agnosticv",
-    "rhpds/agnosticd",
+    # Verified live Nov 12 2026: agnosticv lives at redhat-cop (the rhpds
+    # path 404s), and agnosticd was renamed to agnosticd-v2. Stale names
+    # made every search 422 even with a valid token.
+    "redhat-cop/agnosticv",
+    "rhpds/agnosticd-v2",
     "redhat-cop/agnosticd",
 ]
 
