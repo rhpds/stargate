@@ -47,7 +47,16 @@ def project_pool_demand(
 
     parsed = []
     unmapped = 0
+    # Shared-cohort (roadshow) semantics: sessions sharing (event_id,
+    # session_date) are one group of people rotating through rooms —
+    # the event's attendance stamped on every room is the cohort size,
+    # not per-room concurrency. Found in the first forward pass: event
+    # 46, 11 rooms x 70 attendees, all 08:00-18:00 — 70 people, not 770.
+    cohort_counts = {}
     for s in sessions or []:
+        if s.get("event_id") is not None:
+            cohort_key = (s.get("event_id"), s.get("session_date"))
+            cohort_counts[cohort_key] = cohort_counts.get(cohort_key, 0) + 1
         # Full-ISO start_time (projector shape) or date+time (Labagator raw)
         ts = _parse_ts(s.get("start_time"))
         if ts is None and s.get("session_date"):
@@ -120,8 +129,25 @@ def project_pool_demand(
         else:
             entry["deficit_state"] = "headroom"
 
+    # Cohort demand: per (event_id, date) the max attendance (the people
+    # are shared across rooms); ungrouped sessions sum their own.
+    cohort_demand = 0
+    cohorts = {}
+    for ts, s, lab in parsed:
+        eid = s.get("event_id")
+        if eid is not None:
+            key = (eid, s.get("session_date"))
+            cohorts[key] = max(cohorts.get(key, 0), s.get("attendees") or 0)
+        else:
+            cohort_demand += s.get("attendees") or 0
+    cohort_demand += sum(cohorts.values())
+
+    shared_cohort_sessions = sum(
+        n for n in cohort_counts.values() if n > 1)
     return {
         "pools": pools,
+        "cohort_demand": cohort_demand,
         "coverage": {"sessions_mapped": len(parsed),
-                     "sessions_unmapped": unmapped},
+                     "sessions_unmapped": unmapped,
+                     "shared_cohort_sessions": shared_cohort_sessions},
     }

@@ -171,3 +171,30 @@ Live-run bug found and fixed en route: `deploy_time_hours: '0.25'`
 (a 15-minute session) produced zero-width spans that matched no hour
 boundary and hid the deficit — spans now snap outward to hour
 boundaries, with regression tests for both the 0 and sub-hour cases.
+
+---
+
+## First forward pass (Nov 13 2026) — the catch that was a data-quality finding
+
+The forward projection flagged seven RHSC pools for Nov 17 at up to
+350 percent (70 attendees vs 20-slot limits). Investigation, with the
+user's data-hygiene hypothesis confirmed and sharpened:
+
+1. **The labs were never AgnosticV-synced at all** — `last_synced:
+   None`, `agv_validation: None` on every RHSC lab, and the catalog
+   item (`ocp-virt-roadshow-2026`) declares no limits. The
+   deploy_limits are hand-entered Labagator values with no upstream
+   source: folklore, not drift.
+2. **The sessions carry event-total attendance on every room** — one
+   event (id 46), 11 rooms all 08:00–18:00, 70 stamped on each: 770
+   "concurrent demands" in the data for ~70 rotating people. Roadshow
+   semantics are absent from the session model.
+
+Model fix shipped: sessions sharing (event_id, date) are one cohort —
+fleet-level demand counts the cohort once (118 over the 7-day window,
+not 770). Per-room deficit states remain naive BY DATA LIMIT: the
+rotation schedule (which room hosts which subset when) is not in
+Labagator, so per-room concurrency is unknowable from current data.
+Advisory mode did its job — the false alarm was free, and it exposed
+two concrete data-hygiene debts: RHSC limits need real sources, and
+roadshow events need cohort semantics.

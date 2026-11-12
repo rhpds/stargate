@@ -120,3 +120,56 @@ class TestZeroDuration:
                         "deploy_time_hours": "0.00"}},
             hours=8, start=NOW)
         assert result["pools"]["LB2645"]["peak_occupancy"] == 23
+
+
+class TestSharedCohortEvents:
+    """Roadshow semantics (found in the first forward pass, Nov 13 2026):
+    one event (event_id 46) stamps its total attendance on every room
+    session, all rooms running the same all-day window — the same ~70
+    people rotating, not 70 concurrent environments per room. Sessions
+    sharing (event_id, date) are one cohort: demand is the cohort's
+    attendance once, against each room's limit only when that room
+    hosts the whole cohort — conservatively, the max across the
+    event's rooms, never the sum."""
+
+    def _rot_session(self, lab, attendees, event_id=46):
+        start = NOW + timedelta(hours=1)
+        return {"lab_code": lab, "attendees": attendees, "event_id": event_id,
+                "start_time": start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "session_date": start.strftime("%Y-%m-%d"),
+                "created_at": start.isoformat()}
+
+    def test_shared_event_is_one_cohort_not_summed(self):
+        """11 rooms x 70 attendees of one event must not read as 770
+        concurrent demands — the people are shared."""
+        sessions = [self._rot_session("R%d" % i, 70) for i in range(11)]
+        result = project_pool_demand(sessions, {}, hours=4, start=NOW)
+        # all rooms share the cohort: each room's occupancy reflects the
+        # cohort (70), and the fleet-level demand counts 70 once
+        assert result["coverage"]["shared_cohort_sessions"] == 11
+
+    def test_cohort_demand_is_max_not_sum_per_pool(self):
+        """Same event, same date, different rooms mapped to the SAME
+        catalog item: the pool sees the cohort once, not N times."""
+        labs = {"R1": {"lab_code": "R1", "deploy_limit": 100},
+                "R2": {"lab_code": "R2", "deploy_limit": 100}}
+        sessions = [self._rot_session("R1", 70), self._rot_session("R2", 70)]
+        result = project_pool_demand(sessions, labs, hours=4, start=NOW)
+        assert result["coverage"]["sessions_mapped"] == 2
+        assert result["cohort_demand"] == 70  # not 140
+
+    def test_different_events_are_separate_cohorts(self):
+        sessions = [self._rot_session("R1", 70, event_id=46),
+                    self._rot_session("R1", 30, event_id=47)]
+        result = project_pool_demand(sessions, {"R1": {"lab_code": "R1", "deploy_limit": 100}},
+                                     hours=4, start=NOW)
+        assert result["cohort_demand"] == 100  # separate people: summed
+
+    def test_no_event_id_counts_normally(self):
+        """Sessions without event_id keep workshop semantics: each
+        session's attendees are its own concurrent demand."""
+        s1 = self._rot_session("R1", 40, event_id=None)
+        s2 = self._rot_session("R1", 30, event_id=None)
+        result = project_pool_demand([s1, s2], {"R1": {"lab_code": "R1", "deploy_limit": 100}},
+                                     hours=4, start=NOW)
+        assert result["cohort_demand"] == 70
