@@ -29,7 +29,7 @@ spec:
         - --concurrency=2
         env:
         - name: CELERY_BROKER_URL
-          value: redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0
+          value: redis://:$(ECOSYSTEM_REDIS_PASSWORD)@redis.ecosystem-redis.svc:6379/0
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -97,7 +97,7 @@ spec:
         - --loglevel=info
         env:
         - name: CELERY_BROKER_URL
-          value: redis://:ecosystem-redis-2026@redis.ecosystem-redis.svc:6379/0
+          value: redis://:$(ECOSYSTEM_REDIS_PASSWORD)@redis.ecosystem-redis.svc:6379/0
         resources:
           requests:
             memory: 128Mi

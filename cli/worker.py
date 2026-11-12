@@ -531,7 +531,7 @@ class ClusterWorker:
                     post_req = urllib.request.Request(
                         f"{self.api_url}/labs/mappings",
                         data=payload,
-                        headers={"Content-Type": "application/json"},
+                        headers=self._api_headers(),
                         method="PUT",
                     )
                     urllib.request.urlopen(post_req, timeout=5)

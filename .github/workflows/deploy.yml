@@ -17,9 +17,6 @@ jobs:
   gate-check:
     name: Pre-deployment Gate
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: summit-demo-factory
     steps:
       - name: Confirm deployment
         run: |

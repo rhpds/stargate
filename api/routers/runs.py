@@ -597,7 +597,7 @@ async def get_lab_mappings():
 
 
 @router.put("/labs/mappings")
-async def upsert_lab_mapping(req: dict):
+async def upsert_lab_mapping(req: dict, _auth=Depends(require_admin)):
     """Upsert a lab mapping — scanner calls this to persist lab name resolution."""
     from db.database import get_db
     from db.models import LabMapping
@@ -643,7 +643,7 @@ async def upsert_lab_mapping(req: dict):
 
 
 @router.put("/labs/guid-mapping")
-async def upsert_guid_mapping(req: dict):
+async def upsert_guid_mapping(req: dict, _auth=Depends(require_admin)):
     """Store a guid → catalog item mapping from ResourceClaims."""
     from db.database import get_db
     from db.models import LabMapping
@@ -682,7 +682,7 @@ async def upsert_guid_mapping(req: dict):
 
 
 @router.put("/labs/guid-mapping-batch")
-async def upsert_guid_mapping_batch(req: dict):
+async def upsert_guid_mapping_batch(req: dict, _auth=Depends(require_admin)):
     """Batch upsert guid → lab mappings from Babylon worker."""
     from db.database import get_db
     from db.models import LabMapping

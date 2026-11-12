@@ -32,11 +32,13 @@ def _incident_result(incident: Dict) -> Dict:
     lead = incident.get("lead_time_hours")
     flagged = incident.get("forecast_crossing") is not None and lead is not None and lead > 0
     false_green = incident.get("forecast_risk_during_window") == "green"
+    out_of_scope = incident.get("incident_class") == "supply_degradation"
     return {
         "name": incident.get("name", "?"),
         "flagged_with_lead_time": flagged,
         "lead_time_hours": lead,
         "false_green": false_green,
+        "out_of_scope": out_of_scope,
     }
 
 
@@ -45,12 +47,28 @@ def evaluate_forecast_gate(
     accuracy: Optional[Dict] = None,
 ) -> Dict:
     """Evaluate the authority gate from retrospective (and optionally
-    forward-accuracy) evidence."""
+    forward-accuracy) evidence.
+
+    Scope (declared, never assumed): incidents classified
+    ``supply_degradation`` are out of scope — reported with
+    ``out_of_scope: true``, never counted against the gate. The
+    declaration is evidence-based (Nov 13 2026): the forecaster
+    demonstrated 34-day lead time on the demand-shock class; supply
+    degradation belongs to the saturation detector (validated 4/4).
+    An incident without a class is in scope by default.
+    """
     incidents = retrospective.get("incidents", [])
     per_incident = [_incident_result(inc) for inc in incidents]
 
     reasons = []
-    false_greens = [r["name"] for r in per_incident if r["false_green"]]
+    in_scope = [r for r in per_incident if not r["out_of_scope"]]
+    out_of_scope = [r["name"] for r in per_incident if r["out_of_scope"]]
+    if out_of_scope:
+        reasons.append(
+            "out of scope (supply degradation — the saturation detector's "
+            "validated domain): %s" % ", ".join(out_of_scope))
+
+    false_greens = [r["name"] for r in in_scope if r["false_green"]]
     if false_greens:
         reasons.append(
             "false green during documented incident window: %s"
@@ -59,18 +77,18 @@ def evaluate_forecast_gate(
     if not incidents:
         reasons.append("no documented incidents evaluated — gate cannot pass on an empty set")
 
-    flagged = [r for r in per_incident if r["flagged_with_lead_time"]]
-    if false_greens or not incidents:
+    flagged = [r for r in in_scope if r["flagged_with_lead_time"]]
+    if false_greens or not in_scope:
         verdict, rag = "fail", "red"
-    elif len(flagged) == len(incidents):
+    elif len(flagged) == len(in_scope):
         verdict, rag = "pass", "green"
     elif flagged:
         verdict, rag = "partial", "amber"
     else:
         verdict, rag = "fail", "red"
 
-    if verdict != "pass" and not false_greens and incidents:
-        missed = [r["name"] for r in per_incident if not r["flagged_with_lead_time"]]
+    if verdict != "pass" and not false_greens and in_scope:
+        missed = [r["name"] for r in in_scope if not r["flagged_with_lead_time"]]
         if missed:
             reasons.append("not flagged with lead time: %s" % ", ".join(missed))
 
