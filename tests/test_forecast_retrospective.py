@@ -90,3 +90,18 @@ class TestSessionsInWindow:
         assert rows[0]["lab_code"] == "lab-a"
         assert rows[0]["attendees"] == 10
         assert rows[0]["start_time"].startswith("2026-10-13T09:00")
+
+
+class TestNaiveHourLabels:
+    def test_projector_label_shape_handled(self):
+        """The real projector emits wall-clock labels without offset
+        ('%Y-%m-%dT%H:00') — found by the first live run against
+        October, which crashed on naive/aware comparison."""
+        base = datetime(2026, 10, 12, tzinfo=timezone.utc)
+        forecast = {"hourly": [
+            {"hour": (base + timedelta(hours=h)).strftime("%Y-%m-%dT%H:00"),
+             "deficit_state": s}
+            for h, s in [(20, "headroom"), (23, "deficit")]
+        ]}
+        crossing, _ = find_crossing(forecast, ONSET)
+        assert crossing is not None

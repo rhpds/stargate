@@ -64,6 +64,9 @@ def find_crossing(forecast, onset):
             hour_dt = datetime.fromisoformat(label)
         except (ValueError, TypeError):
             continue
+        if hour_dt.tzinfo is None:
+            # the projector's hour labels are wall-clock without offset
+            hour_dt = hour_dt.replace(tzinfo=timezone.utc)
         if hour_dt >= onset:
             break
         if hour.get("deficit_state") == "deficit" and crossing is None:
@@ -81,6 +84,8 @@ def risk_during_window(forecast, onset, hours=6):
             hour_dt = datetime.fromisoformat(hour.get("hour", ""))
         except (ValueError, TypeError):
             continue
+        if hour_dt.tzinfo is None:
+            hour_dt = hour_dt.replace(tzinfo=timezone.utc)
         if onset <= hour_dt < onset + timedelta(hours=hours):
             states.append(hour.get("deficit_state"))
     if not states:
