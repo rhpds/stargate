@@ -251,3 +251,96 @@ def _compute_placement_score(
         capacity_score * 0.20,
         1,
     )
+
+
+# --- Advisory resource forecast (capacity-forecast/v1) ---------------------
+#
+# The forecaster's advisory surface: Labagator sessions x resource profiles
+# -> project_resource_demand -> the capacity-forecast/v1 contract. Supply
+# evidence (per-cluster node capacity) is not wired yet, so hours resolve
+# INDETERMINATE and the risk rubric can report at most amber — honest by
+# construction, per the contract's semantics. Promotion beyond advisory
+# authority is earned through the retrospective gate
+# (docs/capacity-forecaster-plan.md).
+
+_PROFILE_CACHE: dict = {"profiles": None, "ts": 0.0}
+_PROFILE_TTL_SECONDS = 600.0
+
+
+def _resolve_agnosticv_dir():
+    import os
+    from pathlib import Path
+    configured = os.environ.get("STARGATE_AGNOSTICV_DIR", "")
+    if configured and Path(configured).is_dir():
+        return Path(configured)
+    for candidate in (
+        Path(__file__).resolve().parent.parent.parent / "agnosticv",
+        Path.home() / "agnosticv",
+    ):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _resource_profiles() -> dict:
+    """All-catalog resource profiles, TTL-cached (10 min). Empty when no
+    AgnosticV checkout is resolvable — the forecast stays honest about
+    fallback coverage rather than erroring."""
+    if _PROFILE_CACHE["profiles"] is not None \
+            and time.time() - _PROFILE_CACHE["ts"] < _PROFILE_TTL_SECONDS:
+        return _PROFILE_CACHE["profiles"]
+
+    profiles: Dict = {}
+    agnosticv_dir = _resolve_agnosticv_dir()
+    if agnosticv_dir is not None:
+        try:
+            from constraints.agnosticv_loader import load_all_constraints
+            from engine.resource_profiles import build_resource_profiles
+            profiles = build_resource_profiles(load_all_constraints(agnosticv_dir))
+        except Exception:
+            profiles = {}
+
+    _PROFILE_CACHE["profiles"] = profiles
+    _PROFILE_CACHE["ts"] = time.time()
+    return profiles
+
+
+def _upcoming_sessions(hours: int) -> List[Dict]:
+    """Sessions starting inside the window, in projector shape."""
+    from datetime import datetime, timedelta, timezone
+    from collectors.labagator.collect_labagator import collect_sessions
+
+    now = datetime.now(timezone.utc)
+    window_end = now + timedelta(hours=hours)
+    out: List[Dict] = []
+    for s in collect_sessions() or []:
+        session_date = s.get("session_date")
+        start_time = s.get("start_time")
+        if not session_date or not start_time:
+            continue
+        try:
+            dt = datetime.fromisoformat(f"{session_date}T{start_time}")
+        except (ValueError, TypeError):
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if now <= dt < window_end:
+            out.append({
+                "lab_code": s.get("lab_code"),
+                "attendees": s.get("attendees") or 0,
+                "start_time": dt.isoformat(),
+            })
+    return out
+
+
+@router.get("/resource-forecast")
+def resource_forecast(hours: int = Query(default=24, le=72)):
+    """Advisory capacity-forecast/v1: per-hour resource demand from the
+    session schedule and catalog resource profiles. Coverage is tri-state
+    and demand is a lower bound while unprofiled sessions exist."""
+    from contracts.capacity_forecast import build_capacity_forecast
+    from engine.capacity_projector import project_resource_demand
+
+    sessions = _upcoming_sessions(hours)
+    projection = project_resource_demand(sessions, _resource_profiles(), hours=hours)
+    return build_capacity_forecast(projection, window_hours=hours)

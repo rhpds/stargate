@@ -168,7 +168,7 @@ incident validation study. Serves the `ask` MCP tool (qwen3-14b synthesis,
 | Property | Value |
 |---|---|
 | Endpoint | `https://stargate-api.apps.ocpv-infra01.../mcp` (stateless HTTP) |
-| Tools | 13 (11 query + 2 review) + `ask` RAG |
+| Tools | 14 (12 query + 2 review) + `ask` RAG |
 | Auth | per-user API keys; rate limit 60/min/key |
 | Audit | `mcp request: method tool key_id` per request (fixed Nov 3 — was silently dead) |
 | Usage | first sustained external tool calls observed Nov 10–11 (overnight agent, key_id 5d0ae4c9); eval-query timeout fix ships Nov 14 |
