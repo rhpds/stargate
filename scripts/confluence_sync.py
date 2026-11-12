@@ -48,6 +48,7 @@ DOCS = [
     ("stargate-mcp-agent-guide.md", "StarGate MCP Agent Guide (Mirrored)"),
     ("mcp-tool-cookbook.md", "StarGate MCP Tool Cookbook — What to Ask, What You Get"),
     ("investigation-workflow.md", "StarGate Investigation Workflow"),
+    ("status-update-2026-11.md", "StarGate Status Update — Failure Log Output & MCP (Nov 2026)"),
 ]
 
 REPO_URL = "https://github.com/rhpds/stargate"
