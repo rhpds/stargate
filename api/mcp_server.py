@@ -523,3 +523,64 @@ def get_recent_changes(lab_code: Optional[str] = None, lookback_hours: int = 72)
     if not incidents.get("issues") and incidents.get("count", 0) == 0:
         lines.append("    (Jira credentials not configured or search failed — set STARGATE_JIRA_EMAIL/STARGATE_JIRA_TOKEN)")
     return "\n".join(lines)
+
+
+@mcp.tool()
+def get_capacity_forecast(hours: int = 24) -> str:
+    """Advisory capacity forecast (capacity-forecast/v1): projected per-hour
+    resource demand — VM slots and AI cores/GiB — from the upcoming session
+    schedule and catalog resource profiles. Coverage is tri-state: labs
+    without parsed resource profiles contribute unquantified demand, so
+    observed demand is a lower bound. Risk follows the contract rubric and
+    is at most amber while supply evidence is unwired."""
+    from api.routers import capacity as capacity_router
+    from contracts.capacity_forecast import build_capacity_forecast
+    from engine.capacity_projector import project_resource_demand
+
+    hours = min(max(hours, 1), 72)
+    sessions = capacity_router._upcoming_sessions(hours)
+    profiles = capacity_router._resource_profiles()
+    projection = project_resource_demand(sessions, profiles, hours=hours)
+    forecast = build_capacity_forecast(projection, window_hours=hours)
+
+    coverage = forecast.get("coverage", {})
+    lines = [
+        f"Capacity forecast (advisory, {forecast['contract']}), next {hours}h:",
+        f"Risk: {forecast['risk'].value}",
+    ]
+
+    if not sessions:
+        lines.append("No sessions scheduled in the window (demand unobserved).")
+    else:
+        lines.append(
+            "Sessions: %d scheduled, %d with resource profiles, %d fallback"
+            % (coverage.get("sessions_total", 0),
+               coverage.get("sessions_with_profiles", 0),
+               coverage.get("sessions_fallback", 0))
+        )
+        if coverage.get("sessions_fallback"):
+            lines.append(
+                "Demand is a LOWER BOUND: %d session(s) belong to labs without "
+                "parsed resource profiles." % coverage.get("sessions_fallback"))
+
+    peak = forecast.get("peak_hour")
+    if peak and peak.get("vm_slots") is not None:
+        parts = [f"Peak demand: {peak['hour']} — {peak['vm_slots']} VM slots"]
+        if peak.get("ai_cores") is not None:
+            parts.append(f"{peak['ai_cores']} AI cores")
+        if peak.get("ai_memory_gib") is not None:
+            parts.append(f"{peak['ai_memory_gib']} GiB AI memory")
+        lines.append(", ".join(parts) + " (observed)")
+
+    demanding = [h for h in forecast.get("hourly", []) if h.get("vm_slots")]
+    if demanding:
+        lines.append("Hours with observed demand:")
+        for h in demanding[:12]:
+            lines.append("  %s — %s VM slots (%d session(s))"
+                         % (h["hour"], h["vm_slots"], h["sessions"]))
+
+    if forecast["risk"].value != "red":
+        lines.append(
+            "Supply evidence is not yet wired: hours resolve INDETERMINATE and "
+            "risk cannot be green. Treat demand as a floor, not a ceiling.")
+    return "\n".join(lines)

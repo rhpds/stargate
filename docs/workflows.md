@@ -321,7 +321,7 @@ GET /dashboard/causal-chain?investigation_id=N
                    └──────────────────┘     └─────────────┘
 ```
 
-**13 tools total**: 10 read-only query tools, `ask` (natural-language RAG),
+**14 tools total**: 11 read-only query tools, `ask` (natural-language RAG),
 `get_cluster_saturation` (capacity correlation), `get_recent_changes`
 (GitHub PRs + Jira change correlation), `get_known_issues` (fleet-level
 rollup of investigations sharing one root cause), and 2 review tools

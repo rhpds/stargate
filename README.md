@@ -13,7 +13,7 @@ StarGate provides a unified dashboard for managing the lifecycle of provisioned 
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed or stalled provisions from successful empty results and collection failures; all 4 AAP controllers (prod + event) are collected
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — `GET /dashboard/causal-chain`: symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
-- **MCP Server** — 13 tools (11 query + 2 review) + natural-language `ask` (RAG over 351+ documents, including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 14 tools (12 query + 2 review) + natural-language `ask` (RAG over 351+ documents, including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change Correlation** — RHDP has no formal change management, so StarGate is the change record: GitHub PRs (merged + in review) and Jira tickets correlated against failure onset, path-matched to each lab's AgnosticV files; the investigation agent checks it before calling any failure novel
 - **Saturation Correlation** — Detects the capacity-saturation signature (rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere); validated against the documented Oct 13-14 2026 ocpv08 incident
 - **Platform Health Monitoring** — Four loops watching what the platform depends on: LLM gateway model endpoints (native LiteLLM /health, 15m), external dependencies (SSO/api.openshift.com/registry — the Oct 21 5xx lesson, 5m), storage headroom + OLM catalog freshness (Ceph at 70%, stuck PVCs, stale snapshots, 5m), and saturation correlation. All persist as evaluations so degradation is a trend
@@ -42,7 +42,7 @@ Frontend (React 19 + Vite + Tailwind 4)
     +-- Policy Engine (deterministic recommendations)
     +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
-    +-- MCP Server (13 tools + natural-language ask, at /mcp)
+    +-- MCP Server (14 tools + natural-language ask, at /mcp)
     +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15
@@ -200,7 +200,7 @@ Each catalog entry declares its `execution_method` (`kubernetes`, `rhdp_anarchy`
 - **provisioning-outcome/v1** — explicit, evidence-verified provisioning outcomes (succeeded / failed / stalled / controller_lag / collection_unavailable / indeterminate)
 - **reclamation-outcome/v1** — reclamation outcomes (reclaimed / destroy_failed / destroy_stalled / resource_leak / indeterminate) with artifact enumeration
 - **Causal chains** — `GET /dashboard/causal-chain` assembles the full evidence chain per investigation with `missing_legs` honesty
-- **MCP server** — 13 tools (11 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP server** — 14 tools (12 query + 2 review) + natural-language `ask` (RAG, qwen3-14b, sub-3s) at `/mcp`; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change correlation** — GitHub PRs + Jira tickets vs failure onset: `GET /dashboard/change-correlation`; RHDP has no formal change management, so this is the change record
 - **Saturation correlation** — `GET /dashboard/saturation`: rate spike + diverse symptoms + lab differential, validated on the documented Oct 13-14 2026 incident
 - **Platform health** — `GET /dashboard/llm-health`, `/dashboard/dependency-health`, `/dashboard/partner-visibility`: the dependencies and channels nobody was watching
@@ -239,7 +239,7 @@ for per-tool examples — what to ask, what each tool returns.
 - [x] **Change correlation** — GitHub PRs (merged + in review) and Jira tickets vs failure onset. RHDP has no formal change management; this is the change record.
 - [x] **Platform health monitoring** — LLM gateway endpoints (15m), external dependencies (SSO/api/registry, 5m), storage headroom + OLM catalog freshness (5m), all persisted as evaluations.
 - [x] **Partner catalog visibility** — the breakdown the biweekly report lacked, with documented baselines.
-- [x] **MCP server** — 13 tools at `/mcp`, any AI agent, plain English, cited answers.
+- [x] **MCP server** — 14 tools at `/mcp`, any AI agent, plain English, cited answers.
 - [x] **Known-issues fleet rollup** — MCP `get_known_issues` + dashboard endpoint: groups investigations sharing one root cause into platform / platform-self / lab-family buckets.
 - [x] **Knowledge corpus** — 351 documents including the team's Confluence RCA record and the incident validation study.
 - [x] **Confluence mirror** — 12-page tree with idempotent sync (`scripts/confluence_sync.py`).
