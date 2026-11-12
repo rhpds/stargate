@@ -134,3 +134,40 @@ structurally. The increment list for a future promotion attempt:
 per-pool placement join; cluster-health supply factor or an explicit
 scope declaration; then forward-accuracy accumulation (A-track, already
 persisting every cycle).
+
+---
+
+## Second gate evaluation (Nov 13 2026, later) — the event-pool class PASSES
+
+The first evaluation named the gap: fleet-aggregate demand masks
+pool-level exhaustion. The per-pool join was built
+(`engine/pool_demand.py`) from data StarGate already collects —
+Labagator sessions joined to lab records carrying `deploy_limit`
+(concurrent environment slots), occupancy snapped outward to hour
+boundaries — and re-run against the same incident:
+
+| Pool | Limit | Peak occupancy | State | Crossing | Knowable since |
+|---|---|---|---|---|---|
+| LB2645 | 11 | **23 (209%)** | **deficit** | Sep 30 15:00 | **Aug 27** |
+| LB1758 | 15 | 15 (100%) | at_limit | — | Aug 27 |
+
+**The event-pool exhaustion is flagged with 816.6 hours (34.0 days)
+of lead time** — the demand was schedulable knowledge from session
+creation. The projection also surfaced five additional oversubscribed
+pools in the same window (LB2391 23/10, LB2596 15/12, LB2236 23/15,
+LB2865 15/10, LB2862 23/20) that the incident record never named —
+candidates for validation, and exactly the early-warning class the
+forecaster exists for.
+
+The ocpv saturation remains a false green — correctly: it is supply-
+side degradation, structurally invisible to a demand forecast. The
+evidence now supports the scope declaration: **the forecaster earns
+demand-shock authority (demonstrated 34-day lead time); the saturation
+detector owns supply-degradation (validated 4/4).** Gate verdict
+remains fail overall until the scope is formalized or a
+cluster-health supply factor is built.
+
+Live-run bug found and fixed en route: `deploy_time_hours: '0.25'`
+(a 15-minute session) produced zero-width spans that matched no hour
+boundary and hid the deficit — spans now snap outward to hour
+boundaries, with regression tests for both the 0 and sub-hour cases.
