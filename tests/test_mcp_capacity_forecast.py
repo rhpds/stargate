@@ -63,3 +63,29 @@ class TestGetCapacityForecastTool:
         self._patch(monkeypatch, [], {})
         result = mcp_server.get_capacity_forecast(hours=4)
         assert "No sessions" in result
+
+
+class TestGetCapacityForecastWithSupply:
+    def _patch(self, monkeypatch, sessions, profiles):
+        from api.routers import capacity
+        monkeypatch.setattr(capacity, "_upcoming_sessions", lambda h: sessions)
+        monkeypatch.setattr(capacity, "_resource_profiles", lambda: profiles)
+
+    def test_supply_present_when_observed(self, monkeypatch):
+        from api import mcp_server
+        self._patch(monkeypatch, [_session("lab-a", 1, 100)],
+                    {"lab-a": ResourceProfile("lab-a", 3, None, None, "observed", "s")})
+        from api.routers import capacity
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots",
+                            lambda window_hours=48: {"vm_slots": 100, "basis": "observed_peak_density", "window_hours": 48})
+        result = mcp_server.get_capacity_forecast(hours=4)
+        assert "Supply: 100 VM slots" in result
+        assert result.splitlines()[1] == "Risk: red"  # 300 demand > 100 supply
+
+    def test_no_supply_keeps_honesty_line(self, monkeypatch):
+        from api import mcp_server
+        self._patch(monkeypatch, [], {})
+        from api.routers import capacity
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
+        result = mcp_server.get_capacity_forecast(hours=4)
+        assert "Supply evidence is not yet wired" in result

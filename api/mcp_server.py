@@ -540,8 +540,13 @@ def get_capacity_forecast(hours: int = 24) -> str:
     hours = min(max(hours, 1), 72)
     sessions = capacity_router._upcoming_sessions(hours)
     profiles = capacity_router._resource_profiles()
+    supply = capacity_router.fleet_supply_vm_slots(window_hours=48)
     projection = project_resource_demand(sessions, profiles, hours=hours)
-    forecast = build_capacity_forecast(projection, window_hours=hours)
+    forecast = build_capacity_forecast(
+        projection,
+        supply_vm_slots=(supply or {}).get("vm_slots"),
+        window_hours=hours,
+    )
 
     coverage = forecast.get("coverage", {})
     lines = [
@@ -579,7 +584,12 @@ def get_capacity_forecast(hours: int = 24) -> str:
             lines.append("  %s — %s VM slots (%d session(s))"
                          % (h["hour"], h["vm_slots"], h["sessions"]))
 
-    if forecast["risk"].value != "red":
+    if supply is not None:
+        lines.append(
+            "Supply: %s VM slots (observed peak density, %sh window) — deficits "
+            "against it are early warnings, not hard walls."
+            % (supply["vm_slots"], supply["window_hours"]))
+    else:
         lines.append(
             "Supply evidence is not yet wired: hours resolve INDETERMINATE and "
             "risk cannot be green. Treat demand as a floor, not a ceiling.")
