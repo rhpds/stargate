@@ -24,6 +24,7 @@ class TestResourceForecastEndpoint:
         from api.routers import capacity
         monkeypatch.setattr(capacity, "_upcoming_sessions", lambda h: [])
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
 
         resp = client.get("/api/v1/resource-forecast")
         assert resp.status_code == 200
@@ -38,6 +39,7 @@ class TestResourceForecastEndpoint:
                             lambda h: [_session("lab-a", 1, 10)])
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {
             "lab-a": ResourceProfile("lab-a", 3, 8.0, 32.0, "observed", "s")})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
 
         body = client.get("/api/v1/resource-forecast").json()
         assert body["coverage"]["sessions_total"] == 1
@@ -50,6 +52,7 @@ class TestResourceForecastEndpoint:
         monkeypatch.setattr(capacity, "_upcoming_sessions",
                             lambda h: [_session("lab-x", 1, 40)])
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
 
         body = client.get("/api/v1/resource-forecast").json()
         assert body["coverage"]["sessions_fallback"] == 1
@@ -62,6 +65,7 @@ class TestResourceForecastEndpoint:
         from api.routers import capacity
         monkeypatch.setattr(capacity, "_upcoming_sessions", lambda h: [])
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots", lambda window_hours=48: None)
 
         body = client.get("/api/v1/resource-forecast").json()
         assert body["risk"] == "amber"
@@ -75,3 +79,33 @@ class TestResourceForecastEndpoint:
         body = client.get("/api/v1/resource-forecast?hours=48").json()
         assert body["window_hours"] == 48
         assert len(body["hourly"]) == 48
+
+
+class TestResourceForecastWithSupply:
+    def test_deficit_when_demand_exceeds_observed_supply(self, client, monkeypatch):
+        """With fleet supply wired, observed demand above the observed
+        ceiling is a RED forecast — the rubric finally has teeth."""
+        from api.routers import capacity
+        monkeypatch.setattr(capacity, "_upcoming_sessions",
+                            lambda h: [_session("lab-a", 1, 100)])
+        monkeypatch.setattr(capacity, "_resource_profiles", lambda: {
+            "lab-a": ResourceProfile("lab-a", 3, None, None, "observed", "s")})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots",
+                            lambda window_hours=48: {"vm_slots": 100, "basis": "observed_peak_density"})
+
+        body = client.get("/api/v1/resource-forecast").json()
+        assert body["risk"] == "red"
+        assert body["supply"]["vm_slots"] == 100
+
+    def test_headroom_green_when_fully_observed(self, client, monkeypatch):
+        from api.routers import capacity
+        monkeypatch.setattr(capacity, "_upcoming_sessions",
+                            lambda h: [_session("lab-a", 1, 10)])
+        monkeypatch.setattr(capacity, "_resource_profiles", lambda: {
+            "lab-a": ResourceProfile("lab-a", 3, None, None, "observed", "s")})
+        monkeypatch.setattr(capacity, "fleet_supply_vm_slots",
+                            lambda window_hours=48: {"vm_slots": 1000, "basis": "observed_peak_density"})
+
+        body = client.get("/api/v1/resource-forecast").json()
+        assert body["risk"] == "green"
+        assert body["hourly"][1]["deficit_state"] == "headroom"
