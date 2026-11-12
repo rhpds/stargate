@@ -107,3 +107,58 @@ class TestGateDecayBoundary:
             _retrospective(), accuracy={"rate": 0.49, "n": 40})["promotion"] == "not_eligible"
         assert evaluate_forecast_gate(
             _retrospective(), accuracy={"rate": 0.51, "n": 40})["promotion"] == "eligible"
+
+
+class TestScopeDeclaration:
+    """The scope declaration (Nov 13 2026, evidence-based): the forecaster
+    earns demand-shock authority (34-day lead time demonstrated on the
+    event-pool class); supply-degradation belongs to the saturation
+    detector (validated 4/4). Incidents classified supply_degradation are
+    explicitly out of scope — reported, never counted against the gate."""
+
+    def _scoped(self):
+        return {
+            "incidents": [
+                {"name": "event_pool_exhaustion", "incident_class": "demand_shock",
+                 "documented_onset": "2026-09-30T15:30:00+00:00",
+                 "forecast_crossing": "2026-08-27T14:51:31+00:00",
+                 "lead_time_hours": 816.6, "forecast_risk_during_window": "red"},
+                {"name": "ocpv_saturation", "incident_class": "supply_degradation",
+                 "documented_onset": "2026-10-14T00:00:00+00:00",
+                 "forecast_crossing": None, "lead_time_hours": None,
+                 "forecast_risk_during_window": "green"},
+            ],
+            "approximations": [],
+        }
+
+    def test_out_of_scope_incident_does_not_fail_the_gate(self):
+        result = evaluate_forecast_gate(self._scoped())
+        assert result["verdict"] == "pass"
+        assert result["promotion"] == "eligible"
+        # the out-of-scope incident is reported, not counted
+        oos = [i for i in result["per_incident"] if i["name"] == "ocpv_saturation"][0]
+        assert oos.get("out_of_scope") is True
+
+    def test_scope_must_be_declared_not_assumed(self):
+        """An incident without a class is in scope by default — scope is
+        an explicit declaration carried by the evidence, not a default
+        exclusion."""
+        retros = self._scoped()
+        retros["incidents"][1]["incident_class"] = None
+        result = evaluate_forecast_gate(retros)
+        assert result["verdict"] == "fail"  # the false green counts again
+
+    def test_in_scope_miss_still_fails(self):
+        retros = self._scoped()
+        retros["incidents"][0]["lead_time_hours"] = None
+        retros["incidents"][0]["forecast_crossing"] = None
+        result = evaluate_forecast_gate(retros)
+        assert result["verdict"] == "fail"
+
+    def test_out_of_scope_false_green_is_noted_not_fatal(self):
+        """A green forecast during an out-of-scope (supply-degradation)
+        window is the declared limitation, recorded as a note — not the
+        hard-fail it rightly is for in-scope incidents."""
+        result = evaluate_forecast_gate(self._scoped())
+        assert result["rag"] == "green"
+        assert any("out of scope" in r.lower() for r in result["reasons"])

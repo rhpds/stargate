@@ -1395,6 +1395,18 @@ def _mv_refresh_loop():
                                 ))
                         except Exception as e:
                             logger.debug(f"DB capacity event emission skipped: {e}")
+            # Keep the forecast caches warm on every cycle (both replicas
+            # run this loop): the cold first hit cost 30s+ with the
+            # AgnosticV clone wired (332 catalog YAMLs + 500 scan files).
+            try:
+                from api.routers.capacity import (  # noqa: E402
+                    _resource_profiles,
+                    fleet_supply_vm_slots,
+                )
+                _resource_profiles()
+                fleet_supply_vm_slots(window_hours=48)
+            except Exception as e:
+                logger.debug("forecast cache warm skipped: %s", e)
             logger.info("MV refresh complete")
         except Exception as e:
             logger.warning(f"MV refresh failed: {e}")

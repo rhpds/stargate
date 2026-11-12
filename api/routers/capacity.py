@@ -266,7 +266,7 @@ def _compute_placement_score(
 # (docs/capacity-forecaster-plan.md).
 
 _PROFILE_CACHE: dict = {"profiles": None, "ts": 0.0}
-_PROFILE_TTL_SECONDS = 600.0
+_PROFILE_TTL_SECONDS = 1800.0
 
 
 def _resolve_agnosticv_dir():
@@ -366,7 +366,7 @@ def resource_forecast(hours: int = Query(default=24, le=72)):
 # DB path revives with the persistence fix).
 
 _SUPPLY_CACHE: dict = {}  # (dir, window_hours) -> {"supply": ..., "ts": ...}
-_SUPPLY_TTL_SECONDS = 300.0
+_SUPPLY_TTL_SECONDS = 1800.0
 
 
 def _scan_history_dir():

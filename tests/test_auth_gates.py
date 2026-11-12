@@ -62,3 +62,30 @@ class TestValidExecutionModes:
         assert "low_risk_auto" in VALID_EXECUTION_MODES
         assert "full_auto" in VALID_EXECUTION_MODES
         assert len(VALID_EXECUTION_MODES) == 3
+
+
+class TestLabMappingAuth:
+    @pytest.fixture
+    def anon_client(self):
+        """A client with NO API key — the default fixture sends one."""
+        from fastapi.testclient import TestClient
+        from api.app import app
+        with TestClient(app) as c:
+            yield c
+
+    """The three mapping PUTs were unauthenticated since inception —
+    found in the platform review (Nov 10 2026), closed Nov 13. Any client
+    that could reach the API could poison lab/GUID mappings, which feed
+    remediation targeting. These tests pin the closed posture."""
+
+    def test_mappings_put_requires_auth(self, anon_client):
+        resp = anon_client.put("/labs/mappings", json={"lab_code": "x"})
+        assert resp.status_code in (401, 403)
+
+    def test_guid_mapping_put_requires_auth(self, anon_client):
+        resp = anon_client.put("/labs/guid-mapping", json={"guid": "g", "lab_code": "x"})
+        assert resp.status_code in (401, 403)
+
+    def test_guid_mapping_batch_put_requires_auth(self, anon_client):
+        resp = anon_client.put("/labs/guid-mapping-batch", json={"mappings": []})
+        assert resp.status_code in (401, 403)
