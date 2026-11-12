@@ -249,15 +249,11 @@ class Scheduler:
                 scan_file = history_dir / f"scan-{ts}.json"
                 scan_file.write_text(json.dumps(scan_data, indent=2))
 
-                # Persist to database
-                try:
-                    from db.database import get_db
-                    from db import repository
-                    db = next(get_db())
-                    repository.save_scan_snapshot(db, "cluster_scan", scan_data)
-                    db.close()
-                except Exception:
-                    pass
+                # Persist to database (extracted + logged: this path sat
+                # silently dead in production for months — scan_snapshots
+                # had zero rows — because the deployments lacked the DB URL
+                # and the failure was swallowed. Found Nov 12 2026.)
+                _persist_scan_snapshot(scan_data)
 
             self._shutdown.wait(self.SCAN_SAVE_INTERVAL)
 
@@ -364,6 +360,35 @@ class Scheduler:
                     )
 
         return "\n".join(lines)
+
+
+
+def _persist_scan_snapshot(scan_data) -> bool:
+    """Persist one cluster-scan snapshot to the database.
+
+    Returns True on success. Failures LOG at warning level and return
+    False — never raise, never pass silently: this exact path sat dead
+    in production (scan_snapshots empty, no database URL on the
+    scheduler deployment, `except: pass` hiding it) until Nov 12 2026.
+    """
+    import logging
+    db = None
+    try:
+        from db.database import get_db
+        from db import repository
+        db = next(get_db())
+        repository.save_scan_snapshot(db, "cluster_scan", scan_data)
+        return True
+    except Exception as exc:
+        logging.getLogger("stargate.scheduler").warning(
+            "scan snapshot DB persist failed: %s", exc)
+        return False
+    finally:
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
 
 
 def main():

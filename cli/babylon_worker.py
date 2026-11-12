@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -689,19 +690,12 @@ def _save_results(results: Dict):
     ts_file = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     (history_dir / f"babylon-{ts_file}.json").write_text(json.dumps(results, indent=2))
 
-    # Persist to database
-    try:
-        from db.database import get_db
-        from db import repository
-        db = next(get_db())
-        repository.save_scan_snapshot(db, "babylon_scan", results)
-        if results.get("provisioning"):
-            repository.save_provisioning_snapshot(db, results["provisioning"])
-        db.close()
-    except Exception:
-        pass
+    # Persist to database (extracted + logged: this path sat silently
+    # dead in production — scan_snapshots empty, no DB URL on the
+    # deployment, `except: pass` hiding it. Found Nov 12 2026.)
+    _persist_babylon_snapshots(results)
 
-    # Persist AAP metrics if collected
+    # Persist AAP metrics if collected (logged, never silent)
     try:
         from collectors.aap.collect_aap import collect_aap_jobs
         aap = collect_aap_jobs()
@@ -711,10 +705,39 @@ def _save_results(results: Dict):
             _db = next(_gdb())
             _repo.save_aap_metrics(_db, aap)
             _db.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        logging.getLogger("stargate.babylon").warning(
+            "AAP metrics persist failed: %s", exc)
 
     print(f"  Saved to scan-history/babylon-{ts_file}.json")
+
+
+def _persist_babylon_snapshots(results) -> bool:
+    """Persist babylon scan + provisioning snapshots to the database.
+
+    Returns True on success. Failures LOG at warning level and return
+    False — never raise, never pass silently (the silent variant kept
+    scan_snapshots empty in production until Nov 12 2026).
+    """
+    db = None
+    try:
+        from db.database import get_db
+        from db import repository
+        db = next(get_db())
+        repository.save_scan_snapshot(db, "babylon_scan", results)
+        if results.get("provisioning"):
+            repository.save_provisioning_snapshot(db, results["provisioning"])
+        return True
+    except Exception as exc:
+        logging.getLogger("stargate.babylon").warning(
+            "babylon snapshot persist failed: %s", exc)
+        return False
+    finally:
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
 
 
 def main():

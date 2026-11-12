@@ -43,6 +43,13 @@ spec:
                 secretKeyRef:
                   name: stargate-secrets
                   key: sandbox-api-token
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: postgres-password
+            - name: STARGATE_DATABASE_URL
+              value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
             - name: STARGATE_SANDBOX_API_URL
               value: {{ .Values.scanner.sandboxApiUrl | quote }}
             - name: STARGATE_LABAGATOR_URL
@@ -103,6 +110,13 @@ spec:
                 secretKeyRef:
                   name: stargate-secrets
                   key: admin-api-key
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: postgres-password
+            - name: STARGATE_DATABASE_URL
+              value: postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate
             - name: STARGATE_SSL_VERIFY
               value: "false"
             - name: STARGATE_LABAGATOR_URL

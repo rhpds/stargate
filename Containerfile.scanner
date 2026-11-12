@@ -11,7 +11,7 @@ USER 1001
 WORKDIR /opt/app-root/src
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir pydantic pyyaml jsonschema
+RUN pip install --no-cache-dir pydantic pyyaml jsonschema "sqlalchemy>=2.0" psycopg2-binary
 
 COPY cli/ cli/
 COPY collectors/ collectors/
