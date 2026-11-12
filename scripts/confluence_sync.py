@@ -52,6 +52,7 @@ DOCS = [
     ("cascade-shadow-validation-plan.md", "StarGate Cascade Shadow Validation Plan"),
     ("capacity-forecaster-plan.md", "StarGate Capacity Forecaster Plan"),
     ("cascade-backtest-2026-11.md", "StarGate Cascade Backtest — Phase 0 Results (Nov 2026)"),
+    ("frontend-redesign-plan.md", "StarGate Frontend Redesign — Contracts, Data, UX (Proposed)"),
 ]
 
 REPO_URL = "https://github.com/rhpds/stargate"
