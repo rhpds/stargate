@@ -88,6 +88,12 @@ spec:
                   name: stargate-secrets
                   key: jira-token
                   optional: true
+            - name: STARGATE_GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: stargate-secrets
+                  key: github-token
+                  optional: true
             - name: STARGATE_CLUSTERS
               value: {{ .Values.scanner.clusters | quote }}
             - name: STARGATE_EXECUTOR_KUBECONFIG
