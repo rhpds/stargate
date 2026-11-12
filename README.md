@@ -244,6 +244,11 @@ for per-tool examples — what to ask, what each tool returns.
 - [x] **Knowledge corpus** — 351 documents including the team's Confluence RCA record and the incident validation study.
 - [x] **Confluence mirror** — 12-page tree with idempotent sync (`scripts/confluence_sync.py`).
 - [x] **AAP replay engine** — historical ETL archives into the platform, idempotent, historical timestamps preserved; partner channel (14 months) replayed.
+- [x] **Evidence pipeline integrity** — fixed the silent ~1.6% evidence loss to random-ID collisions (56k dropped items) and the dead run-create race; both TDD'd and verified live.
+- [x] **Data retention** — run-detail cascade (90d), GeoLux streams (60d), DB size budget with warn events; the previously unbounded 43GB database now drains.
+- [x] **Revived snapshot persistence** — `scan_snapshots` sat empty (no DB URL, silent `except: pass`, no driver in the scanner image); all three fixed, history accumulating.
+- [x] **Advisory capacity forecaster** — resource profiles from AgnosticV specs, per-hour demand projection, `capacity-forecast/v1` contract (tri-state, RAG, advisory by construction), fleet supply from observed peak density, per-pool demand join, and the **authority gate** — which refused promotion on its first real evaluation (false greens) and flagged the documented event-pool exhaustion with 34 days of knowable lead time on its second (`docs/capacity-forecaster-plan.md`).
+- [x] **Cascade Phase 0 backtest** — 2×2 engine matrix (both corpora × proof/OSS): hard gate PASS six times, compression 46.8–84.7%, the pin question answered empirically (`docs/cascade-backtest-2026-11.md`).
 
 ### Current
 
