@@ -116,3 +116,28 @@ class TestNoCommand:
     def test_no_command_shows_help(self, capsys):
         rc = main([])
         assert rc == 0
+
+
+class TestDetectDemoTypeTroshka:
+    """The first human-reviewed diagnosis (Nov 13 2026, investigation
+    2609): troshka-dedicated is a platform product with no showroom
+    component, but unknown namespace types fall to the CONTAINER_STAGES
+    default which includes showroom-healthy — every showroom_not_ready
+    on troshka namespaces was a false positive by construction (185
+    investigations, daily at 04:30). The fix: troshka maps to stages
+    without the showroom criterion."""
+
+    def test_troshka_namespace_no_showroom_stage(self):
+        from cli.worker import _detect_demo_type
+        demo_id, stages = _detect_demo_type("sandbox-sg8nt-troshka")
+        assert demo_id == "troshka"
+        assert "showroom-healthy" not in stages
+        assert "namespace-ready" in stages
+        assert "deployment-ready" in stages
+        assert "route-ready" in stages
+
+    def test_troshka_dedicated_namespace(self):
+        from cli.worker import _detect_demo_type
+        demo_id, stages = _detect_demo_type("sandbox-x-troshka-dedicated")
+        assert demo_id == "troshka"
+        assert "showroom-healthy" not in stages
