@@ -182,6 +182,18 @@ def review_diagnosis(investigation_id: int, approved: bool, notes: str = "") -> 
 
         result_parts = [f"Review recorded for investigation {investigation_id}: {'APPROVED' if approved else 'REJECTED'}"]
 
+        # Cascade into linked adjudication disputes (the same human
+        # judgment, recorded once — resolves needs_human_review cases)
+        try:
+            from engine.adjudication import resolve_for_review
+            resolved = resolve_for_review(db, investigation_id, approved)
+            if resolved:
+                result_parts.append(
+                    f"Resolved {resolved} linked adjudication dispute(s) "
+                    f"({'human_confirmed' if approved else 'human_rejected'}).")
+        except Exception as exc:
+            result_parts.append(f"(adjudication cascade skipped: {exc})")
+
         # If approved and we have a diagnosis, publish to the knowledge base
         if approved and inv.root_cause and inv.remediation_suggestion:
             signature = f"{inv.lab_code}:{inv.failure_class}".lower()

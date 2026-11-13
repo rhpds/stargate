@@ -344,3 +344,33 @@ def adjudicate(db, job_id, analysis, initial_evidence, tool_results, wall_budget
     db.add(row)
     db.commit()
     return serialize(row)
+
+
+def resolve_for_review(db, investigation_id, approved):
+    """Cascade a human review into its linked adjudication disputes.
+
+    The adjudication queue's needs_human_review cases and the
+    investigation review queue are the same human judgment — recorded
+    once. An approval resolves the dispute as human_confirmed (the
+    investigator's diagnosis stands over the reviewer disagreement);
+    a rejection resolves as human_rejected. Model-supported
+    adjudications are never touched (the ledger's own docstring: the
+    models never change human review state; here the human resolves
+    the models')."""
+    from datetime import datetime, timezone
+    from db.models import AdjudicationRecord
+
+    rows = (
+        db.query(AdjudicationRecord)
+        .filter(
+            AdjudicationRecord.investigation_id == investigation_id,
+            AdjudicationRecord.status == "needs_human_review",
+        )
+        .all()
+    )
+    for row in rows:
+        row.status = "human_confirmed" if approved else "human_rejected"
+        row.completed_at = datetime.now(timezone.utc)
+    if rows:
+        db.commit()
+    return len(rows)
