@@ -51,6 +51,12 @@ KNOWN_DEMO_TYPES: Dict[str, tuple] = {
     "ai-quickstarts": ("ai-quickstarts", CONTAINER_STAGES),
     "ai-qs": ("ai-quickstarts", CONTAINER_STAGES),
     "empty-config": ("empty-config", CONTAINER_STAGES),
+    # Platform product, not a showroom lab (first human-reviewed
+    # diagnosis, investigation 2609, Nov 13 2026): troshka has no
+    # showroom component, so the showroom-healthy criterion was a
+    # false positive by construction — 185 investigations of a
+    # misconfiguration.
+    "troshka": ("troshka", "namespace-ready,deployment-ready,route-ready"),
 }
 
 
