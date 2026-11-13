@@ -192,3 +192,32 @@ This is the platform measuring its own readiness honestly: the gates
 exist, the metrics exist, and the evidence says the metrics are not
 ready. That is a finding, not a failure — it is what advisory mode
 is for.
+
+### Addendum 2: the survival curve (same day, completing the derivation)
+
+The auto-resolved actions carry their own timestamps
+(`proposed_at → reviewed_at`), giving the persistence distribution
+directly:
+
+| Time-to-self-heal | Actions | Cumulative |
+|---|---|---|
+| 0–6h | 8,144 | 75% |
+| 6–24h | 1,742 | 91% |
+| 24–48h | 498 | 95.5% |
+| 48h+ | 497 | 100% |
+
+**Median time-to-self-heal: 56 minutes. Only 9.1% survive 24 hours.**
+
+The derivation the calibration study called for, now with numbers:
+**persistence-based confidence = survival past K hours**, and K = 24
+is the natural gate — it eliminates 91% of the action queue as
+transient while retaining the sick-environment population (the
+497 surviving 48h+ are the zt-ansiblebu class). The mechanism is
+confirmed by the morning's reviews: the CDI clone window is 10–15
+minutes, the startup races sub-hour — the sub-6h bulk IS those
+families, already approved as noise-with-condition.
+
+**The recommendation for when we get there**: gate auto-remediation
+on 24-hour persistence, not on the current one-shot confidence score.
+The data to run that gate already accumulates in every action's
+timestamps.
