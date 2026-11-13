@@ -145,3 +145,50 @@ priority (pure internal change, no counterparty needed). The June 3
 investigation chains (`pods_not_ready`, `pods_crashlooping`,
 `service_has_no_endpoints`) remain useful catalog entries independent
 of this decision.
+
+---
+
+## Addendum: the auto-remediation calibration study (Nov 13 2026)
+
+Prompted by the first human review session: does the pending-actions
+queue's confidence scoring predict whether an action is needed?
+Terminal outcomes (11,307 actions) answer it:
+
+| Confidence bucket | Needed (approved) | Self-healed / rejected |
+|---|---|---|
+| 0.5–1.0 (all sub-1.0) | **0** | 4,658 |
+| 1.0 | 21 | 6,419 |
+
+**The 21 approvals are all proof-lab self-tests** (`proof_*` types,
+`stargate-test` target). Production remediation approvals: zero, ever.
+
+**Verdict — the current confidence scores do not calibrate.** Every
+deepfield-sourced action type (probe_failure, resource_exhaustion,
+config_error, network_issue, storage_issue, scheduling_issue — avg
+confidence 0.84–0.89) shows zero needed actions across its entire
+terminal history: ~96 percent self-healed, the rest dismissed. A 0.89
+action is exactly as unneeded as a 0.84 one. Enabling auto-remediation
+at ANY threshold on this stream would have produced only wasted
+executions.
+
+**What the evidence does support, for when we get there:**
+
+1. **Do not enable auto-remediation on deepfield-sourced actions at
+   any confidence threshold** — the stream is ~all transient.
+2. **The 10,871 auto-resolutions are suppression ground truth** — the
+   same self-healing population Cascade's compression tier exists to
+   suppress (Phase 0 measured 46.8 percent dedup on exactly this
+   shape). The two loops close on each other: suppression upstream
+   prevents the action queue from filling with transients.
+3. **Confidence needs re-derivation, persistence-based**: an action
+   that survives K scan cycles without self-healing earns confidence;
+   the auto_resolved timestamps already hold the survival curves. The
+   current one-shot score carries no signal.
+4. The proof lab's internal loop (0.95 confidence, admin approval,
+   verification evals — 19/20 in the proof matrix) remains the only
+   working confidence signal, and it is self-referential by design.
+
+This is the platform measuring its own readiness honestly: the gates
+exist, the metrics exist, and the evidence says the metrics are not
+ready. That is a finding, not a failure — it is what advisory mode
+is for.
