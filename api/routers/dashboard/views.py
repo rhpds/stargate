@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from db.database import get_db
@@ -675,3 +675,19 @@ def verify_audit_chain(chain: list, _auth=Depends(require_admin)):
                 broken_at = i
                 break
     return {"valid": valid, "entries_checked": len(chain), "broken_at_sequence": broken_at}
+
+
+@router.get("/dashboard/concentration")
+def dashboard_concentration(days: int = Query(default=30, le=365),
+                            limit: int = Query(default=20, le=100),
+                            provision_days: int = Query(default=90, le=365),
+                            db: Session = Depends(get_db)):
+    """The largest offenders: failure concentration by lab (with the
+    lab-vs-platform-namespace split — the raw top failure codes are
+    platform components, not labs) and provision concentration by
+    catalog item (channel-normalized)."""
+    from engine.concentration import failure_concentration, provision_concentration
+    return {
+        "failures": failure_concentration(db, days=days, limit=limit),
+        "provisions": provision_concentration(db, days=provision_days, limit=limit),
+    }
