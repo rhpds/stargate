@@ -1,30 +1,9 @@
 import { useParams, Link } from 'react-router-dom';
 import { usePoolDetail } from '../api/hooks';
 import type { PoolDetailData, ProvisioningInstance } from '../api/types';
+import { MetricCard, SectionHeader, statusColor } from "../components/ui";
 
-const STATUS_COLORS: Record<string, string> = {
-  healthy: '#3E8635', pass: '#3E8635', started: '#3E8635', active: '#3E8635',
-  low: '#F0AB00', warning: '#F0AB00', provisioning: '#F0AB00', starting: '#F0AB00',
-  exhausted: '#C9190B', fail: '#C9190B',
-};
-
-function statusColor(status: string): string {
-  if (status.includes('failed') || status.includes('error')) return '#C9190B';
-  return STATUS_COLORS[status?.toLowerCase()] ?? '#6A6E73';
-}
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3">{children}</h2>;
-}
+;
 
 function InstanceTable({ instances }: { instances: ProvisioningInstance[] }) {
   if (instances.length === 0) return <p className="text-[#6A6E73] text-sm">No instances</p>;

@@ -1,34 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useClusterNodes, useClusterFailures, useClusterNamespaces, useEvents } from '../api/hooks';
 import type { ClusterNodes, ClusterNamespace } from '../api/types';
-
-function relativeTime(iso: string | null | undefined): string {
-  if (!iso) return '--';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 0) return 'just now';
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-function MetricCard({ label, value, sub, onClick }: { label: string; value: string | number; sub?: string; onClick?: () => void }) {
-  return (
-    <div className={`bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 ${onClick ? 'cursor-pointer hover:border-[#555] transition' : ''}`} onClick={onClick}>
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-      {sub && <div className="text-xs text-[#6A6E73] mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3">{children}</h2>;
-}
+import { MetricCard, SectionHeader, relativeTime } from "../components/ui";
 
 function NamespaceTable({ namespaces, navigate }: { namespaces: ClusterNamespace[]; navigate: (path: string) => void }) {
   if (namespaces.length === 0) return <p className="text-[#6A6E73] text-sm">No namespaces found.</p>;

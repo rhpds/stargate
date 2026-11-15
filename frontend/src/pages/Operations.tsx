@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
+import { relativeTime } from "../components/ui";
 
 /* ---- KPI Dashboard ---- */
 
@@ -160,19 +161,6 @@ const STAGES = ['health', 'pods', 'storage', 'network', 'workload', 'overall'] a
 const STAGE_LABELS: Record<string, string> = { health: 'HLT', pods: 'POD', storage: 'STG', network: 'NET', workload: 'WRK', overall: 'ALL' };
 const STATUS_COLORS: Record<string, string> = { green: '#3E8635', yellow: '#F0AB00', red: '#C9190B', gray: '#555' };
 
-
-function relativeTime(iso: string | null | undefined): string {
-  if (!iso) return '--';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 0) return 'just now';
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 function SummaryBar({ health, counts }: { health: Record<string, string>; counts: Record<string, Record<string, number>> }) {
   return (

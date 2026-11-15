@@ -1,24 +1,9 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useTrends, usePoolsDashboard, useProvisioningOverview, useAAPTrends, useProvisioningTrends, useMTTR } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
+import { SectionHeader, statusColor } from "../components/ui";
 
-const STATUS_COLORS: Record<string, string> = {
-  healthy: '#3E8635', low: '#F0AB00', exhausted: '#C9190B',
-  started: '#3E8635', provisioning: '#F0AB00', stopped: '#6A6E73',
-};
-
-function statusColor(s: string): string {
-  if (s.includes('failed') || s.includes('error')) return '#C9190B';
-  return STATUS_COLORS[s?.toLowerCase()] ?? '#6A6E73';
-}
-
-function SectionHeader({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <h2 className={`text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3 ${onClick ? 'cursor-pointer hover:text-white transition' : ''}`} onClick={onClick}>
-      {children} {onClick && <span className="text-[#73BCF7]">&rarr;</span>}
-    </h2>
-  );
-}
+;
 
 function TrendChart({ label, data, color, onClick }: { label: string; data: number[]; color: string; onClick?: () => void }) {
   if (!data || data.length === 0) return null;
@@ -213,7 +198,7 @@ export default function TrendsPage() {
                 <Link key={pool.name} to={`/pool/${encodeURIComponent(pool.name)}`}
                   className="flex items-center gap-3 text-sm hover:bg-[#1e1e1e] rounded px-2 py-1 -mx-2 transition">
                   <span className="text-[#73BCF7] truncate flex-1">{pool.name}</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[pool.status] ?? '#6A6E73', color: '#fff' }}>{pool.status}</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: statusColor(pool.status), color: '#fff' }}>{pool.status}</span>
                   <span className="text-xs text-[#6A6E73]">{pool.available} avail</span>
                 </Link>
               ))}
