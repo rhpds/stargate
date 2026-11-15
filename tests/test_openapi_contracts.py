@@ -46,3 +46,8 @@ class TestExportedSpec:
         spec2 = app.openapi()
         assert spec1 == spec2
         assert spec1["openapi"].startswith("3.")
+
+
+class TestEventForecastContract:
+    def test_has_response_schema(self, spec):
+        assert _has_schema(spec, "/api/v1/event-forecast")

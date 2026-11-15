@@ -58,7 +58,7 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
     ...(options?.headers as Record<string, string> || {}),
