@@ -19,6 +19,7 @@ import Operations from './pages/Operations';
 import Overview from './pages/Overview';
 import Capacity from './pages/Capacity';
 import Investigations from './pages/Investigations';
+import Knowledge from './pages/Knowledge';
 import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
@@ -107,6 +108,7 @@ export default function App() {
                 <Route path="/operations" element={<Operations />} />
                 <Route path="/capacity" element={<Capacity />} />
                 <Route path="/investigations" element={<Investigations />} />
+                <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="/deepfield" element={<DeepfieldOverview />} />
                 <Route path="/geolux" element={<GeoluxOverview />} />
