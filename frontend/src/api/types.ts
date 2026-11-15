@@ -1,6 +1,16 @@
 export interface HealthStatus {
   status: string;
   service: string;
+  timestamp?: string;
+  components?: {
+    api?: string;
+    database?: string;
+    scanners?: string;
+    scanner_age_minutes?: number;
+    llm?: string;
+    executor_kubeconfig?: string;
+    sandbox_api?: string;
+  };
 }
 
 // --- Deployments ---
