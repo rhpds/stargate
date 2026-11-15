@@ -91,7 +91,7 @@ class TestResourceForecastWithSupply:
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {
             "lab-a": ResourceProfile("lab-a", 3, None, None, "observed", "s")})
         monkeypatch.setattr(capacity, "fleet_supply_vm_slots",
-                            lambda window_hours=48: {"vm_slots": 100, "basis": "observed_peak_density"})
+                            lambda window_hours=48: {"vm_slots": 100, "basis": "observed_peak_density", "clusters": [{"cluster": "c", "compute_nodes": 1, "peak_vms_per_node": 100.0, "vm_slots": 100.0}], "window_hours": 48})
 
         body = client.get("/api/v1/resource-forecast").json()
         assert body["risk"] == "red"
@@ -104,7 +104,7 @@ class TestResourceForecastWithSupply:
         monkeypatch.setattr(capacity, "_resource_profiles", lambda: {
             "lab-a": ResourceProfile("lab-a", 3, None, None, "observed", "s")})
         monkeypatch.setattr(capacity, "fleet_supply_vm_slots",
-                            lambda window_hours=48: {"vm_slots": 1000, "basis": "observed_peak_density"})
+                            lambda window_hours=48: {"vm_slots": 1000, "basis": "observed_peak_density", "clusters": [{"cluster": "c", "compute_nodes": 1, "peak_vms_per_node": 1000.0, "vm_slots": 1000.0}], "window_hours": 48})
 
         body = client.get("/api/v1/resource-forecast").json()
         assert body["risk"] == "green"
