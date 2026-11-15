@@ -147,98 +147,14 @@ def review_diagnosis(investigation_id: int, approved: bool, notes: str = "") -> 
     or ask), whether you approve (true/false), and optional notes explaining
     your reasoning.
     """
-    import hashlib
-    from datetime import datetime, timezone
-    from db.database import get_session_factory
-    from db.models import InvestigationRecord, KnowledgeEntry
+    from engine.review_service import perform_review, reviewer_id_from_key
 
     db = _db()
-    _owns_session = True
     try:
-        inv = db.query(InvestigationRecord).filter(
-            InvestigationRecord.id == investigation_id).first()
-        if not inv:
-            return f"ERROR: investigation {investigation_id} not found"
-
-        # Idempotent: skip if already reviewed AND published
-        if inv.review_state == "reviewed":
-            existing = db.query(KnowledgeEntry).filter(
-                KnowledgeEntry.investigation_id == investigation_id,
-                KnowledgeEntry.active == True,
-            ).first()
-            if existing:
-                return (
-                    f"Investigation {investigation_id} already reviewed and published "
-                    f"as knowledge entry v{existing.version} by {existing.reviewed_by}. "
-                    f"No changes made."
-                )
-
-        # Record the review on the investigation
-        inv.review_state = "reviewed" if approved else "rejected"
-        inv.reviewed_at = datetime.now(timezone.utc)
-        reviewer_id = "mcp:" + hashlib.sha256(
-            __import__("os").environ.get("_MCP_CALLER_KEY", "unknown").encode()
-        ).hexdigest()[:8]
-
-        result_parts = [f"Review recorded for investigation {investigation_id}: {'APPROVED' if approved else 'REJECTED'}"]
-
-        # Cascade into linked adjudication disputes (the same human
-        # judgment, recorded once — resolves needs_human_review cases)
-        try:
-            from engine.adjudication import resolve_for_review
-            resolved = resolve_for_review(db, investigation_id, approved)
-            if resolved:
-                result_parts.append(
-                    f"Resolved {resolved} linked adjudication dispute(s) "
-                    f"({'human_confirmed' if approved else 'human_rejected'}).")
-        except Exception as exc:
-            result_parts.append(f"(adjudication cascade skipped: {exc})")
-
-        # If approved and we have a diagnosis, publish to the knowledge base
-        if approved and inv.root_cause and inv.remediation_suggestion:
-            signature = f"{inv.lab_code}:{inv.failure_class}".lower()
-            prior = db.query(KnowledgeEntry).filter_by(
-                signature=signature, active=True
-            ).order_by(KnowledgeEntry.version.desc()).first()
-            version = (prior.version + 1) if prior else 1
-            now = datetime.now(timezone.utc)
-            if prior:
-                prior.active = False
-                prior.retired_at = now
-            entry = KnowledgeEntry(
-                signature=signature, version=version, active=True,
-                root_cause=inv.root_cause,
-                remediation=inv.remediation_suggestion,
-                metadata_json={"lab_code": inv.lab_code, "failure_class": inv.failure_class,
-                              "review_notes": notes[:500] if notes else None},
-                provenance={"investigation_id": inv.id, "job_id": inv.job_id,
-                           "evidence_hash": inv.evidence_hash},
-                confidence=(inv.trust_dimensions or {}).get("confidence"),
-                investigation_id=inv.id,
-                reviewed_by=reviewer_id, reviewed_at=now,
-            )
-            db.add(entry)
-            result_parts.append(
-                f"Published to knowledge base as {signature} v{version}. "
-                f"Future investigations for this failure class will reference this diagnosis."
-            )
-        elif approved:
-            result_parts.append(
-                "NOTE: this investigation has no root_cause/remediation_suggestion, "
-                "so nothing was published to the knowledge base. The review is recorded."
-            )
-        else:
-            result_parts.append(
-                "Marked as rejected. This diagnosis will not be used as reference knowledge."
-            )
-
-        if notes:
-            result_parts.append(f"Notes: {notes[:200]}")
-
-        db.commit()
-        return " | ".join(result_parts)
+        parts = perform_review(
+            db, investigation_id, approved, notes, reviewer_id_from_key(None))
+        return "\n".join(parts)
     except Exception as error:
-        db.rollback()
         return f"ERROR reviewing diagnosis: {str(error)[:200]}"
 
 
