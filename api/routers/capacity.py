@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from db.database import get_db
-from api.schemas import ResourceForecastResponse
+from api.schemas import EventForecastResponse, ResourceForecastResponse
 from api.routers._shared import (
     _load_latest_scan,
     _load_latest_babylon,
@@ -443,3 +443,16 @@ def fleet_supply_vm_slots(window_hours: int = 48):
     }
     _SUPPLY_CACHE[cache_key] = {"supply": supply, "ts": _time.time()}
     return supply
+
+
+@router.get("/event-forecast",
+            response_model=EventForecastResponse)
+def event_forecast(days: int = Query(default=90, le=365)):
+    """Event-grouped demand (Summit/RH1-scale): per event, per day —
+    cohort bound (rotating people), summed bound (separate audiences),
+    peak concurrent from real session times. Bounds, not points."""
+    from collectors.labagator.collect_labagator import collect_sessions
+    from engine.event_demand import project_event_demand
+
+    result = project_event_demand(collect_sessions() or [], days=days)
+    return result

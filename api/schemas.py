@@ -426,3 +426,20 @@ class ProvisionConcentration(BaseModel):
 class ConcentrationResponse(BaseModel):
     failures: FailureConcentration
     provisions: ProvisionConcentration
+
+
+class EventDayDemand(BaseModel):
+    sessions: int
+    cohort_bound: int
+    summed_bound: int
+    peak_concurrent: int
+
+
+class EventDemand(BaseModel):
+    event_id: Optional[int] = None
+    days: Dict[str, EventDayDemand]
+
+
+class EventForecastResponse(BaseModel):
+    window: Dict[str, object] = {}
+    events: Dict[str, EventDemand]
