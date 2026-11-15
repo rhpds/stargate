@@ -1,17 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { MetricCard } from "../components/ui";
 
 const SEV_COLORS: Record<string, string> = { critical: '#A30000', high: '#C9190B', medium: '#F0AB00', low: '#3E8635', info: '#6A6E73' };
-
-function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
-      <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] font-semibold mb-1">{label}</div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-[10px] text-[#6A6E73] mt-0.5">{sub}</div>}
-    </div>
-  );
-}
 
 function FunnelBar({ stages }: { stages: { label: string; value: number }[] }) {
   const max = Math.max(...stages.map(s => s.value), 1);

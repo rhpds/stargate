@@ -1,19 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { MetricCard } from "../components/ui";
 
 const STATE_COLORS: Record<string, string> = {
   stable_pass: '#3E8635', unstable_pass: '#F0AB00', stable_fail: '#C9190B', unstable_fail: '#A30000',
 };
-
-function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#2e2e2e]">
-      <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] font-semibold mb-1">{label}</div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-[10px] text-[#6A6E73] mt-0.5">{sub}</div>}
-    </div>
-  );
-}
 
 function PipelineStage({ label, value, color }: { label: string; value: number; color: string }) {
   return (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { MetricCard, relativeTime } from "../components/ui";
 
 /* ---- constants ---- */
 
@@ -24,20 +25,6 @@ const GATE_COLORS: Record<string, string> = {
 const STEP_ORDER = ['inject', 'detect', 'remediate', 'verify', 'cleanup'] as const;
 
 /* ---- helpers ---- */
-
-function relativeTime(iso: string | null | undefined): string {
-  if (!iso) return '--';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 0) return 'just now';
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 const PIPELINE_STAGES = ['detect', 'hypothesize', 'classify', 'recommend', 'prove', 'trust'] as const;
 
@@ -86,17 +73,6 @@ function DimensionTooltip({ dims }: { dims: Record<string, string> | undefined }
 }
 
 /* ---- sub-components ---- */
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>
-        {value}
-      </div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  );
-}
 
 function ProofTimeline({ steps, queryClient, failureClass }: { steps: Record<string, any>; queryClient: any; failureClass: string }) {
   const [continuing, setContinuing] = useState(false);

@@ -3,29 +3,11 @@ import { useForecast, useCapacityAnalysis, usePoolsDashboard } from '../api/hook
 import { Link } from 'react-router-dom';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import SearchBar from '../components/SearchBar';
+import { MetricCard, SectionHeader } from "../components/ui";
 
 const STATUS_COLORS: Record<string, string> = {
   healthy: '#3E8635', low: '#F0AB00', exhausted: '#C9190B',
 };
-
-function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-      {sub && <div className="text-xs text-[#6A6E73] mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function SectionHeader({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold">{children}</h2>
-      {right}
-    </div>
-  );
-}
 
 const RISK_COLORS: Record<string, string> = {
   low: '#3E8635', medium: '#F0AB00', high: '#EC7A08', critical: '#C9190B',

@@ -1,30 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useProvisioningOverview } from '../api/hooks';
 import type { ProvisioningOverview, ProvisioningInstance } from '../api/types';
+import { MetricCard, SectionHeader, statusColor } from "../components/ui";
 
-const STATUS_COLORS: Record<string, string> = {
-  started: '#3E8635', healthy: '#3E8635',
-  provisioning: '#F0AB00', starting: '#F0AB00', stopping: '#F0AB00',
-  stopped: '#6A6E73',
-};
-
-function statusColor(status: string): string {
-  if (status.includes('failed') || status.includes('error')) return '#C9190B';
-  return STATUS_COLORS[status?.toLowerCase()] ?? '#6A6E73';
-}
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3">{children}</h2>;
-}
+;
 
 function StateBar({ entries, max }: { entries: [string, number][]; max: number }) {
   return (

@@ -11,35 +11,16 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import SearchBar from '../components/SearchBar';
 import type { OverviewData, DeploymentsDashboard, ClustersDashboard, PoolsDashboard, Deployment, ClusterScan, ClusterSummary } from '../api/types';
+import { MetricCard, SectionHeader, relativeTime, statusColor } from "../components/ui";
 
 /* ---- helpers ---- */
-
-function relativeTime(iso: string | null | undefined): string {
-  if (!iso) return '--';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 0) return 'just now';
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 function pct(n: number, d: number): string {
   if (d === 0) return '--';
   return `${Math.round((n / d) * 100)}%`;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  pass: '#3E8635', healthy: '#3E8635', green: '#3E8635', active: '#3E8635',
-  fail: '#C9190B', critical: '#C9190B', red: '#C9190B', exhausted: '#C9190B',
-  warn: '#F0AB00', warning: '#F0AB00', yellow: '#F0AB00', low: '#F0AB00', degraded: '#F0AB00',
-};
-function statusColor(s: string): string { return STATUS_COLORS[s?.toLowerCase()] ?? '#6A6E73'; }
-
+;
 function labStatus(lab: Deployment): 'pass' | 'fail' | 'warn' {
   const s = lab.labagator_status?.toLowerCase() ?? '';
   if (s === 'active' || s === 'pass' || s === 'healthy' || s === 'green') return 'pass';
@@ -60,29 +41,6 @@ const URGENCY_COLORS: Record<string, string> = {
 };
 
 /* ---- sub-components ---- */
-
-function MetricCard({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
-  return (
-    <div className={`bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 ${onClick ? 'cursor-pointer hover:border-[#555] transition' : ''}`} onClick={onClick}>
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ children, onClick, right }: { children: React.ReactNode; onClick?: () => void; right?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h2
-        className={`text-xs text-[#6A6E73] uppercase tracking-wider font-bold ${onClick ? 'cursor-pointer hover:text-white transition' : ''}`}
-        onClick={onClick}
-      >
-        {children} {onClick && <span className="text-[#73BCF7]">&rarr;</span>}
-      </h2>
-      {right}
-    </div>
-  );
-}
 
 /* ---- main page ---- */
 

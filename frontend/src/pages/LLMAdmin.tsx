@@ -4,20 +4,7 @@ import { api } from '../api/client';
 import { useLLMMetrics, useLLMConfig, useLLMDrift, useLLMEvaluation, useLLMABTest, useLLMAccuracy, useLLMTimeline } from '../api/hooks';
 import { useTimeRange } from '../components/TimeRangeContext';
 import FormattedAnalysis from '../components/FormattedAnalysis';
-
-function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{value}</div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-      {sub && <div className="text-xs text-[#6A6E73] mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3">{children}</h2>;
-}
+import { MetricCard, SectionHeader } from "../components/ui";
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });

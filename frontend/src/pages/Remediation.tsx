@@ -13,6 +13,7 @@ import { api } from '../api/client';
 import FormattedAnalysis from '../components/FormattedAnalysis';
 import { IssueFeedbackPanel, AiAnalysisFeedback } from '../components/RecommendationFeedback';
 import SearchBar from '../components/SearchBar';
+import { MetricCard, SectionHeader, relativeTime, statusColor } from "../components/ui";
 import type {
   ApprovalQueueData,
   PendingActionItem,
@@ -22,33 +23,7 @@ import type {
 
 /* ---- helpers ---- */
 
-function relativeTime(iso: string | null | undefined): string {
-  if (!iso) return '--';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 0) return 'just now';
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  approved: '#3E8635',
-  executed: '#3E8635',
-  completed: '#3E8635',
-  rejected: '#C9190B',
-  failed: '#C9190B',
-  pending: '#F0AB00',
-  proposed: '#F0AB00',
-};
-
-function statusColor(status: string): string {
-  return STATUS_COLORS[status?.toLowerCase()] ?? '#6A6E73';
-}
+;
 
 const MODE_LABELS: Record<string, string> = {
   recommend_only: 'Recommend Only',
@@ -63,23 +38,6 @@ const MODE_COLORS: Record<string, string> = {
 };
 
 /* ---- sub-components ---- */
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>
-        {value}
-      </div>
-      <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs text-[#6A6E73] uppercase tracking-wider font-bold mb-3">{children}</h2>
-  );
-}
 
 function RCADetail({ rca, namespace, cluster }: { rca: any; namespace: string; cluster: string }) {
   if (!rca) return null;
