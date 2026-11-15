@@ -16,6 +16,7 @@ import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
+import Overview from './pages/Overview';
 import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
@@ -100,7 +101,8 @@ export default function App() {
             </div>
             <main className="flex-1">
               <Routes>
-                <Route path="/" element={<Operations />} />
+                <Route path="/" element={<Overview />} />
+                <Route path="/operations" element={<Operations />} />
                 <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="/deepfield" element={<DeepfieldOverview />} />
                 <Route path="/geolux" element={<GeoluxOverview />} />
