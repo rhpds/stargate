@@ -626,6 +626,21 @@ def _record_gap_detections(db):
             failure_class=None,
             message=f"AAP destroy job {job_id} for {lab_code} succeeded (reclamation-outcome/v1: reclaimed)",
         )
+        # The lifecycle ground truth (investigation 2612's named remedy):
+        # every RECLAIMED observation writes a resolution record so the
+        # evaluator can distinguish absence-by-teardown from
+        # absence-by-breakage, and the feedback loops get the closure.
+        try:
+            repository.record_reclamation_resolution(
+                db,
+                lab_code=lab_code or event.get("catalog_item") or "",
+                cluster=event.get("cluster") or "",
+                source="aap_destroy_job",
+                source_ref=job_id or event.get("source_event_id") or "",
+            )
+        except Exception as exc:
+            logging.getLogger("stargate").warning(
+                "reclamation resolution record failed: %s", exc)
 
     # Resource leaks — orphaned PVs bound to deleted namespaces are
     # reclamation outcomes (destroy-complete stage per the rubric).
