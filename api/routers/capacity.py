@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from db.database import get_db
+from api.schemas import ResourceForecastResponse
 from api.routers._shared import (
     _load_latest_scan,
     _load_latest_babylon,
@@ -335,7 +336,8 @@ def _upcoming_sessions(hours: int) -> list[dict]:
     return out
 
 
-@router.get("/resource-forecast")
+@router.get("/resource-forecast",
+            response_model=ResourceForecastResponse)
 def resource_forecast(hours: int = Query(default=24, le=72)):
     """Advisory capacity-forecast/v1: per-hour resource demand from the
     session schedule and catalog resource profiles. Coverage is tri-state

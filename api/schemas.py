@@ -332,3 +332,97 @@ class DeepfieldIncidentRequest(BaseModel):
     remediation_options: List[Dict[str, Any]] = Field(default_factory=list)
     evidence_chain: List[Dict[str, Any]] = Field(default_factory=list)
     signal_count: int = 0
+
+
+# --- Capacity forecast contracts (frontend Phase 1, first family) ------------
+
+class DemandCitation(BaseModel):
+    """One session's contribution to an hour's demand (EDD in the UI)."""
+    lab: str
+    attendees: int
+    vm_slots: Optional[int] = None
+    ai_cores: Optional[float] = None
+    ai_memory_gib: Optional[float] = None
+
+
+class ForecastHour(BaseModel):
+    hour: str
+    sessions: int
+    vm_slots: Optional[int] = None
+    ai_cores: Optional[float] = None
+    ai_memory_gib: Optional[float] = None
+    sessions_without_profiles: int = 0
+    demand_citations: List[DemandCitation] = []
+    deficit_state: str
+    supply_vm_slots: Optional[float] = None
+
+
+class ForecastCoverage(BaseModel):
+    sessions_total: int
+    sessions_with_profiles: int
+    sessions_fallback: int
+    lower_bound: bool
+
+
+class FleetSupplyCluster(BaseModel):
+    cluster: str
+    compute_nodes: int
+    peak_vms_per_node: float
+    vm_slots: float
+
+
+class FleetSupply(BaseModel):
+    vm_slots: float
+    clusters: List[FleetSupplyCluster]
+    basis: str
+    window_hours: int
+
+
+class ResourceForecastResponse(BaseModel):
+    """The capacity-forecast/v1 contract as an OpenAPI response model —
+    the frontend renders the contract, not a shaped dict."""
+    contract: str
+    generated_at: str
+    window_hours: int
+    authority: str
+    risk: str
+    hourly: List[ForecastHour]
+    coverage: ForecastCoverage
+    peak_hour: Optional[ForecastHour] = None
+    supply: Optional[FleetSupply] = None
+
+
+class FailureConcentrationEntry(BaseModel):
+    lab_code: str
+    kind: str
+    failures: int
+    share_pct: float
+    cumulative_pct: float
+
+
+class FailureConcentration(BaseModel):
+    window_days: int
+    total_failures: int
+    distinct_lab_codes: int
+    entries: List[FailureConcentrationEntry]
+    labs_only: List[FailureConcentrationEntry]
+    split: Dict[str, float]
+
+
+class ProvisionConcentrationEntry(BaseModel):
+    catalog_item: str
+    jobs: int
+    share_pct: float
+    cumulative_pct: float
+
+
+class ProvisionConcentration(BaseModel):
+    window_days: int
+    total_provisions: int
+    distinct_items: int
+    entries: List[ProvisionConcentrationEntry]
+
+
+class ConcentrationResponse(BaseModel):
+    failures: FailureConcentration
+    provisions: ProvisionConcentration

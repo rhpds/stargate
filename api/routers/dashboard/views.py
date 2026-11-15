@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Query
+
+from api.schemas import ConcentrationResponse
 from sqlalchemy.orm import Session
 
 from db.database import get_db
@@ -677,7 +679,8 @@ def verify_audit_chain(chain: list, _auth=Depends(require_admin)):
     return {"valid": valid, "entries_checked": len(chain), "broken_at_sequence": broken_at}
 
 
-@router.get("/dashboard/concentration")
+@router.get("/dashboard/concentration",
+            response_model=ConcentrationResponse)
 def dashboard_concentration(days: int = Query(default=30, le=365),
                             limit: int = Query(default=20, le=100),
                             provision_days: int = Query(default=90, le=365),

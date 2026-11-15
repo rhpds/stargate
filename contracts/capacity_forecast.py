@@ -99,6 +99,12 @@ def build_capacity_forecast(
     else:
         risk = ForecastRisk.AMBER
 
+    # Peak hour is re-derived from the CONTRACT hours (with deficit
+    # states), not the raw projection's dict — found by the first
+    # response-model validation: peak_hour lacked deficit_state while
+    # every hourly entry carried it.
+    peak = max(hourly, key=lambda h: h["vm_slots"] or 0) if hourly else None
+
     return {
         "contract": CAPACITY_FORECAST_CONTRACT_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -107,5 +113,5 @@ def build_capacity_forecast(
         "hourly": hourly,
         "coverage": (projection or {}).get("coverage", {}),
         "risk": risk,
-        "peak_hour": (projection or {}).get("peak_hour"),
+        "peak_hour": peak,
     }
