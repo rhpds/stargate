@@ -694,3 +694,22 @@ def dashboard_concentration(days: int = Query(default=30, le=365),
         "failures": failure_concentration(db, days=days, limit=limit),
         "provisions": provision_concentration(db, days=provision_days, limit=limit),
     }
+
+
+@router.post("/dashboard/investigations/{investigation_id}/review")
+def dashboard_review_investigation(
+    investigation_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin),
+):
+    """Review a diagnosis from the UI: the same act as the MCP
+    review_diagnosis tool — records the review, publishes the knowledge
+    entry on approval, cascades adjudication disputes. One definition
+    site (engine/review_service), two surfaces."""
+    from engine.review_service import perform_review
+
+    approved = bool(body.get("approved"))
+    notes = str(body.get("notes") or "via UI")
+    parts = perform_review(db, investigation_id, approved, notes, "ui:user")
+    return {"result": "\n".join(parts), "approved": approved}

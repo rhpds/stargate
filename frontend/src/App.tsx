@@ -18,6 +18,7 @@ import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
 import Overview from './pages/Overview';
 import Capacity from './pages/Capacity';
+import Investigations from './pages/Investigations';
 import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
@@ -105,6 +106,7 @@ export default function App() {
                 <Route path="/" element={<Overview />} />
                 <Route path="/operations" element={<Operations />} />
                 <Route path="/capacity" element={<Capacity />} />
+                <Route path="/investigations" element={<Investigations />} />
                 <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="/deepfield" element={<DeepfieldOverview />} />
                 <Route path="/geolux" element={<GeoluxOverview />} />
