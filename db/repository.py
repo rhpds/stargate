@@ -1997,3 +1997,66 @@ def latest_capacity_forecasts(db: Session, limit: int = 20) -> list:
         .limit(limit)
         .all()
     )
+
+
+def record_reclamation_resolution(
+    db: Session, *, lab_code: str, cluster: str = "",
+    source: str = "aap_destroy_job", source_ref: str = "",
+    occurred_at=None,
+) -> Optional[ResolutionRecord]:
+    """Write the lifecycle ground truth for one legitimate reclamation.
+
+    The approved diagnosis (investigation 2612, Nov 13 2026) named the
+    gap: teardowns complete without resolution records, so the evaluator
+    fires on absent namespaces and the feedback loops miss the closure.
+    Every reclamation-outcome/v1 RECLAIMED observation writes exactly one
+    record — idempotent per (source, source_ref), the durable-event rule.
+
+    failure_class is 'lifecycle_complete' (not a failure — the record
+    exists so lifecycle-aware consumers can distinguish absence-by-
+    teardown from absence-by-breakage); audit_evidence carries the
+    contract version and outcome.
+    """
+    import json
+    from datetime import datetime, timezone
+    from db.models import ResolutionRecord
+
+    if not lab_code:
+        return None
+
+    dedupe_key = f"reclamation:{source}:{source_ref or lab_code}"
+    existing = (
+        db.query(ResolutionRecord)
+        .filter(ResolutionRecord.lab_code == lab_code,
+                ResolutionRecord.resolution_action == dedupe_key_action(dedupe_key))
+        .first()
+    )
+    if existing:
+        return None
+
+    now = occurred_at or datetime.now(timezone.utc)
+    rec = ResolutionRecord(
+        lab_code=lab_code,
+        cluster=cluster or None,
+        failure_class="lifecycle_complete",
+        resolution_type="reclaimed",
+        resolved_by=source,
+        resolution_action=dedupe_key_action(dedupe_key),
+        detected_at=now,
+        resolved_at=now,
+        audit_evidence=json.dumps({
+            "contract": "reclamation-outcome/v1",
+            "outcome": "reclaimed",
+            "source": source,
+            "source_ref": source_ref,
+        }),
+    )
+    db.add(rec)
+    db.commit()
+    db.refresh(rec)
+    return rec
+
+
+def dedupe_key_action(dedupe_key: str) -> str:
+    """The resolution_action value used for dedupe (source:ref form)."""
+    return dedupe_key.replace("reclamation:", "", 1)
