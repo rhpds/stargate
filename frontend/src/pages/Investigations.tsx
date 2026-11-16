@@ -139,6 +139,89 @@ function QueueRow({
               {!parsed.diagnosis && !parsed.rootCause && detail.data?.root_cause && (
                 <div className="text-sm text-white"><FormattedAnalysis text={detail.data.root_cause} /></div>
               )}
+              {parsed?.verdict === 'ACTIONABLE' && (
+                <GatePreview namespace={inv.namespace} failureClass={inv.failure_class ?? ''} cluster={inv.cluster ?? ''} />
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The five-gate execution preview — the old Remediation page's best
+ * feature (salvage item 5): what WOULD happen if we acted. Every gate
+ * PASS/BLOCKED, the exact commands, the honest blocked-by reason. The
+ * Approver persona's answer to "what needs my decision" — evidence
+ * before action, never action without preview.
+ */
+function GatePreview({ namespace, failureClass, cluster }: { namespace: string; failureClass: string; cluster: string }) {
+  const [open, setOpen] = React.useState(false);
+  const preview = useQuery({
+    queryKey: ['gate-preview', namespace, failureClass],
+    queryFn: () =>
+      request<{
+        gates?: { gate: string; status: string; description?: string }[];
+        blocked_by?: string | null;
+        commands_to_run?: string[];
+        execution_target?: string;
+        verdict?: string;
+      }>('/admin/remediation/preview', {
+        method: 'POST',
+        body: JSON.stringify({ namespace, failure_class: failureClass, cluster }),
+      }),
+    enabled: open,
+  });
+
+  return (
+    <div className="border border-[#2e2e2e] rounded-lg overflow-hidden">
+      <button
+        className="w-full text-left px-3 py-2 text-xs font-semibold text-[#c7c7c7] hover:bg-white/5 transition flex items-center justify-between"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
+        <span>Preview fix — what would the five gates do?</span>
+        <span aria-hidden="true">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="p-3 space-y-2 border-t border-[#2e2e2e]">
+          {preview.isLoading && <div className="text-xs text-[#6A6E73]">Checking gates…</div>}
+          {preview.error && <div className="text-xs text-[#EE0000]">Preview failed: {String(preview.error)}</div>}
+          {preview.data && (
+            <>
+              <div className={`text-sm font-bold ${preview.data.blocked_by ? 'text-[#F0AB00]' : 'text-[#3E8635]'}`}>
+                {preview.data.blocked_by
+                  ? `Blocked at: ${preview.data.blocked_by}`
+                  : 'All gates passed — ready to execute (requires approval)'}
+              </div>
+              {(preview.data.gates ?? []).map((g) => (
+                <div key={g.gate} className="flex items-center gap-2 text-xs">
+                  <span
+                    className={`inline-block w-4 h-4 rounded flex items-center justify-center font-bold ${
+                      g.status === 'PASS' ? 'bg-[#3E8635]/20 text-[#3E8635]'
+                        : g.status === 'BLOCKED' ? 'bg-[#EE0000]/20 text-[#EE0000]'
+                          : 'bg-[#6A6E73]/20 text-[#6A6E73]'
+                    }`}
+                    aria-label={g.status}>
+                    {g.status === 'PASS' ? '✓' : g.status === 'BLOCKED' ? '✖' : '…'}
+                  </span>
+                  <span className="text-white font-medium">{g.gate}</span>
+                  {g.description && <span className="text-[#8a8a8a] truncate">{g.description}</span>}
+                </div>
+              ))}
+              {(preview.data.commands_to_run ?? []).length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs text-[#8a8a8a] mb-1">Commands that would run:</div>
+                  <pre className="text-xs text-[#c7c7c7] bg-[#1a1a1a] rounded p-2 overflow-x-auto">
+                    {(preview.data.commands_to_run ?? []).join('\n')}
+                  </pre>
+                </div>
+              )}
+              {preview.data.execution_target && (
+                <div className="text-xs text-[#6A6E73]">target: {preview.data.execution_target}</div>
+              )}
             </>
           )}
         </div>
