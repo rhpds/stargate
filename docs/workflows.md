@@ -246,9 +246,9 @@ When a reclamation fails, the Sonnet agent can call:
 │           └────────┬────────┘                      │
 │                     ▼                               │
 │           ┌─────────────────┐                      │
-│           │ DeepField       │                      │
-│           │ (lifecycle-     │                      │
-│           │  typed signals) │                      │
+│           │ Event consumers │                      │
+│           │ (GeoLux, logs,  │                      │
+│           │  webhooks)      │                      │
 │           └─────────────────┘                      │
 └─────────────────────────────────────────────────────┘
 ```
@@ -397,7 +397,7 @@ machinery.
 | `proposed_classifications` | LLM classification proposals (quality-gated) | Auto-classifier |
 | `investigations` | Sonnet agent investigations with tool calls + diagnosis | Investigation loop |
 | `adjudications` | Blind review + judge verdicts on diagnoses | Adjudication loop |
-| `pending_actions` | Queued remediation actions awaiting human approval | ACTIONABLE investigations, deepfield, proof |
+| `pending_actions` | Queued remediation actions awaiting human approval | ACTIONABLE investigations, proof |
 | `remediations` | Executed remediations with verification links | Approved execution |
 | `source_events` | Idempotent AAP job events (all 4 controllers) | AAP collector |
 | `resolution_records` | Fail→pass transitions with resolution cause | Shadow mode |

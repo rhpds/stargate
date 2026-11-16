@@ -124,17 +124,17 @@ python3 -m cli.scheduler --api-url http://localhost:8090
 
 # Specific clusters
 python3 -m cli.scheduler --api-url http://localhost:8090 \
-  --clusters cluster-06,cluster-07,cluster-08
+  --clusters ocpv05,ocpv06,ocpv07,ocpv08,ocpv09   # provisioning clusters only
 
 # Custom intervals
 python3 -m cli.scheduler --api-url http://localhost:8090 \
   --tier1 300 --tier2 900 --tier3 3600 --batch 5
 
 # Single cluster worker
-python3 -m cli.worker --cluster cluster-06 --api-url http://localhost:8090
+python3 -m cli.worker --cluster ocpv06 --api-url http://localhost:8090
 
 # One-shot scan (no persistence)
-python3 -m cli.scan --cluster cluster-06
+python3 -m cli.scan --cluster ocpv06
 ```
 
 ### Via podman-compose
@@ -457,7 +457,7 @@ ls -lt scan-history/scan-*.json | head -5
 - **Expired tokens**: Service account tokens expire. Regenerate kubeconfigs
   and update the `stargate-kubeconfigs` secret.
   ```bash
-  oc whoami --kubeconfig=secrets/kubeconfig-cluster-06
+  oc whoami --kubeconfig=secrets/kubeconfig-ocpv06
   ```
 - **Network issues**: Cluster unreachable. Check `oc cluster-info` with the
   relevant kubeconfig.

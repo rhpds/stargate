@@ -175,7 +175,7 @@ incident validation study. Serves the `ask` MCP tool (qwen3-14b synthesis,
 
 ### 5.3 Event bus (in-process)
 
-Consumers: LogConsumer, WebhookConsumer, DeepFieldConsumer (stage events out;
+Consumers: LogConsumer, WebhookConsumer, GeoLuxConsumer, InvestigationConsumer (stage events out;
 incident push-back in), GeoLuxConsumer (governance), InvestigationConsumer.
 **SlackConsumer exists but is unwired — no webhook configured.** Alerts
 currently reach nobody (the known operational gap).
@@ -197,7 +197,6 @@ currently reach nobody (the known operational gap).
 | Jira (redhat.atlassian.net) | outbound | change correlation (tickets) | live |
 | Confluence | outbound | doc mirror sync | live |
 | GeoLux | outbound | remediation governance pre-checks | live |
-| DeepField | bidirectional | stage events out / incidents in | thin (stage-level only) |
 | AAP bastions (ETL archives) | outbound (SSH, 2 keys) | historical replay sources | on demand |
 | Kafka (ecosystem) | — | **dead 4.5 months**, no app references it | decommission candidate |
 
@@ -213,7 +212,7 @@ currently reach nobody (the known operational gap).
   attribution.
 - **oc command validation**: `_validate_k8s_name()` allowlist; read-only verbs
   enforced for agent tools.
-- **Known debt**: DeepField's plaintext DB credentials in its deployment spec
+- **Removed Nov 16**: the DeepField integration (bidirectional) — internal product; its incidents were 94% of the approval queue and the calibration study proved its scores non-predictive. Historical rows preserved for the adjudication backtest
   (not StarGate's, but in-ecosystem); stargate-api CPU saturation under load.
 
 ---

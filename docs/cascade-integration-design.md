@@ -1,5 +1,7 @@
 # Cascade Integration Design — Proposed
 
+> **Status (Nov 16, 2026):** Deepfield references below describe the integration as it existed when this design was written. The Deepfield integration was removed from StarGate Nov 16 (internal product; scores proven non-predictive). The 21,700 historical incident rows are preserved in `pending_actions` — the adjudication correlation and this backtest remain valid against them.
+
 **Status: DRAFT / PROPOSED — decision deferred to week of Nov 9, 2026**
 **Author: generated from the Nov 3 architecture review; requires review by Kershaw
 before any implementation**

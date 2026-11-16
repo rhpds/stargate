@@ -67,7 +67,7 @@ claude mcp add stargate -- npx -y mcp-remote \
 stale CLI syntax — both fixed here. If you find another rough edge, the
 repo is public: contributions welcome.)
 
-## The tools (14 total)
+## The tools (17 total)
 
 For per-tool examples — the questions to ask, the arguments, and real
 responses from production — see the **[MCP Tool
@@ -89,6 +89,10 @@ Cookbook](mcp-tool-cookbook.md)**. The tables below are the summary.
 | **get_known_issues** | Fleet-level rollup: which failure classes span many namespaces with one shared root cause — platform, platform-self (StarGate's own fault), or lab-family (chart/config) bugs; the "one fix kills N failures" view |
 | **get_recent_changes** | GitHub PRs (merged + in review) and Jira tickets, optionally correlated to a lab's failure onset — RHDP has no formal change management, so this IS the change record |
 | **get_capacity_forecast** | Advisory capacity forecast (capacity-forecast/v1): projected per-hour VM-slot/AI-core demand from the session schedule and catalog profiles vs the fleet's demonstrated supply (observed peak density). Honest coverage — demand is a lower bound while unprofiled labs exist; risk is at most amber until both sides are observed |
+| **get_event_forecast** | Event-grouped capacity demand (Summit/RH1-scale): per upcoming event, per day — session count, cohort bound, and distinct-room bound |
+| **list_investigations** | The review queue: unreviewed (by default) completed diagnoses with id, lab, failure class, trigger, verdict, and excerpt — the discovery half of the review workflow |
+| **list_pending_actions** | The human-approval queue for proposed remediation actions: type, target, confidence, proposer, age. Deepfield-sourced actions excluded (removed Nov 16 — scores non-predictive) |
+| **get_provisioning_summary** | Fleet-wide provisioning health: totals, failure rate, notable AnarchySubject states, labs with the most failed subjects |
 
 ### Review tools (opinions only — no execution)
 

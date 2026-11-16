@@ -25,6 +25,9 @@ I actually ask?"*
 | "Can we trust the platform's fixes?" | `get_proof_matrix` |
 | "This diagnosis is right / wrong" | `review_diagnosis` |
 | "Context for whoever approves this action" | `comment_action` |
+| "What needs reviewing right now?" | `list_investigations` (the unreviewed queue) |
+| "What's waiting for approval?" | `list_pending_actions` |
+| "Are provisions succeeding fleet-wide?" | `get_provisioning_summary` |
 | Anything else, in plain English | `ask` |
 
 **The workhorse pattern** for investigating one workload:
@@ -34,6 +37,15 @@ I actually ask?"*
 2. query_evaluations(namespace=..., limit=10)          # the symptom history
 3. get_causal_chain(namespace=...)                     # the investigation
 4. review_diagnosis(investigation_id=..., approved=..) # your expertise
+```
+
+**The triage pattern** for starting from nothing (discovery first):
+
+```
+1. list_investigations(review_state="unreviewed")      # what needs review
+2. get_causal_chain(investigation_id=N)                # drill the interesting one
+3. review_diagnosis(investigation_id=N, approved=..)   # your expertise
+4. list_pending_actions()                              # what awaits approval
 ```
 
 ---
@@ -557,6 +569,52 @@ Green requires fully-observed demand under observed supply with zero
 fallback sessions; it is earned, not assumed.
 
 ---
+
+### 15. `list_investigations` — what needs reviewing right now
+
+The review queue: completed diagnoses awaiting triage. Each row carries the
+id, lab/namespace, failure class, trigger, verdict, and a diagnosis excerpt —
+enough to decide what deserves your attention without fetching each one.
+
+```
+list_investigations(review_state="unreviewed", limit=15)
+list_investigations(review_state="unreviewed", lab_code="sandbox-ab12cd-zt-rhelbu")
+list_investigations(review_state="all")   # every state, newest first
+```
+
+Filter by `review_state` (`unreviewed` default, `approved`, `rejected`, `all`)
+and optionally `lab_code`. Follow up with `get_causal_chain(investigation_id=N)`
+for the full evidence chain, or `review_diagnosis(N, approved=True/False)` to
+triage. This is the discovery half of the review workflow — the tools to act
+existed first; this one tells you where to point them.
+
+### 16. `list_pending_actions` — what's waiting for approval
+
+The human-approval queue for proposed remediation actions: action type, target
+namespace, confidence, proposer, and age. Read the queue the same way the web
+UI's Pending Actions section reads it.
+
+```
+list_pending_actions(status="pending", limit=15)
+```
+
+Deepfield-sourced actions are excluded (internal product, removed Nov 16 —
+scores proven non-predictive). Approval and rejection happen in the web UI;
+annotate context for the approver with `comment_action(action_id, comment)`.
+
+### 17. `get_provisioning_summary` — are provisions succeeding?
+
+The AnarchySubject fleet grouped by lifecycle state: total, started, failed,
+failure rate, the notable state histogram (failed/error/pending/provisioning),
+and the labs with the most failed subjects. The fleet-wide answer to the
+Provisioning page's question.
+
+```
+get_provisioning_summary()
+```
+
+Drill a specific lab with `query_lifecycle_outcomes(namespace=...)` or the
+Investigations page in the web UI.
 
 ## Review tools (opinions only — nothing executes)
 

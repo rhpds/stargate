@@ -5,12 +5,12 @@
 StarGate is a continuous operations platform for RHDP (Red Hat Demo Platform). It monitors ~8 OpenShift clusters running lab/demo environments. Three systems work together:
 
 ```
-Deepfield (Signal Detection)
+StarGate (Signal Detection)
   Collects raw cluster state: pods, events, PVCs, quotas, routes
   Feeds evaluation events into the pipeline
       |
 GeoLux (Hypothesis Engine)
-  Receives failure signals from Deepfield/StarGate
+  Receives failure signals from StarGate
   Generates hypotheses about root causes
   Classifies failures using MPC (Model Predictive Control) governance
   Learning store with 27+ learned patterns
@@ -129,7 +129,7 @@ PROVEN means the proof system ran 3 consecutive successful cycles -- the remedia
 
 ```
 Gate 0: Namespace Allowlist
-  Only sandbox-*, launchpad-*, stargate, deepfield, intel-rh-*, user-demo-*, partner-ai-*
+  Only sandbox-*, launchpad-*, stargate, intel-rh-*, user-demo-*, partner-ai-*
   stargate-test always passes
 
 Gate 1: Lab Execution Mode (per-lab config via LabRemediationConfig)
