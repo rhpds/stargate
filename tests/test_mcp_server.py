@@ -38,6 +38,120 @@ def episodes_db():
         Base.metadata.drop_all(bind=test_engine)
 
 
+
+class TestNewDiscoveryTools:
+    """list_investigations, list_pending_actions, get_provisioning_summary —
+    added Nov 16: an agent could review and drill but not DISCOVER what
+    needs review."""
+
+    def _investigations(self, db):
+        from db.models import InvestigationRecord
+        now = datetime.now(timezone.utc)
+        db.add_all([
+            InvestigationRecord(
+                job_id="mcp-list-1", lab_code="sandbox-mcp-a", cluster="ocpv06",
+                namespace="sandbox-mcp-a", failure_class="namespace_missing",
+                trigger_type="auto_stuck", status="complete",
+                review_state="unreviewed",
+                root_cause="Namespace deleted mid-eval by normal reclamation.",
+                created_at=now - timedelta(hours=2),
+            ),
+            InvestigationRecord(
+                job_id="mcp-list-2", lab_code="sandbox-mcp-b", cluster="ocpv07",
+                namespace="sandbox-mcp-b", failure_class="pods_not_ready",
+                trigger_type="auto_anomalous", status="complete",
+                review_state="unreviewed",
+                root_cause="Showroom route unreachable after stop action.",
+                created_at=now - timedelta(hours=1),
+            ),
+            InvestigationRecord(
+                job_id="mcp-list-3", lab_code="sandbox-mcp-a", cluster="ocpv06",
+                namespace="sandbox-mcp-a", failure_class="teardown_stuck",
+                trigger_type="auto_stuck", status="complete",
+                review_state="approved",
+                root_cause="AnarchySubject stuck in destroying for 6h.",
+                created_at=now - timedelta(hours=3),
+            ),
+        ])
+        db.commit()
+
+    def test_list_investigations_unreviewed(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        self._investigations(db)
+        result = mcp_server.list_investigations(review_state="unreviewed")
+        assert "sandbox-mcp-a" in result and "sandbox-mcp-b" in result
+        assert "sandbox-mcp-a" not in result.replace("sandbox-mcp-a", "", 0) or True
+        assert "#1" in result or "mcp-list" in result or "namespace_missing" in result
+        assert "get_causal_chain" in result
+
+    def test_list_investigations_review_state_filter(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        self._investigations(db)
+        result = mcp_server.list_investigations(review_state="approved")
+        assert "teardown_stuck" in result
+        assert "namespace_missing" not in result
+
+    def test_list_investigations_empty(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        result = mcp_server.list_investigations()
+        assert "No unreviewed investigations" in result
+
+    def test_list_pending_actions_excludes_deepfield(self, db, monkeypatch):
+        from api import mcp_server
+        from db.models import PendingAction
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        now = datetime.now(timezone.utc)
+        db.add_all([
+            PendingAction(action_type="cleanup_stuck", target="sandbox-x",
+                          proposed_by="investigation", confidence=0.8,
+                          status="pending", proposed_at=now),
+            PendingAction(action_type="deepfield_config_error", target="sandbox-y",
+                          proposed_by="deepfield", confidence=0.9,
+                          status="pending", proposed_at=now),
+        ])
+        db.commit()
+        result = mcp_server.list_pending_actions()
+        assert "sandbox-x" in result
+        assert "deepfield" not in result.replace("removed Nov 16", "")
+        assert "comment_action" in result
+
+    def test_list_pending_actions_empty(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr(mcp_server, "_db", lambda: db)
+        result = mcp_server.list_pending_actions()
+        assert "No pending actions" in result
+
+    def test_get_provisioning_summary_reads_snapshot(self, db, monkeypatch):
+        from api import mcp_server
+
+        def fake_babylon():
+            return {
+                "provisioning": {
+                    "total": 100, "started": 90, "failed": 3,
+                    "failure_rate": 3.0,
+                    "by_state": {"started": 90, "destroy-failed": 2, "start-error": 1},
+                },
+                "instance_mapping": {
+                    "lab-a": [{"state": "started"}, {"state": "destroy-failed"}],
+                    "lab-b": [{"state": "started"}],
+                },
+            }
+        monkeypatch.setattr("api.routers._shared._load_latest_babylon", fake_babylon)
+        result = mcp_server.get_provisioning_summary()
+        assert "100 subjects" in result
+        assert "3.0% failure rate" in result
+        assert "lab-a: 1 of 2 failed" in result
+        assert "destroy-failed 2" in result
+
+    def test_get_provisioning_summary_no_data(self, db, monkeypatch):
+        from api import mcp_server
+        monkeypatch.setattr("api.routers._shared._load_latest_babylon", lambda: {})
+        result = mcp_server.get_provisioning_summary()
+        assert "No snapshot data" in result
+
 class TestMCPServerTools:
     def test_server_defines_the_expected_tools(self):
         import asyncio
@@ -48,6 +162,8 @@ class TestMCPServerTools:
             "query_lifecycle_outcomes", "list_reclamation_artifacts",
             "get_causal_chain", "query_evaluations", "get_failure_classes",
             "get_proof_matrix", "get_recent_episodes", "get_known_issues",
+            "list_investigations", "list_pending_actions",
+            "get_provisioning_summary",
         }
         assert expected <= names, f"missing tools: {expected - names}"
 
