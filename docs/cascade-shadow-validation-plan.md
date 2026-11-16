@@ -1,5 +1,7 @@
 # Cascade Shadow Validation Plan
 
+> **Status (Nov 16, 2026):** Deepfield references below are historical. The live integration was removed Nov 16; preserved `pending_actions` rows keep the shadow-validation data path intact.
+
 **Status: DRAFT — operationalizes gate #4 of the cascade integration design**
 **Author: drafted Nov 12 2026 from the live-audit session (infra01 probes, DB
 footprints, incident-validation precedent); requires review by Kershaw**

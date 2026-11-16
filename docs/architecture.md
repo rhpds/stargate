@@ -328,18 +328,21 @@ apply simulated actions, evaluate after-state, verify resolution.
 - **API**: `https://YOUR-STARGATE-API-ROUTE
 - **Internal registry**: `image-registry.openshift-image-registry.svc:5000/stargate`
 
-### Scanner Clusters (configurable, default cluster-05-09)
+### Scanner Clusters (provisioning clusters only — ocpv05–09)
 
-| Cluster       | Kubeconfig file      | Role                     |
-|---------------|----------------------|--------------------------|
-| cluster-05        | kubeconfig-cluster-05    | Lab workloads            |
-| cluster-06        | kubeconfig-cnv       | Lab workloads (CNV)      |
-| cluster-07        | kubeconfig-cluster-07    | Lab workloads            |
-| cluster-08        | kubeconfig-cluster-08    | Lab workloads            |
-| cluster-09        | kubeconfig-cluster-09    | Lab workloads            |
-| cluster-infra-1  | kubeconfig-infra01   | Infrastructure + StarGate|
-| cluster-infra-2  | kubeconfig-infra02   | Infrastructure           |
-| cluster-us-east | kubeconfig           | Babylon control plane    |
+| Cluster   | Kubeconfig file        | Role                     |
+|-----------|------------------------|--------------------------|
+| ocpv05    | kubeconfig-ocpv05      | Lab workloads (creds expire — run refresh-kubeconfigs.sh) |
+| ocpv06    | kubeconfig-ocpv06      | Lab workloads            |
+| ocpv07    | kubeconfig-ocpv07      | Lab workloads (CNV)      |
+| ocpv08    | kubeconfig-ocpv08      | Lab workloads            |
+| ocpv09    | kubeconfig-ocpv09      | Lab workloads            |
+
+Infrastructure clusters (infra01, infra02, ocp-us-east-1) are **not** in the
+scanner — they are not provisioning clusters (Nov 16 decision). The Babylon
+control-plane (ocp-us-east-1) is queried directly by the gap detectors
+(stuck teardowns) via STARGATE_GAP_KUBECONFIG; the leak detector uses a
+worker-cluster kubeconfig via STARGATE_LEAK_KUBECONFIG.
 
 Scanner service accounts have `cluster-reader` (read-only) access.
 

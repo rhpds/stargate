@@ -229,7 +229,7 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
 | Default     | Not set (uses built-in default list)                        |
-| Description | Comma-separated list of cluster names to scan (e.g., `ocpv05,ocpv06,ocpv07`) |
+| Description | Cluster names to scan. Accepts a comma-separated list or a JSON mapping of name → kubeconfig file (e.g., `{"ocpv05":"kubeconfig-ocpv05",...}`). Provisioning clusters ONLY (ocpv05–ocpv09) — infrastructure clusters (infra01, infra02, ocp-us-east-1) are excluded from the scanner per the Nov 16 decision; they are queried directly by the gap detectors instead. |
 | When to change | Set to override the default cluster list. Each cluster needs a matching kubeconfig file in `secrets/`. |
 
 ### STARGATE_CLUSTERS_FILE
@@ -239,6 +239,22 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 | Default     | Not set                                                     |
 | Description | Path to a JSON file containing cluster definitions with tiers and kubeconfigs |
 | When to change | Set for advanced multi-tier scheduling (5m/15m/1h scan intervals per cluster). |
+
+### STARGATE_GAP_KUBECONFIG
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `secrets/kubeconfig-ocp-us-east-1` (Babylon control-plane)  |
+| Description | Kubeconfig for the monitoring-gap detectors (stuck teardowns) — the AnarchySubjects live on the Babylon control-plane, not the worker clusters. |
+| When to change | Only if the Babylon control-plane cluster changes. |
+
+### STARGATE_LEAK_KUBECONFIG
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `secrets/kubeconfig-ocpv07` (a worker cluster)              |
+| Description | Kubeconfig for the resource-leak detector (orphaned PVs/PVCs) — PVs live on the WORKER clusters where labs run, not the executor or the Babylon control-plane. Found live Nov 16: pointing it at infra01 returned 502 because the PVs aren't there. |
+| When to change | If the reference worker cluster changes. Any healthy worker cluster works. |
 
 ### STARGATE_CLUSTER_URLS
 
@@ -268,7 +284,7 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
-| Default     | `stargate,deepfield,geolux,demolition-,labagator-,cost-monitor,fleetview-` |
+| Default     | `launchpad-,stargate,intel-rh-,user-demo-,partner-ai-`     |
 | Description | Comma-separated namespace prefixes for ecosystem (infrastructure) namespaces |
 | When to change | Update when new ecosystem services are deployed. Ecosystem namespaces are tracked separately from user sandboxes. |
 
@@ -284,21 +300,10 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 
 ## Integration URLs
 
-### STARGATE_DEEPFIELD_URL
-
-| Property    | Value                                                      |
-|-------------|-------------------------------------------------------------|
-| Default     | `""` (empty string)                                         |
-| Description | External Deepfield service URL for event forwarding         |
-| When to change | Set when Deepfield is deployed and events should be forwarded to it. |
-
-### STARGATE_DEEPFIELD_INTERNAL_URL
-
-| Property    | Value                                                      |
-|-------------|-------------------------------------------------------------|
-| Default     | `http://deepfield-backend.deepfield.svc:8099`               |
-| Description | In-cluster Deepfield URL for the admin proxy dashboard      |
-| When to change | Change if Deepfield runs in a different namespace or on a different port. |
+<!-- STARGATE_DEEPFIELD_URL / STARGATE_DEEPFIELD_INTERNAL_URL removed Nov 16:
+     the Deepfield integration (event forwarding + incident ingestion) was
+     removed from the system — internal product, 94% of the approval queue,
+     scores proven non-predictive by the calibration study. -->
 
 ### STARGATE_GEOLUX_URL
 
@@ -994,7 +999,6 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_AUTO_INVESTIGATE`              | `false`                 | No          |
 | `STARGATE_AGENT_MODEL`                   | `STARGATE_LLM_MODEL`   | No          |
 | `STARGATE_INVESTIGATE_MAX_PER_DAY`       | `200`                   | No          |
-| `STARGATE_DEEPFIELD_URL`                 | `""`                    | No          |
 | `STARGATE_GEOLUX_URL`                    | in-cluster default      | No          |
 | `STARGATE_GEOLUX_API_KEY`               | `STARGATE_ADMIN_API_KEY`| No          |
 | `STARGATE_ZEROTOUCH_URL`                 | `""`                    | No          |

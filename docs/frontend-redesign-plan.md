@@ -66,7 +66,7 @@ Overview (RAG fleet state, 30s)
 
 ## 4. API contracts — CDD for the frontend
 
-The backend's newer surfaces (forecaster, deepfield, geolux, proof,
+The backend's newer surfaces (forecaster, geolux, proof,
 operations, lifecycle matrix...) return **raw dicts** — 37 untyped
 client calls against them. The fix is contract-first, both directions:
 

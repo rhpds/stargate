@@ -160,7 +160,7 @@ Every ~6 hours, one proof cycle runs for the stalest failure class:
 | Claim TTL | 30 minutes |
 | Max iterations | 12 (usage-optimized: 6) |
 | Wall clock limit | 480 seconds |
-| Clusters reachable | 8 provisioning + 2 hub (Babylon control plane) + infra01 + infra02 |
+| Clusters reachable | 5 provisioning (ocpv05–09; ocpv05 creds periodically expire) + the Babylon control-plane for lifecycle traces |
 
 ---
 
