@@ -9,6 +9,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "stargate-synthetic-client-emulator"))
 
+# Emulator checkout is a separate, unpublished sibling repo. Skip when absent.
+pytest.importorskip("emulator")
+
 from tests.conftest import client, db
 
 
