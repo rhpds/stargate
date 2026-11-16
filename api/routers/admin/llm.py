@@ -564,7 +564,7 @@ def get_approval_queue(db: Session = Depends(get_db)):
     pending = db.query(PendingAction).filter(
         PendingAction.status == "pending",
         PendingAction.target != "stargate-test",
-    ).order_by(PendingAction.id.desc()).all()
+    ).order_by(PendingAction.id.desc()).limit(50).all()
 
     recently_resolved = db.query(PendingAction).filter(
         PendingAction.status == "auto_resolved",
