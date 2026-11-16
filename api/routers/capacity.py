@@ -308,13 +308,37 @@ def _resource_profiles() -> dict:
     return profiles
 
 
+def _lab_code_resolution() -> dict:
+    """Map Labagator lab_codes (room codes like RHSC-H01) to AgnosticV
+    catalog item names via the labs endpoint's ci_name field. Found live
+    Nov 15 2026: 0/19 sessions mapped because the lab_codes are room
+    identifiers, not catalog items — the join was never built."""
+    from collectors.labagator.collect_labagator import collect_labs
+    import re
+
+    mapping = {}
+    for lab in collect_labs() or []:
+        code = str(lab.get("lab_code") or "")
+        ci_name = str(lab.get("ci_name") or "")
+        if not code or not ci_name:
+            continue
+        item = re.sub(r"\.(prod|dev|event)$", "", ci_name)
+        item = re.sub(r"^(published|enterprise|agd-v2)\.", "", item)
+        mapping[code] = item
+    return mapping
+
+
 def _upcoming_sessions(hours: int) -> list[dict]:
-    """Sessions starting inside the window, in projector shape."""
+    """Sessions starting inside the window, in projector shape. Lab codes
+    are resolved to catalog item names via the Labagator labs endpoint —
+    session lab_codes are often room identifiers (RHSC-H01), not catalog
+    items."""
     from datetime import timedelta
     from collectors.labagator.collect_labagator import collect_sessions
 
     now = datetime.now(timezone.utc)
     window_end = now + timedelta(hours=hours)
+    lab_map = _lab_code_resolution()
     out: List[Dict] = []
     for s in collect_sessions() or []:
         session_date = s.get("session_date")
@@ -328,8 +352,10 @@ def _upcoming_sessions(hours: int) -> list[dict]:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         if now <= dt < window_end:
+            raw_code = s.get("lab_code") or ""
+            resolved = lab_map.get(raw_code, raw_code)
             out.append({
-                "lab_code": s.get("lab_code"),
+                "lab_code": resolved,
                 "attendees": s.get("attendees") or 0,
                 "start_time": dt.isoformat(),
             })
