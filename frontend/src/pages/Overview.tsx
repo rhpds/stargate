@@ -56,8 +56,10 @@ export default function Overview() {
         : clusters.length > 0 ? 'green' : 'unknown';
   const kpis = useQuery({
     queryKey: ['platform-kpis'],
-    queryFn: () => request<{ slos?: { name: string; current: number; target: number; status: string }[] }>(
-      '/admin/platform-kpis'),
+    queryFn: () => request<{
+      slos?: { name: string; current: number; target: number; status: string }[];
+      kpis?: { developer_impact?: number };
+    }>('/admin/platform-kpis'),
     refetchInterval: 300_000,
   });
   const breachedSlos = (kpis.data?.slos ?? []).filter(
@@ -66,6 +68,13 @@ export default function Overview() {
   const recentCritical = (events.data ?? [])
     .filter((e) => (e.outcome ?? '').toLowerCase() === 'fail')
     .slice(0, 5);
+
+  // Owners impacted rides the platform-KPI query the page already runs
+  // (developer_impact = distinct owners of failing sandboxes). The staleness
+  // guard keys off scanner age: past 15 minutes the verdict's data is old.
+  const impactedOwners = kpis.data?.kpis?.developer_impact;
+  const scannerAge = health.data?.components?.scanner_age_minutes;
+  const dataStale = scannerAge != null && scannerAge > 15;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -109,6 +118,21 @@ export default function Overview() {
             `${clusters.filter((c) => c.rag === 'red').length} critical`,
             `${clusters.filter((c) => c.rag === 'amber').length} degraded`,
             `${clusters.filter((c) => c.rag === 'green').length} healthy`,
+            ...(typeof impactedOwners === 'number'
+              ? [`${impactedOwners} owner${impactedOwners === 1 ? '' : 's'} impacted`]
+              : []),
+            ...(dataStale
+              ? [
+                // VerdictBanner's chips are string-typed and ui.tsx is out of
+                // scope for this change, so the styled chip rides the row as
+                // a ReactNode — the same cast Capacity uses for MetricCard.
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F0AB00]/10 border border-dashed border-[#F0AB00] text-[#F0AB00]"
+                >
+                  data stale — last scan {Math.round(scannerAge)}m ago
+                </span> as unknown as string,
+              ]
+              : []),
           ]}
           meta={health.data ? `as of ${relativeTime(health.data.timestamp)}` : undefined}
           drillTo="/clusters"

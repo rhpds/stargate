@@ -19,6 +19,7 @@ import Operations from './pages/Operations';
 import Overview from './pages/Overview';
 import Capacity from './pages/Capacity';
 import Investigations from './pages/Investigations';
+import Reclamation from './pages/Reclamation';
 import Knowledge from './pages/Knowledge';
 import Clusters from './pages/Clusters';
 import DeepfieldOverview from './pages/DeepfieldOverview';
@@ -63,6 +64,7 @@ const navItems = [
   { to: '/', label: 'Overview', end: true },
   { to: '/capacity', label: 'Capacity' },
   { to: '/investigations', label: 'Investigations' },
+  { to: '/reclamation', label: 'Reclamation' },
   { to: '/knowledge', label: 'Knowledge' },
 ];
 
@@ -135,6 +137,7 @@ export default function App() {
                 <Route path="/operations" element={<Operations />} />
                 <Route path="/capacity" element={<Capacity />} />
                 <Route path="/investigations" element={<Investigations />} />
+                <Route path="/reclamation" element={<Reclamation />} />
                 <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/clusters" element={<Clusters />} />
                 <Route path="/proof" element={<ProofDashboard />} />

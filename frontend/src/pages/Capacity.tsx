@@ -120,9 +120,13 @@ export default function Capacity() {
                 ? 'Yes — observed headroom across the window'
                 : f.risk === 'red'
                   ? 'No — observed demand exceeds supply'
-                  : f.supply
-                    ? `Amber — no deficit observed, but ${f.hourly.filter((h) => h.deficit_state === 'lower_bound_demand').length} of ${f.hourly.length} hours are lower-bound`
-                    : 'Amber — supply not yet observed; hours read indeterminate'
+                  : f.coverage.sessions_total === 0
+                    ? 'No sessions scheduled — nothing to forecast'
+                    : f.coverage.sessions_with_profiles === 0
+                      ? `Demand unobservable — ${f.coverage.sessions_total} sessions scheduled, none have resource profiles`
+                      : f.supply
+                        ? `Amber — no deficit observed, but ${f.coverage.sessions_fallback} of ${f.coverage.sessions_total} sessions unprofiled (demand is a floor)`
+                        : 'Amber — supply not yet observed; hours read indeterminate'
             }
             chips={[
               `ADVISORY — NOT WIRED TO ALERTING`,
