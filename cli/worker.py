@@ -31,9 +31,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-logger = logging.getLogger(__name__)
+from cli.kubeconfigs import SECRETS_DIR, resolve_kubeconfig
 
-SECRETS_DIR = Path(__file__).parent.parent / "secrets"
+logger = logging.getLogger(__name__)
 
 VM_STAGES = "namespace-ready,storage-clone-ready,vm-runtime-ready"
 CONTAINER_VM_STAGES = "namespace-ready,deployment-ready,route-ready,storage-clone-ready,vm-runtime-ready,showroom-healthy"
@@ -124,7 +124,7 @@ class ClusterWorker:
     def __init__(self, name: str, kubeconfig: str, api_url: Optional[str] = None):
         self.state = ClusterState(name=name, kubeconfig=kubeconfig)
         self.api_url = api_url
-        self._kc_path = str(SECRETS_DIR / kubeconfig)
+        self._kc_path = str(resolve_kubeconfig(name, kubeconfig))
         self._env = {**os.environ, "KUBECONFIG": self._kc_path}
         self._api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
 

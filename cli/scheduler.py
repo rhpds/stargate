@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import signal
 import sys
 import threading
@@ -30,7 +31,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from cli.worker import ClusterWorker
-from cli.scan import CLUSTERS, SECRETS_DIR
+from cli.scan import CLUSTERS
+from cli.kubeconfigs import resolve_kubeconfig
+
+logger = logging.getLogger("stargate.scheduler")
 
 
 class WorkerThread:
@@ -111,9 +115,20 @@ class Scheduler:
         self._babylon_result = None
 
         for i, (name, kubeconfig) in enumerate(clusters.items()):
-            kc_path = str(SECRETS_DIR / kubeconfig)
-            if not Path(kc_path).exists():
+            kc_path = resolve_kubeconfig(name, kubeconfig)
+            if not kc_path.exists():
+                # Loud, not silent: a revoked or missing token used to drop a
+                # cluster without a trace (found live 2026-11-16).
+                logger.error(
+                    "Cluster %s has no kubeconfig (looked for %s) — not scanned",
+                    name, kc_path,
+                )
                 continue
+            if kc_path.name != kubeconfig:
+                logger.warning(
+                    "Cluster %s resolved to legacy kubeconfig %s (configured: %s)",
+                    name, kc_path.name, kubeconfig,
+                )
 
             worker = ClusterWorker(name, kubeconfig, api_url)
             worker.TIER1_INTERVAL = tier1
@@ -134,6 +149,10 @@ class Scheduler:
                 wt.start()
                 available.append(wt.worker.state.name)
             else:
+                logger.error(
+                    "Cluster %s is configured but not reachable (%s) — not scanned",
+                    wt.worker.state.name, wt.worker._kc_path,
+                )
                 unavailable.append(wt.worker.state.name)
 
         if self._include_babylon:
@@ -159,8 +178,9 @@ class Scheduler:
     def _run_babylon_worker(self):
         """Run Babylon control plane collection on its own schedule."""
         import os
-        kc = str(SECRETS_DIR / "kubeconfig")
+        kc = str(resolve_kubeconfig("ocp-us-east-1"))
         if not os.path.exists(kc):
+            logger.warning("Babylon worker disabled: no control-plane kubeconfig at %s", kc)
             return
 
         # Initial offset — let cluster workers start first
