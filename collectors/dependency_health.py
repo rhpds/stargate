@@ -62,6 +62,56 @@ _CACHE_TTL = 120
 _SSL_CONTEXT = ssl.create_default_context()
 
 
+def _env_derived_targets() -> List[Dict[str, Any]]:
+    """Ecosystem services whose URLs the deployment already carries.
+
+    Probing them here (in addition to their collectors) gives the same
+    Oct-21-style trend: a service degrading becomes an evaluation trail,
+    not a surprise. Each appears only when its env var is set.
+    """
+    targets: List[Dict[str, Any]] = []
+
+    def _add(name: str, url: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> None:
+        if url:
+            targets.append({"name": name, "url": url, "timeout_seconds": timeout})
+
+    _add("labagator", os.environ.get("STARGATE_LABAGATOR_URL", "").rstrip("/"))
+    _add("demolition", os.environ.get("STARGATE_DEMOLITION_URL", "").rstrip("/"))
+    # the MaaS/LLM gateway itself (origin of the LiteLLM URL — model
+    # endpoints are already covered by the LLM health loop)
+    litellm = os.environ.get("STARGATE_LITELLM_URL", "")
+    if litellm:
+        try:
+            from urllib.parse import urlsplit
+            parts = urlsplit(litellm)
+            _add("maas-gateway", f"{parts.scheme}://{parts.netloc}/")
+        except ValueError:
+            pass
+    _add("sandbox-api", os.environ.get("STARGATE_SANDBOX_API_URL", "").rstrip("/"))
+    if not os.environ.get("STARGATE_SANDBOX_API_URL"):
+        _add("sandbox-api-metrics", os.environ.get(
+            "STARGATE_SANDBOX_API_METRICS_URL", "").rstrip("/"))
+    return [t for t in targets if t["url"]]
+
+
+def _extra_targets() -> List[Dict[str, Any]]:
+    """STARGATE_DEPENDENCY_HEALTH_EXTRA_TARGETS — a JSON list appended to
+    the probe set (rotation-sheet SaaS endpoints, internal services, etc).
+    Each entry: {"name", "url", "timeout_seconds"?, "expected_max_status"?}.
+    """
+    raw = os.environ.get("STARGATE_DEPENDENCY_HEALTH_EXTRA_TARGETS", "")
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [t for t in parsed if isinstance(t, dict) and t.get("url")]
+        logger.warning("STARGATE_DEPENDENCY_HEALTH_EXTRA_TARGETS is not a JSON list — ignored")
+    except json.JSONDecodeError:
+        logger.warning("STARGATE_DEPENDENCY_HEALTH_EXTRA_TARGETS is not valid JSON — ignored")
+    return []
+
+
 def _targets() -> List[Dict[str, Any]]:
     raw = os.environ.get("STARGATE_DEPENDENCY_HEALTH_TARGETS", "")
     if raw:
@@ -73,7 +123,20 @@ def _targets() -> List[Dict[str, Any]]:
                 return []  # explicit empty list disables default probing
         except json.JSONDecodeError:
             logger.warning("STARGATE_DEPENDENCY_HEALTH_TARGETS is not valid JSON — using defaults")
-    return DEFAULT_TARGETS
+        return DEFAULT_TARGETS
+    # defaults + env-derived ecosystem services + configured extras,
+    # deduplicated by name (an explicit entry always wins)
+    combined = DEFAULT_TARGETS + _env_derived_targets() + _extra_targets()
+    merged: List[Dict[str, Any]] = []
+    for t in combined:  # later entries (extras) override earlier by name
+        name = t.get("name") or t.get("url", "?")
+        for i, existing in enumerate(merged):
+            if (existing.get("name") or existing.get("url", "?")) == name:
+                merged[i] = t
+                break
+        else:
+            merged.append(t)
+    return merged
 
 
 def _probe(target: Dict[str, Any]) -> Dict[str, Any]:
