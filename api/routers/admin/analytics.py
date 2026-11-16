@@ -43,27 +43,6 @@ def _proxy_parallel(calls: List[tuple]) -> dict:
     return results
 
 
-@router.get("/admin/deepfield/overview")
-def deepfield_overview(_auth=Depends(require_admin_read)):
-    """Proxy Deepfield metrics + incidents for the StarGate dashboard."""
-    import os
-    base = os.environ.get("STARGATE_DEEPFIELD_INTERNAL_URL", "http://deepfield-backend.deepfield.svc:8099")
-
-    r = _proxy_parallel([
-        ("metrics", f"{base}/api/v1/metrics?window=1h", None),
-        ("incidents", f"{base}/api/v1/incidents?limit=50", None),
-        ("clusters", f"{base}/api/v1/observatory/clusters", None),
-    ])
-
-    incidents = r.get("incidents", {})
-    clusters = r.get("clusters", {})
-    return {
-        "metrics": r.get("metrics", {}),
-        "incidents": incidents.get("incidents", []) if isinstance(incidents, dict) else [],
-        "incident_count": incidents.get("count", 0) if isinstance(incidents, dict) else 0,
-        "clusters": clusters.get("clusters", {}) if isinstance(clusters, dict) else {},
-    }
-
 
 @router.get("/admin/geolux/overview")
 def geolux_overview(_auth=Depends(require_admin_read)):

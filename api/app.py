@@ -262,13 +262,9 @@ def _register_event_consumers():
     logger = logging.getLogger("stargate")
     try:
         from api.routers._shared import _event_bus
-        from events.consumers import DeepFieldConsumer, GeoLuxConsumer, InvestigationConsumer
-        consumer = DeepFieldConsumer()
-        if consumer.url:
-            _event_bus.register_consumer(consumer)
-            logger.info("DeepField event consumer registered → %s", consumer.url)
-        else:
-            logger.info("DeepField consumer skipped — STARGATE_DEEPFIELD_URL not set")
+        # DeepField consumer removed Nov 16 — internal product, out of
+        # the system. Evaluation events no longer forwarded to it.
+        from events.consumers import GeoLuxConsumer, InvestigationConsumer
         geolux = GeoLuxConsumer()
         if geolux.url:
             _event_bus.register_consumer(geolux)

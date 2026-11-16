@@ -12,7 +12,6 @@ WORKFLOWS = [
     ("event_pipeline", "tests/workflows/test_wf_event_pipeline.py"),
     ("remediation", "tests/workflows/test_wf_remediation.py"),
     ("geolux", "tests/workflows/test_wf_geolux.py"),
-    ("deepfield", "tests/workflows/test_wf_deepfield.py"),
     ("demolition", "tests/workflows/test_wf_demolition.py"),
     ("labagator", "tests/workflows/test_wf_labagator.py"),
     ("corpus_mining", "tests/workflows/test_wf_corpus.py"),

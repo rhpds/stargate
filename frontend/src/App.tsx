@@ -21,7 +21,6 @@ import Reclamation from './pages/Reclamation';
 import Knowledge from './pages/Knowledge';
 import Clusters from './pages/Clusters';
 import Provisioning from './pages/Provisioning';
-import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
 const queryClient = new QueryClient({
@@ -72,7 +71,6 @@ const navItems = [
 // "Platform" group instead of primary nav slots.
 const platformNavItems = [
   { to: '/operations', label: 'Operations' },
-  { to: '/deepfield', label: 'Deepfield' },
   { to: '/geolux', label: 'GeoLux' },
   { to: '/proof', label: 'Proof Lab' },
   { to: '/failures', label: 'Taxonomy' },
@@ -141,7 +139,6 @@ export default function App() {
                 <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/clusters" element={<Clusters />} />
                 <Route path="/proof" element={<ProofDashboard />} />
-                <Route path="/deepfield" element={<DeepfieldOverview />} />
                 <Route path="/geolux" element={<GeoluxOverview />} />
                 <Route path="/lab/:code" element={<LabDetail />} />
                 <Route path="/cluster/:name" element={<ClusterDetail />} />

@@ -101,12 +101,26 @@ class TestExecutionGate:
         assert result["executed"] is False
         assert result["reason"] == "namespace_not_allowed"
 
+    def test_blocks_remediation_in_deepfield_namespaces(self):
+        """Deepfield (internal product) was removed from the system Nov 16 —
+        its namespaces must be outside the remediation allowlist. The
+        calibration study proved its scores don't predict outcomes."""
+        from api.action_executor import execute_action
+        result = execute_action(
+            action_type="cleanup_stuck",
+            target="deepfield-prod",
+            parameters={},
+            lab_code="test",
+        )
+        assert result["executed"] is False
+        assert result["reason"] == "namespace_not_allowed"
+
     def test_allows_remediation_in_ecosystem_namespaces(self):
         from api.action_executor import execute_action
         with patch("api.action_executor._get_lab_execution_mode", return_value="recommend_only"):
             result = execute_action(
                 action_type="cleanup_stuck",
-                target="deepfield-prod",
+                target="launchpad-prod",
                 parameters={},
                 lab_code="test",
             )

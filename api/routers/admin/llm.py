@@ -561,14 +561,22 @@ def get_approval_queue(db: Session = Depends(get_db)):
     """Get pending and recently resolved actions."""
     from db.models import PendingAction
 
+    # Deepfield (internal product) is excluded from the investigations
+    # path: its incidents were 94% of the queue and the calibration
+    # study proved its confidence scores don't predict outcomes.
+    # Removed Nov 16 per ops decision — internal products stay out.
+    not_deepfield = PendingAction.proposed_by != "deepfield"
+
     pending = db.query(PendingAction).filter(
         PendingAction.status == "pending",
         PendingAction.target != "stargate-test",
+        not_deepfield,
     ).order_by(PendingAction.id.desc()).limit(50).all()
 
     recently_resolved = db.query(PendingAction).filter(
         PendingAction.status == "auto_resolved",
         PendingAction.target != "stargate-test",
+        not_deepfield,
     ).order_by(PendingAction.id.desc()).limit(20).all()
 
     def _serialize(p):
