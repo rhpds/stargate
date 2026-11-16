@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -26,14 +27,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-SECRETS_DIR = Path(__file__).parent.parent / "secrets"
+from cli.kubeconfigs import SECRETS_DIR, canonical_name, resolve_kubeconfig
 
+logger = logging.getLogger("stargate.scan")
+
+# Canonical filenames. `kubeconfig-cnv` (ocpv06) and `kubeconfig`
+# (ocp-us-east-1) are pre-rotation aliases that held revoked tokens; see
+# cli/kubeconfigs.py.
 _DEFAULT_CLUSTERS = {
-    "ocpv05": "kubeconfig-ocpv05",
-    "ocpv06": "kubeconfig-cnv",
-    "ocpv07": "kubeconfig-ocpv07",
-    "ocpv08": "kubeconfig-ocpv08",
-    "ocpv09": "kubeconfig-ocpv09",
+    "ocpv05": canonical_name("ocpv05"),
+    "ocpv06": canonical_name("ocpv06"),
+    "ocpv07": canonical_name("ocpv07"),
+    "ocpv08": canonical_name("ocpv08"),
+    "ocpv09": canonical_name("ocpv09"),
 }
 
 
@@ -73,9 +79,11 @@ CLUSTERS = load_clusters()
 
 def scan_cluster(name: str, kubeconfig: str) -> Optional[Dict]:
     """Scan a single cluster and return health data."""
-    kc = str(SECRETS_DIR / kubeconfig)
-    if not os.path.exists(kc):
+    kc_path = resolve_kubeconfig(name, kubeconfig)
+    if not kc_path.exists():
+        logger.error("No kubeconfig for cluster %s (expected %s)", name, kc_path)
         return None
+    kc = str(kc_path)
 
     env = {**os.environ, "KUBECONFIG": kc}
 

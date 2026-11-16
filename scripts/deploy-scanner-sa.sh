@@ -92,11 +92,10 @@ else
 fi
 
 # Map cluster name to kubeconfig filename
-case "${CLUSTER_NAME}" in
-  ocpv06)         KC_NAME="kubeconfig-cnv" ;;
-  ocp-us-east-1)  KC_NAME="kubeconfig" ;;
-  *)              KC_NAME="kubeconfig-${CLUSTER_NAME}" ;;
-esac
+# Canonical filename for every cluster. The pre-rotation aliases
+# (kubeconfig-cnv for ocpv06, kubeconfig for ocp-us-east-1) held revoked
+# credentials; see cli/kubeconfigs.py.
+KC_NAME="kubeconfig-${CLUSTER_NAME}"
 
 # Write kubeconfig
 echo "4. Writing kubeconfig to secrets/${KC_NAME}..."
