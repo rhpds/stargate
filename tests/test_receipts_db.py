@@ -50,6 +50,7 @@ class TestReceiptsDB:
         """Feedback loop run persists a receipt."""
         import sys, os
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "stargate-synthetic-client-emulator"))
+        pytest.importorskip("emulator")
         from engine.feedback_loop import run_feedback_loop
         from db.models import Receipt
 

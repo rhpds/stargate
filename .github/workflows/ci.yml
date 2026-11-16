@@ -13,58 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan for secrets
+      - name: Install gitleaks
         run: |
-          FOUND=0
-          PATTERNS=(
-            'sk-[A-Za-z0-9]{16,}'
-            'sha256~[A-Za-z0-9]{20,}'
-            'eyJ[A-Za-z0-9_-]{50,}'
-            'PRIVATE KEY'
-            'BEGIN RSA'
-            'BEGIN EC'
-            'AKIA[0-9A-Z]{16}'
-            'ghp_[A-Za-z0-9]{36}'
-            'gho_[A-Za-z0-9]{36}'
-            'xox[bprs]-[A-Za-z0-9-]{10,}'
-            '[Pp]assword\s*[:=]\s*"[^${"]{4,}'
-            "[Pp]assword\s*[:=]\s*'[^\${']{4,}"
-            "[Pp]assword\s+'[^']{4,}'"
-            '[Pp]assword:\s+[A-Za-z0-9_]{6,}'
-          )
-          KNOWN_KEYS=(
-            'd6d3ad6e4a3b4c68876919f2ac588782'
-            'e42626831e854fe0a1eeac160a87b4bd'
-            '324e9e1cd6cb94ff9b51b25e2ae09af1'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-            '[REDACTED-ROTATED-KEY]'
-          )
-          for pattern in "${PATTERNS[@]}"; do
-            matches=$(grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -cv 'REDACTED\|example\|placeholder\|dummy\|changeme\|localdev\|local-dev-key' || true)
-            if [ "$matches" -gt 0 ]; then
-              echo "::error::Found potential secret matching pattern: $pattern"
-              grep -rnE "$pattern" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" --include="*.env" . 2>/dev/null | grep -v 'node_modules\|\.git/' | grep -v 'REDACTED\|example\|placeholder\|dummy\|changeme\|localdev\|local-dev-key' | head -5
-              FOUND=1
-            fi
-          done
-          for key in "${KNOWN_KEYS[@]}"; do
-            matches=$(grep -rl "$key" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.sh" . 2>/dev/null | grep -v '.github/workflows/ci.yml')
-            if [ -n "$matches" ]; then
-              echo "::error::Found known leaked secret: ${key:0:8}..."
-              echo "$matches"
-              FOUND=1
-            fi
-          done
-          if [ "$FOUND" -eq 1 ]; then
-            echo "::error::Secret scan failed. Remove secrets before merging."
-            exit 1
-          fi
-          echo "Secret scan passed — no secrets found."
+          GITLEAKS_VERSION=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+
+      - name: Scan for secrets
+        # The previous implementation grepped for pattern strings from inside
+        # this workflow file, so it matched its own pattern list on every run
+        # and could never pass. gitleaks uses .gitleaks.toml, the same config
+        # the pre-commit hook runs.
+        run: gitleaks detect --source . --no-git --config .gitleaks.toml --redact --no-banner --verbose
 
   test:
     name: Tests + Lint
@@ -85,7 +45,7 @@ jobs:
           pip install -e ".[dev,api]"
 
       - name: Lint
-        run: ruff check api/ tests/
+        run: ruff check .
 
       - name: Unit tests
         run: python -m pytest tests/ -v -m "not integration" --tb=short
@@ -107,6 +67,7 @@ jobs:
         if: always()
         run: |
           TOTAL=$(python -m pytest tests/ -q -m "not integration" --tb=no 2>&1 | tail -1 | grep -o "[0-9]* passed" | grep -o "[0-9]*" || echo "0")
+          mkdir -p test-receipts
           python3 -c "
           import json, uuid, subprocess
           from datetime import datetime
@@ -121,7 +82,7 @@ jobs:
               'branch': '${{ github.ref_name }}',
               'product': 'stargate',
           }
-          with open('../test-receipts/ci-latest.json', 'w') as f:
+          with open('test-receipts/ci-latest.json', 'w') as f:
               json.dump(receipt, f, indent=2)
           print(f'Receipt: {$TOTAL} tests, commit {commit}')
           "

@@ -11,6 +11,9 @@ import pytest
 # Add emulator to path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "stargate-synthetic-client-emulator"))
 
+# Emulator checkout is a separate, unpublished sibling repo. Skip when absent.
+pytest.importorskip("emulator")
+
 from engine.rubric_evaluator import evaluate_rubric
 from engine.rubric_loader import load_rubrics_from_directory
 from pathlib import Path

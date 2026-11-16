@@ -8,6 +8,7 @@ Results are merged — the UI always sees one complete 5-step cycle.
 SAFETY: Only operates on STARGATE_TEST_NAMESPACE.
 """
 
+import json
 import logging
 import os
 import re

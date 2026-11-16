@@ -1381,15 +1381,20 @@ def run_remediation_playbook(req: PlaybookRunRequest, db: Session = Depends(get_
         from api.llm import call_llm, load_prompt, LLM_MODEL
         prompt = load_prompt("classify")
         if prompt:
+            try:
+                from engine.failure_class_loader import get_all_classes
+                known_classes = ", ".join(sorted(get_all_classes().keys())[:30])
+            except Exception:
+                known_classes = (
+                    "pods_not_ready, pods_crashlooping, deployment_missing, "
+                    "route_missing, namespace_missing, showroom_not_ready"
+                )
             evidence_str = (
                 f"## Failure Details\n- Stage: {rubric_stage}\n"
                 f"- Failure class: {diagnose['failure_class']}\n"
                 f"- Evidence: {json.dumps(evidence)}\n"
                 f"- Pod logs excerpt: {investigate['pod_logs'][:500]}\n\n"
-                f"## Known Failure Classes\n"
-                f"- " + ", ".join(sorted(get_all_classes().keys())[:30]) if 'get_all_classes' in dir() else
-                f"- pods_not_ready, pods_crashlooping, deployment_missing, "
-                f"route_missing, namespace_missing, showroom_not_ready"
+                f"## Known Failure Classes\n- {known_classes}"
             )
             llm_result = call_llm(
                 endpoint="classify",
