@@ -90,6 +90,8 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
         db, lab_code=lab_code, lab_codes=lab_codes)
     last_pass = repository.get_last_passing_run(
         db, lab_code=lab_code, lab_codes=lab_codes)
+    eval_count = repository.count_evaluations(
+        db, lab_code=lab_code, lab_codes=lab_codes)
 
     if not history:
         lab_ns = _get_lab_namespaces(lab_code)
@@ -186,7 +188,7 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
         "labagator": labagator_lab,
         "labagator_sessions": labagator_sessions,
         "stargate": {
-            "evaluation_count": len(history),
+            "evaluation_count": max(eval_count, len(history)),
             "history": history,
             "failure_classes": failures,
             "last_passing_run": last_pass,

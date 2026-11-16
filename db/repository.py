@@ -399,6 +399,27 @@ def get_evaluation_history(
     ]
 
 
+def count_evaluations(
+    db: Session,
+    lab_code: Optional[str] = None,
+    cluster_name: Optional[str] = None,
+    lab_codes: Optional[List[str]] = None,
+) -> int:
+    """Count evaluations for a lab (all identities when ``lab_codes`` given).
+
+    The detail page labels this "Total Evals"; it must not be the length of a
+    capped history list (that reported 50 for a workload with 250).
+    """
+    query = db.query(EvaluationRecord)
+    if lab_codes:
+        query = query.filter(EvaluationRecord.lab_code.in_(lab_codes))
+    elif lab_code:
+        query = query.filter(EvaluationRecord.lab_code == lab_code)
+    if cluster_name:
+        query = query.filter(EvaluationRecord.cluster_name == cluster_name)
+    return query.count()
+
+
 def get_failure_class_frequency(
     db: Session,
     lab_code: Optional[str] = None,
