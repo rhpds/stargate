@@ -999,7 +999,7 @@ export interface LabProvisioningSummary {
   provision_failed?: number;
   teardown_failed?: number;
   last_failed_at?: string | null;
-  kind?: 'lab' | 'sandbox' | 'pool' | 'open-env' | 'catalog';
+  kind?: 'lab' | 'sandbox' | 'pool' | 'open-env' | 'demo' | 'catalog';
 }
 
 export interface ProvisioningOverview {
