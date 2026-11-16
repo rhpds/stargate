@@ -41,10 +41,16 @@ interface KnownIssue {
   bucket: string;
   title: string;
   failure_class: string | null;
+  cluster?: string | null;
   namespace_count: number;
   investigation_count: number;
   representative_investigation_id: number | null;
   top_root_cause_excerpt: string | null;
+  representative_root_cause?: string | null;
+  representative_remediation?: string | null;
+  representative_lab_code?: string | null;
+  namespaces?: { namespace: string; investigations: number }[];
+  first_seen?: string | null;
   last_seen: string | null;
 }
 
@@ -281,6 +287,90 @@ interface LabInvestigationRow {
  * card, recent evaluations, and the latest investigation's causal chain,
  * rendered inline — the review queue stays put behind the drawer.
  */
+function KnownIssueDrawerContent({ issue, onOpenNamespace }: {
+  issue: KnownIssue;
+  onOpenNamespace: (ns: string) => void;
+}) {
+  const analysisText = issue.representative_root_cause || issue.top_root_cause_excerpt || '';
+  const parsed = analysisText ? splitAnalysisSections(analysisText) : null;
+  const remediation = issue.representative_remediation || '';
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusBadge status={issue.bucket} />
+          {issue.failure_class && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[#1a1a1a] border border-[#2e2e2e] text-[#c7c7c7]">
+              {issue.failure_class}
+            </span>
+          )}
+          {issue.cluster && (
+            <span className="text-xs text-[#6A6E73]">{issue.cluster}</span>
+          )}
+        </div>
+        <div className="text-xs text-[#6A6E73]">
+          {issue.namespace_count} namespaces · {issue.investigation_count} investigations
+          {issue.first_seen ? ` · first seen ${relativeTime(issue.first_seen)}` : ''}
+          {issue.last_seen ? ` · last seen ${relativeTime(issue.last_seen)}` : ''}
+        </div>
+        <p className="text-xs text-[#9a9a9a]">
+          Representative diagnosis{issue.representative_lab_code ? ` from ${issue.representative_lab_code}` : ''} —
+          one investigation of the {issue.investigation_count}, chosen as the group&rsquo;s best-explained member.
+        </p>
+      </div>
+
+      {parsed && (
+        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-3">
+          {parsed.verdict && (
+            <StatusBadge status={parsed.verdict === 'ACTIONABLE' ? 'fail' : 'ok'} label={parsed.verdict} />
+          )}
+          {parsed.diagnosis && (
+            <div>
+              <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Diagnosis</div>
+              <div className="text-sm text-white"><FormattedAnalysis text={parsed.diagnosis} /></div>
+            </div>
+          )}
+          {parsed.rootCause && (
+            <div>
+              <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Root Cause</div>
+              <div className="text-sm text-white"><FormattedAnalysis text={parsed.rootCause} /></div>
+            </div>
+          )}
+          {!parsed.diagnosis && !parsed.rootCause && analysisText && (
+            <div className="text-sm text-white"><FormattedAnalysis text={analysisText} /></div>
+          )}
+        </div>
+      )}
+
+      {remediation && (
+        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+          <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Remediation</div>
+          <div className="text-sm text-white"><FormattedAnalysis text={remediation} /></div>
+        </div>
+      )}
+
+      {issue.namespaces && issue.namespaces.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">
+            Affected namespaces — click for the lab&rsquo;s detail
+          </div>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg divide-y divide-[#2e2e2e]">
+            {issue.namespaces.map((n) => (
+              <button key={n.namespace} type="button"
+                onClick={() => onOpenNamespace(n.namespace)}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2 text-xs text-left hover:bg-[#252525] transition">
+                <span className="text-white truncate">{n.namespace}</span>
+                <span className="text-[#6A6E73] shrink-0">{n.investigations} investigation{n.investigations === 1 ? '' : 's'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LabDrawerContent({ labCode }: { labCode: string }) {
   const status = useQuery({
     queryKey: ['lab-status', labCode],
@@ -742,6 +832,7 @@ function Investigations() {
   const [visibleCount, setVisibleCount] = React.useState(15);
   // The lab drawer (click-in pattern): null = closed.
   const [drawerLab, setDrawerLab] = React.useState<string | null>(null);
+  const [drawerIssue, setDrawerIssue] = React.useState<KnownIssue | null>(null);
   // Grow the fetch with the visible window so Load more has rows to reveal.
   const fetchLimit = Math.max(25, visibleCount);
   const queue = useQuery({
@@ -941,7 +1032,9 @@ function Investigations() {
           )}
           <div className="mt-3 space-y-2">
             {issues.slice(0, 5).map((ki) => (
-              <div key={ki.signature} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3">
+              <button key={ki.signature} type="button"
+                onClick={() => setDrawerIssue(ki)}
+                className="w-full text-left bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#73BCF7]/50 hover:bg-[#252525] transition cursor-pointer">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold text-white truncate">
                     {ki.title || ki.failure_class || ki.signature}
@@ -959,7 +1052,7 @@ function Investigations() {
                     {ki.top_root_cause_excerpt}
                   </p>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -1000,6 +1093,13 @@ function Investigations() {
 
       <Drawer open={drawerLab !== null} onClose={() => setDrawerLab(null)} title={drawerLab ?? 'Lab detail'}>
         {drawerLab && <LabDrawerContent labCode={drawerLab} />}
+      </Drawer>
+      <Drawer open={drawerIssue !== null} onClose={() => setDrawerIssue(null)}
+        title={drawerIssue?.title || drawerIssue?.failure_class || 'Known issue'}>
+        {drawerIssue && (
+          <KnownIssueDrawerContent issue={drawerIssue}
+            onOpenNamespace={(ns) => { setDrawerIssue(null); setDrawerLab(ns); }} />
+        )}
       </Drawer>
     </div>
   );

@@ -464,6 +464,17 @@ def _build_issue(group: Dict[str, Any], refs_by_id: Dict[int, List[str]]) -> Dic
     )
     inv_ids = [m.id for m in ordered[:_MAX_INVESTIGATION_IDS]]
 
+    # Per-namespace breakdown for the click-in drawer: which namespaces
+    # are affected and how many investigations each contributed.
+    per_ns: Dict[str, int] = {}
+    for m in members:
+        if m.lab_code:
+            per_ns[m.lab_code] = per_ns.get(m.lab_code, 0) + 1
+    namespaces = [
+        {"namespace": ns, "investigations": n}
+        for ns, n in sorted(per_ns.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
+
     verdict_counts = {"ACTIONABLE": 0, "TRANSIENT": 0, "other": 0}
     for m in members:
         td = m.trust_dimensions if isinstance(m.trust_dimensions, dict) else {}
@@ -491,6 +502,10 @@ def _build_issue(group: Dict[str, Any], refs_by_id: Dict[int, List[str]]) -> Dic
         "investigation_ids": inv_ids,
         "representative_investigation_id": rep.id if rep else None,
         "top_root_cause_excerpt": top_root_cause,
+        "representative_root_cause": (rep.root_cause or "") if rep else None,
+        "representative_remediation": (rep.remediation_suggestion or "") if rep else None,
+        "representative_lab_code": rep.lab_code if rep else None,
+        "namespaces": namespaces,
         "remediation_excerpt": remediation,
         "first_seen": _isoformat(first_seen),
         "last_seen": _isoformat(last_seen),
