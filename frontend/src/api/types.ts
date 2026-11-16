@@ -469,6 +469,7 @@ export interface NodesPodsData {
 export interface StuckInstance {
   name: string;
   state: string;
+  namespace: string;
   console_url: string;
   api_url: string;
 }

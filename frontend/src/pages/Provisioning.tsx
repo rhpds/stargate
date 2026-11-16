@@ -168,7 +168,7 @@ export default function Provisioning() {
       ? 'No provisioning data in the window'
       : verdict === 'green'
         ? failed === 0
-          ? `100% success — no provisions failing`
+          ? '100% success — no provisions failing'
           : `${Math.round(100 - rate)}% success — ${failed} of ${total} provisions failed`
         : `Failure rate ${Math.round(rate)}% — ${failed} provision${failed === 1 ? '' : 's'} failing`;
 
