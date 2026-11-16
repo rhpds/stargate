@@ -636,14 +636,19 @@ def dashboard_investigations_list(
                 }
 
         result.append({
+            "id": r.id,
             "job_id": r.job_id,
             "lab_code": r.lab_code,
+            "namespace": r.namespace,
             "cluster": r.cluster,
             "failure_class": r.failure_class,
             "trigger_type": r.trigger_type,
             "status": r.status,
             "iterations": r.iterations,
             "root_cause": r.root_cause,
+            "analysis": r.analysis,
+            "remediation_suggestion": r.remediation_suggestion,
+            "review_state": r.review_state,
             "created_at": r.created_at.isoformat() if r.created_at else None,
             "completed_at": r.completed_at.isoformat() if r.completed_at else None,
             "has_analysis": bool(r.analysis),

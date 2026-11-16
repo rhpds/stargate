@@ -27,6 +27,8 @@ interface InvestigationRow {
   review_state: string;
   created_at: string;
   root_cause?: string | null;
+  analysis?: string | null;
+  remediation_suggestion?: string | null;
 }
 
 interface InvestigationsResponse {
@@ -153,15 +155,12 @@ function QueueRow({
   onReject: (id: number) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const detail = useQuery({
-    queryKey: ['investigation-detail', inv.id],
-    queryFn: () =>
-      request<{ analysis?: string; root_cause?: string; remediation_suggestion?: string }>(
-        `/dashboard/investigations/${inv.id}`),
-    enabled: open,
-  });
-  const parsed = detail.data?.analysis || detail.data?.root_cause
-    ? splitAnalysisSections(detail.data.analysis || detail.data.root_cause || '')
+  // The list response already carries the diagnosis — no detail fetch
+  // needed (the /dashboard/investigations/{id} endpoint doesn't exist;
+  // fetching it returned the SPA's HTML). Found live Nov 16.
+  const analysisText = inv.analysis || inv.root_cause || '';
+  const parsed = analysisText
+    ? splitAnalysisSections(analysisText)
     : null;
 
   return (
@@ -206,8 +205,7 @@ function QueueRow({
       </div>
       {open && (
         <div className="border-t border-[#2e2e2e] p-4 space-y-3">
-          {detail.isLoading && <div className="text-xs text-[#6A6E73]">Loading diagnosis…</div>}
-          {detail.error && <div className="text-xs text-[#EE0000]">Failed to load detail: {String(detail.error)}</div>}
+          {!parsed && !analysisText && <div className="text-xs text-[#6A6E73]">No diagnosis recorded.</div>}
           {parsed && (
             <>
               {parsed.diagnosis && (
@@ -230,8 +228,8 @@ function QueueRow({
                   </div>
                 </div>
               )}
-              {!parsed.diagnosis && !parsed.rootCause && detail.data?.root_cause && (
-                <div className="text-sm text-white"><FormattedAnalysis text={detail.data.root_cause} /></div>
+              {!parsed.diagnosis && !parsed.rootCause && analysisText && (
+                <div className="text-sm text-white"><FormattedAnalysis text={analysisText} /></div>
               )}
               {parsed?.verdict === 'ACTIONABLE' && (
                 <GatePreview namespace={inv.namespace} failureClass={inv.failure_class ?? ''} cluster={inv.cluster ?? ''} />
