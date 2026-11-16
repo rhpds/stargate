@@ -733,18 +733,29 @@ def check_db_size_budget(size_bytes: int, budget_gb: int):
     return "ok", pct
 
 
-def get_latest_scan_snapshot(db: Session, scan_type: str) -> Optional[dict]:
-    """Get the most recent scan snapshot of a given type."""
+def get_latest_scan_snapshot(db: Session, scan_type: str, require_complete: bool = False) -> Optional[dict]:
+    """Get the most recent scan snapshot of a given type.
+
+    require_complete: skip mid-cycle snapshots (data["_cycle_complete"]
+    is False — the worker saves core data before the slower collectors
+    finish). Walks back up to 5 snapshots to find a complete one; falls
+    back to the newest available if none are marked.
+    """
     from db.models import ScanSnapshot
-    record = (
+    query = (
         db.query(ScanSnapshot)
         .filter(ScanSnapshot.scan_type == scan_type)
         .order_by(ScanSnapshot.scanned_at.desc())
-        .first()
     )
-    if not record:
-        return None
-    return record.data
+    if not require_complete:
+        record = query.first()
+        return record.data if record else None
+    for record in query.limit(5).all():
+        data = record.data or {}
+        if data.get("_cycle_complete") is not False:
+            return data
+    record = query.first()
+    return record.data if record else None
 
 
 def get_scan_timeline(db: Session, scan_type: str, limit: int = 50) -> list:
