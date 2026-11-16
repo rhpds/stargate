@@ -1032,3 +1032,28 @@ export interface CatalogItemDetail {
   instance_summary: InstanceSummary;
   timestamp: string;
 }
+
+export interface CredentialRow {
+  credential: string;
+  kind: string | null;
+  source: string | null;
+  outcome: 'pass' | 'warn' | 'fail';
+  failure_class: string | null;
+  message: string;
+  status: number | null;
+  expires_at: string | null;
+  days_left: number | null;
+  checked_at: string | null;
+}
+
+export interface CredentialsResponse {
+  generated_at: string;
+  summary: {
+    total: number;
+    verified: number;
+    degraded: number;
+    rejected: number;
+    expiring: number;
+  };
+  credentials: CredentialRow[];
+}
