@@ -41,12 +41,26 @@ class TestMain:
         )
 
         code = main(["--cluster", "c1", "--kubeconfig", "/dev/null",
-                     "--baseline", str(baseline), "--json"])
+                     "--baseline", str(baseline), "--json", "--fail-on-drift"])
 
         assert code == 1
         out = json.loads(capsys.readouterr().out)
         assert out["cluster"] == "c1"
         assert out["drift"][0]["increase"] == 30
+
+    def test_drift_reports_without_failing_by_default(self, tmp_path, monkeypatch, capsys):
+        baseline = tmp_path / "baseline.json"
+        baseline.write_text(json.dumps({"clusters": {"c1": _baseline(10)}}))
+        monkeypatch.setattr(
+            "scripts.credential_replication_check.count_live",
+            lambda kubeconfig: {"abc123def4567890": 40},
+        )
+
+        code = main(["--cluster", "c1", "--kubeconfig", "/dev/null",
+                     "--baseline", str(baseline), "--json"])
+
+        assert code == 0
+        assert json.loads(capsys.readouterr().out)["drift"]
 
     def test_no_baseline_is_clean(self, tmp_path, monkeypatch):
         baseline = tmp_path / "baseline.json"
