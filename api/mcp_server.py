@@ -21,6 +21,7 @@ platform API key (X-API-Key), enforced by the app middleware on /mcp paths.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Optional
 
 from mcp.server.mcpserver import MCPServer
@@ -374,6 +375,15 @@ def get_known_issues(window_hours: int = 24, bucket: str = "") -> str:
                 f"    {scope_line}, first seen {_ts(issue.get('first_seen'))}, "
                 f"last seen {_ts(issue.get('last_seen'))}"
             )
+            namespaces = issue.get("namespaces") or []
+            if namespaces:
+                shown = ", ".join(
+                    f"{n.get('namespace')} ({n.get('investigations', 1)})"
+                    for n in namespaces[:8]
+                )
+                more = len(namespaces) - 8
+                suffix = f" +{more} more" if more > 0 else ""
+                lines.append(f"    namespaces (investigations): {shown}{suffix}")
             refs = [
                 r for r in (issue.get("artifact_refs") or [])
                 if r and r not in str(issue.get("signature") or "")
@@ -450,6 +460,149 @@ def get_recent_changes(lab_code: Optional[str] = None, lookback_hours: int = 72)
         lines.append(f"    {i['key']} [{i['status']}] {i['summary'][:65]}")
     if not incidents.get("issues") and incidents.get("count", 0) == 0:
         lines.append("    (Jira credentials not configured or search failed — set STARGATE_JIRA_EMAIL/STARGATE_JIRA_TOKEN)")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def list_investigations(review_state: str = "unreviewed", lab_code: str = "", limit: int = 15) -> str:
+    """The investigation queue: completed diagnoses awaiting triage. Each
+    row carries id, lab/namespace, failure class, trigger, verdict and a
+    diagnosis excerpt — enough to decide what to review. Filter by
+    review_state (unreviewed/approved/rejected), optionally by lab_code.
+    Follow up with get_causal_chain(investigation_id=...) for the full
+    evidence chain, or review_diagnosis(id, approved) to publish
+    knowledge / reject a false positive."""
+    from db.repository import list_investigations
+
+    limit = min(max(limit, 1), 50)
+    review_state = (review_state or "").strip() or "unreviewed"
+    db = _db()
+    try:
+        records = list_investigations(
+            db, lab_code=(lab_code or None), status=None,
+            review_state=review_state if review_state != "all" else None,
+            limit=limit,
+        )
+        if not records:
+            scope = f" for {lab_code}" if lab_code else ""
+            state = "all states" if review_state == "all" else review_state
+            return f"No {state} investigations{scope}."
+        lines = [f"Investigations ({review_state}), newest first:"]
+        for r in records:
+            verdict = ""
+            td = r.trust_dimensions if isinstance(r.trust_dimensions, dict) else {}
+            if td.get("verdict"):
+                verdict = f", verdict {td['verdict']}"
+            excerpt = (r.root_cause or r.analysis or "").strip()
+            excerpt = excerpt[:160] + ("..." if len(excerpt) > 160 else "")
+            lines.append(
+                f"  #{r.id} {r.lab_code} ({r.cluster or '?'}) "
+                f"{r.failure_class or 'unclassified'} via {r.trigger_type or '?'}"
+                f"{verdict} — {r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '?'}"
+            )
+            if excerpt:
+                lines.append(f"    {excerpt}")
+        lines.append(
+            "  Next: get_causal_chain(investigation_id=N) for evidence, "
+            "review_diagnosis(N, approved=True/False) to triage."
+        )
+        return "\n".join(lines)
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def list_pending_actions(status: str = "pending", limit: int = 15) -> str:
+    """The human-approval queue for proposed remediation actions: action
+    type, target namespace, confidence, proposer, age. Deepfield-sourced
+    actions are excluded (internal product, removed Nov 16 — scores
+    proven non-predictive). Follow up with comment_action(action_id,
+    comment) to annotate; approval itself stays in the web UI."""
+    from db.models import PendingAction
+
+    limit = min(max(limit, 1), 50)
+    status = (status or "").strip() or "pending"
+    db = _db()
+    try:
+        query = db.query(PendingAction).filter(
+            PendingAction.status == status,
+            PendingAction.target != "stargate-test",
+            PendingAction.proposed_by != "deepfield",
+        ).order_by(PendingAction.id.desc())
+        rows = query.limit(limit).all()
+        if not rows:
+            return f"No {status} actions in the approval queue."
+        lines = [f"Pending actions ({status}), newest first:"]
+        for p in rows:
+            conf = f" conf {p.confidence:.2f}" if p.confidence is not None else ""
+            age = ""
+            if p.proposed_at:
+                proposed = p.proposed_at
+                if proposed.tzinfo is None:  # sqlite rows can be naive
+                    proposed = proposed.replace(tzinfo=timezone.utc)
+                hours = (datetime.now(timezone.utc) - proposed).total_seconds() / 3600
+                age = f", {hours:.0f}h old" if hours >= 1 else ", just now"
+            lines.append(
+                f"  #{p.id} {p.action_type} on {p.target} "
+                f"(by {p.proposed_by or 'stargate'}{conf}{age})"
+            )
+        lines.append(
+            "  Approval/rejection happens in the web UI (Investigations → "
+            "Pending actions); comment_action(id, comment) annotates here."
+        )
+        return "\n".join(lines)
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def get_provisioning_summary() -> str:
+    """Provisioning pipeline health: the AnarchySubject fleet grouped by
+    lifecycle state — total, started, failed, failure rate, the full
+    state histogram, and the labs with the most failed subjects. Answers
+    'are provisions succeeding and what is failing' fleet-wide."""
+    from api.routers._shared import _load_latest_babylon
+
+    babylon = _load_latest_babylon()
+    prov = babylon.get("provisioning", {})
+    mapping = babylon.get("instance_mapping", babylon.get("summit_mapping", {}))
+
+    total = prov.get("total", 0)
+    started = prov.get("started", 0)
+    failed = prov.get("failed", 0)
+    rate = prov.get("failure_rate", 0)
+    by_state = prov.get("by_state", {})
+
+    lines = [
+        f"Provisioning pipeline: {total} subjects — {started} started, "
+        f"{failed} failed ({rate}% failure rate)."
+    ]
+    if by_state:
+        notable = {
+            k: v for k, v in sorted(by_state.items(), key=lambda kv: -kv[1])
+            if ("failed" in k or "error" in k or "pending" in k or "provisioning" in k)
+        }
+        if notable:
+            state_line = ", ".join(f"{k} {v}" for k, v in notable.items())
+            lines.append(f"  Notable states: {state_line}")
+
+    affected = []
+    for lab, insts in mapping.items():
+        bad = sum(
+            1 for i in insts
+            if "failed" in (i.get("state") or "") or "error" in (i.get("state") or "")
+        )
+        if bad:
+            affected.append((bad, lab, len(insts)))
+    affected.sort(reverse=True)
+    if affected:
+        lines.append(f"  Labs with failed/error subjects ({len(affected)}):")
+        for bad, lab, tot in affected[:8]:
+            lines.append(f"    {lab}: {bad} of {tot} failed")
+        if len(affected) > 8:
+            lines.append(f"    + {len(affected) - 8} more labs")
+    if not total:
+        lines.append("  No snapshot data — the Babylon worker may not have run yet.")
     return "\n".join(lines)
 
 

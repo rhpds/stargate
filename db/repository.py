@@ -1806,6 +1806,7 @@ def list_investigations(
     lab_code: Optional[str] = None,
     cluster: Optional[str] = None,
     status: Optional[str] = None,
+    review_state: Optional[str] = None,
     limit: int = 50,
 ) -> List[InvestigationRecord]:
     q = db.query(InvestigationRecord)
@@ -1815,6 +1816,8 @@ def list_investigations(
         q = q.filter(InvestigationRecord.cluster == cluster)
     if status:
         q = q.filter(InvestigationRecord.status == status)
+    if review_state:
+        q = q.filter(InvestigationRecord.review_state == review_state)
     return q.order_by(InvestigationRecord.created_at.desc()).limit(limit).all()
 
 
