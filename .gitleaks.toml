@@ -11,6 +11,7 @@ title = "StarGate Secret Detection"
     '''__pycache__''',
     '''\.git''',
     '''frontend/dist''',
+    '''\.venv''',
   ]
   regexTarget = "line"
   regexes = [
