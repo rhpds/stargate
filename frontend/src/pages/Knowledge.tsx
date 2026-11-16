@@ -93,7 +93,7 @@ function summarizeRootCause(text: string | null | undefined): { title: string; b
 function Knowledge() {
   const knowledge = useQuery({
     queryKey: ['knowledge'],
-    queryFn: () => request<KnowledgeResponse>('/admin/knowledge'),
+    queryFn: () => request<KnowledgeResponse>('/admin/functional/knowledge'),
     refetchInterval: 300_000,
   });
   const proof = useQuery({

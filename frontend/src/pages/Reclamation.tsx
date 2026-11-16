@@ -15,6 +15,8 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime } from '../components/ui';
 import { request } from '../api/client';
+import { Drawer } from '../components/Drawer';
+import { LabDrawerContent } from '../components/LabDrawer';
 import type { StuckInstances } from '../api/types';
 
 // --- Local endpoint contracts (getResolutions / monitoring gaps are
@@ -122,6 +124,7 @@ function formatAge(hours: number | null): string {
 
 export default function Reclamation() {
   const [showAllStuck, setShowAllStuck] = React.useState(false);
+  const [drawerLab, setDrawerLab] = React.useState<string | null>(null);
   const stuck = useQuery({
     queryKey: ['reclamation', 'stuck-instances'],
     queryFn: () => request<StuckInstances>('/dashboard/stuck-instances'),
@@ -308,10 +311,11 @@ export default function Reclamation() {
         <ul className="space-y-2">
           {teardownRows.slice(0, showAllStuck ? teardownRows.length : 12).map((row) => (
             <li key={row.subject}>
-              <div
-                role="group"
-                aria-label={`Stuck teardown ${row.subject}, state ${row.state}`}
-                className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3"
+              <button
+                type="button"
+                onClick={() => setDrawerLab(row.subject)}
+                aria-label={`Stuck teardown ${row.subject}, state ${row.state} — click for detail`}
+                className="w-full text-left bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#73BCF7]/50 hover:bg-[#252525] transition cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm font-semibold text-white truncate font-mono">
@@ -331,7 +335,7 @@ export default function Reclamation() {
                   )}
                   {row.namespaceExists === true && <span>namespace still on cluster</span>}
                 </div>
-              </div>
+              </button>
             </li>
           ))}
         </ul>
@@ -387,12 +391,13 @@ export default function Reclamation() {
             {recentResolutions.map((r) => (
               <li key={r.id} className="text-sm text-white flex justify-between gap-4 items-baseline">
                 <span className="truncate">
-                  <Link
-                    to={`/lab/${encodeURIComponent(r.lab_code)}`}
-                    className="text-[#73BCF7] hover:underline font-mono"
+                  <button
+                    type="button"
+                    onClick={() => setDrawerLab(r.lab_code)}
+                    className="text-[#73BCF7] hover:underline font-mono cursor-pointer"
                   >
                     {r.lab_code}
-                  </Link>
+                  </button>
                   <span className="text-[#c7c7c7] mx-2">{r.resolution_type}</span>
                   {r.failure_class && (
                     <span className="text-xs text-[#6A6E73]">{r.failure_class}</span>
@@ -481,6 +486,10 @@ export default function Reclamation() {
         bound to namespaces that no longer exist.{' '}
         <Link to="/proof" className="text-[#73BCF7]">Detector details in the Proof Lab →</Link>
       </p>
+
+      <Drawer open={drawerLab !== null} onClose={() => setDrawerLab(null)} title={drawerLab ?? 'Lab detail'}>
+        {drawerLab && <LabDrawerContent labCode={drawerLab} />}
+      </Drawer>
     </div>
   );
 }
