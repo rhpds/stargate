@@ -257,7 +257,14 @@ def collect_workshop_provisions() -> Dict:
         return {"query": query, "total": None, "findings": []}
 
     now = datetime.now(timezone.utc)
-    stall_hours = int(os.environ.get("STARGATE_WORKSHOP_PROVISION_STALL_HOURS", "1"))
+    # Default 6h with claim-count semantics (below): the RHDP control-plane
+    # WorkshopProvision controller writes NO conditions — its status carries
+    # resourceClaimCount/failedCount/activeCount — and claims legitimately
+    # take hours to appear (the 1-7h queue is normal; the dead ones are
+    # 39+ days). The old 1h default was calibrated for a conditions-based
+    # controller and flagged the whole fleet (found live Nov 16 2026:
+    # 176/179 findings, 120 of them healthy with successful claims).
+    stall_hours = int(os.environ.get("STARGATE_WORKSHOP_PROVISION_STALL_HOURS", "6"))
     findings = []
     succeeded = []
     state_counts: Dict[str, int] = {}
@@ -282,25 +289,52 @@ def collect_workshop_provisions() -> Dict:
         )
         transition_age = (now - last_transition) if last_transition else None
 
+        # Claim-count semantics for controllers that write no conditions
+        # (the RHDP control-plane shape). Used only as the fallback when
+        # conditions are absent — conditions stay authoritative when present.
+        resource_claims = status.get("resourceClaimCount") or 0
+        failed_count = status.get("failedCount") or 0
+        active_count = status.get("activeCount") or 0
+
         condition = failed or ready or progressing or {}
+        if conditions:
+            stalled_evidence = bool(
+                (ready and ready.get("status") == "False" and transition_age
+                 and transition_age >= timedelta(hours=stall_hours))
+                or (not ready and age_hours is not None and age_hours >= stall_hours)
+            )
+            failed_evidence = failed is not None
+        else:
+            # No conditions: failed = the controller's own failure count;
+            # stalled = zero resource claims past the threshold (nothing
+            # was ever provisioned for this signup); healthy = claims exist.
+            failed_evidence = failed_count > 0
+            stalled_evidence = bool(
+                resource_claims == 0 and age_hours is not None
+                and age_hours >= stall_hours
+            )
         outcome = resolve_provision_outcome({
             # Findings are only built from successful queries (failed queries
             # return early above), so collection is healthy here.
             "collection_ok": True,
-            "workshopprovision_failed_condition": failed is not None,
+            "workshopprovision_failed_condition": failed_evidence,
+            "workshopprovision_ready": (
+                ready and ready.get("status") == "True"
+            ) if conditions else (active_count > 0 or resource_claims > 0 and not failed_evidence),
             "controller_lag": (
                 generation is not None and observed_generation is not None
                 and generation > observed_generation
             ),
-            "workshopprovision_stalled": bool(
-                (ready and ready.get("status") == "False" and transition_age
-                 and transition_age >= timedelta(hours=stall_hours))
-                or (not ready and age_hours is not None and age_hours >= stall_hours)
-            ),
+            "workshopprovision_stalled": stalled_evidence,
         })
         failure_class = WORKSHOP_PROVISION_CLASSES.get(outcome)
 
-        state = "failed" if failed else "ready" if ready and ready.get("status") == "True" else "pending"
+        if conditions:
+            state = "failed" if failed else "ready" if ready and ready.get("status") == "True" else "pending"
+        else:
+            state = ("failed" if failed_count > 0
+                     else "ready" if active_count > 0 or resource_claims > 0
+                     else "pending")
         state_counts[state] = state_counts.get(state, 0) + 1
         labels = metadata.get("labels", {}) or {}
         owner_refs = metadata.get("ownerReferences", []) or []
