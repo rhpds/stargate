@@ -7,7 +7,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { MetricCard, SectionHeader, StatusBadge, relativeTime } from '../components/ui';
+import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, FleetStrip, relativeTime } from '../components/ui';
 import { useHealth, useOverview, useEvents } from '../api/hooks';
 
 interface ClusterRag {
@@ -80,13 +80,32 @@ export default function Overview() {
 
       <section aria-label="Fleet status">
         <SectionHeader right={`${clusters.length} clusters`}>Fleet status</SectionHeader>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard
-            label="Fleet"
-            value={<StatusBadge status={fleetRag} /> as unknown as string}
-            sub={fleetRag === 'green' ? 'all clusters healthy' : 'attention needed'}
-          />
-          <MetricCard label="Failing labs" value={failingLabs} sub="last hour" />
+        <div className="mb-4">
+          <FleetStrip segments={clusters.map((c) => ({ name: c.name, rag: c.rag }))} />
+        </div>
+        <VerdictBanner
+          state={fleetRag === 'unknown' ? 'unknown' : fleetRag}
+          headline={
+            fleetRag === 'green'
+              ? `No — all ${clusters.length} clusters healthy`
+              : fleetRag === 'red'
+                ? `Yes — ${clusters.filter((c) => c.rag === 'red').length} critical, ${clusters.filter((c) => c.rag === 'amber').length} degraded`
+                : fleetRag === 'amber'
+                  ? `Attention — ${clusters.filter((c) => c.rag === 'amber').length} cluster(s) degraded`
+                  : 'No cluster data in the window'
+          }
+          chips={[
+            `${clusters.filter((c) => c.rag === 'red').length} critical`,
+            `${clusters.filter((c) => c.rag === 'amber').length} degraded`,
+            `${clusters.filter((c) => c.rag === 'green').length} healthy`,
+          ]}
+          meta={health.data ? `as of ${relativeTime(health.data.timestamp)}` : undefined}
+          drillTo="/clusters"
+          drillLabel="view clusters →"
+        />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <MetricCard label="Failing labs" value={failingLabs} sub="last hour"
+            accent={failingLabs > 0 ? 'amber' : 'green'} />
           <MetricCard
             label="Scanners"
             value={health.data?.components?.scanners === 'ok' ? 'ok' : 'stale'}
@@ -107,7 +126,7 @@ export default function Overview() {
           <div className="text-sm text-[#6A6E73]">No cluster data in the window.</div>
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {clusters.map((c) => (
+          {[...clusters].sort((a, b) => ({ red: 0, amber: 1, green: 2 }[a.rag] ?? 3) - ({ red: 0, amber: 1, green: 2 }[b.rag] ?? 3)).map((c) => (
             <Link
               key={c.name}
               to={`/cluster/${c.name}`}

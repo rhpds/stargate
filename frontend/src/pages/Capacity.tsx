@@ -10,7 +10,7 @@
 
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MetricCard, SectionHeader, StatusBadge } from '../components/ui';
+import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, StateStrip, LegendRow } from '../components/ui';
 import { request } from '../api/client';
 
 interface ForecastHour {
@@ -105,6 +105,38 @@ export default function Capacity() {
 
       {f && (
         <section aria-label="Forecast">
+          <VerdictBanner
+            state={f.risk === 'green' ? 'green' : f.risk === 'red' ? 'red' : f.risk === 'amber' ? 'amber' : 'unknown'}
+            headline={
+              f.risk === 'green'
+                ? 'Yes — observed headroom across the window'
+                : f.risk === 'red'
+                  ? 'No — observed demand exceeds supply'
+                  : f.supply
+                    ? `Amber — no deficit observed, but ${f.hourly.filter((h) => h.deficit_state === 'lower_bound_demand').length} of ${f.hourly.length} hours are lower-bound`
+                    : 'Amber — supply not yet observed; hours read indeterminate'
+            }
+            chips={[
+              `ADVISORY — NOT WIRED TO ALERTING`,
+              f.supply ? `supply ${Math.round(f.supply.vm_slots).toLocaleString()} slots (${f.supply.basis})` : 'supply unobserved',
+              `${f.coverage.sessions_fallback} unprofiled sessions — demand is a floor`,
+            ]}
+            meta={`window ${f.window_hours}h`}
+          />
+          <div className="mt-4">
+            <StateStrip
+              height="h-10"
+              cells={f.hourly.map((h) => ({
+                state: h.deficit_state === 'deficit' ? 'red' as const
+                  : h.deficit_state === 'headroom' ? 'green' as const
+                    : h.deficit_state === 'lower_bound_demand' ? 'floor' as const
+                      : 'unknown' as const,
+                title: `${h.hour} — ${h.vm_slots ?? '?'} slots (${h.deficit_state})`,
+              }))}
+            />
+            <div className="mt-2"><LegendRow /></div>
+          </div>
+          <div className="mt-6">
           <SectionHeader right={`supply basis: ${f.supply?.basis ?? 'unobserved'}`}>
             Fleet forecast
           </SectionHeader>
@@ -133,6 +165,7 @@ export default function Capacity() {
                   : 'fully observed'
               }
             />
+          </div>
           </div>
         </section>
       )}
