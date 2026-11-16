@@ -1448,19 +1448,35 @@ def _mv_refresh_loop():
 
 
 def _cleanup_scan_history(max_files: int = 500):
-    """Remove old scan-history files, keeping the most recent."""
+    """Remove old scan-history files, keeping the most recent.
+
+    Sorts by MTIME. Found Nov 16 2026: the previous alphabetical sort
+    deleted every babylon-*.json the moment the scheduler's scan-* files
+    pushed the count past 500 — 'b' sorts before 's', so the worker's
+    files were always the "oldest". The API's file path was silently
+    dead; only the DB fallback kept it alive. Also: never touch files
+    younger than an hour, whatever the count.
+    """
+    import time as _time
     from pathlib import Path as _P
     scan_dir = _P(__file__).parent.parent / "scan-history"
     if not scan_dir.exists():
         return
     _KEEP = {"proof-matrix.json", "shadow-state.json", "pipeline-rubric.json"}
-    files = sorted(f for f in scan_dir.glob("*.json") if f.name not in _KEEP)
-    if len(files) > max_files:
-        for f in files[:-max_files]:
+    files = [f for f in scan_dir.glob("*.json") if f.name not in _KEEP]
+    now = _time.time()
+    # age-sorted, oldest first; files younger than 1h are immune
+    files.sort(key=lambda f: f.stat().st_mtime)
+    protected = [f for f in files if now - f.stat().st_mtime < 3600]
+    eligible = [f for f in files if now - f.stat().st_mtime >= 3600]
+    excess = len(files) - max_files
+    if excess > 0:
+        for f in eligible[:excess]:
             try:
                 f.unlink()
             except Exception:
                 pass
+        _ = protected  # clarity: protected files are never deleted
 
 
 # --- Include routers ---

@@ -282,18 +282,26 @@ def _load_latest_babylon_inner() -> Dict:
 
     data: Dict = {}
 
-    # Try scan-history files first
+    # Try scan-history files first — newest COMPLETE snapshot (the worker
+    # saves mid-cycle with _cycle_complete=False before the slower
+    # collectors land; a half-collected cycle must never be "latest")
     scan_dir = Path(__file__).parent.parent.parent / "scan-history"
     babylon_files = sorted(scan_dir.glob("babylon-*.json"), reverse=True)
-    if babylon_files:
-        with open(babylon_files[0]) as f:
-            data = json.load(f)
+    for bf in babylon_files[:3]:
+        try:
+            with open(bf) as f:
+                candidate = json.load(f)
+            if candidate.get("_cycle_complete") is not False:
+                data = candidate
+                break
+        except Exception:
+            continue
 
-    # Fall back to database
+    # Fall back to database (same completeness rule)
     if not data:
         try:
             db = next(get_db())
-            db_data = repository.get_latest_scan_snapshot(db, "babylon_scan")
+            db_data = repository.get_latest_scan_snapshot(db, "babylon_scan", require_complete=True)
             db.close()
             if db_data and isinstance(db_data, dict):
                 data = db_data

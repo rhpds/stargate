@@ -607,8 +607,9 @@ def run_collection() -> Dict:
         except Exception as e:
             print(f"    Guid mapping persistence failed: {e}")
 
-    # Save core data + guid mappings immediately
-    _save_results(results)
+    # Save core data + guid mappings immediately (marked incomplete —
+    # instance mappings and gap detectors land in the second save)
+    _save_results(results, complete=False)
 
     # Instance mappings (slower — full subject list, runs after priority data is saved)
     print("  Collecting all lab-to-instance mapping...")
@@ -686,8 +687,15 @@ def run_collection() -> Dict:
     return results
 
 
-def _save_results(results: Dict):
-    """Save collection results to scan-history files and database."""
+def _save_results(results: Dict, complete: bool = True):
+    """Save collection results to scan-history files and database.
+
+    complete=False marks a mid-cycle snapshot (core data saved early for
+    freshness; instance mappings and gap detectors land in the second
+    save). Readers prefer the latest COMPLETE snapshot so the
+    provisioning page never renders from a half-collected cycle.
+    """
+    results["_cycle_complete"] = complete
     # Save to history
     history_dir = Path(__file__).parent.parent / "scan-history"
     history_dir.mkdir(exist_ok=True)
