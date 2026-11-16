@@ -353,6 +353,7 @@ def dashboard_stuck_instances():
         "total_stuck": sum(len(v) for v in by_lab.values()),
         "platform_stuck": {
             "destroy_failed": by_state.get("destroy-failed", 0),
+            "destroy_error": by_state.get("destroy-error", 0),
             "provision_failed": by_state.get("provision-failed", 0),
             "provision_error": by_state.get("provision-error", 0),
             "start_error": by_state.get("start-error", 0),

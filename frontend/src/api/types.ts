@@ -479,6 +479,7 @@ export interface StuckInstances {
   total_stuck: number;
   platform_stuck: {
     destroy_failed: number;
+    destroy_error: number;
     provision_failed: number;
     provision_error: number;
     start_error: number;
