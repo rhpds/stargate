@@ -372,8 +372,19 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
 
     results = {}
 
+    # The stuck-teardown detector needs the Babylon control-plane cluster
+    # (where AnarchySubjects live), NOT the executor kubeconfig. Found
+    # live Nov 16 2026: the detector was using the executor kubeconfig
+    # (infra01) which doesn't have the Anarchy CRDs — 44 real stuck
+    # teardowns were invisible. The right kubeconfig is the Babylon
+    # control-plane: ocp-us-east-1 (2,566 AnarchySubjects).
+    BABYLON_KUBECONFIG = os.environ.get(
+        "STARGATE_GAP_KUBECONFIG",
+        "/opt/app-root/src/secrets/kubeconfig-ocp-us-east-1",
+    )
+
     try:
-        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=EXECUTOR_KUBECONFIG)
+        results["stuck_teardowns"] = detect_stuck_teardowns(kubeconfig=BABYLON_KUBECONFIG)
     except Exception as e:
         results["stuck_teardowns"] = {"error": str(e)}
 

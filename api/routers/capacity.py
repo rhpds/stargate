@@ -310,21 +310,39 @@ def _resource_profiles() -> dict:
 
 def _lab_code_resolution() -> dict:
     """Map Labagator lab_codes (room codes like RHSC-H01) to AgnosticV
-    catalog item names via the labs endpoint's ci_name field. Found live
-    Nov 15 2026: 0/19 sessions mapped because the lab_codes are room
-    identifiers, not catalog items — the join was never built."""
+    catalog item names via the labs endpoint. Found live Nov 15 2026:
+    0/19 sessions mapped because the lab_codes are room identifiers,
+    not catalog items — the join was never built. Two resolution paths:
+    ci_name (preferred) and agnosticv_url (fallback), both stripped of
+    channel suffixes and org prefixes to match profile keys."""
     from collectors.labagator.collect_labagator import collect_labs
     import re
 
     mapping = {}
-    for lab in collect_labs() or []:
+    # limit=500: the default 200 truncates before many labs (387 total,
+    # found live — the RHSC rooms with ci_names were past the cutoff)
+    for lab in collect_labs(limit=500) or []:
         code = str(lab.get("lab_code") or "")
-        ci_name = str(lab.get("ci_name") or "")
-        if not code or not ci_name:
+        if not code:
             continue
-        item = re.sub(r"\.(prod|dev|event)$", "", ci_name)
-        item = re.sub(r"^(published|enterprise|agd-v2)\.", "", item)
-        mapping[code] = item
+
+        ci_name = str(lab.get("ci_name") or "")
+        if ci_name and ci_name != "None":
+            item = re.sub(r"\.(prod|dev|event)$", "", ci_name)
+            item = re.sub(r"^(published|enterprise|agd-v2)\.", "", item)
+            mapping[code] = item
+            continue
+
+        # fallback: extract the catalog item from the agnosticv_url
+        # (e.g. .../agnosticv/tree/master/published/ocp4-cluster -> ocp4-cluster)
+        agv_url = str(lab.get("agnosticv_url") or "")
+        if agv_url and agv_url != "None" and "/tree/master/" in agv_url:
+            item = agv_url.split("/tree/master/")[-1].strip("/")
+            item = re.sub(r"\.(prod|dev|event)$", "", item)
+            item = re.sub(r"^(published|enterprise|agd-v2)/", "", item)
+            if item:
+                mapping[code] = item
+
     return mapping
 
 
