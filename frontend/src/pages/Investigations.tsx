@@ -68,6 +68,13 @@ function Investigations() {
     refetchInterval: 300_000,
   });
 
+  const stats = useQuery({
+    queryKey: ['investigation-stats'],
+    queryFn: () => request<{ investigations_today?: number; daily_limit?: number; queue_depth?: number; auto_investigate?: boolean }>(
+      '/dashboard/investigations/stats'),
+    refetchInterval: 120_000,
+  });
+
   const review = useMutation({
     mutationFn: (v: { id: number; approved: boolean }) =>
       request<{ ok?: boolean }>(`/dashboard/investigations/${v.id}/review`, {
@@ -99,6 +106,16 @@ function Investigations() {
           review work. Approvals publish knowledge entries and resolve model
           disputes.
         </p>
+        {stats.data && (
+          <p className="text-xs text-[#8a8a8a] mt-1">
+            auto-investigate {stats.data.auto_investigate === false ? 'OFF' : 'ON'} ·{' '}
+            {stats.data.investigations_today ?? 0} of {stats.data.daily_limit ?? 200} daily budget ·{' '}
+            queue {stats.data.queue_depth ?? 0}
+            {stats.data.auto_investigate === false && (
+              <span className="text-[#F0AB00] ml-2">⚠ auto-investigate is OFF</span>
+            )}
+          </p>
+        )}
       </header>
 
       {queue.error && (
