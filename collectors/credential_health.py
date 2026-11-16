@@ -38,6 +38,14 @@ DEFAULT_INTERVAL_SECONDS = int(
     os.environ.get("STARGATE_CREDENTIAL_HEALTH_INTERVAL_SECONDS", "900")
 )
 EXPIRY_WARN_DAYS = int(os.environ.get("STARGATE_CREDENTIAL_EXPIRY_WARN_DAYS", "90"))
+# A JWT with no `exp` never expires — that is the legacy-token failure mode
+# behind the 2026 rotation (icinga-ro-token, cluster-scheduler-token).
+# Waive deliberately, per credential name, or it fails the gate.
+EXPIRY_WAIVERS = {
+    value.strip()
+    for value in os.environ.get("STARGATE_CREDENTIAL_EXPIRY_WAIVERS", "").split(",")
+    if value.strip()
+}
 PROBE_TIMEOUT_SECONDS = float(
     os.environ.get("STARGATE_CREDENTIAL_HEALTH_TIMEOUT_SECONDS", "10")
 )
@@ -52,6 +60,11 @@ _CACHE_TTL = 120
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _is_jwt(token: str) -> bool:
+    """True when the value is a JWT (three dot-separated parts)."""
+    return bool(token) and token.count(".") == 2
 
 
 def _jwt_expiry(token: str) -> Optional[datetime]:
@@ -144,7 +157,9 @@ def _probe_kubeconfig(name: str, path: Path) -> Dict[str, Any]:
 
     if who:
         outcome, failure_class = "pass", None
-        if expires_at and (expires_at - _now()) <= timedelta(days=EXPIRY_WARN_DAYS):
+        if token and _is_jwt(token) and expires_at is None and name not in EXPIRY_WAIVERS:
+            outcome, failure_class = "fail", "credential_no_expiry"
+        elif expires_at and (expires_at - _now()) <= timedelta(days=EXPIRY_WARN_DAYS):
             outcome, failure_class = "warn", "credential_expiring"
         return _result(name, "kubeconfig", source, outcome, 200, failure_class,
                        who, expires_at=expires_at, ms=ms)

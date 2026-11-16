@@ -85,6 +85,50 @@ class TestKubeconfigProbe:
         assert result["failure_class"] == "credential_expiring"
 
 
+class TestNoExpiryRule:
+    """A JWT with no `exp` never dies — the legacy-token failure mode."""
+
+    def _static_jwt(self):
+        import base64, json
+        payload = base64.urlsafe_b64encode(
+            json.dumps({"sub": "system:serviceaccount:default:stargate-scanner"}).encode()
+        ).decode().rstrip("=")
+        return f"header.{payload}.signature"
+
+    def test_jwt_without_exp_fails(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("STARGATE_CREDENTIAL_EXPIRY_WAIVERS", raising=False)
+        path = _kubeconfig(tmp_path, self._static_jwt())
+        monkeypatch.setattr(ch.shutil, "which", lambda _: "/usr/bin/oc")
+        monkeypatch.setattr(ch.subprocess, "run",
+                            lambda *a, **k: _Proc("system:serviceaccount:default:stargate-scanner\n"))
+
+        result = ch._probe_kubeconfig("kubeconfig:ocpv06", path)
+
+        assert result["outcome"] == "fail"
+        assert result["failure_class"] == "credential_no_expiry"
+
+    def test_waiver_clears_the_rule(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(ch, "EXPIRY_WAIVERS", {"kubeconfig:ocpv06"})
+        path = _kubeconfig(tmp_path, self._static_jwt())
+        monkeypatch.setattr(ch.shutil, "which", lambda _: "/usr/bin/oc")
+        monkeypatch.setattr(ch.subprocess, "run",
+                            lambda *a, **k: _Proc("system:serviceaccount:default:stargate-scanner\n"))
+
+        result = ch._probe_kubeconfig("kubeconfig:ocpv06", path)
+
+        assert result["outcome"] == "pass"
+
+    def test_opaque_token_is_not_flagged(self, tmp_path, monkeypatch):
+        path = _kubeconfig(tmp_path, "sha256~opaque-token-value")
+        monkeypatch.setattr(ch.shutil, "which", lambda _: "/usr/bin/oc")
+        monkeypatch.setattr(ch.subprocess, "run",
+                            lambda *a, **k: _Proc("system:serviceaccount:default:stargate-scanner\n"))
+
+        result = ch._probe_kubeconfig("kubeconfig:ocpv06", path)
+
+        assert result["outcome"] == "pass"
+
+
 class TestHttpProbe:
     def test_401_is_rejected(self, monkeypatch):
         def boom(*args, **kwargs):
