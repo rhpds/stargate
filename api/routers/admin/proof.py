@@ -363,9 +363,31 @@ def get_resolution_profiles(_auth=Depends(require_admin_read)):
     return build_resolution_profiles()
 
 
-@router.get("/admin/monitoring-gaps")
-def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
-    """Run all monitoring gap detectors — stuck teardowns, resource leaks, operator health."""
+# --- Monitoring gaps: TTL cache + background refresh -----------------------
+#
+# The gap detectors run synchronous `oc` calls against remote clusters —
+# the Babylon control-plane alone (2,566 AnarchySubjects) can take >120s,
+# longer than any HTTP client will wait. Found live Nov 16 2026: the
+# endpoint timed out behind the proxy and the Reclamation page's verdict
+# could never resolve.
+#
+# So the endpoint NEVER runs detectors inline. It serves the last
+# completed scan immediately (fresh or stale, with its age) and refreshes
+# in a daemon thread when the cache passes its TTL. First call after a
+# cold start returns status=scanning until the thread lands a result.
+
+_GAPS_TTL_SECONDS = 600  # the 10-minute cadence the Reclamation page documents
+
+_gaps_cache: Dict = {
+    "data": None,
+    "timestamp": 0.0,
+    "scanning": False,
+    "lock": __import__("threading").Lock(),
+}
+
+
+def _run_gap_detectors() -> Dict:
+    """The detector work — runs in a background thread, never inline."""
     from api.routers._shared import EXECUTOR_KUBECONFIG
     from collectors.cleanup.collect_stuck_teardowns import detect_stuck_teardowns
     from collectors.cleanup.collect_leaks import detect_resource_leaks
@@ -392,12 +414,9 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
     try:
         # The leak detector checks for orphaned PVs — these live on the
         # WORKER clusters (where labs run), not the executor or Babylon
-        # control-plane. Use the first available worker cluster
-        # kubeconfig. Found live Nov 16: was using EXECUTOR_KUBECONFIG
+        # control-plane. Found live Nov 16: was using EXECUTOR_KUBECONFIG
         # (infra01) which returned 502 — the PVs aren't there.
-        import os as _os
-        import glob as _glob
-        _leak_kc = _os.environ.get(
+        _leak_kc = os.environ.get(
             "STARGATE_LEAK_KUBECONFIG",
             "/opt/app-root/src/secrets/kubeconfig-ocpv07",  # a worker cluster
         )
@@ -411,6 +430,82 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
         results["operator_health"] = {"error": str(e)}
 
     return results
+
+
+def _refresh_gaps_in_background() -> None:
+    import threading
+
+    def _run():
+        try:
+            data = _run_gap_detectors()
+            with _gaps_cache["lock"]:
+                _gaps_cache["data"] = data
+                _gaps_cache["timestamp"] = datetime.now(timezone.utc).timestamp()
+        except Exception as e:  # never leave the flag stuck
+            logging.getLogger("stargate").warning("gap detector refresh failed: %s", e)
+        finally:
+            with _gaps_cache["lock"]:
+                _gaps_cache["scanning"] = False
+
+    with _gaps_cache["lock"]:
+        if _gaps_cache["scanning"]:
+            return  # a refresh is already in flight
+        _gaps_cache["scanning"] = True
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _reset_gaps_cache_for_tests() -> None:
+    """Test hook: cold-start the cache between tests."""
+    with _gaps_cache["lock"]:
+        _gaps_cache["data"] = None
+        _gaps_cache["timestamp"] = 0.0
+        _gaps_cache["scanning"] = False
+
+
+@router.get("/admin/monitoring-gaps")
+def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_admin_read)):
+    """Monitoring gap detectors — stuck teardowns, resource leaks, operator
+    health. Serves the last completed scan immediately (never runs detectors
+    inline — they take >120s against remote clusters); refreshes in the
+    background when older than the 10-minute TTL.
+
+    Response envelope: status (fresh | stale | scanning), age_seconds,
+    scanned_at, plus the detector results once a scan has ever completed.
+    """
+    now = datetime.now(timezone.utc).timestamp()
+    with _gaps_cache["lock"]:
+        data = _gaps_cache["data"]
+        age = now - _gaps_cache["timestamp"] if data is not None else None
+
+    if data is not None and age is not None and age < _GAPS_TTL_SECONDS:
+        return {
+            "status": "fresh",
+            "age_seconds": round(age, 1),
+            "scanned_at": datetime.fromtimestamp(
+                now - age, tz=timezone.utc).isoformat(),
+            **data,
+        }
+
+    # Stale or empty — serve what we have (if anything) and refresh.
+    _refresh_gaps_in_background()
+
+    if data is not None:
+        return {
+            "status": "stale",
+            "age_seconds": round(age, 1),
+            "scanned_at": datetime.fromtimestamp(
+                now - age, tz=timezone.utc).isoformat(),
+            **data,
+        }
+
+    return {
+        "status": "scanning",
+        "message": (
+            "First scan in progress — the detectors query the Babylon "
+            "control-plane and the worker clusters synchronously and take "
+            "1-2 minutes. Poll again; results cache for 10 minutes."
+        ),
+    }
 
 
 @router.get("/admin/provision-readiness-mismatches")

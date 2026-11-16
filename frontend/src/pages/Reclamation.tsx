@@ -57,6 +57,10 @@ interface ResourceLeaksResult {
 }
 
 interface MonitoringGaps {
+  status?: 'fresh' | 'stale' | 'scanning';
+  age_seconds?: number;
+  scanned_at?: string;
+  message?: string;
   stuck_teardowns?: StuckTeardownsResult;
   resource_leaks?: ResourceLeaksResult;
 }
@@ -127,7 +131,10 @@ export default function Reclamation() {
   const gaps = useQuery({
     queryKey: ['reclamation', 'monitoring-gaps'],
     queryFn: () => request<MonitoringGaps>('/admin/monitoring-gaps'),
-    refetchInterval: 600_000,
+    // The endpoint serves the cached scan and refreshes in the background —
+    // poll briskly while a scan is in flight, otherwise on the 10-minute cadence.
+    refetchInterval: (query) =>
+      query.state.data?.status === 'scanning' ? 15_000 : 600_000,
   });
   const resolutions = useQuery({
     queryKey: ['reclamation', 'resolutions'],
@@ -179,10 +186,12 @@ export default function Reclamation() {
     return [...bySubject.values()].sort((a, b) => (b.ageHours ?? -1) - (a.ageHours ?? -1));
   }, [gaps.data, stuck.data]);
 
+  // The envelope says scanning until the first background scan lands.
+  const gapsScanning = gaps.data?.status === 'scanning';
   const leaks = gaps.data?.resource_leaks;
   const orphanedPvs = leaks?.orphaned_pvs ?? [];
   // A failed scan means unobserved, not zero — never green across a gap.
-  const leakScanFailed = !!gaps.error || !!leaks?.error;
+  const leakScanFailed = (!!gaps.error && !gapsScanning) || !!leaks?.error;
   const leakCount = leakScanFailed || !leaks
     ? null
     : (leaks.orphaned_count ?? orphanedPvs.length);
@@ -202,7 +211,7 @@ export default function Reclamation() {
         : stuckObserved && leakCount === 0 ? 'green'
           : 'unknown';
 
-  const scanning = stuck.isLoading || gaps.isLoading;
+  const scanning = stuck.isLoading || gaps.isLoading || gapsScanning;
   const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
   const headline = scanning
     ? 'Checking teardowns and leaks…'
@@ -403,10 +412,12 @@ export default function Reclamation() {
         <SectionHeader right={leaks ? `${leaks.total_pvs ?? '—'} PVs scanned` : 'live cluster scan'}>
           Resource leaks
         </SectionHeader>
-        {gaps.isLoading && (
-          <div className="text-sm text-[#6A6E73]">Running leak scan (live cluster query)…</div>
+        {(gaps.isLoading || gapsScanning) && (
+          <div className="text-sm text-[#6A6E73]">
+            Running leak scan (live cluster query){gaps.data?.message ? ' — first scan takes 1-2 minutes' : ''}…
+          </div>
         )}
-        {!gaps.isLoading && leakScanFailed && (
+        {!gaps.isLoading && !gapsScanning && leakScanFailed && (
           <div className="bg-[#2e2e2e] border border-[#F0AB00]/40 rounded-lg p-3 text-sm text-white">
             Leak scan unavailable — {String(gaps.error || leaks?.error)}. The verdict above reads
             unknown, not clean: a zero is only healthy when the scan succeeded.
