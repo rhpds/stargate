@@ -366,7 +366,15 @@ def set_sync_label(page_id: str, new_hash: str):
 
 
 def main():
-    check_only = "--check" in sys.argv
+    # Unknown flags must fail loudly — a mistyped "dry-run" once ran a real
+    # sync (the script ignored unrecognized argv and wrote to Confluence).
+    valid = ("--check", "--dry-run")
+    unknown = [a for a in sys.argv[1:] if a not in valid]
+    if unknown:
+        print(f"ERROR: unknown argument(s): {' '.join(unknown)}")
+        print("Usage: confluence_sync.py [--check | --dry-run]  (no flags = live sync)")
+        sys.exit(2)
+    check_only = any(a in sys.argv[1:] for a in valid)
     docs_dir = Path(__file__).parent.parent / "docs"
     children = existing_children()
     created = updated = unchanged = 0
