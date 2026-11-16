@@ -22,5 +22,7 @@ COPY constraints/ constraints/
 COPY db/ db/
 COPY rubrics/ rubrics/
 COPY evidence-schemas/ evidence-schemas/
+COPY scripts/ scripts/
+COPY data/ data/
 
 RUN mkdir -p scan-history
