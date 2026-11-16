@@ -60,7 +60,10 @@ def _check_workloads(
     """Check if declared workloads are deployed."""
     violations = []
     workloads = constraints.get("workloads", [])
-    if not workloads:
+    # A string here is an unevaluated Jinja expression (see the loader), and
+    # iterating it would produce one "violation" per character. Only a list of
+    # resolved workload names can be compared against live evidence.
+    if not workloads or not isinstance(workloads, list):
         return violations
 
     deployed_namespaces = evidence.get("deployed_namespaces", [])
@@ -83,6 +86,8 @@ def _check_workloads(
         deployed_workloads.add(_normalize(name))
 
     for workload in workloads:
+        if not isinstance(workload, str) or not workload.strip():
+            continue
         # Extract the short name from the collection path
         # e.g., "agnosticd.core_workloads.ocp4_workload_rhacs" → "rhacs"
         parts = workload.split(".")

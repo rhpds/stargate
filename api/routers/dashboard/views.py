@@ -149,18 +149,34 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
         "demolition": demolition_sessions,
         "constraints": constraints,
         "constraint_violations": _get_lab_constraint_violations(lab_code, constraints),
+        "constraint_validation": {
+            "evaluated": False,
+            "reason": "no live evidence collected for this workload",
+            "declared_workloads": len((constraints or {}).get("workloads") or []),
+            "unresolved_template": bool((constraints or {}).get("workloads_template")),
+        },
         "recent_events": lab_events,
         "provisioning": _get_lab_provisioning(lab_code),
     }
 
 
-def _get_lab_constraint_violations(lab_code: str, constraints: Dict) -> list:
-    """Get constraint violations for a specific lab."""
-    if not constraints:
+def _get_lab_constraint_violations(
+    lab_code: str,
+    constraints: Dict,
+    evidence: Optional[Dict] = None,
+) -> list:
+    """Get constraint violations for a specific lab.
+
+    Only produces violations when live evidence is supplied. Without evidence
+    every declared workload looks missing, which turned the detail page into a
+    false-positive generator (797 "violations" for one catalog item, live
+    Nov 16 2026).
+    """
+    if not constraints or not evidence:
         return []
     try:
         from constraints.classifier import classify_constraints
-        violations = classify_constraints(constraints, {"lab_code": lab_code})
+        violations = classify_constraints(constraints, evidence)
         return [
             {"type": v.violation_type, "expected": v.expected, "actual": v.actual,
              "severity": v.severity, "detail": v.detail}

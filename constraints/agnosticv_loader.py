@@ -37,11 +37,20 @@ def load_lab_constraints(common_yaml_path: Path) -> Dict[str, Any]:
 
     constraints: Dict[str, Any] = {}
 
-    # Workloads
+    # Workloads — only a resolved list is usable for comparison. Many catalog
+    # items declare a Jinja expression instead (a string the deployer evaluates
+    # at provision time); iterating that string yields characters, not workload
+    # names, so it is carried separately as unresolved.
     workloads = data.get("workloads", [])
-    if workloads:
-        constraints["workloads"] = workloads
-        constraints["workload_count"] = len(workloads)
+    if isinstance(workloads, list):
+        entries = [w for w in workloads if isinstance(w, str) and w.strip()]
+        if entries:
+            constraints["workloads"] = entries
+            constraints["workload_count"] = len(entries)
+        if len(entries) != len(workloads):
+            constraints["workloads_unresolved_entries"] = len(workloads) - len(entries)
+    elif workloads:
+        constraints["workloads_template"] = str(workloads).strip()
 
     # Requirements (collection versions)
     req = data.get("requirements_content", {})

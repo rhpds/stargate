@@ -130,3 +130,78 @@ class TestConstraintClassifier:
     def test_empty_constraints_no_violations(self):
         violations = classify_constraints({}, {})
         assert violations == []
+
+
+class TestUnresolvedWorkloadTemplates:
+    """A Jinja expression is not a workload list.
+
+    Live Nov 16 2026: the lab detail page showed "Constraint Violations (797)"
+    for one catalog item because `workloads:` was a Jinja string and the count
+    (and the classifier's iteration) used the string's 797 characters.
+    """
+
+    def test_jinja_string_is_carried_as_template(self, tmp_path):
+        common = tmp_path / "common.yaml"
+        common.write_text('workloads: "{{ (_base_workloads + _extra_workloads) }}"\n')
+
+        constraints = load_lab_constraints(common)
+
+        assert "workloads" not in constraints
+        assert constraints["workloads_template"].startswith("{{")
+        assert "workload_count" not in constraints
+
+    def test_resolved_list_is_kept(self, tmp_path):
+        common = tmp_path / "common.yaml"
+        common.write_text(
+            "workloads:\n"
+            "  - agnosticd.core_workloads.ocp4_workload_rhacs\n"
+            "  - agnosticd.showroom.ocp4_workload_showroom\n"
+        )
+
+        constraints = load_lab_constraints(common)
+
+        assert constraints["workload_count"] == 2
+        assert "workloads_template" not in constraints
+
+    def test_string_workloads_produce_no_violations(self):
+        constraints = {"workloads_template": "{{ base_workloads }}"}
+        evidence = {"deployed_namespaces": ["showroom"]}
+
+        assert classify_constraints(constraints, evidence) == []
+
+    def test_non_string_entries_are_skipped(self):
+        constraints = {
+            "workloads": [
+                {"unresolved": True},
+                "agnosticd.core_workloads.ocp4_workload_rhacs",
+            ],
+        }
+        evidence = {"deployed_namespaces": ["showroom"]}
+
+        violations = classify_constraints(constraints, evidence)
+        workload_violations = [
+            v for v in violations if v.violation_type == "workload_not_deployed"
+        ]
+        assert len(workload_violations) == 1
+        assert "rhacs" in workload_violations[0].expected
+
+
+class TestLabDetailConstraintEvidence:
+    """The detail endpoint must not invent violations without live evidence."""
+
+    def test_no_evidence_means_no_violations(self):
+        from api.routers.dashboard.views import _get_lab_constraint_violations
+
+        constraints = {"workloads": ["agnosticd.core_workloads.ocp4_workload_rhacs"]}
+
+        assert _get_lab_constraint_violations("ocp-field-asset-aws", constraints) == []
+
+    def test_evidence_enables_classification(self):
+        from api.routers.dashboard.views import _get_lab_constraint_violations
+
+        constraints = {"workloads": ["agnosticd.core_workloads.ocp4_workload_rhacs"]}
+        evidence = {"deployed_namespaces": ["rhacs"]}
+
+        assert _get_lab_constraint_violations(
+            "ocp-field-asset-aws", constraints, evidence
+        ) == []
