@@ -8,9 +8,11 @@
  * surfaced where the work happens.
  */
 
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime, statusColor } from '../components/ui';
+import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime, statusColor, splitAnalysisSections } from '../components/ui';
+import FormattedAnalysis from '../components/FormattedAnalysis';
 import { request } from '../api/client';
 
 interface InvestigationRow {
@@ -51,6 +53,98 @@ interface KnownIssuesResponse {
     lab_family: number;
     unknown: number;
   };
+}
+
+function QueueRow({
+  inv,
+  onApprove,
+  onReject,
+}: {
+  inv: InvestigationRow;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const detail = useQuery({
+    queryKey: ['investigation-detail', inv.id],
+    queryFn: () =>
+      request<{ analysis?: string; root_cause?: string; remediation_suggestion?: string }>(
+        `/dashboard/investigations/${inv.id}`),
+    enabled: open,
+  });
+  const parsed = detail.data?.analysis || detail.data?.root_cause
+    ? splitAnalysisSections(detail.data.analysis || detail.data.root_cause || '')
+    : null;
+
+  return (
+    <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg">
+      <div className="p-3 flex items-center justify-between gap-4 cursor-pointer" onClick={() => setOpen(!open)}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: statusColor(inv.status) }}
+              aria-label={`status: ${inv.status}`} />
+            <Link to={`/lab/${inv.lab_code ?? inv.namespace}`}
+              className="text-sm text-white font-medium truncate hover:text-[#73BCF7]"
+              onClick={(e) => e.stopPropagation()}>
+              {inv.lab_code ?? inv.namespace}
+            </Link>
+            <span className="text-xs text-[#6A6E73] truncate">{inv.failure_class ?? '(unclassified)'}</span>
+            {parsed?.verdict && (
+              <StatusBadge status={parsed.verdict === 'ACTIONABLE' ? 'fail' : 'ok'}
+                label={parsed.verdict} />
+            )}
+          </div>
+          <div className="text-xs text-[#6A6E73] mt-0.5">
+            {inv.namespace} · {inv.cluster} · {relativeTime(inv.created_at)}
+            {open ? ' · ▲' : ' · ▼'}
+          </div>
+        </div>
+        <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button className="text-xs px-3 py-1.5 rounded bg-[#3E8635]/20 text-[#3E8635] border border-[#3E8635]/40 hover:bg-[#3E8635]/30 transition"
+            onClick={() => onApprove(inv.id)} aria-label={`Approve diagnosis for ${inv.lab_code ?? inv.namespace}`}>
+            ✓ Approve
+          </button>
+          <button className="text-xs px-3 py-1.5 rounded bg-[#EE0000]/10 text-[#EE0000] border border-[#EE0000]/30 hover:bg-[#EE0000]/20 transition"
+            onClick={() => onReject(inv.id)} aria-label={`Reject diagnosis for ${inv.lab_code ?? inv.namespace}`}>
+            ✕ Reject
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div className="border-t border-[#2e2e2e] p-4 space-y-3">
+          {detail.isLoading && <div className="text-xs text-[#6A6E73]">Loading diagnosis…</div>}
+          {detail.error && <div className="text-xs text-[#EE0000]">Failed to load detail: {String(detail.error)}</div>}
+          {parsed && (
+            <>
+              {parsed.diagnosis && (
+                <div>
+                  <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Diagnosis</div>
+                  <div className="text-sm text-white"><FormattedAnalysis text={parsed.diagnosis} /></div>
+                </div>
+              )}
+              {parsed.rootCause && (
+                <div>
+                  <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Root Cause</div>
+                  <div className="text-sm text-white"><FormattedAnalysis text={parsed.rootCause} /></div>
+                </div>
+              )}
+              {(parsed.shadowRemediation || parsed.remaining) && (
+                <div>
+                  <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Remediation</div>
+                  <div className="text-sm text-white">
+                    <FormattedAnalysis text={parsed.shadowRemediation || parsed.remaining || ''} />
+                  </div>
+                </div>
+              )}
+              {!parsed.diagnosis && !parsed.rootCause && detail.data?.root_cause && (
+                <div className="text-sm text-white"><FormattedAnalysis text={detail.data.root_cause} /></div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Investigations() {
@@ -220,49 +314,9 @@ function Investigations() {
         )}
         <div className="space-y-2">
           {[...unreviewed].sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, 15).map((inv) => (
-            <div
-              key={inv.id}
-              className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 flex items-center justify-between gap-4"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ backgroundColor: statusColor(inv.status) }}
-                    aria-label={`status: ${inv.status}`}
-                  />
-                  <Link
-                    to={`/lab/${inv.lab_code ?? inv.namespace}`}
-                    className="text-sm text-white font-medium truncate hover:text-[#73BCF7]"
-                  >
-                    {inv.lab_code ?? inv.namespace}
-                  </Link>
-                  <span className="text-xs text-[#6A6E73] truncate">
-                    {inv.failure_class ?? '(unclassified)'}
-                  </span>
-                </div>
-                <div className="text-xs text-[#6A6E73] mt-0.5">
-                  {inv.namespace} · {inv.cluster} · {relativeTime(inv.created_at)}
-                  {inv.root_cause ? ' · diagnosed' : ''}
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  className="text-xs px-3 py-1.5 rounded bg-[#3E8635]/20 text-[#3E8635] border border-[#3E8635]/40 hover:bg-[#3E8635]/30 transition"
-                  onClick={() => review.mutate({ id: inv.id, approved: true })}
-                  aria-label={`Approve diagnosis for ${inv.lab_code ?? inv.namespace}`}
-                >
-                  ✓ Approve
-                </button>
-                <button
-                  className="text-xs px-3 py-1.5 rounded bg-[#EE0000]/10 text-[#EE0000] border border-[#EE0000]/30 hover:bg-[#EE0000]/20 transition"
-                  onClick={() => review.mutate({ id: inv.id, approved: false })}
-                  aria-label={`Reject diagnosis for ${inv.lab_code ?? inv.namespace}`}
-                >
-                  ✕ Reject
-                </button>
-              </div>
-            </div>
+            <QueueRow key={inv.id} inv={inv}
+              onApprove={(id) => review.mutate({ id, approved: true })}
+              onReject={(id) => review.mutate({ id, approved: false })} />
           ))}
         </div>
       </section>
