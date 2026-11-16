@@ -30,8 +30,6 @@ TOPICS = [
     "launchpad-provisioning",
     "stargate-evaluations",
     "stargate-remediations",
-    "deepfield-signals",
-    "deepfield-inferences",
     "cluster-health",
     "audit-trail",
     "ecosystem-commands",

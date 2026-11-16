@@ -7,7 +7,8 @@ WARNING_CLASSES = {"guest_agent_not_connected", "health_check_failed", "readines
 # Informational failures — never break the lab, excluded from operational views entirely
 INFORMATIONAL_CLASSES = {"deprecated_api", "guest_agent_not_connected"}
 
-_ECOSYSTEM_DEFAULT = "launchpad-,stargate,deepfield,intel-rh-,user-demo-,partner-ai-"
+# deepfield removed Nov 16 — internal product, out of the system
+_ECOSYSTEM_DEFAULT = "launchpad-,stargate,intel-rh-,user-demo-,partner-ai-"
 
 ECOSYSTEM_PREFIXES = [
     p.strip() for p in

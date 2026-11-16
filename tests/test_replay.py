@@ -23,5 +23,4 @@ class TestReplay:
         from cli.replay import TOPICS
         assert "audit-trail" in TOPICS
         assert "stargate-evaluations" in TOPICS
-        assert "deepfield-signals" in TOPICS
-        assert len(TOPICS) == 9
+        assert len(TOPICS) == 7

@@ -306,8 +306,7 @@ export const api = {
     return request<any>(`/admin/correlated-view${qs ? `?${qs}` : ''}`);
   },
 
-  // Deepfield / GeoLux
-  getDeepfieldOverview: () => request<any>('/admin/deepfield/overview'),
+  // GeoLux
   getGeoluxOverview: () => request<any>('/admin/geolux/overview'),
 
   // Monitoring Gaps

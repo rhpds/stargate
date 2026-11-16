@@ -8,7 +8,6 @@ import pytest
     ("/admin/remediation/execute", "post", "RemediationExecuteRequest"),
     ("/remediation/playbook", "post", "PlaybookRunRequest"),
     ("/integration/geolux-proposal", "post", "GeoluxProposalRequest"),
-    ("/integration/deepfield-incident", "post", "DeepfieldIncidentRequest"),
 ])
 def test_openapi_resolves_admin_request_models(path, method, model):
     from api.app import app

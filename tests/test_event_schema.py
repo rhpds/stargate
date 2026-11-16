@@ -31,7 +31,7 @@ class TestEcosystemEvent:
 
     def test_create_event_factory(self):
         from contracts.event_schema import create_event
-        e = create_event("deepfield", "signal.escalated", {"signal_type": "pod_crashloop"})
-        assert e["source"] == "deepfield"
+        e = create_event("scanner", "signal.escalated", {"signal_type": "pod_crashloop"})
+        assert e["source"] == "scanner"
         assert e["event_type"] == "signal.escalated"
         assert e["payload"]["signal_type"] == "pod_crashloop"

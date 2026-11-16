@@ -316,25 +316,6 @@ class GeoluxProposalRequest(BaseModel):
     event_id: str = ""
 
 
-class DeepfieldIncidentRequest(BaseModel):
-    """Enriched incident from Deepfield's correlation + RCA pipeline."""
-    source: str = "deepfield"
-    incident_id: str
-    event_id: Optional[str] = None
-    namespace: str
-    cluster: str = ""
-    lab_code: Optional[str] = None
-    failure_class: Optional[str] = None
-    severity: str = "medium"
-    confidence: float = 0.5
-    rca_output: Optional[str] = None
-    correlated_signals: List[Dict[str, Any]] = Field(default_factory=list)
-    remediation_options: List[Dict[str, Any]] = Field(default_factory=list)
-    evidence_chain: List[Dict[str, Any]] = Field(default_factory=list)
-    signal_count: int = 0
-
-
-# --- Capacity forecast contracts (frontend Phase 1, first family) ------------
 
 class DemandCitation(BaseModel):
     """One session's contribution to an hour's demand (EDD in the UI)."""
