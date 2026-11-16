@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export function MetricCard({
   label,
@@ -150,18 +151,145 @@ export function statusColor(status: string | null | undefined): string {
 export function StatusBadge({
   status,
   colors,
+  label,
 }: {
   status: string;
   colors?: Record<string, string>;
+  label?: string;
 }) {
+  const key = status?.toLowerCase?.() ?? '';
   const map = colors ?? STATUS_COLORS;
-  const bg = map[status?.toLowerCase?.() ?? ''] ?? '#6A6E73';
+  const bg = map[key] ?? '#6A6E73';
+  const isUnknown = key === 'unknown' || key === 'indeterminate';
+  // dark-on-amber passes WCAG 4.5:1 where white-on-amber fails (~2:1)
+  const fg = bg === '#F0AB00' ? '#151515' : '#fff';
+  if (isUnknown) {
+    return (
+      <span className="text-xs font-semibold px-2 py-0.5 rounded-full w-fit border border-dashed border-[#6A6E73] text-[#8a8a8a]">
+        ? {label ?? status}
+      </span>
+    );
+  }
   return (
     <span
       className="text-xs font-semibold px-2 py-0.5 rounded-full w-fit"
-      style={{ backgroundColor: bg, color: '#fff' }}
+      style={{ backgroundColor: bg, color: fg }}
     >
-      {status}
+      {label ?? status}
     </span>
+  );
+}
+
+/**
+ * VerdictBanner — the page's answer, dominant. One per page, full width,
+ * RAG tint + border + glyph + words (never color alone). The glance
+ * grammar from the design brief: hue+size+position are preattentive;
+ * the words confirm.
+ */
+export function VerdictBanner({
+  state,
+  headline,
+  chips,
+  meta,
+  drillTo,
+  drillLabel,
+}: {
+  state: 'green' | 'amber' | 'red' | 'unknown';
+  headline: string;
+  chips?: string[];
+  meta?: string;
+  drillTo?: string;
+  drillLabel?: string;
+}) {
+  const conf = {
+    green: { color: '#3E8635', glyph: '✓', shape: 'rounded-full' },
+    amber: { color: '#F0AB00', glyph: '⚠', shape: '' },
+    red: { color: '#EE0000', glyph: '✖', shape: '' },
+    unknown: { color: '#6A6E73', glyph: '?', shape: 'border-dashed' },
+  }[state];
+  return (
+    <div
+      className={`w-full rounded-xl p-4 flex items-center gap-4 border-2 ${conf.shape}`}
+      style={{
+        backgroundColor: `${conf.color}22`,
+        borderColor: conf.color,
+      }}
+      role="status"
+      aria-label={headline}
+    >
+      <span
+        className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
+        style={{ backgroundColor: conf.color, color: conf.color === '#F0AB00' ? '#151515' : '#fff' }}
+        aria-hidden="true"
+      >
+        {conf.glyph}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-bold text-white">{headline}</div>
+        {chips && chips.length > 0 && (
+          <div className="text-xs text-[#c7c7c7] mt-0.5 flex gap-3 flex-wrap">
+            {chips.map((c) => <span key={c}>{c}</span>)}
+          </div>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        {meta && <div className="text-xs text-[#8a8a8a]">{meta}</div>}
+        {drillTo && (
+          <Link to={drillTo} className="text-xs text-[#73BCF7] hover:underline">
+            {drillLabel ?? 'drill in →'}
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * StateStrip — the generalized glance strip with the tri-state textures:
+ * solid for observed states, diagonal HATCH for lower bounds ("at least"),
+ * DASHED for unknown. Never color alone; never interpolate across gaps.
+ */
+export function StateStrip({
+  cells,
+  height = 'h-3',
+}: {
+  cells: { state: 'green' | 'amber' | 'red' | 'floor' | 'unknown'; title?: string }[];
+  height?: string;
+}) {
+  const solid = {
+    green: '#3E8635',
+    amber: '#F0AB00',
+    red: '#EE0000',
+  };
+  return (
+    <div className={`flex ${height} rounded-full overflow-hidden gap-px`} role="img"
+      aria-label={`Strip: ${cells.filter((c) => c.state === 'red').length} deficit, ${cells.filter((c) => c.state === 'floor').length} lower-bound, ${cells.filter((c) => c.state === 'unknown').length} unknown, ${cells.filter((c) => c.state === 'green').length} headroom`}>
+      {cells.map((c, i) => {
+        if (c.state === 'floor') {
+          return (
+            <div key={i} title={c.title ?? 'at least (lower bound)'} className="flex-1"
+              style={{ background: 'repeating-linear-gradient(45deg, #F0AB00, #F0AB00 3px, #212121 3px, #212121 6px)' }} />
+          );
+        }
+        if (c.state === 'unknown') {
+          return <div key={i} title={c.title ?? 'not measured'} className="flex-1 border-y border-dashed border-[#6A6E73] bg-[#1a1a1a]" />;
+        }
+        return <div key={i} title={c.title} className="flex-1" style={{ backgroundColor: solid[c.state] }} />;
+      })}
+    </div>
+  );
+}
+
+/**
+ * LegendRow — the tri-state vocabulary, in words, next to what it explains.
+ */
+export function LegendRow() {
+  return (
+    <div className="flex gap-4 text-xs text-[#8a8a8a] flex-wrap">
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: '#3E8635' }} /> headroom (observed)</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: '#EE0000' }} /> deficit</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'repeating-linear-gradient(45deg, #F0AB00, #F0AB00 2px, #212121 2px, #212121 4px)' }} /> at least (floor)</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block border border-dashed border-[#6A6E73]" /> unknown</span>
+    </div>
   );
 }
