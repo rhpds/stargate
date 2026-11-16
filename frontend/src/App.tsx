@@ -63,10 +63,17 @@ const navItems = [
   { to: '/capacity', label: 'Capacity' },
   { to: '/investigations', label: 'Investigations' },
   { to: '/knowledge', label: 'Knowledge' },
+];
+
+// StarGate's own machinery: in the loop, not in your face — a secondary
+// "Platform" group instead of primary nav slots.
+const platformNavItems = [
   { to: '/operations', label: 'Operations' },
   { to: '/deepfield', label: 'Deepfield' },
   { to: '/geolux', label: 'GeoLux' },
   { to: '/proof', label: 'Proof Lab' },
+  { to: '/failures', label: 'Taxonomy' },
+  { to: '/remediation', label: 'Remediation' },
 ];
 
 export default function App() {
@@ -84,7 +91,7 @@ export default function App() {
                     <span className="text-[#6A6E73]">|</span>
                     <span className="text-lg font-semibold tracking-tight" style={{ fontFamily: 'Red Hat Display, sans-serif' }}>StarGate</span>
                   </div>
-                  <nav className="flex gap-1">
+                  <nav className="flex gap-1" aria-label="Primary">
                     {navItems.map(({ to, label, end }) => (
                       <NavLink key={to} to={to} end={end}
                         className={({ isActive }) =>
@@ -94,6 +101,21 @@ export default function App() {
                       </NavLink>
                     ))}
                   </nav>
+                  <div className="flex-1" />
+                  <details className="relative group">
+                    <summary className="cursor-pointer list-none text-sm text-[#6A6E73] hover:text-white transition px-3 py-1.5 rounded select-none flex items-center gap-1.5">
+                      Platform
+                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+                    </summary>
+                    <div className="absolute right-0 top-full mt-1 w-44 bg-[#212121] border border-[#3a3a3a] rounded-lg shadow-xl py-1 z-50">
+                      {platformNavItems.map(({ to, label }) => (
+                        <NavLink key={to} to={to}
+                          className="block px-4 py-2 text-sm text-[#c7c7c7] hover:text-white hover:bg-white/10 transition">
+                          {label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               </div>
             </header>

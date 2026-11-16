@@ -7,7 +7,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { MetricCard, SectionHeader, StatusBadge, relativeTime } from '../components/ui';
+import { MetricCard, SectionHeader, StatusBadge, FleetStrip, relativeTime } from '../components/ui';
 import { useHealth, useOverview, useEvents } from '../api/hooks';
 
 interface ClusterRag {
@@ -80,6 +80,9 @@ export default function Overview() {
 
       <section aria-label="Fleet status">
         <SectionHeader right={`${clusters.length} clusters`}>Fleet status</SectionHeader>
+        <div className="mb-4">
+          <FleetStrip segments={clusters.map((c) => ({ name: c.name, rag: c.rag }))} />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             label="Fleet"

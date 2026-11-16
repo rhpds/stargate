@@ -1,10 +1,7 @@
 /**
  * Shared UI primitives — one definition site (frontend redesign Phase 2).
- *
- * These replace the per-page copies: MetricCard ×14, SectionHeader ×12,
- * relativeTime ×7, statusColor ×7. The props are the superset of every
- * variant found across the pages; all previously-supported call shapes
- * remain valid.
+ * Visual pass: elevated cards with status accents, the RAG strip for
+ * instant fleet reads, refined typography rhythm.
  */
 
 import React from 'react';
@@ -14,21 +11,26 @@ export function MetricCard({
   value,
   sub,
   onClick,
+  accent,
 }: {
   label: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   sub?: string;
   onClick?: () => void;
+  accent?: 'green' | 'amber' | 'red';
 }) {
+  const accentBorder =
+    accent === 'green' ? 'border-l-[#3E8635]'
+      : accent === 'amber' ? 'border-l-[#F0AB00]'
+        : accent === 'red' ? 'border-l-[#EE0000]'
+          : '';
   return (
     <div
-      className={`bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 ${
-        onClick ? 'cursor-pointer hover:border-[#555] transition' : ''
-      }`}
+      className={`bg-gradient-to-b from-[#252525] to-[#212121] border border-[#2e2e2e] border-l-2 ${accentBorder} rounded-lg p-4 shadow-sm ${onClick ? 'cursor-pointer hover:border-[#555] hover:shadow-md transition-all' : 'transition-shadow'}`}
       onClick={onClick}
     >
       <div
-        className="text-2xl font-bold text-white"
+        className="text-2xl font-bold text-white tabular-nums"
         style={{ fontFamily: 'Red Hat Display' }}
       >
         {value}
@@ -36,7 +38,7 @@ export function MetricCard({
       <div className="text-xs text-[#6A6E73] uppercase tracking-wider mt-1">
         {label}
       </div>
-      {sub && <div className="text-xs text-[#6A6E73] mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-[#8a8a8a] mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -52,20 +54,53 @@ export function SectionHeader({
 }) {
   return (
     <div
-      className={`flex items-center justify-between mb-3 ${
-        onClick ? 'cursor-pointer hover:opacity-80 transition' : ''
-      }`}
+      className={`flex items-center justify-between mb-3 ${onClick ? 'cursor-pointer hover:opacity-80 transition' : ''}`}
       onClick={onClick}
     >
-      <h2 className="text-base font-semibold text-white">{children}</h2>
+      <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
+        {children}
+      </h2>
       {right && <div className="text-xs text-[#6A6E73]">{right}</div>}
     </div>
   );
 }
 
 /**
- * Canonical relative-time formatting. Never color-only, never crashes on
- * null — the a11y rule "no naked values" applies to time too.
+ * The fleet strip: one colored segment per cluster — the instant visual
+ * read the overview needed. Hover for the name; a screen-reader label
+ * carries the full state (a11y rule: never color alone).
+ */
+export function FleetStrip({
+  segments,
+}: {
+  segments: { name: string; rag: 'green' | 'amber' | 'red' | string }[];
+}) {
+  if (!segments.length) return null;
+  const colors: Record<string, string> = {
+    green: '#3E8635',
+    amber: '#F0AB00',
+    red: '#EE0000',
+  };
+  return (
+    <div
+      className="flex h-2 rounded-full overflow-hidden gap-px"
+      role="img"
+      aria-label={`Fleet: ${segments.filter((s) => s.rag === 'red').length} critical, ${segments.filter((s) => s.rag === 'amber').length} degraded, ${segments.filter((s) => s.rag === 'green').length} healthy`}
+    >
+      {segments.map((s) => (
+        <div
+          key={s.name}
+          title={`${s.name}: ${s.rag}`}
+          className="flex-1 transition-opacity hover:opacity-75"
+          style={{ backgroundColor: colors[s.rag] ?? '#6A6E73' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Canonical relative-time formatting. Never crashes on null.
  */
 export function relativeTime(iso: string | null | undefined): string {
   if (!iso) return '--';
@@ -84,10 +119,6 @@ export function relativeTime(iso: string | null | undefined): string {
   return `${months}mo ago`;
 }
 
-/**
- * Shared status palette — the consistent RAG semantics. Domain maps
- * extend it; the fallback is always the neutral gray, never a crash.
- */
 export const STATUS_COLORS: Record<string, string> = {
   ok: '#3E8635',
   good: '#3E8635',
@@ -116,9 +147,6 @@ export function statusColor(status: string | null | undefined): string {
   return STATUS_COLORS[status.toLowerCase()] ?? '#6A6E73';
 }
 
-/**
- * StatusBadge — color PLUS text, never color alone (the a11y rule).
- */
 export function StatusBadge({
   status,
   colors,
