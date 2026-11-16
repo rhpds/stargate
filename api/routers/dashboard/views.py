@@ -3,7 +3,7 @@ data health, data mapping, corpus, and audit ledger endpoints."""
 
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
@@ -29,6 +29,48 @@ logger = logging.getLogger("stargate.dashboard.views")
 router = APIRouter()
 
 
+def _evaluation_lab_codes(db: Session, lab_code: str) -> List[str]:
+    """Resolve every identity this workload's evaluations are recorded under.
+
+    The same workload appears under different names depending on the collector:
+    the Babylon slug (`ocp-field-asset-aws`), the AAP job title
+    (`RHPDS agd-v2.ocp-field-asset-aws`) and per-instance subject names
+    (`agd-v2.ocp-field-asset-aws.prod-wxjcg-1`). The detail page queried only
+    the slug and reported "0 evaluations" for a workload with 200+ (live
+    Nov 16 2026).
+
+    Deliberately conservative: only codes containing the exact slug are
+    included, so a related-but-different workload (`published.ocp-field-asset`
+    vs `ocp-field-asset-aws`) is never merged in.
+    """
+    from db.models import EvaluationRecord
+
+    slug = (lab_code or "").strip()
+    if not slug:
+        return [lab_code]
+
+    escaped = (
+        slug.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+    )
+    try:
+        rows = (
+            db.query(EvaluationRecord.lab_code)
+            .filter(EvaluationRecord.lab_code.ilike(f"%{escaped}%", escape="\\"))
+            .distinct()
+            .all()
+        )
+    except Exception:
+        return [slug]
+
+    aliases = {slug}
+    for (code,) in rows:
+        if not code or code.startswith("sandbox-") or code.startswith("guid:"):
+            continue
+        aliases.add(code)
+    return [slug] + sorted(alias for alias in aliases if alias != slug)
+
+
+
 # ---------------------------------------------------------------------------
 # Lab detail
 # ---------------------------------------------------------------------------
@@ -41,9 +83,13 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
     ctx = _make_ssl_context()
 
     from db.models import EvaluationRecord as _ER
-    history = repository.get_evaluation_history(db, lab_code=lab_code, limit=50)
-    failures = repository.get_failure_class_frequency(db, lab_code=lab_code)
-    last_pass = repository.get_last_passing_run(db, lab_code=lab_code)
+    lab_codes = _evaluation_lab_codes(db, lab_code)
+    history = repository.get_evaluation_history(
+        db, lab_code=lab_code, limit=50, lab_codes=lab_codes)
+    failures = repository.get_failure_class_frequency(
+        db, lab_code=lab_code, lab_codes=lab_codes)
+    last_pass = repository.get_last_passing_run(
+        db, lab_code=lab_code, lab_codes=lab_codes)
 
     if not history:
         lab_ns = _get_lab_namespaces(lab_code)
@@ -147,6 +193,11 @@ def dashboard_lab(lab_code: str, db: Session = Depends(get_db)):
             "proposed_classifications": repository.get_proposed_classifications(db, lab_code=lab_code, limit=20),
         },
         "demolition": demolition_sessions,
+        "identity": {
+            "requested": lab_code,
+            "evaluation_lab_codes": lab_codes,
+            "resolved": len(lab_codes) > 1,
+        },
         "constraints": constraints,
         "constraint_violations": _get_lab_constraint_violations(lab_code, constraints),
         "constraint_validation": {

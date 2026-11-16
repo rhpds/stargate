@@ -367,9 +367,19 @@ def get_evaluation_history(
     stage_id: Optional[str] = None,
     cluster_name: Optional[str] = None,
     limit: int = 20,
+    lab_codes: Optional[List[str]] = None,
 ) -> List[dict]:
-    """Get historical evaluations for a lab, optionally filtered by stage and cluster."""
-    query = db.query(EvaluationRecord).filter(EvaluationRecord.lab_code == lab_code)
+    """Get historical evaluations for a lab, optionally filtered by stage and cluster.
+
+    ``lab_codes`` queries several identities at once — the same workload is
+    recorded under different names by different collectors (Babylon slug, AAP
+    job title, per-instance subject name), and one page has to show them all.
+    """
+    query = db.query(EvaluationRecord)
+    if lab_codes:
+        query = query.filter(EvaluationRecord.lab_code.in_(lab_codes))
+    else:
+        query = query.filter(EvaluationRecord.lab_code == lab_code)
     if stage_id:
         query = query.filter(EvaluationRecord.stage_id == stage_id)
     if cluster_name:
@@ -394,10 +404,13 @@ def get_failure_class_frequency(
     lab_code: Optional[str] = None,
     cluster_name: Optional[str] = None,
     limit: int = 100,
+    lab_codes: Optional[List[str]] = None,
 ) -> dict:
     """Count failure class occurrences, optionally scoped to lab or cluster."""
     query = db.query(EvaluationRecord).filter(EvaluationRecord.outcome == "fail")
-    if lab_code:
+    if lab_codes:
+        query = query.filter(EvaluationRecord.lab_code.in_(lab_codes))
+    elif lab_code:
         query = query.filter(EvaluationRecord.lab_code == lab_code)
     if cluster_name:
         query = query.filter(EvaluationRecord.cluster_name == cluster_name)
@@ -414,12 +427,15 @@ def get_last_passing_run(
     db: Session,
     lab_code: str,
     stage_id: Optional[str] = None,
+    lab_codes: Optional[List[str]] = None,
 ) -> Optional[dict]:
     """Find the most recent passing evaluation for a lab."""
-    query = (
-        db.query(EvaluationRecord)
-        .filter(EvaluationRecord.lab_code == lab_code, EvaluationRecord.outcome == "pass")
-    )
+    query = db.query(EvaluationRecord)
+    if lab_codes:
+        query = query.filter(EvaluationRecord.lab_code.in_(lab_codes))
+    else:
+        query = query.filter(EvaluationRecord.lab_code == lab_code)
+    query = query.filter(EvaluationRecord.outcome == "pass")
     if stage_id:
         query = query.filter(EvaluationRecord.stage_id == stage_id)
     record = query.order_by(EvaluationRecord.id.desc()).first()
