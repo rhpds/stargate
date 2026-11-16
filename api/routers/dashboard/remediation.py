@@ -549,6 +549,7 @@ def dashboard_investigate_poll(job_id: str, db: Session = Depends(get_db)):
 
 @router.get("/dashboard/investigations")
 def dashboard_investigations_list(
+    include_total: bool = False,
     lab_code: Optional[str] = None,
     cluster: Optional[str] = None,
     status: Optional[str] = None,
@@ -661,6 +662,11 @@ def dashboard_investigations_list(
             "review_state": r.review_state,
             "knowledge_match": r.knowledge_match,
         })
+    # Backward-compatible: the old consumers expect a bare array; the
+    # new Investigations page needs the total. Return the dict when
+    # include_total is set (the frontend passes it).
+    if include_total:
+        return {"investigations": result, "total": len(result)}
     return result
 
 
