@@ -241,3 +241,49 @@ classes:
       - "Check the image reference and required pull credentials"
       - "Verify registry.redhat.io or quay.io secrets exist in the namespace"
       - "This is a content/packaging issue, not an infrastructure problem"
+
+  # --- Added Nov 16 2026: recurring unclassified patterns (7-day evidence) ---
+  # Found reviewing the 'unclassified' bucket: these patterns recurred
+  # daily with no matching class, pooling ~50+ failures/3 days that the
+  # deterministic matcher could not name.
+
+  authentication_failed:
+    pattern: "(Module failed: 401|Reason: Unauthorized|status(code)?.?: ?401|[Uu]nauthorized.*forbidden|credentials.*rejected|token.*invalid)"
+    description: "Playbook task or API call rejected with 401/Unauthorized — credentials invalid, expired, or rotated without updating the consumer. Watch during any credential-rotation window: a spike here means a consumer was missed."
+    severity: high
+    team: platform-ops
+    remediation:
+      - Identify which credential the failing task uses (vault secret, API token, service account)
+      - Check whether the credential was recently rotated and the consumer not updated
+      - "Verify the credential works directly: test the API/service the task calls"
+      - If multiple namespaces show the same 401 at once, suspect a shared credential rotation
+
+  wait_condition_timeout:
+    pattern: "An 'until' expression failed|until.*condition.*not met|wait.*for.*did not become|timed out waiting for condition"
+    description: An Ansible wait/retry loop ('until' expression) exhausted its attempts — the thing being waited for never reached the expected state in time
+    severity: medium
+    team: platform-ops
+    remediation:
+      - Read the task's until condition to identify what never converged
+      - "oc get events -n {namespace} --sort-by=.lastTimestamp | tail -30"
+      - Distinguish slow-convergence (retry with longer timeout) from never-converging (find the blocking condition)
+
+  argocd_convergence_timeout:
+    pattern: "ArgoCD bootstrap did not converge|argocd.*did not converge|Application.*not synchronized|argocd.*sync.*failed"
+    description: ArgoCD application bootstrap or sync did not converge within its poll budget — the GitOps layer did not reach the expected state
+    severity: medium
+    team: platform-ops
+    remediation:
+      - "Check the application sync state: oc get application -n {namespace} (or openshift-gitops)"
+      - Inspect the Application's conditions and last sync error
+      - Verify the target revision exists in the source repo (a missing commit/branch hangs convergence)
+
+  missing_role_content:
+    pattern: "the role '.*' was not found|role.*not found|cannot find role|unable to resolve role"
+    description: Ansible role referenced by the playbook does not exist — a content/reference breakage, not an infrastructure failure
+    severity: medium
+    team: content-owners
+    remediation:
+      - Identify the role name and collection from the error
+      - Check whether the role was renamed, moved, or removed from its collection
+      - "Fix belongs to the catalog item's content repo — not a platform action"
