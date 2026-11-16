@@ -153,16 +153,30 @@ _LAB_NAMESPACES = frozenset({
     "zt-ansiblebu", "zt-rhelbu", "pert", "openshift-cnv",
 })
 
+# The catalog's own category label (babylon.gpte.redhat.com/category on
+# every catalog item) is the authoritative kind declaration — it dropped
+# the unclassified count from 47/153 to ~0 when joined in (Nov 16).
+_CATEGORY_KINDS = {
+    "labs": "lab",
+    "workshops": "lab",
+    "brand_events": "lab",       # scheduled event content with attendees
+    "open_environments": "open-env",
+    "demos": "demo",             # shown, not taken — a distinct thing
+}
 
-def _classify_workload(lab: str, insts: list, lg_codes_lower: set, pool_names: list) -> str:
-    """lab | sandbox | open-env | pool | catalog.
+
+def _classify_workload(
+    lab: str, insts: list, lg_codes_lower: set, pool_names: list,
+    category_by_slug: Dict[str, str],
+) -> str:
+    """lab | sandbox | open-env | demo | pool | catalog.
 
     The Affected-labs list mixes real labs with shared capacity; the user
     asked to indicate which is which (Nov 16). Evidence, in priority order:
-    the subject prefix (sandbox catalog vs open environment vs lab
-    namespace), Labagator membership (it has sessions → a lab), LB/LL-coded
-    subject slugs (event labs), and pool membership (shared capacity
-    serving many labs). 'catalog' is the honest fallback.
+    the subject prefix (sandbox catalog vs open environment), the catalog's
+    own category label, Labagator membership (it has sessions → a lab),
+    LB/LL-coded subject slugs (event labs), and pool membership (shared
+    capacity serving many labs). 'catalog' is the honest fallback.
     """
     names = [i.get("anarchy_name", "") for i in insts]
     prefixes = {n.split(".")[0] for n in names if "." in n}
@@ -174,6 +188,9 @@ def _classify_workload(lab: str, insts: list, lg_codes_lower: set, pool_names: l
         return "sandbox"
     if "azure-gpte" in prefixes or lab.startswith("open-environment"):
         return "open-env"
+    category = category_by_slug.get(lab.lower(), "")
+    if category in _CATEGORY_KINDS:
+        return _CATEGORY_KINDS[category]
     if lab.lower() in lg_codes_lower:
         return "lab"
     if any(s.startswith(("lb", "ll", "lnl")) for s in slug_first):
@@ -206,6 +223,17 @@ def dashboard_provisioning():
         p.get("name", "") for p in (babylon.get("pools", {}) or {}).get("all_pools", [])
         if isinstance(p, dict)
     ]
+    # slug -> catalog category, from the catalog items' own labels
+    category_by_slug: Dict[str, str] = {}
+    for item in (babylon.get("catalog_items", []) or []):
+        if not isinstance(item, dict):
+            continue
+        name_parts = str(item.get("name", "")).split(".")
+        if len(name_parts) >= 2:
+            category_by_slug[name_parts[1].lower()] = str(
+                (item.get("labels") or {}).get(
+                    "babylon.gpte.redhat.com/category", "")
+            ).lower()
     for lc, insts in instance_mapping.items():
         lab_total = 0
         lab_started = 0
@@ -238,7 +266,7 @@ def dashboard_provisioning():
                 "provision_failed": lab_prov_failed,
                 "teardown_failed": lab_teardown_failed,
                 "last_failed_at": lab_last_failed_at or None,
-                "kind": _classify_workload(lc, insts, lg_codes_lower, pool_names),
+                "kind": _classify_workload(lc, insts, lg_codes_lower, pool_names, category_by_slug),
             }
 
     # Snapshot-compat: pre-Nov-16 snapshots carry only the narrow

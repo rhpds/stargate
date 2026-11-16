@@ -8,6 +8,7 @@
  * failure rate is moving. Per the redesign's rule: never color alone.
  */
 
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -20,6 +21,8 @@ import {
   relativeTime,
 } from '../components/ui';
 import { request } from '../api/client';
+import { Drawer } from '../components/Drawer';
+import { LabDrawerContent } from '../components/LabDrawer';
 import type { ProvisioningOverview, ProvisioningInstance } from '../api/types';
 
 interface TrendPoint {
@@ -144,6 +147,54 @@ function FailureRateSparkline({ points }: { points: TrendPoint[] }) {
 
 const MAX_STRIP_CELLS = 500;
 
+/** The state-breakdown drawer: the subjects in one lifecycle state,
+ *  one row each, clicking a subject opens the lab drawer. */
+function StateSubjectsDrawer({ state, count, subjects, onOpenSubject }: {
+  state: string;
+  count: number;
+  subjects: Array<{
+    anarchy_name?: string;
+    namespace?: string;
+    lab_code?: string;
+    last_transition?: string;
+  }>;
+  onOpenSubject: (subject: string) => void;
+}) {
+  const capped = subjects.length >= 50 && count > subjects.length;
+  return (
+    <div className="space-y-3">
+      <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+        <div className="text-sm text-white">
+          {count} subject{count === 1 ? '' : 's'} in <span className="font-mono">{state}</span>
+        </div>
+        <div className="text-xs text-[#6A6E73] mt-1">
+          {subjects.length} listed{capped ? ` — capped at 50 of ${count}` : ''} · click a subject for its lab detail
+        </div>
+      </div>
+      {subjects.length === 0 && (
+        <div className="text-xs text-[#6A6E73]">No subjects listed for this state.</div>
+      )}
+      <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg divide-y divide-[#2e2e2e]">
+        {subjects.map((s) => {
+          const subject = s.anarchy_name || s.lab_code || '';
+          if (!subject) return null;
+          return (
+            <button key={subject} type="button"
+              onClick={() => onOpenSubject(subject)}
+              className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[#252525] transition">
+              <span className="text-xs text-white truncate font-mono">{subject}</span>
+              <span className="text-xs text-[#6A6E73] shrink-0 flex gap-3">
+                {s.lab_code && <span className="truncate max-w-[12rem]">{s.lab_code}</span>}
+                {s.last_transition && <span>{relativeTime(s.last_transition)}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Provisioning() {
   const overview = useQuery({
     queryKey: ['provisioning-overview'],
@@ -221,6 +272,8 @@ export default function Provisioning() {
   );
 
   const timeline = trends.data?.timeline ?? [];
+  const [stateDrawer, setStateDrawer] = React.useState<string | null>(null);
+  const [drawerLab, setDrawerLab] = React.useState<string | null>(null);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -335,6 +388,7 @@ export default function Provisioning() {
                         : s.kind === 'sandbox' ? 'Self-service sandbox catalog — shared capacity, not a lab'
                         : s.kind === 'pool' ? 'Shared pool — serves many labs'
                         : s.kind === 'open-env' ? 'Open environment — shared capacity, not a lab'
+                        : s.kind === 'demo' ? 'Demo content — shown, not taken'
                         : 'AgnosticD catalog item'
                       }
                       className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 border ${
@@ -342,6 +396,7 @@ export default function Provisioning() {
                         : s.kind === 'sandbox' ? 'bg-[#F0AB00]/10 text-[#F0AB00] border-[#F0AB00]/30'
                         : s.kind === 'pool' ? 'bg-[#73BCF7]/10 text-[#73BCF7] border-[#73BCF7]/30'
                         : s.kind === 'open-env' ? 'bg-[#a071c9]/10 text-[#c7a0e8] border-[#a071c9]/30'
+                        : s.kind === 'demo' ? 'bg-[#EE0000]/10 text-[#f0a0a0] border-[#EE0000]/30'
                         : 'bg-white/5 text-[#8a8a8a] border-[#3a3a3a]'
                       }`}>
                       {s.kind === 'open-env' ? 'open env' : s.kind ?? 'catalog'}
@@ -405,7 +460,10 @@ export default function Provisioning() {
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {stateEntries.map(([state, count]) => (
-            <div key={state} className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3">
+            <button key={state} type="button"
+              onClick={() => setStateDrawer(state)}
+              aria-label={`State ${state}: ${count} subjects — click for the subjects`}
+              className="text-left bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#73BCF7]/50 hover:bg-[#252525] transition cursor-pointer">
               <div className="flex items-center justify-between gap-2">
                 <StatusBadge status={state} colors={stateBadgeColors} />
                 <span className="text-sm font-bold text-white tabular-nums">{count}</span>
@@ -413,7 +471,7 @@ export default function Provisioning() {
               <div className="text-xs text-[#6A6E73] mt-1">
                 {total > 0 ? `${Math.round((count / total) * 100)}% of ${total}` : '--'}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -423,6 +481,21 @@ export default function Provisioning() {
         states classify as started (green), pending/provisioning (amber), failed (red).{' '}
         <Link to="/trends" className="text-[#73BCF7]">Full trends →</Link>
       </p>
+
+      <Drawer open={stateDrawer !== null} onClose={() => setStateDrawer(null)}
+        title={stateDrawer ? `State: ${stateDrawer}` : 'State'}>
+        {stateDrawer && (
+          <StateSubjectsDrawer
+            state={stateDrawer}
+            count={Number(d?.by_state?.[stateDrawer] ?? 0)}
+            subjects={d?.subjects_by_state?.[stateDrawer] ?? []}
+            onOpenSubject={(subj) => { setStateDrawer(null); setDrawerLab(subj); }}
+          />
+        )}
+      </Drawer>
+      <Drawer open={drawerLab !== null} onClose={() => setDrawerLab(null)} title={drawerLab ?? 'Lab detail'}>
+        {drawerLab && <LabDrawerContent labCode={drawerLab} />}
+      </Drawer>
     </div>
   );
 }
