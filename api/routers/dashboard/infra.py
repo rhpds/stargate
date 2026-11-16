@@ -193,14 +193,31 @@ def dashboard_provisioning():
                 "last_failed_at": lab_last_failed_at or None,
             }
 
+    # Snapshot-compat: pre-Nov-16 snapshots carry only the narrow
+    # failed-only count and no split — derive everything from by_state
+    # (which they do have) so the split is correct immediately, without
+    # waiting for the worker's next collection cycle.
+    by_state = prov.get("by_state", {})
+    if "provision_failed" in prov:
+        _failed = prov.get("failed", 0)
+        _prov_failed = prov.get("provision_failed", 0)
+        _td_failed = prov.get("teardown_failed", 0)
+    else:
+        _prov_failed = sum(v for k, v in by_state.items() if k in _PROV)
+        _td_failed = sum(v for k, v in by_state.items() if k in _TEARDOWN)
+        _failed = sum(
+            v for k, v in by_state.items()
+            if "failed" in k or "error" in k
+        )
+
     return {
         "total": prov.get("total", 0),
         "started": prov.get("started", 0),
-        "failed": prov.get("failed", 0),
-        "provision_failed": prov.get("provision_failed", 0),
-        "teardown_failed": prov.get("teardown_failed", 0),
+        "failed": _failed,
+        "provision_failed": _prov_failed,
+        "teardown_failed": _td_failed,
         "failure_rate": prov.get("failure_rate", 0),
-        "by_state": prov.get("by_state", {}),
+        "by_state": by_state,
         "subjects_by_state": subjects_by_state,
         "labs_affected": labs_affected,
         "timestamp": datetime.now(timezone.utc).isoformat(),
