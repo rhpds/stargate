@@ -157,10 +157,15 @@ def dashboard_provisioning():
 
     subjects_by_state: Dict[str, list] = {}
     labs_affected: Dict[str, Dict] = {}
+    _PROV = {"provision-failed", "provision-error", "start-failed", "start-error"}
+    _TEARDOWN = {"destroy-failed", "destroy-error", "stop-failed", "stop-error"}
     for lc, insts in instance_mapping.items():
         lab_total = 0
         lab_started = 0
         lab_failed = 0
+        lab_prov_failed = 0
+        lab_teardown_failed = 0
+        lab_last_failed_at = ""
         for inst in insts:
             st = inst.get("state", "unknown")
             lab_total += 1
@@ -168,17 +173,32 @@ def dashboard_provisioning():
                 lab_started += 1
             if "failed" in st or "error" in st:
                 lab_failed += 1
+                if st in _PROV:
+                    lab_prov_failed += 1
+                elif st in _TEARDOWN:
+                    lab_teardown_failed += 1
+                # most-recent-failure timestamp, for recency-first sorting
+                ts = inst.get("last_transition") or ""
+                if ts > lab_last_failed_at:
+                    lab_last_failed_at = ts
             if st not in subjects_by_state:
                 subjects_by_state[st] = []
             if st != "started" or len(subjects_by_state[st]) < 50:
                 subjects_by_state[st].append({**inst, "lab_code": lc})
         if lab_total > 0:
-            labs_affected[lc] = {"total": lab_total, "started": lab_started, "failed": lab_failed}
+            labs_affected[lc] = {
+                "total": lab_total, "started": lab_started, "failed": lab_failed,
+                "provision_failed": lab_prov_failed,
+                "teardown_failed": lab_teardown_failed,
+                "last_failed_at": lab_last_failed_at or None,
+            }
 
     return {
         "total": prov.get("total", 0),
         "started": prov.get("started", 0),
         "failed": prov.get("failed", 0),
+        "provision_failed": prov.get("provision_failed", 0),
+        "teardown_failed": prov.get("teardown_failed", 0),
         "failure_rate": prov.get("failure_rate", 0),
         "by_state": prov.get("by_state", {}),
         "subjects_by_state": subjects_by_state,

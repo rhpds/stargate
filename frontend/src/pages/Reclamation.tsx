@@ -186,7 +186,14 @@ export default function Reclamation() {
         }
       }
     }
-    return [...bySubject.values()].sort((a, b) => (b.ageHours ?? -1) - (a.ageHours ?? -1));
+    // most recent first: smallest age on top (fresh stuck to catch early),
+    // unaged snapshot-only rows after the aged ones
+    return [...bySubject.values()].sort((a, b) => {
+      if (a.ageHours == null && b.ageHours == null) return a.subject.localeCompare(b.subject);
+      if (a.ageHours == null) return 1;
+      if (b.ageHours == null) return -1;
+      return a.ageHours - b.ageHours;
+    });
   }, [gaps.data, stuck.data]);
 
   // The envelope says scanning until the first background scan lands.

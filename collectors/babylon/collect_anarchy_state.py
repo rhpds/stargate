@@ -52,19 +52,41 @@ def collect_anarchysubject(data: Dict) -> CollectedEvidence:
     )
 
 
+# The Provisioning page's question is "are provisions succeeding?" —
+# destroy-*/stop-* failures are TEARDOWN failures (they provisioned fine,
+# ran, and failed to clean up: reclamation signal). Found Nov 16: the old
+# headline counted them as "provisions failed", answering the wrong
+# question, and counted only *-failed states while the page footnote
+# promised failed-OR-error. Now: failed = all failed/error states
+# (matching the footnote), plus the provision/teardown split so the
+# verdict can answer its own question.
+_PROVISION_FAILURE_STATES = frozenset({
+    "provision-failed", "provision-error", "start-failed", "start-error",
+})
+_TEARDOWN_FAILURE_STATES = frozenset({
+    "destroy-failed", "destroy-error", "stop-failed", "stop-error",
+})
+
+
 def summarize_subjects(subjects: list) -> Dict:
     """Summarize all AnarchySubjects into aggregate provisioning data."""
     total = len(subjects)
     by_state: Dict[str, int] = {}
     failed = 0
+    provision_failed = 0
+    teardown_failed = 0
     started = 0
 
     for s in subjects:
         ev = collect_anarchysubject(s)
         state = ev.observed.get("current_state", "unknown")
         by_state[state] = by_state.get(state, 0) + 1
-        if "failed" in state:
+        if "failed" in state or "error" in state:
             failed += 1
+            if state in _PROVISION_FAILURE_STATES:
+                provision_failed += 1
+            elif state in _TEARDOWN_FAILURE_STATES:
+                teardown_failed += 1
         if state == "started":
             started += 1
 
@@ -72,6 +94,8 @@ def summarize_subjects(subjects: list) -> Dict:
         "total_subjects": total,
         "started": started,
         "failed": failed,
+        "provision_failed": provision_failed,
+        "teardown_failed": teardown_failed,
         "by_state": by_state,
         "failure_rate": round(failed / max(total, 1) * 100, 1),
     }

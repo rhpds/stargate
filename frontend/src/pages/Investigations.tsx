@@ -764,7 +764,10 @@ function Investigations() {
 
       {s && (() => {
         const totalInv = issues.reduce((a, ki) => a + ki.investigation_count, 0);
-        const sorted = [...issues].sort((a, b) => b.investigation_count - a.investigation_count);
+        // most recently seen first (descending recency); count breaks ties
+        const sorted = [...issues].sort((a, b) =>
+          String(b.last_seen ?? '').localeCompare(String(a.last_seen ?? ''))
+          || b.investigation_count - a.investigation_count);
         const top = sorted[0];
         const topShare = totalInv > 0 && top
           ? Math.round((top.investigation_count / totalInv) * 100) : 0;

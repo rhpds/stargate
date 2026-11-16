@@ -996,12 +996,17 @@ export interface LabProvisioningSummary {
   total: number;
   started: number;
   failed: number;
+  provision_failed?: number;
+  teardown_failed?: number;
+  last_failed_at?: string | null;
 }
 
 export interface ProvisioningOverview {
   total: number;
   started: number;
   failed: number;
+  provision_failed?: number;
+  teardown_failed?: number;
   failure_rate: number;
   by_state: Record<string, number>;
   subjects_by_state: Record<string, ProvisioningInstance[]>;

@@ -353,6 +353,7 @@ _SUBJECT_COLUMNS = (
     "NAME:.metadata.name,"
     "NS:.metadata.namespace,"
     "STATE:.spec.vars.current_state,"
+    "LASTTS:.status.lastTransitionTime,"
     "CONSOLE:.spec.vars.provision_data.openshift_cluster_console_url,"
     "API:.spec.vars.provision_data.openshift_api_server_url"
 )
@@ -360,17 +361,19 @@ _SUBJECT_COLUMNS = (
 
 def _parse_subject_line(line: str) -> Optional[Dict]:
     """Parse a custom-columns line into a subject dict."""
-    parts = line.split(None, 4)
+    parts = line.split(None, 5)
     if len(parts) < 3:
         return None
     name = parts[0]
     ns = parts[1] if len(parts) > 1 else ""
     state = parts[2] if len(parts) > 2 else "unknown"
-    console = parts[3] if len(parts) > 3 and parts[3] != "<none>" else ""
-    api_url = parts[4] if len(parts) > 4 and parts[4] != "<none>" else ""
+    last_ts = parts[3] if len(parts) > 3 and parts[3] != "<none>" else ""
+    console = parts[4] if len(parts) > 4 and parts[4] != "<none>" else ""
+    api_url = parts[5] if len(parts) > 5 and parts[5] != "<none>" else ""
     if state == "<none>":
         state = "unknown"
-    return {"name": name, "namespace": ns, "state": state, "console_url": console, "api_url": api_url}
+    return {"name": name, "namespace": ns, "state": state, "last_transition": last_ts,
+            "console_url": console, "api_url": api_url}
 
 
 def collect_summit_namespace_mapping() -> Dict[str, List[Dict]]:
@@ -447,6 +450,7 @@ def collect_all_instance_mapping() -> Dict[str, List[Dict]]:
             "anarchy_name": subj["name"],
             "namespace": subj["namespace"],
             "state": subj["state"],
+            "last_transition": subj.get("last_transition", ""),
             "prefix": prefix,
             "console_url": subj["console_url"],
             "api_url": subj["api_url"],
