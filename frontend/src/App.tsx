@@ -9,7 +9,6 @@ import LLMAdmin from './pages/LLMAdmin';
 import Remediation from './pages/Remediation';
 import ClusterDetail from './pages/ClusterDetail';
 import PoolDetail from './pages/PoolDetail';
-import ProvisioningDetail from './pages/ProvisioningDetail';
 import CatalogItemDetail from './pages/CatalogItemDetail';
 import TrendsPage from './pages/TrendsPage';
 import CapacityPage from './pages/CapacityPage';
@@ -22,6 +21,7 @@ import Investigations from './pages/Investigations';
 import Reclamation from './pages/Reclamation';
 import Knowledge from './pages/Knowledge';
 import Clusters from './pages/Clusters';
+import Provisioning from './pages/Provisioning';
 import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
@@ -150,7 +150,7 @@ export default function App() {
                 <Route path="/failures" element={<FailureClasses />} />
                 <Route path="/remediation" element={<Remediation />} />
                 <Route path="/llm" element={<LLMAdmin />} />
-                <Route path="/provisioning" element={<ProvisioningDetail />} />
+                <Route path="/provisioning" element={<Provisioning />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
