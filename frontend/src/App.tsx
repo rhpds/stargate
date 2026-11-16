@@ -15,6 +15,7 @@ import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
 import Overview from './pages/Overview';
+import Credentials from './pages/Credentials';
 import Capacity from './pages/Capacity';
 import Investigations from './pages/Investigations';
 import Reclamation from './pages/Reclamation';
@@ -75,6 +76,7 @@ const platformNavItems = [
   { to: '/proof', label: 'Proof Lab' },
   { to: '/failures', label: 'Taxonomy' },
   { to: '/remediation', label: 'Remediation' },
+  { to: '/credentials', label: 'Credentials' },
 ];
 
 export default function App() {
@@ -146,6 +148,7 @@ export default function App() {
                 <Route path="/pipeline" element={<PipelineMatrix />} />
                 <Route path="/failures" element={<FailureClasses />} />
                 <Route path="/remediation" element={<Remediation />} />
+                <Route path="/credentials" element={<Credentials />} />
                 <Route path="/llm" element={<LLMAdmin />} />
                 <Route path="/provisioning" element={<Provisioning />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />

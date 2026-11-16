@@ -8,7 +8,7 @@
 
 import { Link } from 'react-router-dom';
 import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, FleetStrip, relativeTime } from '../components/ui';
-import { useHealth, useOverview, useEvents } from '../api/hooks';
+import { useHealth, useOverview, useEvents, useCredentials } from '../api/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { request } from '../api/client';
 
@@ -172,6 +172,8 @@ export default function Overview() {
         </section>
       )}
 
+      <CredentialStrip />
+
       <section aria-label="Clusters">
         <SectionHeader right={<Link to="/clusters" className="text-[#73BCF7]">all clusters →</Link>}>
           Clusters
@@ -218,5 +220,33 @@ export default function Overview() {
         </ul>
       </section>
     </div>
+  );
+}
+
+/**
+ * One line, always visible: a dead credential should not require opening a
+ * page. Full detail lives on /credentials.
+ */
+function CredentialStrip() {
+  const { data } = useCredentials();
+  if (!data || data.summary.total === 0) return null;
+  const s = data.summary;
+  const tone = s.rejected > 0 ? '#EE0000' : s.expiring > 0 || s.degraded > 0 ? '#F0AB00' : '#3E8635';
+  const glyph = s.rejected > 0 ? '✖' : s.expiring > 0 || s.degraded > 0 ? '⚠' : '✓';
+  return (
+    <section aria-label="Credentials">
+      <Link
+        to="/credentials"
+        className="flex items-center gap-2 text-sm rounded-lg border px-3 py-2 w-fit"
+        style={{ borderColor: `${tone}55`, backgroundColor: `${tone}15` }}
+      >
+        <span style={{ color: tone }} aria-hidden="true">{glyph}</span>
+        <span className="text-white">
+          Credentials: {s.verified} verified
+          {s.rejected > 0 && <span style={{ color: '#EE0000' }}> · {s.rejected} rejected</span>}
+          {s.expiring > 0 && <span style={{ color: '#F0AB00' }}> · {s.expiring} expiring ≤90d</span>}
+        </span>
+      </Link>
+    </section>
   );
 }

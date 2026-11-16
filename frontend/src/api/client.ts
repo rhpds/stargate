@@ -54,6 +54,7 @@ import type {
   PoolDetailData,
   ProvisioningOverview,
   CatalogItemDetail,
+  CredentialsResponse,
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -286,6 +287,9 @@ export const api = {
   // Provisioning drill-down
   getPoolDetail: (poolName: string) => request<PoolDetailData>(`/dashboard/pool/${encodeURIComponent(poolName)}`),
   getProvisioningOverview: () => request<ProvisioningOverview>('/dashboard/provisioning'),
+
+  getCredentials: (refresh = false) =>
+    request<CredentialsResponse>(`/dashboard/credentials${refresh ? '?refresh=true' : ''}`),
   getCatalogItemDetail: (itemName: string) => request<CatalogItemDetail>(`/dashboard/catalog/${encodeURIComponent(itemName)}`),
 
   // Historical trends

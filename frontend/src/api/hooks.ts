@@ -373,3 +373,7 @@ export function useMTTR(hours = 168) {
 export function useSummitReport() {
   return useQuery({ queryKey: ['summit-report'], queryFn: api.getSummitReport, staleTime: 300_000 });
 }
+
+export function useCredentials() {
+  return useQuery({ queryKey: ['credentials'], queryFn: () => api.getCredentials(), refetchInterval: 60_000 });
+}
