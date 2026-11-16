@@ -103,3 +103,26 @@ class TestRepositoryAggregation:
 
         assert last_pass is not None
         assert last_pass["run_id"].startswith("run-RHPDS")
+
+
+class TestEvaluationCount:
+    """'Total Evals' is a count, not the length of a capped history list."""
+
+    def test_counts_all_identities_and_ignores_the_history_cap(self, db):
+        for i in range(60):
+            _add(db, AAP_TITLE, outcome="pass" if i % 2 else "fail",
+                 failure_class=None if i % 2 else f"class-{i}", stage=f"s{i}")
+        aliases = _evaluation_lab_codes(db, SLUG)
+
+        total = repository.count_evaluations(db, lab_code=SLUG, lab_codes=aliases)
+        history = repository.get_evaluation_history(
+            db, lab_code=SLUG, limit=50, lab_codes=aliases)
+
+        assert total == 60
+        assert len(history) == 50
+
+    def test_exact_count_without_aliases(self, db):
+        _add(db, AAP_TITLE)
+
+        assert repository.count_evaluations(db, lab_code=SLUG) == 0
+        assert repository.count_evaluations(db, lab_code=AAP_TITLE) == 1
