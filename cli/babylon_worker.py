@@ -268,6 +268,7 @@ def collect_workshop_provisions() -> Dict:
     findings = []
     succeeded = []
     state_counts: Dict[str, int] = {}
+    scheduled_ahead_count = 0
     for item in items:
         metadata = item.get("metadata", {})
         spec = item.get("spec", {})
@@ -296,22 +297,41 @@ def collect_workshop_provisions() -> Dict:
         failed_count = status.get("failedCount") or 0
         active_count = status.get("activeCount") or 0
 
+        # Schedules are declared up front and the object exists before its
+        # window opens: `actionSchedule.start` is often days in the future and
+        # `count` can be 0 for a cancelled request. Neither means "stalled" —
+        # live Nov 16 2026, 51 of 64 remaining findings were future-scheduled
+        # workshops, including one "urgent" dead workshop starting Nov 18.
+        action_schedule = spec.get("actionSchedule") or {}
+        schedule_start = _parse_timestamp(
+            action_schedule.get("start") or spec.get("start") or ""
+        )
+        scheduled_ahead = bool(schedule_start and schedule_start > now)
+        declared_count = spec.get("count")
+        no_instances_requested = declared_count == 0
+        if scheduled_ahead:
+            scheduled_ahead_count += 1
+
         condition = failed or ready or progressing or {}
         if conditions:
             stalled_evidence = bool(
                 (ready and ready.get("status") == "False" and transition_age
                  and transition_age >= timedelta(hours=stall_hours))
                 or (not ready and age_hours is not None and age_hours >= stall_hours)
-            )
+            ) and not scheduled_ahead
             failed_evidence = failed is not None
         else:
             # No conditions: failed = the controller's own failure count;
             # stalled = zero resource claims past the threshold (nothing
             # was ever provisioned for this signup); healthy = claims exist.
+            # A future schedule or count=0 is neither stalled nor failed.
             failed_evidence = failed_count > 0
             stalled_evidence = bool(
-                resource_claims == 0 and age_hours is not None
+                resource_claims == 0
+                and age_hours is not None
                 and age_hours >= stall_hours
+                and not scheduled_ahead
+                and not no_instances_requested
             )
         outcome = resolve_provision_outcome({
             # Findings are only built from successful queries (failed queries
@@ -348,6 +368,8 @@ def collect_workshop_provisions() -> Dict:
                 "generation": generation,
                 "observed_generation": observed_generation,
                 "age_hours": age_hours,
+                "scheduled_start": schedule_start.isoformat() if schedule_start else None,
+                "declared_count": declared_count,
                 "last_transition_time": condition.get("lastTransitionTime", ""),
                 "owner": owner_refs[0].get("name", "") if owner_refs else "",
                 "catalog_item": labels.get("babylon.gpte.redhat.com/catalogItemName", spec.get("catalogItem", "")),
@@ -366,6 +388,7 @@ def collect_workshop_provisions() -> Dict:
         "total": len(items),
         "state_counts": state_counts,
         "finding_count": len(findings),
+        "scheduled_ahead_count": scheduled_ahead_count,
         "succeeded": succeeded,
         "stall_threshold_hours": stall_hours,
         "findings": findings,
