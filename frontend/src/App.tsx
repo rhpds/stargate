@@ -11,7 +11,6 @@ import ClusterDetail from './pages/ClusterDetail';
 import PoolDetail from './pages/PoolDetail';
 import CatalogItemDetail from './pages/CatalogItemDetail';
 import TrendsPage from './pages/TrendsPage';
-import CapacityPage from './pages/CapacityPage';
 import SummitReport from './pages/SummitReport';
 import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
@@ -62,6 +61,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 const navItems = [
   { to: '/', label: 'Overview', end: true },
+  { to: '/provisioning', label: 'Provisioning' },
   { to: '/capacity', label: 'Capacity' },
   { to: '/investigations', label: 'Investigations' },
   { to: '/reclamation', label: 'Reclamation' },
@@ -153,7 +153,7 @@ export default function App() {
                 <Route path="/provisioning" element={<Provisioning />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
                 <Route path="/trends" element={<TrendsPage />} />
-                <Route path="/capacity" element={<CapacityPage />} />
+                
                 <Route path="/summit" element={<SummitReport />} />
                 <Route path="*" element={
                   <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 text-center">

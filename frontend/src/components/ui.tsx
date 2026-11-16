@@ -248,34 +248,69 @@ export function VerdictBanner({
  * StateStrip — the generalized glance strip with the tri-state textures:
  * solid for observed states, diagonal HATCH for lower bounds ("at least"),
  * DASHED for unknown. Never color alone; never interpolate across gaps.
+ *
+ * `tooltip` upgrades hover from the browser's delayed title tooltip to an
+ * immediate floating card below the strip, positioned under the hovered
+ * cell — a plain positioned div, no library. Without it, cells keep their
+ * title attributes for the simple embeds.
  */
 export function StateStrip({
   cells,
   height = 'h-3',
+  tooltip,
 }: {
   cells: { state: 'green' | 'amber' | 'red' | 'floor' | 'unknown'; title?: string }[];
   height?: string;
+  tooltip?: (index: number) => React.ReactNode;
 }) {
   const solid = {
     green: '#3E8635',
     amber: '#F0AB00',
     red: '#EE0000',
   };
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const [hover, setHover] = React.useState<{ index: number; left: number } | null>(null);
+
+  const TOOLTIP_WIDTH = 224; // w-56 — keep in sync with the class on the card
+  const onCellEnter = (i: number, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!tooltip) return;
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const cell = e.currentTarget;
+    const center = cell.offsetLeft + cell.offsetWidth / 2;
+    const maxLeft = Math.max(0, wrap.offsetWidth - TOOLTIP_WIDTH);
+    setHover({ index: i, left: Math.min(Math.max(center - TOOLTIP_WIDTH / 2, 0), maxLeft) });
+  };
+
   return (
-    <div className={`flex ${height} rounded-full overflow-hidden gap-px`} role="img"
-      aria-label={`Strip: ${cells.filter((c) => c.state === 'red').length} deficit, ${cells.filter((c) => c.state === 'floor').length} lower-bound, ${cells.filter((c) => c.state === 'unknown').length} unknown, ${cells.filter((c) => c.state === 'green').length} headroom`}>
-      {cells.map((c, i) => {
-        if (c.state === 'floor') {
-          return (
-            <div key={i} title={c.title ?? 'at least (lower bound)'} className="flex-1"
-              style={{ background: 'repeating-linear-gradient(45deg, #F0AB00, #F0AB00 3px, #212121 3px, #212121 6px)' }} />
-          );
-        }
-        if (c.state === 'unknown') {
-          return <div key={i} title={c.title ?? 'not measured'} className="flex-1 border-y border-dashed border-[#6A6E73] bg-[#1a1a1a]" />;
-        }
-        return <div key={i} title={c.title} className="flex-1" style={{ backgroundColor: solid[c.state] }} />;
-      })}
+    <div ref={wrapRef} className="relative"
+      onMouseLeave={tooltip ? () => setHover(null) : undefined}>
+      <div className={`flex ${height} rounded-full overflow-hidden gap-px`} role="img"
+        aria-label={`Strip: ${cells.filter((c) => c.state === 'red').length} deficit, ${cells.filter((c) => c.state === 'floor').length} lower-bound, ${cells.filter((c) => c.state === 'unknown').length} unknown, ${cells.filter((c) => c.state === 'green').length} headroom`}>
+        {cells.map((c, i) => {
+          const onEnter = (e: React.MouseEvent<HTMLDivElement>) => onCellEnter(i, e);
+          if (c.state === 'floor') {
+            return (
+              <div key={i} title={tooltip ? undefined : (c.title ?? 'at least (lower bound)')}
+                onMouseEnter={onEnter} className="flex-1"
+                style={{ background: 'repeating-linear-gradient(45deg, #F0AB00, #F0AB00 3px, #212121 3px, #212121 6px)' }} />
+            );
+          }
+          if (c.state === 'unknown') {
+            return <div key={i} title={tooltip ? undefined : (c.title ?? 'not measured')}
+              onMouseEnter={onEnter} className="flex-1 border-y border-dashed border-[#6A6E73] bg-[#1a1a1a]" />;
+          }
+          return <div key={i} title={tooltip ? undefined : c.title} onMouseEnter={onEnter}
+            className="flex-1" style={{ backgroundColor: solid[c.state] }} />;
+        })}
+      </div>
+      {tooltip && hover && hover.index < cells.length && (
+        <div role="tooltip"
+          className="absolute top-full mt-1.5 w-56 z-20 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg shadow-xl p-3 pointer-events-none"
+          style={{ left: hover.left }}>
+          {tooltip(hover.index)}
+        </div>
+      )}
     </div>
   );
 }

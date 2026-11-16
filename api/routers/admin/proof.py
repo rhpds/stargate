@@ -390,7 +390,18 @@ def detect_monitoring_gaps(db: Session = Depends(get_db), _auth=Depends(require_
         results["stuck_teardowns"] = {"error": str(e)}
 
     try:
-        results["resource_leaks"] = detect_resource_leaks(kubeconfig=EXECUTOR_KUBECONFIG)
+        # The leak detector checks for orphaned PVs — these live on the
+        # WORKER clusters (where labs run), not the executor or Babylon
+        # control-plane. Use the first available worker cluster
+        # kubeconfig. Found live Nov 16: was using EXECUTOR_KUBECONFIG
+        # (infra01) which returned 502 — the PVs aren't there.
+        import os as _os
+        import glob as _glob
+        _leak_kc = _os.environ.get(
+            "STARGATE_LEAK_KUBECONFIG",
+            "/opt/app-root/src/secrets/kubeconfig-ocpv07",  # a worker cluster
+        )
+        results["resource_leaks"] = detect_resource_leaks(kubeconfig=_leak_kc)
     except Exception as e:
         results["resource_leaks"] = {"error": str(e)}
 

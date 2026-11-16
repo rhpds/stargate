@@ -13,10 +13,12 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime, statusColor, splitAnalysisSections } from '../components/ui';
 import FormattedAnalysis from '../components/FormattedAnalysis';
+import { Drawer } from '../components/Drawer';
 import { request, api } from '../api/client';
 
 interface InvestigationRow {
   id: number;
+  job_id?: string;
   namespace: string;
   lab_code: string | null;
   cluster: string | null;
@@ -141,10 +143,12 @@ function evidenceText(e: unknown): string {
 
 function QueueRow({
   inv,
+  onOpenLab,
   onApprove,
   onReject,
 }: {
   inv: InvestigationRow;
+  onOpenLab: (labCode: string) => void;
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
 }) {
@@ -167,9 +171,15 @@ function QueueRow({
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: statusColor(inv.status) }}
               aria-label={`status: ${inv.status}`} />
-            <Link to={`/lab/${inv.lab_code ?? inv.namespace}`}
+            <Link to={inv.lab_code ? `/lab/${encodeURIComponent(inv.lab_code)}` : '#'}
               className="text-sm text-white font-medium truncate hover:text-[#73BCF7]"
-              onClick={(e) => e.stopPropagation()}>
+              onClick={(e) => {
+                // click-in, not navigate: the lab opens in the drawer,
+                // keeping the review queue's context behind it
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenLab(inv.lab_code ?? inv.namespace);
+              }}>
               {inv.lab_code ?? inv.namespace}
             </Link>
             <span className="text-xs text-[#6A6E73] truncate">{inv.failure_class ?? '(unclassified)'}</span>
@@ -232,6 +242,204 @@ function QueueRow({
         </div>
       )}
     </div>
+  );
+}
+
+/** /integration/lab-status response (api.getLabStatus) — a type alias so
+ *  the client's Record<string, unknown> return casts cleanly. */
+type LabStatus = {
+  lab_code?: string;
+  latest_outcome?: string | null;
+  latest_failure_class?: string | null;
+  latest_message?: string | null;
+  latest_evaluated_at?: string | null;
+  latest_cluster?: string | null;
+  total_evaluations?: number;
+  failure_classes?: Record<string, number>;
+  history?: Array<{
+    run_id?: string;
+    stage_id?: string;
+    outcome?: string;
+    failure_class?: string | null;
+    message?: string | null;
+    evaluated_at?: string | null;
+    cluster_name?: string | null;
+  }>;
+};
+
+/** One row from /dashboard/investigations?lab_code=… — the causal-chain source. */
+interface LabInvestigationRow {
+  job_id: string;
+  status?: string | null;
+  failure_class?: string | null;
+  root_cause?: string | null;
+  has_analysis?: boolean;
+  review_state?: string | null;
+  created_at?: string | null;
+}
+
+/**
+ * The lab drill-down for the Drawer (the click-in pattern): the status
+ * card, recent evaluations, and the latest investigation's causal chain,
+ * rendered inline — the review queue stays put behind the drawer.
+ */
+function LabDrawerContent({ labCode }: { labCode: string }) {
+  const status = useQuery({
+    queryKey: ['lab-status', labCode],
+    queryFn: () => api.getLabStatus(labCode) as Promise<LabStatus>,
+  });
+  const invs = useQuery({
+    queryKey: ['lab-investigations', labCode],
+    queryFn: () => api.getInvestigations({ lab_code: labCode, limit: 5 }),
+  });
+
+  // the list returns {investigations} or a bare array — normalize both
+  const rows: LabInvestigationRow[] = Array.isArray(invs.data)
+    ? invs.data
+    : (invs.data?.investigations ?? []);
+  const latest = rows.find((r) => r.has_analysis || r.root_cause);
+  const detail = useQuery({
+    queryKey: ['lab-investigation-detail', latest?.job_id],
+    queryFn: () => api.investigatePoll(latest?.job_id ?? ''),
+    enabled: !!latest?.job_id,
+  });
+
+  const analysisText = detail.data?.analysis || detail.data?.root_cause
+    || latest?.root_cause || '';
+  const parsed = analysisText ? splitAnalysisSections(analysisText) : null;
+  const history = status.data?.history ?? [];
+  const failureClasses = Object.entries(status.data?.failure_classes ?? {})
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 6);
+
+  return (
+    <>
+      {status.isLoading && <div className="text-sm text-[#6A6E73]">Loading lab status…</div>}
+      {status.error && (
+        <div className="bg-[#2e2e2e] border border-[#EE0000]/40 rounded-lg p-3 text-xs text-white">
+          Lab status unavailable: {String(status.error)}
+        </div>
+      )}
+      {status.data && (
+        <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-base font-bold text-white">{status.data.lab_code ?? labCode}</span>
+            {status.data.latest_outcome && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
+                style={{ backgroundColor: statusColor(status.data.latest_outcome) }}>
+                {status.data.latest_outcome}
+              </span>
+            )}
+            {status.data.latest_failure_class && (
+              <span className="text-xs text-[#6A6E73] truncate">{status.data.latest_failure_class}</span>
+            )}
+          </div>
+          <div className="text-xs text-[#6A6E73]">
+            {status.data.total_evaluations ?? 0} evaluations
+            {status.data.latest_cluster ? ` · ${status.data.latest_cluster}` : ''}
+            {status.data.latest_evaluated_at ? ` · last evaluated ${relativeTime(status.data.latest_evaluated_at)}` : ''}
+          </div>
+          {status.data.latest_message && (
+            <p className="text-xs text-[#9a9a9a]">{status.data.latest_message}</p>
+          )}
+          {failureClasses.length > 0 && (
+            <div className="flex gap-2 flex-wrap pt-1">
+              {failureClasses.map(([cls, count]) => (
+                <span key={cls}
+                  className="text-xs px-2 py-0.5 rounded-full bg-[#1a1a1a] border border-[#2e2e2e] text-[#c7c7c7]">
+                  {cls} ×{count}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Recent evaluations</div>
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg divide-y divide-[#2e2e2e]">
+            {history.map((ev, i) => (
+              <div key={`${ev.run_id}-${ev.stage_id}-${i}`}
+                className="flex items-center gap-3 px-3 py-2 text-xs">
+                <span className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: statusColor(ev.outcome) }}
+                  aria-label={`outcome: ${ev.outcome ?? 'unknown'}`} />
+                <span className="text-white truncate flex-1" title={ev.stage_id}>{ev.stage_id ?? ev.run_id}</span>
+                <span className="text-[#6A6E73] truncate max-w-[40%]">{ev.failure_class ?? ''}</span>
+                <span className="text-[#6A6E73] shrink-0" title={ev.message ?? undefined}>
+                  {relativeTime(ev.evaluated_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-2">Causal chain</div>
+        {invs.isLoading && <div className="text-xs text-[#6A6E73]">Loading investigations…</div>}
+        {invs.error && (
+          <div className="text-xs text-[#EE0000]">Investigations unavailable: {String(invs.error)}</div>
+        )}
+        {!latest && !invs.isLoading && !invs.error && (
+          <div className="text-xs text-[#6A6E73]">No investigation on record for this lab yet.</div>
+        )}
+        {latest && (
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-[#6A6E73]">
+                investigation {latest.job_id}
+                {latest.created_at ? ` · ${relativeTime(latest.created_at)}` : ''}
+                {latest.status ? ` · ${latest.status}` : ''}
+              </span>
+              {parsed?.verdict && (
+                <StatusBadge status={parsed.verdict === 'ACTIONABLE' ? 'fail' : 'ok'}
+                  label={parsed.verdict} />
+              )}
+            </div>
+            {detail.isLoading && <div className="text-xs text-[#6A6E73]">Loading the diagnosis…</div>}
+            {detail.error && (
+              <div className="text-xs text-[#EE0000]">Diagnosis unavailable: {String(detail.error)}</div>
+            )}
+            {parsed && (
+              <>
+                {parsed.diagnosis && (
+                  <div>
+                    <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Diagnosis</div>
+                    <div className="text-sm text-white"><FormattedAnalysis text={parsed.diagnosis} /></div>
+                  </div>
+                )}
+                {parsed.rootCause && (
+                  <div>
+                    <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Root Cause</div>
+                    <div className="text-sm text-white"><FormattedAnalysis text={parsed.rootCause} /></div>
+                  </div>
+                )}
+                {(parsed.shadowRemediation || parsed.remaining) && (
+                  <div>
+                    <div className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-wide mb-1">Remediation</div>
+                    <div className="text-sm text-white">
+                      <FormattedAnalysis text={parsed.shadowRemediation || parsed.remaining || ''} />
+                    </div>
+                  </div>
+                )}
+                {!parsed.diagnosis && !parsed.rootCause && detail.data?.root_cause && (
+                  <div className="text-sm text-white"><FormattedAnalysis text={detail.data.root_cause} /></div>
+                )}
+              </>
+            )}
+            {!parsed && !detail.isLoading && !detail.error && (
+              <div className="text-xs text-[#6A6E73]">
+                {detail.data?.status && detail.data.status !== 'complete'
+                  ? `Investigation is ${detail.data.status} — no analysis yet.`
+                  : 'No analysis text on record for this investigation.'}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -532,11 +740,20 @@ function PendingActionsSection() {
 
 function Investigations() {
   const qc = useQueryClient();
+  // The review queue's visible window: starts at 15, Load more adds 25.
+  const [visibleCount, setVisibleCount] = React.useState(15);
+  // The lab drawer (click-in pattern): null = closed.
+  const [drawerLab, setDrawerLab] = React.useState<string | null>(null);
+  // Grow the fetch with the visible window so Load more has rows to reveal.
+  const fetchLimit = Math.max(25, visibleCount);
   const queue = useQuery({
-    queryKey: ['investigations-queue'],
+    queryKey: ['investigations-queue', fetchLimit],
     queryFn: () =>
-      request<InvestigationsResponse>('/dashboard/investigations?limit=25'),
+      request<InvestigationsResponse | InvestigationRow[]>(
+        `/dashboard/investigations?limit=${fetchLimit}`),
     refetchInterval: 60_000,
+    // keep the current rows on screen while the larger page loads
+    placeholderData: (prev) => prev,
   });
   const known = useQuery({
     queryKey: ['known-issues'],
@@ -607,9 +824,20 @@ function Investigations() {
 
   const s = known.data?.summary;
   const issues = known.data?.issues ?? [];
-  const unreviewed = (queue.data?.investigations ?? []).filter(
-    (i) => i.review_state === 'unreviewed',
-  );
+  // The queue endpoint returns {investigations, total} (the declared
+  // contract) or a bare array (the legacy shape) — normalize both, the
+  // same tolerance the coverage query above already applies.
+  const queueRows: InvestigationRow[] = Array.isArray(queue.data)
+    ? queue.data
+    : (queue.data?.investigations ?? []);
+  const queueTotal = Array.isArray(queue.data) ? undefined : queue.data?.total;
+  const unreviewed = queueRows.filter((i) => i.review_state === 'unreviewed');
+  const totalUnreviewed = queueTotal ?? unreviewed.length;
+  const queueOldestFirst = [...unreviewed].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const visible = queueOldestFirst.slice(0, visibleCount);
+  // more to reveal: either the total says so, or the fetched page is full
+  // (an unfiltered endpoint returning exactly `limit` rows may have more)
+  const mayHaveMore = visible.length < totalUnreviewed || unreviewed.length >= fetchLimit;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -654,7 +882,7 @@ function Investigations() {
         };
         return (
         <section aria-label="Known issues summary">
-          <SectionHeader right={`unreviewed queue: ${unreviewed.length} · review = knowledge`}>
+          <SectionHeader right={`unreviewed queue: ${totalUnreviewed.toLocaleString()} · review = knowledge`}>
             Known issues (last 7 days)
           </SectionHeader>
           <VerdictBanner
@@ -742,21 +970,39 @@ function Investigations() {
 
       <section aria-label="Unreviewed investigations">
         <SectionHeader right="approve publishes knowledge; reject marks re-examination">
-          Review queue
+          Review queue{queue.data ? ` (${totalUnreviewed.toLocaleString()})` : ''}
         </SectionHeader>
         {unreviewed.length === 0 && (
           <div className="text-sm text-[#6A6E73]">Queue clear — every investigation reviewed.</div>
         )}
         <div className="space-y-2">
-          {[...unreviewed].sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, 15).map((inv) => (
-            <QueueRow key={inv.id} inv={inv}
+          {visible.map((inv) => (
+            <QueueRow key={inv.id ?? inv.job_id} inv={inv} onOpenLab={setDrawerLab}
               onApprove={(id) => review.mutate({ id, approved: true })}
               onReject={(id) => review.mutate({ id, approved: false })} />
           ))}
         </div>
+        {visible.length > 0 && (
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-xs text-[#6A6E73]">
+              Showing {visible.length} of {totalUnreviewed.toLocaleString()}
+            </span>
+            {mayHaveMore && (
+              <button
+                className="text-xs px-3 py-1.5 rounded bg-[#73BCF7]/10 text-[#73BCF7] border border-[#73BCF7]/30 hover:bg-[#73BCF7]/20 transition"
+                onClick={() => setVisibleCount((c) => c + 25)}>
+                Load more
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <PendingActionsSection />
+
+      <Drawer open={drawerLab !== null} onClose={() => setDrawerLab(null)} title={drawerLab ?? 'Lab detail'}>
+        {drawerLab && <LabDrawerContent labCode={drawerLab} />}
+      </Drawer>
     </div>
   );
 }

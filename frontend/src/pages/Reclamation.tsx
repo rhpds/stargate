@@ -291,7 +291,7 @@ export default function Reclamation() {
           {teardownRows.map((row) => (
             <li key={row.namespace}>
               <Link
-                to={`/lab/${encodeURIComponent(row.namespace)}`}
+                to={`#`}
                 aria-label={`Stuck teardown ${row.namespace}, state ${row.state}`}
                 className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#555] transition block"
               >
@@ -412,7 +412,7 @@ export default function Reclamation() {
                   <span>
                     bound to{' '}
                     <Link
-                      to={`/lab/${encodeURIComponent(pv.bound_to_namespace)}`}
+                      to={`#`}
                       className="text-[#73BCF7] hover:underline font-mono"
                     >
                       {pv.bound_to_namespace}

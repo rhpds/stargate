@@ -197,7 +197,7 @@ export default function Overview() {
       </section>
 
       <section aria-label="Recent critical events">
-        <SectionHeader right={<Link to="/failures" className="text-[#73BCF7]">all events →</Link>}>
+        <SectionHeader right={<Link to="/failures" className="text-[#73BCF7]">failure taxonomy →</Link>}>
           Recent critical events
         </SectionHeader>
         {recentCritical.length === 0 && (
