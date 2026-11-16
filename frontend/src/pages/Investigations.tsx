@@ -831,7 +831,7 @@ function Investigations() {
   const queueTotal = Array.isArray(queue.data) ? undefined : queue.data?.total;
   const unreviewed = queueRows.filter((i) => i.review_state === 'unreviewed');
   const totalUnreviewed = queueTotal ?? unreviewed.length;
-  const queueOldestFirst = [...unreviewed].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const queueOldestFirst = [...unreviewed].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const visible = queueOldestFirst.slice(0, visibleCount);
   // more to reveal: either the total says so, or the fetched page is full
   // (an unfiltered endpoint returning exactly `limit` rows may have more)
