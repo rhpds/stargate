@@ -293,3 +293,46 @@ export function LegendRow() {
     </div>
   );
 }
+
+
+/**
+ * Parse an investigation's markdown analysis into sections — ported
+ * verbatim from the old Operations page (the salvage manifest's item 1:
+ * the parser is pure string logic, and the old page's biggest strength
+ * was showing the full Diagnosis → Root Cause → Remediation chain).
+ */
+export function splitAnalysisSections(text: string) {
+  const labels = [
+    'Diagnosis', 'Root Cause', 'Remediation Strategy', 'Shadow Remediation',
+    'Owner', 'Verdict', 'Confidence', 'Additional Recommendations',
+  ];
+  const headingPattern = (label: string) => new RegExp(
+    `^(?:#{1,6}\\s*(?:\\d+\\.\\s*)?|\\*\\*)${label}(?:\\*\\*)?\\s*:?[ \\t]*(.*)$`,
+    'im',
+  );
+  const extract = (label: string): string | null => {
+    const match = headingPattern(label).exec(text);
+    if (!match || match.index == null) return null;
+    const bodyStart = match.index + match[0].length;
+    const remainder = text.slice(bodyStart);
+    let bodyEnd = remainder.length;
+    for (const nextLabel of labels) {
+      if (nextLabel === label) continue;
+      const next = headingPattern(nextLabel).exec(remainder);
+      if (next?.index != null) bodyEnd = Math.min(bodyEnd, next.index);
+    }
+    const inline = match[1]?.trim() || '';
+    const body = remainder.slice(0, bodyEnd).trim();
+    const content = [inline, body].filter(Boolean).join('\n\n');
+    return content.length > 5 ? content : null;
+  };
+  const verdictMatch = text.match(/\*?\*?Verdict\*?\*?[:\s]*(TRANSIENT|ACTIONABLE|UNKNOWN)/i);
+  return {
+    diagnosis: extract('Diagnosis'),
+    rootCause: extract('Root Cause'),
+    shadowRemediation: extract('Shadow Remediation'),
+    owner: extract('Owner'),
+    remaining: extract('Remediation Strategy'),
+    verdict: verdictMatch && verdictMatch[1] ? verdictMatch[1].toUpperCase() : null,
+  };
+}
