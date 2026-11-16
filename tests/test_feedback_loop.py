@@ -10,6 +10,11 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "stargate-synthetic-client-emulator"))
 
+# The synthetic-client emulator is a separate, unpublished sibling checkout.
+# When it is absent (CI), skip these scenario tests instead of failing
+# collection — they never ran in CI before, they just errored out.
+pytest.importorskip("emulator")
+
 from tests.conftest import client, db
 
 from emulator.scenarios import get_all_scenarios, get_scenario
