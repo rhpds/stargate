@@ -19,7 +19,9 @@ Usage:
   # report to StarGate as evaluations (external evidence)
   ... --api-url http://stargate-api:8090 --api-key "$STARGATE_ADMIN_API_KEY"
 
-Exit code is 1 when drift is found, so it can gate a job.
+Drift is reported through StarGate (external evidence). Exit code stays 0
+unless --fail-on-drift is passed, because a recurring drift would fail every
+scheduled job and drown the signal.
 """
 
 from __future__ import annotations
@@ -146,6 +148,8 @@ def main(argv=None) -> int:
     parser.add_argument("--api-url", default="")
     parser.add_argument("--api-key", default=os.environ.get("STARGATE_ADMIN_API_KEY", ""))
     parser.add_argument("--json", action="store_true", help="print machine-readable output only")
+    parser.add_argument("--fail-on-drift", action="store_true",
+                        help="exit 1 when drift is found (default: report and exit 0)")
     args = parser.parse_args(argv)
 
     with open(args.baseline) as handle:
@@ -170,7 +174,7 @@ def main(argv=None) -> int:
     if drift and args.api_url and args.api_key:
         result["reported"] = report(drift, args.api_url, args.api_key, args.cluster)
 
-    return 1 if drift else 0
+    return (1 if drift else 0) if args.fail_on_drift else 0
 
 
 if __name__ == "__main__":
