@@ -129,7 +129,8 @@ export default function LabDetail() {
 
   const lab = labDetail.data as LabDetailType;
   const labName = lab.labagator?.title || lab.lab_code;
-  const labSt = lab.labagator?.status ?? 'unknown';
+  const labStatusLabel = lab.labagator?.status ?? 'not in Labagator';
+  const labStatusTone = lab.labagator?.status ? statusColor(lab.labagator.status) : '#6A6E73';
 
   const evalCount = lab.stargate.evaluation_count;
   const history = lab.stargate.history ?? [];
@@ -143,8 +144,14 @@ export default function LabDetail() {
 
   const provisioning = (lab as any).provisioning;
   const constraints = (lab as any).constraint_violations;
+  const validation = (lab as any).constraint_validation;
+  const identity = (lab as any).identity;
   const instances = provisioning?.instances ?? [];
   const instanceSummary = provisioning?.instance_summary;
+  const byState: Record<string, number> = instanceSummary?.by_state ?? {};
+  const teardownCount = Object.entries(byState)
+    .filter(([state]) => state.startsWith('destroy'))
+    .reduce((sum, [, count]) => sum + count, 0);
   const linkedPools = provisioning?.pools ?? [];
   const launchpadSessions = provisioning?.launchpad_sessions ?? [];
 
@@ -156,9 +163,21 @@ export default function LabDetail() {
         <span className="text-[#6A6E73] text-sm">Lab</span>
         <div className="flex items-center gap-3 mt-2">
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Red Hat Display' }}>{labName}</h1>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: statusColor(labSt), color: '#fff' }}>{labSt}</span>
+          <span
+            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+            title={lab.labagator ? `Labagator status: ${labStatusLabel}` : 'This workload has no Labagator record — status is unknown, not unhealthy'}
+            style={{ backgroundColor: labStatusTone, color: '#fff' }}
+          >{labStatusLabel}</span>
         </div>
         <p className="text-[#6A6E73] mt-1">{lab.lab_code}</p>
+        {identity?.resolved && (
+          <p
+            className="text-[#6A6E73] text-xs mt-1"
+            title={(identity.evaluation_lab_codes ?? []).join('\n')}
+          >
+            Evaluations matched across {identity.evaluation_lab_codes.length} identities
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -176,13 +195,13 @@ export default function LabDetail() {
         </section>
       )}
 
-      {/* Provisioning */}
+      {/* Instances */}
       {instances.length > 0 && (
         <section>
-          <SectionHeader>Provisioning ({instanceSummary?.total ?? instances.length} instances)</SectionHeader>
+          <SectionHeader>Instances ({instanceSummary?.total ?? instances.length})</SectionHeader>
           {instanceSummary && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {Object.entries(instanceSummary.by_state as Record<string, number>).map(([state, count]) => (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {Object.entries(byState).map(([state, count]) => (
                 <div key={state} className="flex items-center gap-1 bg-[#212121] border border-[#2e2e2e] rounded px-2 py-1">
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: statusColor(state), color: '#fff' }}>{state}</span>
                   <span className="text-xs text-white">{count}</span>
@@ -190,16 +209,34 @@ export default function LabDetail() {
               ))}
             </div>
           )}
-          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-1">
+          {teardownCount > 0 && (
+            <p className="text-xs text-[#6A6E73] mb-3">
+              {teardownCount} instance{teardownCount === 1 ? '' : 's'} failed during teardown, not provisioning —
+              <Link to="/reclamation" className="text-[#73BCF7] hover:underline ml-1">see Reclamation</Link>
+            </p>
+          )}
+          <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4">
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-[#6A6E73] font-bold pb-1 border-b border-[#2e2e2e] mb-1">
+              <span className="flex-1">Instance</span>
+              <span className="shrink-0">State</span>
+              <span className="shrink-0">Governor</span>
+              <span className="shrink-0 w-14 text-right">Console</span>
+            </div>
+            <div className="space-y-1">
             {instances.slice(0, 20).map((inst: any) => (
               <div key={inst.anarchy_name} className="flex items-center gap-3 text-sm py-1">
                 <span className="text-white truncate flex-1" title={inst.anarchy_name}>{inst.anarchy_name}</span>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: statusColor(inst.state), color: '#fff' }}>{inst.state}</span>
-                <span className="text-xs text-[#6A6E73] shrink-0">{inst.namespace}</span>
-                {inst.console_url && <a href={inst.console_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#73BCF7] hover:underline shrink-0">Console</a>}
+                <span className="text-xs text-[#6A6E73] shrink-0" title="Anarchy governor namespace — this is where the subject runs, not the target cluster">{inst.namespace}</span>
+                {inst.console_url ? (
+                  <a href={inst.console_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#73BCF7] hover:underline shrink-0 w-14 text-right">Console</a>
+                ) : (
+                  <span className="w-14 shrink-0" />
+                )}
               </div>
             ))}
-            {instances.length > 20 && <p className="text-xs text-[#6A6E73]">+ {instances.length - 20} more</p>}
+            </div>
+            {instances.length > 20 && <p className="text-xs text-[#6A6E73] mt-1">+ {instances.length - 20} more</p>}
           </div>
         </section>
       )}
@@ -237,18 +274,28 @@ export default function LabDetail() {
       )}
 
       {/* Constraint Violations */}
-      {constraints && constraints.length > 0 && (
+      {((constraints && constraints.length > 0) || validation) && (
         <section>
-          <SectionHeader>Constraint Violations ({constraints.length})</SectionHeader>
+          <SectionHeader>
+            Constraint Violations{constraints && constraints.length > 0 ? ` (${constraints.length})` : ''}
+          </SectionHeader>
           <div className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-4 space-y-2">
-            {constraints.map((cv: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 text-sm">
-                <span className="text-[#F0AB00] text-xs shrink-0">!</span>
-                <span className="text-white text-xs">{cv.constraint || cv.name}</span>
-                {cv.actual !== undefined && <span className="text-xs text-[#6A6E73]">actual: {String(cv.actual)}</span>}
-                {cv.expected !== undefined && <span className="text-xs text-[#6A6E73]">expected: {String(cv.expected)}</span>}
-              </div>
-            ))}
+            {constraints && constraints.length > 0 ? (
+              constraints.map((cv: any, i: number) => (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <span className="text-[#F0AB00] text-xs shrink-0">!</span>
+                  <span className="text-white text-xs">{cv.constraint || cv.name || cv.type}</span>
+                  {cv.actual !== undefined && <span className="text-xs text-[#6A6E73]">actual: {String(cv.actual)}</span>}
+                  {cv.expected !== undefined && <span className="text-xs text-[#6A6E73]">expected: {String(cv.expected)}</span>}
+                </div>
+              ))
+            ) : (
+              <p className="text-[#6A6E73] text-sm">
+                Not evaluated — {validation?.reason ?? 'no live evidence collected'}.
+                {validation?.declared_workloads > 0 && ` ${validation.declared_workloads} declared workload${validation.declared_workloads === 1 ? '' : 's'} in AgnosticV.`}
+                {validation?.unresolved_template && ' The workload list is a deploy-time template, so it cannot be compared as-is.'}
+              </p>
+            )}
           </div>
         </section>
       )}
