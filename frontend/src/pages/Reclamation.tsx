@@ -10,7 +10,7 @@
  * namespace's evidence.
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime } from '../components/ui';
@@ -85,11 +85,12 @@ interface ResolutionsData {
 // the Babylon snapshot's destroy-state instances ---
 
 interface TeardownRow {
-  namespace: string;
+  subject: string;               // the AnarchySubject — unique, the join key
+  namespace: string | null;      // workload namespace (live detector)
+  shard: string | null;          // babylon-anarchy-N (snapshot metadata)
   state: string;
   ageHours: number | null;
   cluster: string | null;
-  subject: string | null;
   namespaceExists: boolean | null;
 }
 
@@ -116,6 +117,7 @@ function formatAge(hours: number | null): string {
 }
 
 export default function Reclamation() {
+  const [showAllStuck, setShowAllStuck] = React.useState(false);
   const stuck = useQuery({
     queryKey: ['reclamation', 'stuck-instances'],
     queryFn: () => request<StuckInstances>('/dashboard/stuck-instances'),
@@ -134,43 +136,47 @@ export default function Reclamation() {
   });
 
   const teardownRows = useMemo<TeardownRow[]>(() => {
-    const byNs = new Map<string, TeardownRow>();
+    const bySubject = new Map<string, TeardownRow>();
     // Live detector first — the richest row (age, cluster, existence).
     for (const e of gaps.data?.stuck_teardowns?.stuck ?? []) {
-      const ns = e.namespace || e.anarchy_subject;
-      if (!ns) continue;
-      byNs.set(ns, {
-        namespace: ns,
+      const subject = e.anarchy_subject || e.namespace;
+      if (!subject) continue;
+      bySubject.set(subject, {
+        subject,
+        namespace: e.namespace || null,
+        shard: null,
         state: e.state || 'unknown',
         ageHours: e.age_hours ?? null,
         cluster: e.cluster && e.cluster !== 'unknown' ? e.cluster : null,
-        subject: e.anarchy_subject || null,
         namespaceExists: e.namespace_exists ?? null,
       });
     }
-    // Babylon snapshot — adds destroy-failed rows the live scan can't see
-    // (or when it errored); existing rows only gain the subject name.
+    // Babylon snapshot — every destroy-state subject is its own row.
+    // The anarchy shard (babylon-anarchy-N) is shared by many subjects and
+    // is metadata, not the identity: keying by it collapsed 39 subjects
+    // into 6 rows (Nov 16). The join with live rows is by subject name.
     for (const [lab, instances] of Object.entries(stuck.data?.by_lab ?? {})) {
       for (const inst of instances ?? []) {
         if (!isTeardownState(inst.state)) continue;
-        const ns = inst.namespace || lab;
-        if (!ns) continue;
-        const existing = byNs.get(ns);
+        const subject = inst.name || inst.namespace || lab;
+        if (!subject) continue;
+        const existing = bySubject.get(subject);
         if (existing) {
-          existing.subject = existing.subject || inst.name || null;
+          existing.shard = existing.shard || inst.namespace || null;
         } else {
-          byNs.set(ns, {
-            namespace: ns,
+          bySubject.set(subject, {
+            subject,
+            namespace: null,
+            shard: inst.namespace || null,
             state: inst.state,
             ageHours: null,
             cluster: null,
-            subject: inst.name || null,
             namespaceExists: null,
           });
         }
       }
     }
-    return [...byNs.values()].sort((a, b) => (b.ageHours ?? -1) - (a.ageHours ?? -1));
+    return [...bySubject.values()].sort((a, b) => (b.ageHours ?? -1) - (a.ageHours ?? -1));
   }, [gaps.data, stuck.data]);
 
   const leaks = gaps.data?.resource_leaks;
@@ -182,8 +188,11 @@ export default function Reclamation() {
     : (leaks.orphaned_count ?? orphanedPvs.length);
   const leakedCapacityGi = leaks?.orphaned_capacity_gi ?? 0;
 
-  const destroyFailed = stuck.data?.platform_stuck?.destroy_failed ?? 0;
-  const stuckTeardownCount = Math.max(teardownRows.length, destroyFailed);
+  const platformStuck = stuck.data?.platform_stuck
+    ?? { destroy_failed: 0, destroy_error: 0 };
+  const destroyFailed = platformStuck.destroy_failed ?? 0;
+  const destroyError = platformStuck.destroy_error ?? 0;
+  const stuckTeardownCount = Math.max(teardownRows.length, destroyFailed + destroyError);
   const stuckObserved = !stuck.isLoading && !stuck.error;
   const thresholdHours = gaps.data?.stuck_teardowns?.threshold_hours ?? 2;
 
@@ -248,7 +257,7 @@ export default function Reclamation() {
           <MetricCard
             label="Stuck teardowns"
             value={stuckTeardownCount}
-            sub={`destroy-failed ${destroyFailed} · threshold ${thresholdHours}h`}
+            sub={`${destroyFailed} destroy-failed · ${destroyError} destroy-error · threshold ${thresholdHours}h`}
             accent={stuckTeardownCount > 0 ? 'amber' : 'green'}
           />
           <MetricCard
@@ -272,7 +281,7 @@ export default function Reclamation() {
       </section>
 
       <section aria-label="Stuck teardowns">
-        <SectionHeader right={`${teardownRows.length} namespace${teardownRows.length === 1 ? '' : 's'} · destroy states only`}>
+        <SectionHeader right={`${teardownRows.length} subject${teardownRows.length === 1 ? '' : 's'} · destroy states only`}>
           Stuck teardowns
         </SectionHeader>
         {gaps.data?.stuck_teardowns?.error && (
@@ -288,32 +297,49 @@ export default function Reclamation() {
           </div>
         )}
         <ul className="space-y-2">
-          {teardownRows.map((row) => (
-            <li key={row.namespace}>
-              <Link
-                to={`#`}
-                aria-label={`Stuck teardown ${row.namespace}, state ${row.state}`}
-                className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#555] transition block"
+          {teardownRows.slice(0, showAllStuck ? teardownRows.length : 12).map((row) => (
+            <li key={row.subject}>
+              <div
+                role="group"
+                aria-label={`Stuck teardown ${row.subject}, state ${row.state}`}
+                className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3"
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm font-semibold text-white truncate font-mono">
-                    {row.namespace}
+                    {row.subject}
                   </span>
                   <StatusBadge status={row.state} colors={TEARDOWN_COLORS} />
                 </div>
                 <div className="text-xs text-[#6A6E73] mt-1 flex gap-4 flex-wrap">
                   <span>age {formatAge(row.ageHours)}</span>
                   {row.cluster && <span>cluster {row.cluster}</span>}
-                  {row.subject && <span className="truncate max-w-[24rem]">subject {row.subject}</span>}
+                  {row.shard && <span>{row.shard}</span>}
+                  {row.namespace && row.namespace !== row.subject && (
+                    <span className="truncate max-w-[24rem]">ns {row.namespace}</span>
+                  )}
                   {row.namespaceExists === false && (
                     <span className="text-[#F0AB00]">namespace already gone — control-plane leftover</span>
                   )}
                   {row.namespaceExists === true && <span>namespace still on cluster</span>}
                 </div>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
+        {teardownRows.length > 12 && (
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-[#6A6E73]">
+              Showing {showAllStuck ? teardownRows.length : 12} of {teardownRows.length} subjects
+            </span>
+            {!showAllStuck && (
+              <button
+                className="text-xs px-3 py-1.5 rounded bg-[#73BCF7]/10 text-[#73BCF7] border border-[#73BCF7]/30 hover:bg-[#73BCF7]/20 transition"
+                onClick={() => setShowAllStuck(true)}>
+                Show all {teardownRows.length}
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <section aria-label="Resolution outcomes">
