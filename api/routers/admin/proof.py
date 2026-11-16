@@ -3,6 +3,7 @@ shadow mode, monitoring gaps, correlated views, namespace detail."""
 
 import json
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
