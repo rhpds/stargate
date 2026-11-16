@@ -53,6 +53,38 @@ const riskColor: Record<string, string> = {
   red: '#EE0000',
 };
 
+/**
+ * deficit_state in plain words — the legend's vocabulary, so the hover
+ * card says what the texture means instead of the raw enum. Colored to
+ * match the strip; the words carry the meaning (never color alone).
+ */
+const DEFICIT_PLAIN: Record<string, { text: string; color: string }> = {
+  deficit: { text: 'deficit — demand exceeds supply', color: '#EE0000' },
+  headroom: { text: 'headroom — demand fits supply', color: '#3E8635' },
+  lower_bound_demand: { text: 'at least (floor) — unprofiled sessions', color: '#F0AB00' },
+  indeterminate: { text: 'indeterminate — not both sides observed', color: '#8a8a8a' },
+};
+
+/** The rich hover card for one forecast hour: timestamp, vm slots,
+ *  deficit state in plain words, session count. */
+function HourTooltip({ hour }: { hour?: ForecastHour }) {
+  if (!hour) return null;
+  const plain = DEFICIT_PLAIN[hour.deficit_state]
+    ?? { text: hour.deficit_state, color: '#8a8a8a' };
+  return (
+    <div className="text-xs space-y-1">
+      <div className="font-semibold text-white">
+        {(hour.hour || '').slice(0, 16).replace('T', ' ')}
+      </div>
+      <div className="text-[#c7c7c7]">
+        vm slots: {hour.vm_slots != null ? hour.vm_slots.toLocaleString() : 'unobserved'}
+      </div>
+      <div style={{ color: plain.color }}>{plain.text}</div>
+      <div className="text-[#c7c7c7]">sessions: {hour.sessions.toLocaleString()}</div>
+    </div>
+  );
+}
+
 export default function Capacity() {
   const forecast = useQuery({
     queryKey: ['resource-forecast'],
@@ -143,8 +175,8 @@ export default function Capacity() {
                   : h.deficit_state === 'headroom' ? 'green' as const
                     : h.deficit_state === 'lower_bound_demand' ? 'floor' as const
                       : 'unknown' as const,
-                title: `${h.hour} — ${h.vm_slots ?? '?'} slots (${h.deficit_state})`,
               }))}
+              tooltip={(i) => <HourTooltip hour={f.hourly[i]} />}
             />
             <div className="mt-2"><LegendRow /></div>
           </div>

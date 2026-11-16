@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { MetricCard, SectionHeader, StatusBadge, relativeTime } from '../components/ui';
 import { request } from '../api/client';
+import { Link } from 'react-router-dom';
 
 interface KnowledgeItem {
   id: number;
@@ -239,7 +240,7 @@ function Knowledge() {
         {active.length === 0 && (
           <div className="text-sm text-[#6A6E73] mt-3">
             No active knowledge entries yet — review diagnoses on the{' '}
-            <a href="/investigations" className="text-[#73BCF7]">investigations page</a>{' '}
+            <Link to="/investigations" className="text-[#73BCF7]">investigations page</Link>{' '}
             to publish the first.
           </div>
         )}
@@ -298,9 +299,9 @@ function Knowledge() {
                   {k.investigation_id != null && (
                     <span>
                       from{' '}
-                      <a href="/investigations" className="text-[#73BCF7] hover:underline">
+                      <Link to="/investigations" className="text-[#73BCF7] hover:underline">
                         investigation #{k.investigation_id}
-                      </a>
+                      </Link>
                     </span>
                   )}
                   <span>by {k.reviewed_by ?? 'unknown'}</span>

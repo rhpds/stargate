@@ -5,11 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import {
   MetricCard,
   SectionHeader,
+  StateStrip,
   StatusBadge,
   relativeTime,
   statusColor,
@@ -71,5 +72,43 @@ describe('StatusBadge', () => {
     render(<StatusBadge status="critical" />);
     const badge = screen.getByText('critical');
     expect(badge).toBeTruthy();
+  });
+});
+
+describe('StateStrip', () => {
+  it('keeps title tooltips when no rich tooltip is provided', () => {
+    render(
+      <StateStrip
+        cells={[
+          { state: 'green', title: 'ok hour' },
+          { state: 'red' },
+          { state: 'floor' },
+          { state: 'unknown' },
+        ]}
+      />,
+    );
+    expect(screen.getByTitle('ok hour')).toBeTruthy();
+    expect(screen.getByTitle('at least (lower bound)')).toBeTruthy();
+    expect(screen.getByTitle('not measured')).toBeTruthy();
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('shows the rich tooltip card immediately on cell hover when provided', () => {
+    const { container } = render(
+      <StateStrip
+        cells={[{ state: 'green' }, { state: 'red' }]}
+        tooltip={(i) => `hour ${i}: 845 slots`}
+      />,
+    );
+    // hidden until hover — no browser tooltip delay
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    const cells = container.querySelectorAll('.flex-1');
+    fireEvent.mouseEnter(cells[1]!);
+    expect(screen.getByRole('tooltip').textContent).toContain('hour 1: 845 slots');
+    // titles are replaced by the rich hover, not doubled
+    expect(cells[1]!.getAttribute('title')).toBeNull();
+    // leaving the strip hides it again
+    fireEvent.mouseLeave(container.firstElementChild!);
+    expect(screen.queryByRole('tooltip')).toBeNull();
   });
 });
