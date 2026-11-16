@@ -20,6 +20,7 @@ import Overview from './pages/Overview';
 import Capacity from './pages/Capacity';
 import Investigations from './pages/Investigations';
 import Knowledge from './pages/Knowledge';
+import Clusters from './pages/Clusters';
 import DeepfieldOverview from './pages/DeepfieldOverview';
 import GeoluxOverview from './pages/GeoluxOverview';
 
@@ -135,6 +136,7 @@ export default function App() {
                 <Route path="/capacity" element={<Capacity />} />
                 <Route path="/investigations" element={<Investigations />} />
                 <Route path="/knowledge" element={<Knowledge />} />
+                <Route path="/clusters" element={<Clusters />} />
                 <Route path="/proof" element={<ProofDashboard />} />
                 <Route path="/deepfield" element={<DeepfieldOverview />} />
                 <Route path="/geolux" element={<GeoluxOverview />} />

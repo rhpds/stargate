@@ -10,7 +10,7 @@
 
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MetricCard, SectionHeader, StatusBadge, relativeTime, statusColor } from '../components/ui';
+import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, relativeTime, statusColor } from '../components/ui';
 import { request } from '../api/client';
 
 interface InvestigationRow {
@@ -68,6 +68,13 @@ function Investigations() {
     refetchInterval: 300_000,
   });
 
+  const stats = useQuery({
+    queryKey: ['investigation-stats'],
+    queryFn: () => request<{ investigations_today?: number; daily_limit?: number; queue_depth?: number; auto_investigate?: boolean }>(
+      '/dashboard/investigations/stats'),
+    refetchInterval: 120_000,
+  });
+
   const review = useMutation({
     mutationFn: (v: { id: number; approved: boolean }) =>
       request<{ ok?: boolean }>(`/dashboard/investigations/${v.id}/review`, {
@@ -99,6 +106,16 @@ function Investigations() {
           review work. Approvals publish knowledge entries and resolve model
           disputes.
         </p>
+        {stats.data && (
+          <p className="text-xs text-[#8a8a8a] mt-1">
+            auto-investigate {stats.data.auto_investigate === false ? 'OFF' : 'ON'} ·{' '}
+            {stats.data.investigations_today ?? 0} of {stats.data.daily_limit ?? 200} daily budget ·{' '}
+            queue {stats.data.queue_depth ?? 0}
+            {stats.data.auto_investigate === false && (
+              <span className="text-[#F0AB00] ml-2">⚠ auto-investigate is OFF</span>
+            )}
+          </p>
+        )}
       </header>
 
       {queue.error && (
@@ -110,17 +127,56 @@ function Investigations() {
         <div className="text-sm text-[#6A6E73]">Loading the queue…</div>
       )}
 
-      {s && (
+      {s && (() => {
+        const totalInv = issues.reduce((a, ki) => a + ki.investigation_count, 0);
+        const sorted = [...issues].sort((a, b) => b.investigation_count - a.investigation_count);
+        const top = sorted[0];
+        const topShare = totalInv > 0 && top
+          ? Math.round((top.investigation_count / totalInv) * 100) : 0;
+        const bucketColors: Record<string, string> = {
+          platform: '#EE0000', platform_self: '#F0AB00', lab_family: '#73BCF7', unknown: '#6A6E73',
+        };
+        return (
         <section aria-label="Known issues summary">
-          <SectionHeader right="one fix can eliminate an entire class">
+          <SectionHeader right={`unreviewed queue: ${unreviewed.length} · review = knowledge`}>
             Known issues (last 7 days)
           </SectionHeader>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <VerdictBanner
+            state={sorted.length === 0 ? 'unknown' : topShare >= 50 ? 'amber' : 'green'}
+            headline={sorted.length === 0
+              ? 'No known issues in the window — no failure class spans 3+ namespaces'
+              : topShare >= 50
+                ? `One bug — issue #1 covers ${topShare}% of ${totalInv} failed investigations`
+                : `${sorted.length} issues, none dominant (${totalInv} investigations total)`}
+            chips={[
+              `${s.platform} platform · ${s.platform_self} platform-self · ${s.lab_family} lab-family`,
+              `oldest waiting ${unreviewed.length > 0 ? relativeTime(unreviewed[unreviewed.length - 1]?.created_at) : '—'}`,
+            ]}
+          />
+          {sorted.length > 0 && totalInv > 0 && (
+            <div className="mt-3" role="img"
+              aria-label={`Concentration: top issue covers ${topShare}% of ${totalInv} investigations`}>
+              <div className="flex h-6 rounded-lg overflow-hidden gap-px">
+                {sorted.slice(0, 8).map((ki) => (
+                  <div key={ki.signature}
+                    title={`${ki.title || ki.failure_class}: ${ki.investigation_count} investigations (${Math.round(100 * ki.investigation_count / totalInv)}%)`}
+                    className="transition-opacity hover:opacity-80"
+                    style={{
+                      width: `${(ki.investigation_count / totalInv) * 100}%`,
+                      backgroundColor: bucketColors[ki.bucket] ?? '#6A6E73',
+                    }} />
+                ))}
+              </div>
+              <div className="text-xs text-[#8a8a8a] mt-1">
+                top issue: {top?.title || top?.failure_class} — {top?.namespace_count} namespaces × {top?.investigation_count} investigations
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <MetricCard label="Open issues" value={s.issues} />
             <MetricCard label="Platform" value={s.platform} sub="infra-side fixes" />
             <MetricCard label="Platform-self" value={s.platform_self} sub="StarGate's own bugs" />
             <MetricCard label="Lab family" value={s.lab_family} sub="shared chart/config bugs" />
-            <MetricCard label="Unreviewed queue" value={unreviewed.length} sub="review = knowledge" />
           </div>
           {issues.length === 0 && (
             <div className="text-sm text-[#6A6E73] mt-3">
@@ -152,7 +208,8 @@ function Investigations() {
             ))}
           </div>
         </section>
-      )}
+        );
+      })()}
 
       <section aria-label="Unreviewed investigations">
         <SectionHeader right="approve publishes knowledge; reject marks re-examination">
@@ -162,7 +219,7 @@ function Investigations() {
           <div className="text-sm text-[#6A6E73]">Queue clear — every investigation reviewed.</div>
         )}
         <div className="space-y-2">
-          {unreviewed.slice(0, 15).map((inv) => (
+          {[...unreviewed].sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, 15).map((inv) => (
             <div
               key={inv.id}
               className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 flex items-center justify-between gap-4"
