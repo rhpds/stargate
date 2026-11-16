@@ -311,6 +311,8 @@ def on_startup():
     tllm.start()
     tdep = threading.Thread(target=_dependency_health_loop, daemon=True)
     tdep.start()
+    tcred = threading.Thread(target=_credential_health_loop, daemon=True)
+    tcred.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
     tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
@@ -1179,6 +1181,36 @@ def _dependency_health_loop():
                 )
         except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
             logger.warning("Dependency health loop failed: %s", e)
+        _shutdown_event.wait(interval)
+
+
+def _credential_health_loop():
+    """Verify StarGate's own credentials every 15 minutes.
+
+    Reachability probes treat a 401 as a pass, so a revoked token looked
+    healthy until something downstream broke. This exercises each credential
+    against its own service and records evaluations (stage credential-health).
+    """
+    import time as _tc
+    _tc.sleep(120)  # stagger behind the dependency probe
+    logger = logging.getLogger("stargate")
+    interval = int(os.environ.get("STARGATE_CREDENTIAL_HEALTH_INTERVAL_SECONDS", "900"))
+    while not _shutdown_event.is_set():
+        try:
+            from collectors.credential_health import run_credential_check
+            if os.environ.get("STARGATE_CREDENTIAL_HEALTH_ENABLED", "true").lower() != "true":
+                logger.debug("credential-health loop: disabled")
+            else:
+                from db.database import background_session
+                with background_session() as db:
+                    report = run_credential_check(db=db, force=True)
+                logger.info(
+                    "Credential health: %d credentials, %d rejected, %d degraded, %d evaluations recorded",
+                    report.get("credentials_probed", 0), report.get("failing", 0),
+                    report.get("degraded", 0), report.get("evaluations_recorded", 0),
+                )
+        except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
+            logger.warning("Credential health loop failed: %s", e)
         _shutdown_event.wait(interval)
 
 
