@@ -148,6 +148,43 @@ def dashboard_pool_detail(pool_name: str):
     }
 
 
+_LAB_NAMESPACES = frozenset({
+    # zero-touch BU labs, partner/workshop namespaces
+    "zt-ansiblebu", "zt-rhelbu", "pert", "openshift-cnv",
+})
+
+
+def _classify_workload(lab: str, insts: list, lg_codes_lower: set, pool_names: list) -> str:
+    """lab | sandbox | open-env | pool | catalog.
+
+    The Affected-labs list mixes real labs with shared capacity; the user
+    asked to indicate which is which (Nov 16). Evidence, in priority order:
+    the subject prefix (sandbox catalog vs open environment vs lab
+    namespace), Labagator membership (it has sessions → a lab), LB/LL-coded
+    subject slugs (event labs), and pool membership (shared capacity
+    serving many labs). 'catalog' is the honest fallback.
+    """
+    names = [i.get("anarchy_name", "") for i in insts]
+    prefixes = {n.split(".")[0] for n in names if "." in n}
+    slug_first = {
+        n.split(".", 1)[1].split("-")[0].lower()
+        for n in names if "." in n
+    }
+    if "sandboxes-gpte" in prefixes:
+        return "sandbox"
+    if "azure-gpte" in prefixes or lab.startswith("open-environment"):
+        return "open-env"
+    if lab.lower() in lg_codes_lower:
+        return "lab"
+    if any(s.startswith(("lb", "ll", "lnl")) for s in slug_first):
+        return "lab"  # LB/LL-coded event-lab subjects (summit-2026.*, rh1-2027.*)
+    if prefixes & _LAB_NAMESPACES:
+        return "lab"
+    if any(f".{lab}." in pn for pn in pool_names) or lab.endswith("-pools"):
+        return "pool"
+    return "catalog"
+
+
 @router.get("/dashboard/provisioning")
 def dashboard_provisioning():
     """Provisioning overview — all AnarchySubjects grouped by state."""
@@ -159,6 +196,16 @@ def dashboard_provisioning():
     labs_affected: Dict[str, Dict] = {}
     _PROV = {"provision-failed", "provision-error", "start-failed", "start-error"}
     _TEARDOWN = {"destroy-failed", "destroy-error", "stop-failed", "stop-error"}
+    # workload classification inputs: Labagator's catalog (it has sessions
+    # → a lab) and the pool list (shared capacity)
+    lg_codes_lower = {
+        str(c).lower()
+        for c in (babylon.get("labagator", {}) or {}).get("labs_by_code", {})
+    }
+    pool_names = [
+        p.get("name", "") for p in (babylon.get("pools", {}) or {}).get("all_pools", [])
+        if isinstance(p, dict)
+    ]
     for lc, insts in instance_mapping.items():
         lab_total = 0
         lab_started = 0
@@ -191,6 +238,7 @@ def dashboard_provisioning():
                 "provision_failed": lab_prov_failed,
                 "teardown_failed": lab_teardown_failed,
                 "last_failed_at": lab_last_failed_at or None,
+                "kind": _classify_workload(lc, insts, lg_codes_lower, pool_names),
             }
 
     # Snapshot-compat: pre-Nov-16 snapshots carry only the narrow

@@ -303,8 +303,13 @@ export default function Provisioning() {
       </section>
 
       <section aria-label="Affected labs">
-        <SectionHeader right={`${failingLabs.length} of ${allLabs.length} labs failing`}>
-          Affected labs
+        <SectionHeader right={(() => {
+          const labs = failingLabs.filter(([, s]) => s.kind === 'lab').length;
+          const shared = failingLabs.length - labs;
+          const base = `${failingLabs.length} of ${allLabs.length} workloads failing`;
+          return shared > 0 ? `${base} — ${labs} labs · ${shared} shared capacity` : base;
+        })()}>
+          Affected workloads
         </SectionHeader>
         {d && failingLabs.length === 0 && (
           <div className="text-sm text-[#3E8635] flex items-center gap-2">
@@ -322,7 +327,26 @@ export default function Provisioning() {
                 className="bg-[#212121] border border-[#2e2e2e] rounded-lg p-3 hover:border-[#555] transition block"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-semibold text-white truncate">{lab}</span>
+                  <span className="text-sm font-semibold text-white truncate flex items-center gap-2">
+                    {lab}
+                    <span
+                      title={
+                        s.kind === 'lab' ? 'A lab — a defined workload with sessions'
+                        : s.kind === 'sandbox' ? 'Self-service sandbox catalog — shared capacity, not a lab'
+                        : s.kind === 'pool' ? 'Shared pool — serves many labs'
+                        : s.kind === 'open-env' ? 'Open environment — shared capacity, not a lab'
+                        : 'AgnosticD catalog item'
+                      }
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 border ${
+                        s.kind === 'lab' ? 'bg-[#3E8635]/15 text-[#3E8635] border-[#3E8635]/30'
+                        : s.kind === 'sandbox' ? 'bg-[#F0AB00]/10 text-[#F0AB00] border-[#F0AB00]/30'
+                        : s.kind === 'pool' ? 'bg-[#73BCF7]/10 text-[#73BCF7] border-[#73BCF7]/30'
+                        : s.kind === 'open-env' ? 'bg-[#a071c9]/10 text-[#c7a0e8] border-[#a071c9]/30'
+                        : 'bg-white/5 text-[#8a8a8a] border-[#3a3a3a]'
+                      }`}>
+                      {s.kind === 'open-env' ? 'open env' : s.kind ?? 'catalog'}
+                    </span>
+                  </span>
                   <span className="text-xs font-semibold text-[#EE0000] whitespace-nowrap">
                     {s.failed} failed · {s.started}/{s.total} started
                   </span>
