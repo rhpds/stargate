@@ -19,6 +19,7 @@ const FAILURE_LABELS: Record<string, string> = {
   credential_rejected: 'rejected by the service',
   credential_unreachable: 'service unreachable',
   credential_expiring: 'expires soon',
+  credential_no_expiry: 'no expiry — legacy token',
 };
 
 function expiryTone(days: number | null): string {
@@ -51,6 +52,15 @@ function CredentialRowView({ row }: { row: CredentialRow }) {
           {row.source ? ` · ${row.source}` : ''}
         </div>
       </div>
+      {row.days_left === null && row.failure_class === 'credential_no_expiry' && (
+        <span
+          className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: '#EE000022', color: '#EE0000' }}
+          title="Token carries no exp claim — it never expires"
+        >
+          no expiry
+        </span>
+      )}
       {row.days_left !== null && (
         <span
           className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
