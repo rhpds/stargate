@@ -19,6 +19,10 @@ STUCK_THRESHOLD_HOURS = float(os.environ.get("STARGATE_STUCK_TEARDOWN_HOURS", "2
 
 
 def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None) -> Dict:
+    # NOTE: the -A query over ~2,600 AnarchySubjects takes >30s on the
+    # Babylon control-plane — the old 30s timeout made the live detector
+    # PARTIAL on most runs (ages lost, snapshot-only rows). 90s: it runs
+    # in the monitoring-gaps background thread, so nothing blocks on it.
     """Find AnarchySubjects stuck in destroying state.
 
     Returns list of stuck subjects with namespace, state, age.
@@ -45,7 +49,7 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
         try:
             r = subprocess.run(
                 args,
-                capture_output=True, text=True, timeout=30, env=env,
+                capture_output=True, text=True, timeout=90, env=env,
             )
             if r.returncode != 0:
                 query_error = (query_error or "") + f"{target}: {r.stderr.strip()[:150]}; "
