@@ -27,6 +27,8 @@ interface TrendPoint {
   total?: number;
   started?: number;
   failed?: number;
+  provision_failed?: number;
+  teardown_failed?: number;
   failure_rate?: number | null;
 }
 
@@ -158,19 +160,26 @@ export default function Provisioning() {
   const total = d?.total ?? 0;
   const started = d?.started ?? 0;
   const failed = d?.failed ?? 0;
+  const provisionFailed = d?.provision_failed ?? failed;
+  const teardownFailed = d?.teardown_failed ?? 0;
   const rate = Number(d?.failure_rate) || 0;
+  // The verdict answers THIS page's question — provision/start failures
+  // only. Teardown failures (destroy-*/stop-*) provisioned fine and
+  // failed to clean up: reclamation signal, shown alongside, not counted.
+  const provisionRate = total > 0 ? (provisionFailed / total) * 100 : 0;
 
-  // green < 5%, amber 5–15%, red > 15%
+  // green < 5%, amber 5–15%, red > 15% — on the PROVISION failure rate
   const verdict: 'green' | 'amber' | 'red' | 'unknown' =
-    total === 0 ? 'unknown' : rate < 5 ? 'green' : rate <= 15 ? 'amber' : 'red';
+    total === 0 ? 'unknown' : provisionRate < 5 ? 'green' : provisionRate <= 15 ? 'amber' : 'red';
+  const teardownNote = teardownFailed > 0 ? ` · ${teardownFailed} teardown failure${teardownFailed === 1 ? '' : 's'} (Reclamation)` : '';
   const headline =
     verdict === 'unknown'
       ? 'No provisioning data in the window'
       : verdict === 'green'
-        ? failed === 0
-          ? '100% success — no provisions failing'
-          : `${Math.round(100 - rate)}% success — ${failed} of ${total} provisions failed`
-        : `Failure rate ${Math.round(rate)}% — ${failed} provision${failed === 1 ? '' : 's'} failing`;
+        ? provisionFailed === 0 && teardownFailed === 0
+          ? '100% success — nothing failing'
+          : `${provisionFailed} of ${total} provisions failing${teardownNote}`
+        : `Provision failure rate ${fmtRate(provisionRate)}% — ${provisionFailed} of ${total}${teardownNote}`;
 
   // states, exceptions-first, then by count
   const stateEntries = Object.entries(d?.by_state ?? {}).sort(
@@ -202,7 +211,10 @@ export default function Provisioning() {
   const allLabs = Object.entries(d?.labs_affected ?? {});
   const failingLabs = allLabs
     .filter(([, s]) => s.failed > 0)
-    .sort((a, b) => b[1].failed - a[1].failed);
+    // most-recent failure first (descending recency); count breaks ties
+    .sort((a, b) =>
+      String(b[1].last_failed_at ?? '').localeCompare(String(a[1].last_failed_at ?? ''))
+      || b[1].failed - a[1].failed);
 
   const stateBadgeColors = Object.fromEntries(
     stateEntries.map(([state]) => [state.toLowerCase(), stateColor(state)]),
@@ -252,7 +264,8 @@ export default function Provisioning() {
             <MetricCard
               label="Failed"
               value={failed}
-              accent={failed === 0 ? 'green' : rate > 15 ? 'red' : 'amber'}
+              sub={`${provisionFailed} provision · ${teardownFailed} teardown`}
+              accent={failed === 0 ? 'green' : provisionRate > 15 ? 'red' : 'amber'}
             />
             <MetricCard
               label="Failure rate"
