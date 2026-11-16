@@ -305,6 +305,14 @@ CORS middleware allows credentials, GET/POST methods, and the headers
      removed from the system — internal product, 94% of the approval queue,
      scores proven non-predictive by the calibration study. -->
 
+### STARGATE_DEPENDENCY_HEALTH_EXTRA_TARGETS
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | Not set                                                     |
+| Description | JSON list of extra dependency-health probes: `{"name", "url", "timeout_seconds"?}`. Appended to the defaults (sso.redhat.com, api.openshift.com, registry.redhat.io) and the env-derived ecosystem services (Labagator, Demolition, the MaaS gateway origin, Sandbox API when its URL is configured). An entry reusing an existing name overrides it. |
+| When to change | Add any ecosystem service whose reachability should become a trend (SaaS endpoints, internal APIs). 5xx/unreachable/slow semantics; 4xx on a base URL is a pass — the service answered. |
+
 ### STARGATE_GEOLUX_URL
 
 | Property    | Value                                                      |
