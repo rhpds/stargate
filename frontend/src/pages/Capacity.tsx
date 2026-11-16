@@ -59,6 +59,14 @@ export default function Capacity() {
     queryFn: () => request<ResourceForecast>('/api/v1/resource-forecast?hours=72'),
     refetchInterval: 300_000,
   });
+  const cost = useQuery({
+    queryKey: ['cost-analysis'],
+    queryFn: () => request<{
+      monthly_cost?: number; waste_pct?: number; failure_cost_monthly?: number;
+      optimization_opportunities?: { description: string; sandbox_count: number; action?: string }[];
+    }>('/admin/cost-analysis'),
+    refetchInterval: 600_000,
+  });
   const events = useQuery({
     queryKey: ['event-forecast'],
     queryFn: () => request<EventForecast>('/api/v1/event-forecast?days=90'),
@@ -204,6 +212,31 @@ export default function Capacity() {
           ))}
         </div>
       </section>
+
+      {cost.data && (
+        <section aria-label="Cost of failure">
+          <SectionHeader right="estimates use default unit rates — capacity consumed, not direct spend">
+            Are we burning money on failures?
+          </SectionHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <MetricCard label="Monthly cost" value={cost.data.monthly_cost != null ? `$${Math.round(cost.data.monthly_cost).toLocaleString()}` : '—'} />
+            <MetricCard label="Waste" value={cost.data.waste_pct != null ? `${cost.data.waste_pct.toFixed(1)}%` : '—'}
+              accent={cost.data.waste_pct != null ? (cost.data.waste_pct > 10 ? 'red' : cost.data.waste_pct > 5 ? 'amber' : 'green') : undefined} />
+            <MetricCard label="Failure cost / mo" value={cost.data.failure_cost_monthly != null ? `$${Math.round(cost.data.failure_cost_monthly).toLocaleString()}` : '—'} />
+          </div>
+          {((cost.data.optimization_opportunities ?? []).length > 0) && (
+            <div className="mt-3 space-y-1">
+              {(cost.data.optimization_opportunities ?? []).slice(0, 4).map((o, i: number) => (
+                <div key={i} className="text-xs text-[#c7c7c7] flex gap-2">
+                  <span className="text-[#F0AB00]">⚠</span>
+                  <span className="flex-1">{o.description}</span>
+                  <span className="text-[#6A6E73] whitespace-nowrap">{o.sandbox_count} sandboxes</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <p className="text-xs text-[#6A6E73]">
         Deficit states per hour resolve against the observed supply; hours without both

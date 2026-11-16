@@ -9,6 +9,8 @@
 import { Link } from 'react-router-dom';
 import { MetricCard, SectionHeader, StatusBadge, VerdictBanner, FleetStrip, relativeTime } from '../components/ui';
 import { useHealth, useOverview, useEvents } from '../api/hooks';
+import { useQuery } from '@tanstack/react-query';
+import { request } from '../api/client';
 
 interface ClusterRag {
   name: string;
@@ -52,6 +54,15 @@ export default function Overview() {
     clusters.some((c) => c.rag === 'red') ? 'red'
       : clusters.some((c) => c.rag === 'amber') ? 'amber'
         : clusters.length > 0 ? 'green' : 'unknown';
+  const kpis = useQuery({
+    queryKey: ['platform-kpis'],
+    queryFn: () => request<{ slos?: { name: string; current: number; target: number; status: string }[] }>(
+      '/admin/platform-kpis'),
+    refetchInterval: 300_000,
+  });
+  const breachedSlos = (kpis.data?.slos ?? []).filter(
+    (s) => s.status === 'breached' || s.status === 'at_risk');
+
   const recentCritical = (events.data ?? [])
     .filter((e) => (e.outcome ?? '').toLowerCase() === 'fail')
     .slice(0, 5);
@@ -117,6 +128,25 @@ export default function Overview() {
           />
         </div>
       </section>
+
+      {kpis.data?.slos && (
+        <section aria-label="Service level objectives">
+          {breachedSlos.length === 0 ? (
+            <div className="text-sm text-[#3E8635] flex items-center gap-2">
+              <span aria-hidden="true">✓</span> all {kpis.data.slos.length} SLOs met
+            </div>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              {breachedSlos.map((s) => (
+                <span key={s.name}
+                  className={`text-xs font-semibold px-2 py-1 rounded ${s.status === 'breached' ? 'bg-[#EE0000]/15 text-[#EE0000] border border-[#EE0000]/30' : 'bg-[#F0AB00]/15 text-[#F0AB00] border border-[#F0AB00]/30'}`}>
+                  {s.status === 'breached' ? '✖' : '⚠'} {s.name}: {s.current} vs target {s.target}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section aria-label="Clusters">
         <SectionHeader right={<Link to="/clusters" className="text-[#73BCF7]">all clusters →</Link>}>
