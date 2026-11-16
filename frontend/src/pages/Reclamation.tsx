@@ -153,7 +153,7 @@ export default function Reclamation() {
     for (const [lab, instances] of Object.entries(stuck.data?.by_lab ?? {})) {
       for (const inst of instances ?? []) {
         if (!isTeardownState(inst.state)) continue;
-        const ns = inst.name || lab;
+        const ns = inst.namespace || lab;
         if (!ns) continue;
         const existing = byNs.get(ns);
         if (existing) {

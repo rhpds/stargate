@@ -151,7 +151,6 @@ export default function App() {
                 <Route path="/remediation" element={<Remediation />} />
                 <Route path="/llm" element={<LLMAdmin />} />
                 <Route path="/provisioning" element={<Provisioning />} />
-                <Route path="/reclamation" element={<Reclamation />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
                 <Route path="/trends" element={<TrendsPage />} />
                 <Route path="/capacity" element={<CapacityPage />} />
