@@ -313,6 +313,8 @@ def on_startup():
     tdep.start()
     tcred = threading.Thread(target=_credential_health_loop, daemon=True)
     tcred.start()
+    trot = threading.Thread(target=_rotation_sync_loop, daemon=True)
+    trot.start()
     tsh = threading.Thread(target=_shadow_mode_loop, daemon=True)
     tsh.start()
     tf = threading.Thread(target=_functional_alignment_loop, daemon=True)
@@ -1211,6 +1213,40 @@ def _credential_health_loop():
                 )
         except Exception as e:  # noqa: BLE001 — the loop must survive probe failures
             logger.warning("Credential health loop failed: %s", e)
+        _shutdown_event.wait(interval)
+
+
+def _rotation_sync_loop():
+    """Pull the Turkey Vulture epic from Jira every 30 minutes.
+
+    Jira is the source of truth for the work plan, so the rotation page never
+    queries it on a page load — this loop writes one row per provider per day
+    and the page reads those rows. No-ops when Jira is unconfigured, so a
+    deployment without STARGATE_JIRA_* simply shows the explicit empty state.
+    """
+    import time as _tr
+    _tr.sleep(150)  # stagger behind the credential probe
+    logger = logging.getLogger("stargate")
+    interval = int(os.environ.get("STARGATE_ROTATION_SYNC_INTERVAL_SECONDS", "1800"))
+    while not _shutdown_event.is_set():
+        try:
+            if os.environ.get("STARGATE_ROTATION_SYNC_ENABLED", "true").lower() != "true":
+                logger.debug("rotation-sync loop: disabled")
+            else:
+                from collectors.rotation_sync import jira_configured, sync
+                if not jira_configured():
+                    logger.debug("rotation-sync loop: Jira not configured, sleeping")
+                else:
+                    from db.database import background_session
+                    with background_session() as db:
+                        report = sync(db)
+                    logger.info(
+                        "Rotation sync: %d issues, %d providers for %s",
+                        report.get("issues", 0), report.get("providers", 0),
+                        report.get("date"),
+                    )
+        except Exception as e:  # noqa: BLE001 — the loop must survive Jira outages
+            logger.warning("Rotation sync loop failed: %s", e)
         _shutdown_event.wait(interval)
 
 

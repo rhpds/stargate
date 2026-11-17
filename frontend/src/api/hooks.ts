@@ -377,3 +377,12 @@ export function useSummitReport() {
 export function useCredentials() {
   return useQuery({ queryKey: ['credentials'], queryFn: () => api.getCredentials(), refetchInterval: 60_000 });
 }
+
+
+/**
+ * Rotation page — Jira plan and audit verification, refreshed on the sync
+ * cadence (the server loop pulls Jira every 30 minutes).
+ */
+export function useRotation() {
+  return useQuery({ queryKey: ['rotation'], queryFn: () => api.getRotation(), refetchInterval: 120_000 });
+}

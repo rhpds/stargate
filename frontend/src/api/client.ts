@@ -55,6 +55,7 @@ import type {
   ProvisioningOverview,
   CatalogItemDetail,
   CredentialsResponse,
+  RotationResponse,
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -290,6 +291,7 @@ export const api = {
 
   getCredentials: (refresh = false) =>
     request<CredentialsResponse>(`/dashboard/credentials${refresh ? '?refresh=true' : ''}`),
+  getRotation: () => request<RotationResponse>('/dashboard/rotation'),
   getCatalogItemDetail: (itemName: string) => request<CatalogItemDetail>(`/dashboard/catalog/${encodeURIComponent(itemName)}`),
 
   // Historical trends

@@ -10,6 +10,7 @@ from api.routers.dashboard.classification import router as classification_router
 from api.routers.dashboard.llm import router as llm_router
 from api.routers.dashboard.remediation import router as remediation_router
 from api.routers.dashboard.credentials import router as credentials_router
+from api.routers.dashboard.rotation import router as rotation_router
 
 router = APIRouter()
 router.include_router(deployments_router)
@@ -20,6 +21,7 @@ router.include_router(classification_router)
 router.include_router(llm_router)
 router.include_router(remediation_router)
 router.include_router(credentials_router)
+router.include_router(rotation_router)
 
 # Re-exports for external consumers
 from api.routers.dashboard.deployments import (  # noqa: E402, F401
