@@ -95,6 +95,9 @@ raw provider names through the same buckets and posts the result. See
 - upsert per `(date, credential_id)`; values are never accepted — the id is a hash
 - a credential with a ticket inherits that ticket's provider; only untracked
   credentials fall back to name-based bucketing
+- provider totals (`verified_live`, `live_locations`, `untracked_live`) are
+  **derived from these rows**, so a provider row and its credential list cannot
+  disagree; providers with no credentials on a run are zeroed
 
 `POST /integration/rotation-snapshot` (admin key required)
 

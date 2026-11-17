@@ -41,6 +41,8 @@ credential, how many copies, ticketed or not). It accepts either
 - drops rows with no evidence — an ingest never creates an empty provider
 - posts to `POST /integration/rotation-snapshot`, which upserts per
   `(date, provider)` and never touches the Jira counters
+- posts the per-credential rows after the aggregate, and the server re-derives
+  every provider total from them — the aggregate is a fallback, not the truth
 - refuses to count the same evidence twice: if two raw names collapse into one
   bucket with identical `(verified, locations, untracked)`, it logs and counts
   once. On 2026-11-17 that corrected the fleet from 153/1,829/72 to
