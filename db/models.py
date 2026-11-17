@@ -767,6 +767,7 @@ class RotationSnapshot(Base):
     verified_live = Column(Integer, nullable=False, default=0)
     live_locations = Column(Integer, nullable=False, default=0)
     untracked_live = Column(Integer, nullable=False, default=0)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
     synced_at = Column(DateTime(timezone=True), nullable=True)
 
 

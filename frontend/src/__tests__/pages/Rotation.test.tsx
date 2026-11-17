@@ -24,7 +24,11 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
   return {
     generated_at: '2026-11-17T18:00:00Z',
     last_sync: '2026-11-17T18:00:00Z',
-    source: { jira: 'ok', verification: 'snapshot' },
+    source: {
+      jira: 'ok',
+      verification: 'snapshot',
+      verification_at: '2026-11-17T13:00:00Z',
+    },
     summary: {
       tickets: 15,
       closed: 6,
@@ -76,6 +80,7 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
 
 const providerDetail = {
   provider: 'AWS',
+  jira_url: 'https://redhat.atlassian.net/issues/?jql=key%20in%20%28GPTEINFRA-3%29',
   counts: { tickets: 2, closed: 0, in_progress: 1, new: 1, unassigned: 1 },
   audit: { verified_live: 30, live_locations: 150, untracked_live: 4 },
   tickets: [
@@ -106,7 +111,7 @@ describe('Rotation page', () => {
   it('shows an explicit empty state instead of fake zeros', () => {
     useRotation.mockReturnValue({
       data: response({
-        source: { jira: 'unconfigured', verification: 'none' },
+        source: { jira: 'unconfigured', verification: 'none', verification_at: null },
         providers: [],
         links: [
       { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example' },
@@ -185,6 +190,14 @@ describe('Rotation page', () => {
     expect(screen.queryByText('Source data:')).not.toBeInTheDocument();
   });
 
+  it('says when the audit last verified the numbers', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+
+    expect(screen.getByText(/audit verified/i)).toBeInTheDocument();
+  });
+
   it('opens a provider into its tickets', () => {
     useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
 
@@ -194,6 +207,10 @@ describe('Rotation page', () => {
     expect(screen.getByText('GPTEINFRA-3')).toBeInTheDocument();
     expect(screen.getByText('Guillaume')).toBeInTheDocument();
     expect(screen.getByText(/audit: 30 verified/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open in jira/i })).toHaveAttribute(
+      'href',
+      providerDetail.jira_url,
+    );
     expect(screen.getByRole('button', { name: /AWS/ })).toHaveAttribute('aria-expanded', 'true');
   });
 

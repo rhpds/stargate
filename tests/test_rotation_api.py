@@ -12,7 +12,8 @@ def _seed(db, day, provider, tickets, closed, in_progress, new, unassigned,
         snapshot_date=day, provider=provider, tickets=tickets, closed=closed,
         in_progress=in_progress, new=new, unassigned=unassigned,
         verified_live=verified_live, live_locations=live_locations,
-        untracked_live=untracked_live, synced_at=datetime.now(timezone.utc)))
+        untracked_live=untracked_live, verified_at=datetime.now(timezone.utc),
+        synced_at=datetime.now(timezone.utc)))
     db.commit()
 
 
@@ -37,6 +38,7 @@ class TestRotationEndpoint:
         assert body["summary"]["closed_pct"] == 40
         assert body["summary"]["verified_live"] == 34
         assert body["source"]["verification"] == "snapshot"
+        assert body["source"]["verification_at"] is not None
 
     def test_trend_is_ascending_and_per_day(self, client, db):
         _seed(db, date(2026, 11, 16), "AWS", 10, 2, 1, 7, 4)
@@ -67,6 +69,7 @@ class TestSnapshotIngest:
         from db.models import RotationSnapshot
         aws = db.query(RotationSnapshot).filter_by(provider="AWS").one()
         assert (aws.verified_live, aws.live_locations, aws.untracked_live) == (50, 300, 21)
+        assert aws.verified_at is not None
         newco = db.query(RotationSnapshot).filter_by(provider="NewCo").one()
         assert newco.tickets == 0  # created empty, filled by the next sync
 
@@ -127,6 +130,7 @@ class TestProviderDetail:
             "GPTEINFRA-3", "GPTEINFRA-1", "GPTEINFRA-2",
         ]
         assert body["tickets"][0]["url"].endswith("/browse/GPTEINFRA-3")
+        assert "key%20in%20%28GPTEINFRA-3" in body["jira_url"]
         assert body["audit"] == {"verified_live": 50, "live_locations": 300, "untracked_live": 0}
 
     def test_unknown_provider_is_404(self, client, db):

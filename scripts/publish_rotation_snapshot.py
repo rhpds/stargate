@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
 import urllib.error
@@ -31,6 +32,8 @@ from collectors.rotation_sync import bucket_for
 
 DEFAULT_API_URL = "http://stargate-api.stargate.svc:8090"
 COUNTERS = ("verified_live", "live_locations", "untracked_live")
+
+logger = logging.getLogger("stargate.rotation_publish")
 
 
 def load_snapshot(path: str) -> Dict[str, Any]:
@@ -51,11 +54,24 @@ def build_payload(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     an ingest must never create an empty provider on the page.
     """
     buckets: Dict[str, Dict[str, int]] = {}
+    seen: Dict[str, List[tuple]] = {}
     for row in snapshot.get("by_provider") or []:
         counts = {key: int(row.get(key) or 0) for key in COUNTERS}
         if not any(counts.values()):
             continue
         provider = bucket_for(row.get("provider") or "")
+        triple = tuple(counts[key] for key in COUNTERS)
+        # Two raw names can be two views of one audit bucket ('Storage' and
+        # 'Datastores' both mapped to 'Datastores / storage'). Identical
+        # evidence is the same credentials counted twice, not two sets — count
+        # it once rather than inflate the fleet.
+        if triple in seen.setdefault(provider, []):
+            logger.warning(
+                "Skipping duplicate evidence for %s from %r: %s",
+                provider, row.get("provider"), triple,
+            )
+            continue
+        seen[provider].append(triple)
         entry = buckets.setdefault(provider, {key: 0 for key in COUNTERS})
         for key in COUNTERS:
             entry[key] += counts[key]

@@ -43,9 +43,9 @@ _RULES = [
     ("OpenShift / SA tokens", r"ocp sa|openshift|kubernetes|sa token|cluster.*token"),
     ("Registry", r"registry|quay"),
     ("GitHub", r"github"),
-    ("AI / MaaS", r"\bmas\b|litellm|lightspeed|\bai\s*/"),
+    ("AI / MaaS", r"\bmaas\b|\bmas\b|litellm|lightspeed|\bai\s*/"),
     ("OAuth / SSO", r"oauth|\bsso\b"),
-    ("Red Hat hosted APIs", r"offline|rosa|rhsm|red hat hosted"),
+    ("Red Hat hosted APIs", r"offline|rosa|rhsm|red hat (hosted|external)"),
     ("AAP / automation", r"\baap\b|automation|ansible"),
     ("Splunk", r"splunk"),
     ("Salesforce", r"salesforce"),
@@ -53,11 +53,13 @@ _RULES = [
     ("SendGrid", r"sendgrid"),
     ("Atlassian / Jira", r"jira|atlassian"),
     ("Hugging Face", r"hugging"),
-    ("Datastores", r"database|postgres|redis|kafka"),
+    ("Datastores / storage", r"database|datastore|postgres|redis|kafka|storage|\bs3\b"),
     ("TLS / certificates", r"cert|\btls\b|acme|zerossl"),
     ("RHDP internal", r"sandbox|rhdp internal|internal api"),
-    ("Storage", r"storage|\bs3\b"),
 ]
+
+
+_PRIORITY_TAG = re.compile(r"^p\d+[a-z]?\b|priority")
 
 
 def bucket_for(raw: str) -> str:
@@ -65,15 +67,50 @@ def bucket_for(raw: str) -> str:
 
     Shared with the audit publisher so a name that arrived through a ticket and
     the same name that arrived through a snapshot land in one row.
+
+    Some tickets put a priority where a provider belongs ("P1 — Bitwarden
+    Secrets Manager") and some span several providers. Guessing one of them
+    would be a quiet lie, so those get their own explicit bucket.
     """
     cleaned = (raw or "").strip()
     lowered = cleaned.lower()
     if not lowered:
         return "Unclassified"
+
+    matches = []
     for name, pattern in _RULES:
-        if re.search(pattern, lowered):
-            return name
+        if re.search(pattern, lowered) and name not in matches:
+            matches.append(name)
+    if len(matches) > 1:
+        return "Multiple providers"
+    if matches:
+        return matches[0]
+    if _PRIORITY_TAG.search(lowered):
+        return "Provider unset"
     return cleaned
+
+
+def _trailing_group(text: str) -> str:
+    """The last balanced `(...)` at the end of the title.
+
+    Titles can carry a second parenthetical before the provider —
+    `Rotate x (sandbox-api-configs) (AWS / Route 53)` — and a greedy regex
+    swallows both. Scan backwards so nesting such as
+    `(OCP SA Token (infra02))` still returns the whole group.
+    """
+    stripped = (text or "").rstrip()
+    if not stripped.endswith(")"):
+        return ""
+    depth = 0
+    for index in range(len(stripped) - 1, -1, -1):
+        char = stripped[index]
+        if char == ")":
+            depth += 1
+        elif char == "(":
+            depth -= 1
+            if depth == 0:
+                return stripped[index + 1 : -1]
+    return ""
 
 
 def parse_provider(summary: str) -> str:
@@ -84,8 +121,15 @@ def parse_provider(summary: str) -> str:
     The parenthetical may itself be nested — `(OCP SA Token (infra02))` — so
     match the outermost trailing group rather than the last short token.
     """
-    match = re.search(r"\((.+)\)\s*$", summary or "")
-    return bucket_for(match.group(1) if match else "")
+    group = _trailing_group(summary or "")
+    if group:
+        return bucket_for(group)
+    # A few programme tickets have no provider parenthetical. Only MaaS is
+    # unambiguous enough to infer from the title; everything else stays
+    # Unclassified rather than guessing.
+    if re.search(r"\bmaas\b", (summary or "").lower()):
+        return "AI / MaaS"
+    return "Unclassified"
 
 
 def _is_child(issue: Dict[str, Any]) -> bool:

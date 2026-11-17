@@ -1107,6 +1107,7 @@ export interface RotationResponse {
   source: {
     jira: 'ok' | 'unconfigured' | 'error';
     verification: 'snapshot' | 'none';
+    verification_at: string | null;
   };
   summary: RotationSummary;
   providers: RotationProvider[];
@@ -1124,6 +1125,7 @@ export interface RotationTicket {
 
 export interface RotationProviderDetail {
   provider: string;
+  jira_url: string | null;
   counts: {
     tickets: number;
     closed: number;

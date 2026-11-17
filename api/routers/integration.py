@@ -325,6 +325,7 @@ def receive_rotation_snapshot(
     """
     from db.models import RotationSnapshot
 
+    verified_at = datetime.now(timezone.utc)
     for item in req.providers:
         record = (
             db.query(RotationSnapshot)
@@ -345,6 +346,7 @@ def receive_rotation_snapshot(
         record.verified_live = item.verified_live
         record.live_locations = item.live_locations
         record.untracked_live = item.untracked_live
+        record.verified_at = verified_at
 
     db.commit()
     return {"date": req.date.isoformat(), "providers": len(req.providers)}
