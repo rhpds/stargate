@@ -265,3 +265,16 @@ class TestUnresolvedBucket:
         assert providers == {"Unresolved / other", "AWS"}
         unresolved = db.query(RotationSnapshot).filter_by(provider="Unresolved / other").one()
         assert (unresolved.verified_live, unresolved.live_locations) == (2, 11)
+
+
+class TestEmptyProviderRemoval:
+    def test_row_with_no_tickets_and_no_credentials_is_deleted(self, client, db):
+        _seed(db, date(2026, 11, 18), "Ghost", 0, 0, 0, 0, 0, 9, 9, 9)
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [{"id": "a1", "credential": "aws_key", "provider": "AWS",
+                             "live_copies": 1, "coverage": "in-jira"}],
+        })
+
+        from db.models import RotationSnapshot
+        assert db.query(RotationSnapshot).filter_by(provider="Ghost").count() == 0
