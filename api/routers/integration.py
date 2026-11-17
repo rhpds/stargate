@@ -462,6 +462,10 @@ def receive_rotation_credentials(
         snapshot_row.verified_live = 0
         snapshot_row.live_locations = 0
         snapshot_row.untracked_live = 0
+        # A row with no tickets and no credentials is a name that no longer
+        # exists anywhere — keep it and the table grows a ghost per rename.
+        if not (snapshot_row.tickets or 0):
+            db.delete(snapshot_row)
 
     db.commit()
     return {"date": req.date.isoformat(), "credentials": len(req.credentials)}
