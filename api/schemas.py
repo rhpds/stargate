@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date as date_type
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -424,3 +425,21 @@ class EventDemand(BaseModel):
 class EventForecastResponse(BaseModel):
     window: Dict[str, object] = {}
     events: Dict[str, EventDemand]
+
+
+# --- Rotation page ---
+
+class RotationProviderCount(BaseModel):
+    """Verified-live counts for one provider, as produced by the audit run."""
+
+    provider: str
+    verified_live: int = 0
+    live_locations: int = 0
+    untracked_live: int = 0
+
+
+class RotationSnapshotIngest(BaseModel):
+    """One day of verified-live evidence. Counts and hashes only — never values."""
+
+    date: date_type
+    providers: List[RotationProviderCount] = Field(default_factory=list)

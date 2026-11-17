@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import repository
 from engine.models import Run, RunStatus
-from api.schemas import ExternalEvidenceRequest, FeedbackRequest, GeoluxProposalRequest
+from api.schemas import (
+    ExternalEvidenceRequest,
+    FeedbackRequest,
+    GeoluxProposalRequest,
+    RotationSnapshotIngest,
+)
 from api.routers._shared import _event_bus, require_admin
 
 router = APIRouter()
@@ -303,3 +308,43 @@ def get_lab_validation_status(lab_code: str, db: Session = Depends(get_db)):
         "last_passing_run": last_pass,
         "history": history,
     }
+
+
+@router.post("/integration/rotation-snapshot", status_code=201)
+def receive_rotation_snapshot(
+    req: RotationSnapshotIngest,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin),
+):
+    """Ingest the admin-run audit's verified-live counts.
+
+    StarGate's cluster-reader SA cannot read Secrets, so verification stays an
+    external, read-only audit that posts counts and hashes here — never values.
+    Idempotent per (date, provider); unknown providers are created with ticket
+    counters at zero and filled by the next Jira sync.
+    """
+    from db.models import RotationSnapshot
+
+    for item in req.providers:
+        record = (
+            db.query(RotationSnapshot)
+            .filter_by(snapshot_date=req.date, provider=item.provider)
+            .first()
+        )
+        if record is None:
+            record = RotationSnapshot(
+                snapshot_date=req.date,
+                provider=item.provider,
+                tickets=0,
+                closed=0,
+                in_progress=0,
+                new=0,
+                unassigned=0,
+            )
+            db.add(record)
+        record.verified_live = item.verified_live
+        record.live_locations = item.live_locations
+        record.untracked_live = item.untracked_live
+
+    db.commit()
+    return {"date": req.date.isoformat(), "providers": len(req.providers)}

@@ -1,0 +1,216 @@
+"""Turkey Vulture rotation sync — Jira is the source of truth.
+
+Pulls every issue labelled `turkeyvulture` (the children of epic
+GPTEINFRA-18544), buckets them by provider, and writes one row per provider
+per day into `rotation_snapshots`. The rotation page reads those rows; the
+audit ingest (`POST /integration/rotation-snapshot`) fills in the verified-live
+columns that StarGate cannot observe itself.
+
+Why this is a collector and not a dashboard query: the epic has >200 issues and
+Jira is rate-limited. A page load must never fan out to Atlassian, and the trend
+needs a row per day whether or not anyone opened the page.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import logging
+import os
+import re
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import date, datetime, timezone
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger("stargate.rotation_sync")
+
+PARENT_KEY = "GPTEINFRA-18544"
+DEFAULT_URL = "https://redhat.atlassian.net"
+DEFAULT_JQL = "labels = turkeyvulture ORDER BY key ASC"
+FIELDS = "summary,status,assignee"
+PAGE_SIZE = 100
+TIMEOUT_SECONDS = 30
+
+# Provider buckets — the order matters: first match wins, so put the specific
+# names before the patterns that could swallow them.
+_RULES = [
+    ("AWS", r"^aws\b|amazon|assumerole"),
+    ("Microsoft Azure", r"azure"),
+    ("Google Cloud", r"google|\bgcp\b|vertex"),
+    ("IBM Cloud", r"\bibm\b"),
+    ("OpenShift / SA tokens", r"ocp sa|openshift|kubernetes|sa token|cluster.*token"),
+    ("Registry", r"registry|quay"),
+    ("GitHub", r"github"),
+    ("AI / MaaS", r"\bmas\b|litellm|lightspeed|\bai\s*/"),
+    ("OAuth / SSO", r"oauth|\bsso\b"),
+    ("Red Hat hosted APIs", r"offline|rosa|rhsm|red hat hosted"),
+    ("AAP / automation", r"\baap\b|automation|ansible"),
+    ("Splunk", r"splunk"),
+    ("Salesforce", r"salesforce"),
+    ("Slack", r"slack"),
+    ("SendGrid", r"sendgrid"),
+    ("Atlassian / Jira", r"jira|atlassian"),
+    ("Hugging Face", r"hugging"),
+    ("Datastores", r"database|postgres|redis|kafka"),
+    ("TLS / certificates", r"cert|\btls\b|acme|zerossl"),
+    ("RHDP internal", r"sandbox|rhdp internal|internal api"),
+    ("Storage", r"storage|\bs3\b"),
+]
+
+
+def parse_provider(summary: str) -> str:
+    """Provider bucket from the ticket's trailing parenthetical.
+
+    Titles follow the epic convention
+    `[turkeyvulture] Maintenance — Rotate <variable> (<Provider / type>)`.
+    The parenthetical may itself be nested — `(OCP SA Token (infra02))` — so
+    match the outermost trailing group rather than the last short token.
+    """
+    match = re.search(r"\((.+)\)\s*$", summary or "")
+    raw = (match.group(1) if match else "").strip()
+    if not raw:
+        return "Unclassified"
+    lowered = raw.lower()
+    for name, pattern in _RULES:
+        if re.search(pattern, lowered):
+            return name
+    return raw
+
+
+def _is_child(issue: Dict[str, Any]) -> bool:
+    """The epic itself is labelled turkeyvulture; its children carry the prefix."""
+    if issue.get("key") == PARENT_KEY:
+        return False
+    summary = (issue.get("fields") or {}).get("summary") or ""
+    return "[turkeyvulture]" in summary
+
+
+def aggregate_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Per-provider ticket counts, sorted by ticket volume then name."""
+    buckets: Dict[str, Dict[str, Any]] = {}
+    for issue in issues:
+        if not _is_child(issue):
+            continue
+        fields = issue.get("fields") or {}
+        provider = parse_provider(fields.get("summary") or "")
+        row = buckets.setdefault(
+            provider,
+            {
+                "provider": provider,
+                "tickets": 0,
+                "closed": 0,
+                "in_progress": 0,
+                "new": 0,
+                "unassigned": 0,
+            },
+        )
+        row["tickets"] += 1
+        status = ((fields.get("status") or {}).get("name") or "").lower()
+        if status == "closed":
+            row["closed"] += 1
+        elif status == "in progress":
+            row["in_progress"] += 1
+        else:
+            row["new"] += 1
+        if not fields.get("assignee"):
+            row["unassigned"] += 1
+
+    return sorted(buckets.values(), key=lambda r: (-r["tickets"], r["provider"]))
+
+
+def _fetch_page(url: str, auth: str, next_token: Optional[str] = None) -> Dict[str, Any]:
+    """One Jira search page. `auth` is the pre-encoded Basic credential."""
+    request = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Basic {auth}", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")[:300]
+        raise RuntimeError(f"Jira search failed: {exc.code} {body}") from exc
+
+
+def fetch_issues(
+    base_url: str,
+    email: str,
+    token: str,
+    jql: str = DEFAULT_JQL,
+) -> List[Dict[str, Any]]:
+    """Every issue matching `jql`, following nextPageToken to the end."""
+    auth = base64.b64encode(f"{email}:{token}".encode()).decode()
+    params = {"jql": jql, "maxResults": str(PAGE_SIZE), "fields": FIELDS}
+    url = f"{base_url.rstrip('/')}/rest/api/3/search/jql?" + urllib.parse.urlencode(params)
+
+    issues: List[Dict[str, Any]] = []
+    next_token: Optional[str] = None
+    while True:
+        page = _fetch_page(url, auth, next_token)
+        issues.extend(page.get("issues") or [])
+        if page.get("isLast", True):
+            break
+        next_token = page.get("nextPageToken")
+        if not next_token:
+            break
+    return issues
+
+
+def jira_configured() -> bool:
+    return bool(
+        os.environ.get("STARGATE_JIRA_URL", "").strip()
+        and os.environ.get("STARGATE_JIRA_TOKEN", "").strip()
+        and os.environ.get("STARGATE_JIRA_EMAIL", "").strip()
+    )
+
+
+def sync(db) -> Dict[str, Any]:
+    """Pull Jira and upsert today's ticket counters.
+
+    Verified-live columns are preserved: they belong to the audit ingest, and a
+    Jira sync must never zero them out. Returns a small summary for logging.
+    """
+    from db.models import RotationSnapshot
+
+    if not jira_configured():
+        return {"status": "unconfigured", "providers": 0, "issues": 0}
+
+    base_url = os.environ.get("STARGATE_JIRA_URL", DEFAULT_URL).rstrip("/")
+    email = os.environ["STARGATE_JIRA_EMAIL"]
+    token = os.environ["STARGATE_JIRA_TOKEN"]
+    jql = os.environ.get("STARGATE_ROTATION_JQL", DEFAULT_JQL)
+
+    issues = fetch_issues(base_url, email, token, jql)
+    rows = aggregate_issues(issues)
+    today = datetime.now(timezone.utc).date()
+    now = datetime.now(timezone.utc)
+
+    for row in rows:
+        record = (
+            db.query(RotationSnapshot)
+            .filter_by(snapshot_date=today, provider=row["provider"])
+            .first()
+        )
+        if record is None:
+            record = RotationSnapshot(
+                snapshot_date=today,
+                provider=row["provider"],
+                verified_live=0,
+                live_locations=0,
+                untracked_live=0,
+            )
+            db.add(record)
+        record.tickets = row["tickets"]
+        record.closed = row["closed"]
+        record.in_progress = row["in_progress"]
+        record.new = row["new"]
+        record.unassigned = row["unassigned"]
+        record.synced_at = now
+
+    db.commit()
+    logger.info(
+        "Rotation sync: %s issues → %s providers for %s", len(issues), len(rows), today
+    )
+    return {"status": "ok", "providers": len(rows), "issues": len(issues), "date": str(today)}

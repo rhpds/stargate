@@ -1057,3 +1057,53 @@ export interface CredentialsResponse {
   };
   credentials: CredentialRow[];
 }
+
+export interface RotationProvider {
+  provider: string;
+  tickets: number;
+  closed: number;
+  in_progress: number;
+  new: number;
+  unassigned: number;
+  closed_pct: number;
+  verified_live: number;
+  live_locations: number;
+  untracked_live: number;
+}
+
+export interface RotationTrendPoint {
+  date: string;
+  tickets: number;
+  closed: number;
+  in_progress: number;
+  new: number;
+  unassigned: number;
+  verified_live: number;
+  live_locations: number;
+  untracked_live: number;
+}
+
+export interface RotationSummary {
+  tickets: number;
+  closed: number;
+  closed_pct: number;
+  in_progress: number;
+  new: number;
+  unassigned: number;
+  verified_live: number;
+  live_locations: number;
+  untracked_live: number;
+  providers: number;
+}
+
+export interface RotationResponse {
+  generated_at: string;
+  last_sync: string | null;
+  source: {
+    jira: 'ok' | 'unconfigured' | 'error';
+    verification: 'snapshot' | 'none';
+  };
+  summary: RotationSummary;
+  providers: RotationProvider[];
+  trend: RotationTrendPoint[];
+}

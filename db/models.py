@@ -7,6 +7,7 @@ as nullable columns from the start to avoid schema migrations later.
 
 from sqlalchemy import (
     Column,
+    Date,
     DateTime,
     Float,
     Index,
@@ -736,3 +737,34 @@ class CapacityForecastRecord(Base):
     sessions_fallback = Column(Integer, nullable=False, default=0)
     peak_hour = Column(JSON, nullable=True)
     hourly = Column(JSON, nullable=True)
+
+
+class RotationSnapshot(Base):
+    """One provider's rotation state on one day.
+
+    Two sources write here and they never overwrite each other:
+    - `collectors/rotation_sync.py` owns the ticket counters (Jira).
+    - `POST /integration/rotation-snapshot` owns the verified-live counters
+      (the admin-run audit — StarGate's cluster-reader SA cannot read Secrets).
+
+    The unique key is (day, provider) so both writers are idempotent and the
+    trend is one row per provider per day.
+    """
+
+    __tablename__ = "rotation_snapshots"
+    __table_args__ = (
+        UniqueConstraint("snapshot_date", "provider", name="uq_rotation_snapshot_day_provider"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date = Column(Date, nullable=False, index=True)
+    provider = Column(String(80), nullable=False)
+    tickets = Column(Integer, nullable=False, default=0)
+    closed = Column(Integer, nullable=False, default=0)
+    in_progress = Column(Integer, nullable=False, default=0)
+    new = Column(Integer, nullable=False, default=0)
+    unassigned = Column(Integer, nullable=False, default=0)
+    verified_live = Column(Integer, nullable=False, default=0)
+    live_locations = Column(Integer, nullable=False, default=0)
+    untracked_live = Column(Integer, nullable=False, default=0)
+    synced_at = Column(DateTime(timezone=True), nullable=True)

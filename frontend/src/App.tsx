@@ -16,6 +16,7 @@ import ProofDashboard from './pages/ProofDashboard';
 import Operations from './pages/Operations';
 import Overview from './pages/Overview';
 import Credentials from './pages/Credentials';
+import Rotation from './pages/Rotation';
 import Capacity from './pages/Capacity';
 import Investigations from './pages/Investigations';
 import Reclamation from './pages/Reclamation';
@@ -77,6 +78,7 @@ const platformNavItems = [
   { to: '/failures', label: 'Taxonomy' },
   { to: '/remediation', label: 'Remediation' },
   { to: '/credentials', label: 'Credentials' },
+  { to: '/rotation', label: 'Rotation' },
 ];
 
 export default function App() {
@@ -149,6 +151,7 @@ export default function App() {
                 <Route path="/failures" element={<FailureClasses />} />
                 <Route path="/remediation" element={<Remediation />} />
                 <Route path="/credentials" element={<Credentials />} />
+                <Route path="/rotation" element={<Rotation />} />
                 <Route path="/llm" element={<LLMAdmin />} />
                 <Route path="/provisioning" element={<Provisioning />} />
                 <Route path="/catalog/:name" element={<CatalogItemDetail />} />
