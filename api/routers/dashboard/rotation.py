@@ -18,7 +18,7 @@ import urllib.parse
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -77,8 +77,8 @@ def _row(row) -> Dict[str, Any]:
 _STATUS_RANK = {"in progress": 0, "new": 1, "closed": 2}
 
 
-@router.get("/dashboard/rotation/providers/{provider}")
-def rotation_provider(provider: str, db: Session = Depends(get_db)):
+@router.get("/dashboard/rotation/provider")
+def rotation_provider(name: str = Query(...), db: Session = Depends(get_db)):
     """One provider's tickets, with the audit's numbers beside them.
 
     Reads the tickets the sync stored — never Jira — so this cannot disagree
@@ -88,7 +88,7 @@ def rotation_provider(provider: str, db: Session = Depends(get_db)):
 
     tickets = (
         db.query(RotationTicket)
-        .filter(RotationTicket.provider == provider)
+        .filter(RotationTicket.provider == name)
         .all()
     )
 
@@ -97,12 +97,12 @@ def rotation_provider(provider: str, db: Session = Depends(get_db)):
     if latest_date is not None:
         snapshot = (
             db.query(RotationSnapshot)
-            .filter_by(snapshot_date=latest_date, provider=provider)
+            .filter_by(snapshot_date=latest_date, provider=name)
             .first()
         )
 
     if not tickets and snapshot is None:
-        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {name}")
 
     tickets.sort(key=lambda t: (_STATUS_RANK.get((t.status or "").lower(), 1), t.issue_key))
     base_url = os.environ.get("STARGATE_JIRA_URL", "https://redhat.atlassian.net").rstrip("/")
@@ -116,7 +116,7 @@ def rotation_provider(provider: str, db: Session = Depends(get_db)):
     closed = sum(1 for t in tickets if (t.status or "").lower() == "closed")
     in_progress = sum(1 for t in tickets if (t.status or "").lower() == "in progress")
     return {
-        "provider": provider,
+        "provider": name,
         "counts": {
             "tickets": len(tickets),
             "closed": closed,
