@@ -1096,6 +1096,11 @@ export interface RotationSummary {
   providers: number;
 }
 
+export interface RotationSourceLink {
+  label: string;
+  url: string;
+}
+
 export interface RotationResponse {
   generated_at: string;
   last_sync: string | null;
@@ -1106,4 +1111,5 @@ export interface RotationResponse {
   summary: RotationSummary;
   providers: RotationProvider[];
   trend: RotationTrendPoint[];
+  links: RotationSourceLink[];
 }

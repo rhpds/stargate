@@ -81,3 +81,23 @@ class TestSnapshotIngest:
         rows = db.query(RotationSnapshot).filter_by(provider="AWS").all()
         assert len(rows) == 1
         assert rows[0].verified_live == 12
+
+
+class TestSourceLinks:
+    def test_links_come_from_configuration(self, client, monkeypatch):
+        import json
+        monkeypatch.setenv("STARGATE_ROTATION_LINKS", json.dumps([
+            {"label": "Progress spreadsheet", "url": "https://docs.google.com/spreadsheets/d/x"}
+        ]))
+        body = client.get("/dashboard/rotation").json()
+        assert body["links"] == [
+            {"label": "Progress spreadsheet", "url": "https://docs.google.com/spreadsheets/d/x"}
+        ]
+
+    def test_links_default_to_empty(self, client, monkeypatch):
+        monkeypatch.delenv("STARGATE_ROTATION_LINKS", raising=False)
+        assert client.get("/dashboard/rotation").json()["links"] == []
+
+    def test_malformed_links_are_ignored(self, client, monkeypatch):
+        monkeypatch.setenv("STARGATE_ROTATION_LINKS", "{not json")
+        assert client.get("/dashboard/rotation").json()["links"] == []

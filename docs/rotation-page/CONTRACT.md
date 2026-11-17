@@ -41,11 +41,18 @@ Unique: `(snapshot_date, provider)`.
                  "new":0,"unassigned":0,"closed_pct":0,"verified_live":0,
                  "live_locations":0,"untracked_live":0}],
   "trend": [{"date":"YYYY-MM-DD","tickets":0,"closed":0,"in_progress":0,
-             "new":0,"unassigned":0,"verified_live":0,"untracked_live":0}]
+             "new":0,"unassigned":0,"verified_live":0,"untracked_live":0}],
+  "links": [{"label":"Progress spreadsheet","url":"https://docs.google.com/..."}]
 }
 ```
 
 Ordering: providers by `tickets` desc, then provider name. Trend ascending by date.
+Links come from `STARGATE_ROTATION_LINKS` (JSON list); absent configuration
+returns `[]`. The page only renders them — Drive permissions are Google's.
+
+`publish_rotation_snapshot.py` is the daily ingest step: it maps the audit's
+raw provider names through the same buckets and posts the result. See
+`DAILY-AUDIT.md`.
 
 `POST /integration/rotation-snapshot` (admin key required)
 
