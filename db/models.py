@@ -789,3 +789,29 @@ class RotationTicket(Base):
     status = Column(String(40), nullable=False)
     assignee = Column(String(120), nullable=True)
     synced_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class RotationCredential(Base):
+    """One live credential value on one audit day — hash id, never the value.
+
+    Aggregates cannot answer "is this ticket's credential still live?". These
+    rows carry the sha256[:16] id, where it lives, how many copies, and whether
+    a ticket covers it. The audit produces them; StarGate only stores and joins.
+    """
+
+    __tablename__ = "rotation_credentials"
+    __table_args__ = (
+        UniqueConstraint("snapshot_date", "credential_id", name="uq_rotation_credential_day_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date = Column(Date, nullable=False, index=True)
+    credential_id = Column(String(32), nullable=False, index=True)
+    provider = Column(String(80), nullable=False, index=True)
+    credential = Column(String(200), nullable=False)
+    live_copies = Column(Integer, nullable=False, default=0)
+    clusters = Column(String(500), nullable=True)
+    example_location = Column(String(300), nullable=True)
+    coverage = Column(String(30), nullable=True)
+    jira_keys = Column(String(200), nullable=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)

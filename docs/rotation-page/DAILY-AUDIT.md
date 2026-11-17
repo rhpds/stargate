@@ -24,8 +24,13 @@ export STARGATE_API_URL=https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.
 export STARGATE_ADMIN_API_KEY=...   # from stargate-secrets:admin-api-key
 
 python3 -m scripts.publish_rotation_snapshot \
-    --snapshot snapshots/turkeyvulture-$(date -u +%F).json
+    --snapshot snapshots/turkeyvulture-$(date -u +%F).json \
+    --credentials-csv credential-classification.csv
 ```
+
+`--credentials-csv` is optional but enables the per-credential view (which
+credential, how many copies, ticketed or not). It accepts either
+`credential-classification.csv` or `jira-coverage.csv`.
 
 `--dry-run` prints the exact payload without posting.
 

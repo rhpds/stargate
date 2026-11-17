@@ -19,6 +19,7 @@ failed post is safe and the audit can simply call this last.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import logging
 import os
@@ -83,9 +84,46 @@ def build_payload(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     return {"date": snapshot["date"], "providers": providers}
 
 
+def build_credentials(csv_path: str) -> List[Dict[str, Any]]:
+    """Read the audit's coverage export into per-credential rows.
+
+    Accepts either export: `jira-coverage.csv` (sha256_16, jira) or
+    `credential-classification.csv` (credential_id, provider, example_location).
+    """
+    credentials: List[Dict[str, Any]] = []
+    with open(csv_path, newline="") as handle:
+        for row in csv.DictReader(handle):
+            credential_id = (row.get("sha256_16") or row.get("credential_id") or "").strip()
+            if not credential_id:
+                continue
+            try:
+                copies = int(row.get("live_copies") or 0)
+            except ValueError:
+                copies = 0
+            credentials.append({
+                "id": credential_id,
+                "credential": (row.get("credential") or "")[:200],
+                "provider": (row.get("provider") or "")[:80],
+                "live_copies": copies,
+                "clusters": (row.get("clusters") or "")[:500],
+                "example_location": (row.get("example_location") or "")[:300],
+                "coverage": (row.get("coverage") or "")[:30],
+                "jira_keys": (row.get("jira") or "")[:200],
+            })
+    return credentials
+
+
 def publish(payload: Dict[str, Any], api_url: str, api_key: str) -> Dict[str, Any]:
+    return _post("/integration/rotation-snapshot", payload, api_url, api_key)
+
+
+def publish_credentials(payload: Dict[str, Any], api_url: str, api_key: str) -> Dict[str, Any]:
+    return _post("/integration/rotation-credentials", payload, api_url, api_key)
+
+
+def _post(path: str, payload: Dict[str, Any], api_url: str, api_key: str) -> Dict[str, Any]:
     request = urllib.request.Request(
-        f"{api_url.rstrip('/')}/integration/rotation-snapshot",
+        f"{api_url.rstrip('/')}{path}",
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "X-API-Key": api_key},
         method="POST",
@@ -109,14 +147,23 @@ def main(argv: List[str] | None = None) -> int:
         "--api-key",
         default=os.environ.get("STARGATE_ADMIN_API_KEY", ""),
     )
+    parser.add_argument(
+        "--credentials-csv",
+        help="jira-coverage.csv or credential-classification.csv (per-credential rows)",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
     snapshot = load_snapshot(args.snapshot)
     payload = build_payload(snapshot)
+    credentials = (
+        {"date": snapshot["date"], "credentials": build_credentials(args.credentials_csv)}
+        if args.credentials_csv
+        else None
+    )
 
     if args.dry_run:
-        print(json.dumps(payload, indent=1))
+        print(json.dumps({"snapshot": payload, "credentials": credentials}, indent=1))
         return 0
 
     if not args.api_key:
@@ -128,6 +175,12 @@ def main(argv: List[str] | None = None) -> int:
         f"published {result.get('providers', 0)} providers for "
         f"{result.get('date')} to {args.api_url}"
     )
+    if credentials is not None:
+        cred_result = publish_credentials(credentials, args.api_url, args.api_key)
+        print(
+            f"published {cred_result.get('credentials', 0)} credentials for "
+            f"{cred_result.get('date')}"
+        )
     return 0
 
 

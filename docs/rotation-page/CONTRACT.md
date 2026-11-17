@@ -62,6 +62,10 @@ raw provider names through the same buckets and posts the result. See
   "provider": "AWS",
   "counts": {"tickets":0,"closed":0,"in_progress":0,"new":0,"unassigned":0},
   "audit": {"verified_live":0,"live_locations":0,"untracked_live":0},
+  "credential_counts": {"total":0,"ticketed":0,"untracked":0},
+  "credentials": [{"id":"sha256[:16]","credential":"...","live_copies":0,
+                   "clusters":"...","example_location":"...","coverage":"in-jira",
+                   "jira_keys":"..."}],
   "jira_url": "https://.../issues/?jql=key%20in%20(...)|null",
   "tickets": [{"key":"GPTEINFRA-1","summary":"...","status":"In Progress",
                "assignee":"...","url":"https://.../browse/GPTEINFRA-1"}]
@@ -77,6 +81,20 @@ raw provider names through the same buckets and posts the result. See
 - `source.verification_at` is when the audit last wrote the verified fields,
   not when Jira synced
 - reads stored tickets, never Jira, so it cannot disagree with the table
+
+`POST /integration/rotation-credentials` (admin key required)
+
+```json
+{"date":"YYYY-MM-DD","credentials":[
+  {"id":"sha256[:16]","credential":"aws.assume_role","provider":"AWS",
+   "live_copies":87,"clusters":"...","example_location":"ns/obj:key",
+   "coverage":"in-jira","jira_keys":"GPTEINFRA-18545"}]}
+```
+
+- 201 `{"date":"...","credentials":<n>}`, 403 without the admin key
+- upsert per `(date, credential_id)`; values are never accepted — the id is a hash
+- a credential with a ticket inherits that ticket's provider; only untracked
+  credentials fall back to name-based bucketing
 
 `POST /integration/rotation-snapshot` (admin key required)
 
@@ -115,6 +133,7 @@ raw provider names through the same buckets and posts the result. See
 - ingest for an unknown provider
 - ticket upsert: update in place, prune tickets that left the epic, ignore the epic row
 - provider detail: action-first ordering, 404 for unknown, audit-only provider opens
+- credential ingest: admin-only, upsert, ticket-driven provider, name fallback
 - provider taxonomy: a second parenthetical (`(sandbox-api-configs) (AWS / Route 53)`),
   nested groups, priority-only labels → `Provider unset`, two providers → `Multiple providers`
 

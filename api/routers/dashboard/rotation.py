@@ -84,7 +84,20 @@ def rotation_provider(name: str = Query(...), db: Session = Depends(get_db)):
     Reads the tickets the sync stored — never Jira — so this cannot disagree
     with the counts on the table.
     """
-    from db.models import RotationSnapshot, RotationTicket
+    from db.models import RotationCredential, RotationSnapshot, RotationTicket
+
+    credential_date = db.query(func.max(RotationCredential.snapshot_date)).scalar()
+    credentials = []
+    if credential_date is not None:
+        credentials = (
+            db.query(RotationCredential)
+            .filter(
+                RotationCredential.snapshot_date == credential_date,
+                RotationCredential.provider == name,
+            )
+            .order_by(RotationCredential.live_copies.desc())
+            .all()
+        )
 
     tickets = (
         db.query(RotationTicket)
@@ -101,7 +114,7 @@ def rotation_provider(name: str = Query(...), db: Session = Depends(get_db)):
             .first()
         )
 
-    if not tickets and snapshot is None:
+    if not tickets and snapshot is None and not credentials:
         raise HTTPException(status_code=404, detail=f"Unknown provider: {name}")
 
     tickets.sort(key=lambda t: (_STATUS_RANK.get((t.status or "").lower(), 1), t.issue_key))
@@ -134,6 +147,23 @@ def rotation_provider(name: str = Query(...), db: Session = Depends(get_db)):
             else None
         ),
         "jira_url": jira_url,
+        "credential_counts": {
+            "total": len(credentials),
+            "ticketed": sum(1 for c in credentials if (c.coverage or "") == "in-jira"),
+            "untracked": sum(1 for c in credentials if (c.coverage or "") != "in-jira"),
+        },
+        "credentials": [
+            {
+                "id": c.credential_id,
+                "credential": c.credential,
+                "live_copies": c.live_copies,
+                "clusters": c.clusters,
+                "example_location": c.example_location,
+                "coverage": c.coverage,
+                "jira_keys": c.jira_keys,
+            }
+            for c in credentials[:50]
+        ],
         "tickets": [
             {
                 "key": t.issue_key,

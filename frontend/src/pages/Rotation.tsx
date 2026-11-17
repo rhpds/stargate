@@ -103,7 +103,7 @@ function ProviderDetail({ provider }: { provider: string }) {
     return <div className="text-xs text-[#EE0000] py-2">Could not load this provider's tickets.</div>;
   }
 
-  const { counts, audit, tickets, jira_url } = data;
+  const { counts, audit, tickets, jira_url, credentials, credential_counts } = data;
 
   return (
     <div className="border-l-2 border-[#2e2e2e] pl-3 py-2 space-y-2">
@@ -130,6 +130,42 @@ function ProviderDetail({ provider }: { provider: string }) {
           </a>
         )}
       </div>
+      {credentials.length > 0 && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-[#6A6E73] mb-1">
+            Live credentials ({credential_counts.total}
+            {credential_counts.untracked > 0 && (
+              <span className="text-[#F0AB00]"> · {credential_counts.untracked} untracked</span>
+            )}
+            )
+          </div>
+          <ul className="space-y-1">
+            {credentials.slice(0, 10).map((cred) => (
+              <li key={cred.id} className="flex items-center gap-2 text-xs">
+                <span className="min-w-0 flex-1 truncate text-[#c7c7c7]" title={cred.example_location ?? undefined}>
+                  {cred.credential}
+                </span>
+                <span className="shrink-0 tabular-nums text-[#6A6E73]">{cred.live_copies}×</span>
+                <span
+                  className="shrink-0 text-[10px] uppercase tracking-wider"
+                  style={{ color: cred.coverage === 'in-jira' ? '#3E8635' : '#F0AB00' }}
+                >
+                  {cred.coverage === 'in-jira' ? 'ticketed' : 'untracked'}
+                </span>
+                <span className="shrink-0 w-28 text-right text-[10px] text-[#6A6E73] truncate">
+                  {cred.jira_keys ?? '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {credentials.length > 10 && (
+            <p className="text-[10px] text-[#6A6E73] mt-1">
+              showing 10 of {credential_counts.total}
+            </p>
+          )}
+        </div>
+      )}
+
       {tickets.length === 0 ? (
         <p className="text-xs text-[#6A6E73]">
           No tickets for this provider — its live credentials are the untracked ones.

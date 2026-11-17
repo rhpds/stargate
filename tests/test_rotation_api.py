@@ -151,3 +151,66 @@ class TestProviderDetail:
 
         assert body["tickets"] == []
         assert body["audit"]["verified_live"] == 2
+
+
+class TestCredentialIngest:
+    def test_requires_admin_key(self, client):
+        r = client.post("/integration/rotation-credentials",
+                        json={"date": "2026-11-18", "credentials": []},
+                        headers={"X-API-Key": ""})
+        assert r.status_code in (401, 403)
+
+    def test_stores_rows_and_canonicalises_provider(self, client, db):
+        payload = {"date": "2026-11-18", "credentials": [
+            {"id": "abc123", "credential": "storage_thing", "provider": "S3 bucket",
+             "live_copies": 12, "coverage": "not-in-tracker"},
+            {"id": "def456", "credential": "cluster_scheduler_token",
+             "provider": "", "live_copies": 3, "coverage": "in-jira",
+             "jira_keys": "GPTEINFRA-1"},
+        ]}
+        r = client.post("/integration/rotation-credentials", json=payload)
+        assert r.status_code == 201
+        assert r.json()["credentials"] == 2
+
+        from db.models import RotationCredential
+        s3 = db.query(RotationCredential).filter_by(credential_id="abc123").one()
+        assert s3.provider == "Datastores / storage"
+        token = db.query(RotationCredential).filter_by(credential_id="def456").one()
+        assert token.provider == "OpenShift / SA tokens"
+        assert token.verified_at is not None
+
+    def test_provider_detail_lists_credentials(self, client, db):
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [
+                {"id": "aaa", "credential": "aws_one", "provider": "AWS",
+                 "live_copies": 9, "coverage": "in-jira", "jira_keys": "GPTEINFRA-9"},
+                {"id": "bbb", "credential": "aws_two", "provider": "AWS",
+                 "live_copies": 2, "coverage": "not-in-tracker"},
+            ],
+        })
+        _seed(db, date(2026, 11, 18), "AWS", 1, 0, 0, 1, 1, 50, 300, 0)
+
+        body = client.get("/dashboard/rotation/provider", params={"name": "AWS"}).json()
+
+        assert [c["id"] for c in body["credentials"]] == ["aaa", "bbb"]
+        assert body["credentials"][0]["jira_keys"] == "GPTEINFRA-9"
+        assert body["credential_counts"] == {"total": 2, "ticketed": 1, "untracked": 1}
+
+
+class TestCredentialProviderJoin:
+    def test_ticketed_credential_inherits_the_ticket_provider(self, client, db):
+        from db.models import RotationTicket
+        db.add(RotationTicket(issue_key="GPTEINFRA-9", provider="AWS",
+                              summary="[turkeyvulture] x (AWS)", status="New"))
+        db.commit()
+
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [{"id": "zzz", "credential": "opaque_name",
+                             "jira_keys": "GPTEINFRA-9", "live_copies": 1}],
+        })
+
+        from db.models import RotationCredential
+        row = db.query(RotationCredential).filter_by(credential_id="zzz").one()
+        assert row.provider == "AWS"

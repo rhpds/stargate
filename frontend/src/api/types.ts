@@ -1123,9 +1123,25 @@ export interface RotationTicket {
   url: string;
 }
 
+export interface RotationCredential {
+  id: string;
+  credential: string;
+  live_copies: number;
+  clusters: string | null;
+  example_location: string | null;
+  coverage: string | null;
+  jira_keys: string | null;
+}
+
 export interface RotationProviderDetail {
   provider: string;
   jira_url: string | null;
+  credential_counts: {
+    total: number;
+    ticketed: number;
+    untracked: number;
+  };
+  credentials: RotationCredential[];
   counts: {
     tickets: number;
     closed: number;
