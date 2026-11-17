@@ -6,8 +6,11 @@ surfaces through the Model Context Protocol (MCP) — any MCP-compatible agent
 chains, the failure taxonomy, and the proof lab; ask questions in plain
 English; and review diagnoses to build the platform's knowledge base.
 
-- **Endpoint:** `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp`
+- **Endpoint:** `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp/`
 - **Protocol:** MCP Streamable HTTP (stateless, JSON responses)
+- **Trailing slash matters:** the mounted transport answers on `/mcp/`.
+  A POST to `/mcp` returns `405 Method Not Allowed`, which looks like an auth
+  or config failure in most clients. Verified 2026-11-17.
 - **Auth:** platform API key (`X-API-Key` header) — request one from the
   StarGate owners; never commit it to a repo or paste it in shared channels
 - **Mode:** read + review. Query everything, review diagnoses, comment on
@@ -34,7 +37,7 @@ Most MCP clients accept a server config with env-var expansion
   "mcpServers": {
     "stargate": {
       "type": "http",
-      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
+      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp/",
       "headers": {
         "X-API-Key": "${STARGATE_API_KEY}"
       }
@@ -48,7 +51,7 @@ used an `--url` flag that no longer exists):
 
 ```bash
 claude mcp add --transport http stargate \
-  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
+  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp/ \
   --header "X-API-Key: ${STARGATE_API_KEY}"
 ```
 
@@ -59,7 +62,7 @@ argument, so the env-var form matters here too:
 
 ```bash
 claude mcp add stargate -- npx -y mcp-remote \
-  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp \
+  https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp/ \
   --header "X-API-Key: ${STARGATE_API_KEY}"
 ```
 
