@@ -355,6 +355,29 @@ export default function Rotation() {
                     />
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr
+                    data-testid="rotation-totals"
+                    className="border-t border-[#2e2e2e] text-xs uppercase tracking-wider text-[#6A6E73]"
+                  >
+                    <td className="py-2 pr-4">Total</td>
+                    <td className="py-2 px-2 text-right tabular-nums">{summary.tickets}</td>
+                    <td className="py-2 px-2 text-right tabular-nums">{summary.closed}</td>
+                    <td className="py-2 px-2 tabular-nums">{summary.closed_pct}%</td>
+                    <td className="py-2 px-2 text-right tabular-nums">{summary.in_progress}</td>
+                    <td className="py-2 px-2 text-right tabular-nums">{summary.unassigned}</td>
+                    <td className="py-2 px-2 text-right tabular-nums text-[#c7c7c7]">
+                      {summary.verified_live}
+                    </td>
+                    <td className="py-2 px-2 text-right tabular-nums">{summary.live_locations}</td>
+                    <td
+                      className="py-2 pl-2 text-right tabular-nums"
+                      style={{ color: summary.untracked_live ? '#F0AB00' : undefined }}
+                    >
+                      {summary.untracked_live}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
             <p className="text-xs text-[#6A6E73] mt-2">
