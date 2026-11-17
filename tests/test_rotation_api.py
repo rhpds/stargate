@@ -180,6 +180,7 @@ class TestCredentialIngest:
         assert token.verified_at is not None
 
     def test_provider_detail_lists_credentials(self, client, db):
+        _seed(db, date(2026, 11, 18), "AWS", 1, 0, 0, 1, 1, 50, 300, 0)
         client.post("/integration/rotation-credentials", json={
             "date": "2026-11-18",
             "credentials": [
@@ -189,7 +190,6 @@ class TestCredentialIngest:
                  "live_copies": 2, "coverage": "not-in-tracker"},
             ],
         })
-        _seed(db, date(2026, 11, 18), "AWS", 1, 0, 0, 1, 1, 50, 300, 0)
 
         body = client.get("/dashboard/rotation/provider", params={"name": "AWS"}).json()
 
@@ -214,3 +214,36 @@ class TestCredentialProviderJoin:
         from db.models import RotationCredential
         row = db.query(RotationCredential).filter_by(credential_id="zzz").one()
         assert row.provider == "AWS"
+
+
+class TestCredentialAggregates:
+    def test_provider_totals_are_derived_from_credentials(self, client, db):
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [
+                {"id": "a1", "credential": "aws_one", "provider": "AWS", "live_copies": 10,
+                 "coverage": "in-jira"},
+                {"id": "a2", "credential": "aws_two", "provider": "AWS", "live_copies": 5,
+                 "coverage": "not-in-tracker"},
+                {"id": "g1", "credential": "gcp_thing", "provider": "Google Cloud",
+                 "live_copies": 2, "coverage": "not-in-tracker"},
+            ],
+        })
+
+        from db.models import RotationSnapshot
+        aws = db.query(RotationSnapshot).filter_by(provider="AWS").one()
+        assert (aws.verified_live, aws.live_locations, aws.untracked_live) == (2, 15, 1)
+        gcp = db.query(RotationSnapshot).filter_by(provider="Google Cloud").one()
+        assert (gcp.verified_live, gcp.live_locations, gcp.untracked_live) == (1, 2, 1)
+
+    def test_provider_without_credentials_is_zeroed(self, client, db):
+        _seed(db, date(2026, 11, 18), "Ghost", 3, 0, 0, 3, 0, 9, 9, 9)
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [{"id": "a1", "credential": "aws_one", "provider": "AWS",
+                             "live_copies": 1, "coverage": "in-jira"}],
+        })
+
+        from db.models import RotationSnapshot
+        ghost = db.query(RotationSnapshot).filter_by(provider="Ghost").one()
+        assert (ghost.tickets, ghost.verified_live) == (3, 0)

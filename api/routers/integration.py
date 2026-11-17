@@ -365,7 +365,7 @@ def receive_rotation_credentials(
     live, and whether a ticket covers each one. No values are accepted or
     stored — only the sha256[:16] identifier the audit already publishes.
     """
-    from db.models import RotationCredential, RotationTicket
+    from db.models import RotationCredential, RotationSnapshot, RotationTicket
     from collectors.rotation_sync import bucket_for
 
     # A ticketed credential inherits its ticket's provider — that join is
@@ -412,6 +412,54 @@ def receive_rotation_credentials(
         record.coverage = item.coverage or None
         record.jira_keys = item.jira_keys or None
         record.verified_at = verified_at
+
+    db.commit()
+
+    # The per-credential rows are the finest grain we have, so the provider
+    # totals are derived from them. Otherwise a provider row (audit aggregate)
+    # and its own credential list can disagree — AWS read 50 and 53.
+    rows = (
+        db.query(RotationCredential)
+        .filter(RotationCredential.snapshot_date == req.date)
+        .all()
+    )
+    totals: dict = {}
+    for row in rows:
+        entry = totals.setdefault(
+            row.provider, {"verified_live": 0, "live_locations": 0, "untracked_live": 0}
+        )
+        entry["verified_live"] += 1
+        entry["live_locations"] += row.live_copies or 0
+        if (row.coverage or "") != "in-jira":
+            entry["untracked_live"] += 1
+
+    for provider, counts in totals.items():
+        snapshot_row = (
+            db.query(RotationSnapshot)
+            .filter_by(snapshot_date=req.date, provider=provider)
+            .first()
+        )
+        if snapshot_row is None:
+            snapshot_row = RotationSnapshot(
+                snapshot_date=req.date, provider=provider,
+                tickets=0, closed=0, in_progress=0, new=0, unassigned=0,
+            )
+            db.add(snapshot_row)
+        snapshot_row.verified_live = counts["verified_live"]
+        snapshot_row.live_locations = counts["live_locations"]
+        snapshot_row.untracked_live = counts["untracked_live"]
+        snapshot_row.verified_at = verified_at
+
+    # A provider with no credentials on this run must not keep old totals.
+    for snapshot_row in (
+        db.query(RotationSnapshot)
+        .filter(RotationSnapshot.snapshot_date == req.date)
+        .filter(~RotationSnapshot.provider.in_(list(totals)))
+        .all()
+    ):
+        snapshot_row.verified_live = 0
+        snapshot_row.live_locations = 0
+        snapshot_row.untracked_live = 0
 
     db.commit()
     return {"date": req.date.isoformat(), "credentials": len(req.credentials)}
