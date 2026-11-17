@@ -70,7 +70,7 @@ claude mcp add stargate -- npx -y mcp-remote \
 stale CLI syntax — both fixed here. If you find another rough edge, the
 repo is public: contributions welcome.)
 
-## The tools (17 total)
+## The tools (18 total — 16 query, 2 review)
 
 For per-tool examples — the questions to ask, the arguments, and real
 responses from production — see the **[MCP Tool
