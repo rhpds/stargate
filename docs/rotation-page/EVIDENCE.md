@@ -64,8 +64,32 @@ empty state is explicit; Jira + audit numbers render together and the untracked
 gap is named; trend renders at two snapshots; a single snapshot is explained
 rather than drawn; a failed load is surfaced.
 
-## Still red
+## Live — 2026-11-17
 
-**G6 Live.** Requires the deploy: `alembic upgrade head`, one Jira sync, then
-`GET /dashboard/rotation` with `source.jira = "ok"` and non-zero totals, and the
-page at `/rotation` showing the same numbers.
+Deployed as PRs #110 and #111; migration `m4b5c6d7e8f9` applied at startup.
+
+```
+GET /dashboard/rotation
+  source     jira=ok, verification=snapshot
+  summary    226 tickets, 85 closed (38%), 16 in progress, 125 new,
+             91 unassigned, 153 verified live, 1,829 locations,
+             72 untracked live, 45 providers
+  last_sync  2026-11-17T22:30:36Z
+  trend      1 point (2026-11-17)
+```
+
+Scheduled loop observed: `Rotation sync: 227 issues → 45 providers for
+2026-11-17`. The audit snapshot for the day was ingested via
+`POST /integration/rotation-snapshot` (17 providers, 153/1,829/72).
+
+Frontend pod serves `assets/index-Cl2mTKIU.js` — the bundle from the merge
+commit, containing the Rotation page and its `/dashboard/rotation` call.
+
+## Found live
+
+The first production sync hung in Jira pagination: `_fetch_page` accepted
+`nextPageToken` and never sent it, so page 1 repeated forever. The unit tests
+stubbed `_fetch_page`, so they passed. Fixed in #111 and covered by two new
+tests. The loop was turned off in production until the fixed image was rolled
+out — the page kept serving its last snapshot, which is the intended failure
+mode.
