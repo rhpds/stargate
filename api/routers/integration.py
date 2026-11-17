@@ -13,6 +13,7 @@ from api.schemas import (
     FeedbackRequest,
     GeoluxProposalRequest,
     RotationSnapshotIngest,
+    RotationCredentialsIngest,
 )
 from api.routers._shared import _event_bus, require_admin
 
@@ -350,3 +351,67 @@ def receive_rotation_snapshot(
 
     db.commit()
     return {"date": req.date.isoformat(), "providers": len(req.providers)}
+
+
+@router.post("/integration/rotation-credentials", status_code=201)
+def receive_rotation_credentials(
+    req: RotationCredentialsIngest,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_admin),
+):
+    """Ingest per-credential coverage rows (hash ids, counts, locations).
+
+    Aggregates say "50 verified for AWS"; these rows say which 50, where they
+    live, and whether a ticket covers each one. No values are accepted or
+    stored — only the sha256[:16] identifier the audit already publishes.
+    """
+    from db.models import RotationCredential, RotationTicket
+    from collectors.rotation_sync import bucket_for
+
+    # A ticketed credential inherits its ticket's provider — that join is
+    # exact. Only untracked credentials need a name-based guess.
+    wanted_keys = {
+        key.strip()
+        for item in req.credentials
+        for key in (item.jira_keys or "").split(";")
+        if key.strip()
+    }
+    ticket_provider = {}
+    if wanted_keys:
+        ticket_provider = {
+            ticket.issue_key: ticket.provider
+            for ticket in db.query(RotationTicket)
+            .filter(RotationTicket.issue_key.in_(wanted_keys))
+            .all()
+        }
+
+    verified_at = datetime.now(timezone.utc)
+    for item in req.credentials:
+        provider = ""
+        for key in (item.jira_keys or "").split(";"):
+            if key.strip() in ticket_provider:
+                provider = ticket_provider[key.strip()]
+                break
+        if not provider:
+            provider = bucket_for(item.provider or f"{item.credential} {item.example_location}")
+        record = (
+            db.query(RotationCredential)
+            .filter_by(snapshot_date=req.date, credential_id=item.id)
+            .first()
+        )
+        if record is None:
+            record = RotationCredential(
+                snapshot_date=req.date, credential_id=item.id
+            )
+            db.add(record)
+        record.provider = provider
+        record.credential = item.credential
+        record.live_copies = item.live_copies
+        record.clusters = item.clusters or None
+        record.example_location = item.example_location or None
+        record.coverage = item.coverage or None
+        record.jira_keys = item.jira_keys or None
+        record.verified_at = verified_at
+
+    db.commit()
+    return {"date": req.date.isoformat(), "credentials": len(req.credentials)}

@@ -443,3 +443,21 @@ class RotationSnapshotIngest(BaseModel):
 
     date: date_type
     providers: List[RotationProviderCount] = Field(default_factory=list)
+
+
+class RotationCredentialRow(BaseModel):
+    """One live credential, identified by hash — never by value."""
+
+    id: str
+    credential: str
+    provider: str = ""
+    live_copies: int = 0
+    clusters: str = ""
+    example_location: str = ""
+    coverage: str = ""
+    jira_keys: str = ""
+
+
+class RotationCredentialsIngest(BaseModel):
+    date: date_type
+    credentials: List[RotationCredentialRow] = Field(default_factory=list)

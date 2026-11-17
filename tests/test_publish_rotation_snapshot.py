@@ -93,3 +93,42 @@ class TestLoadSnapshot:
 
         with pytest.raises(ValueError, match="by_provider"):
             pub.load_snapshot(str(path))
+
+
+class TestCredentials:
+    def test_reads_both_export_shapes(self, tmp_path):
+        path = tmp_path / "coverage.csv"
+        path.write_text(
+            "sha256_16,credential,live_copies,clusters,coverage,jira\n"
+            "abc123,aws_key,9,c1; c2,in-jira,GPTEINFRA-1\n"
+        )
+        rows = pub.build_credentials(str(path))
+        assert rows == [{
+            "id": "abc123", "credential": "aws_key", "provider": "",
+            "live_copies": 9, "clusters": "c1; c2", "example_location": "",
+            "coverage": "in-jira", "jira_keys": "GPTEINFRA-1",
+        }]
+
+    def test_publishes_to_the_credentials_endpoint(self, monkeypatch):
+        seen = {}
+
+        class _Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b'{"date": "2026-11-18", "credentials": 1}'
+
+        def fake_urlopen(request, timeout=None):
+            seen["url"] = request.full_url
+            return _Response()
+
+        monkeypatch.setattr(pub.urllib.request, "urlopen", fake_urlopen)
+        result = pub.publish_credentials({"date": "2026-11-18", "credentials": []},
+                                         "http://api:8090", "k")
+
+        assert result["credentials"] == 1
+        assert seen["url"].endswith("/integration/rotation-credentials")

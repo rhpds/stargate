@@ -81,6 +81,27 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
 const providerDetail = {
   provider: 'AWS',
   jira_url: 'https://redhat.atlassian.net/issues/?jql=key%20in%20%28GPTEINFRA-3%29',
+  credential_counts: { total: 2, ticketed: 1, untracked: 1 },
+  credentials: [
+    {
+      id: 'abc123',
+      credential: 'aws.assumerole_secret',
+      live_copies: 87,
+      clusters: 'ocpv-infra01',
+      example_location: 'anarchy-operator/gpte-sandbox:key',
+      coverage: 'in-jira',
+      jira_keys: 'GPTEINFRA-9',
+    },
+    {
+      id: 'def456',
+      credential: 'sandbox_metrics_key',
+      live_copies: 3,
+      clusters: null,
+      example_location: null,
+      coverage: 'not-in-tracker',
+      jira_keys: null,
+    },
+  ],
   counts: { tickets: 2, closed: 0, in_progress: 1, new: 1, unassigned: 1 },
   audit: { verified_live: 30, live_locations: 150, untracked_live: 4 },
   tickets: [
@@ -222,6 +243,9 @@ describe('Rotation page', () => {
     expect(screen.getByText('GPTEINFRA-3')).toBeInTheDocument();
     expect(screen.getByText('Guillaume')).toBeInTheDocument();
     expect(screen.getByText(/audit: 30 verified/)).toBeInTheDocument();
+    expect(screen.getByText('aws.assumerole_secret')).toBeInTheDocument();
+    expect(screen.getByText('sandbox_metrics_key')).toBeInTheDocument();
+    expect(screen.getByText(/1 untracked/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open in jira/i })).toHaveAttribute(
       'href',
       providerDetail.jira_url,
