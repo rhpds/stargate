@@ -229,7 +229,7 @@ platform in plain English:
 {
   "mcpServers": {
     "stargate": {
-      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp",
+      "url": "https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/mcp/",
       "headers": { "X-API-Key": "YOUR-KEY" }
     }
   }
