@@ -53,10 +53,9 @@ _RULES = [
     ("SendGrid", r"sendgrid"),
     ("Atlassian / Jira", r"jira|atlassian"),
     ("Hugging Face", r"hugging"),
-    ("Datastores", r"database|postgres|redis|kafka"),
+    ("Datastores / storage", r"database|datastore|postgres|redis|kafka|storage|\bs3\b"),
     ("TLS / certificates", r"cert|\btls\b|acme|zerossl"),
     ("RHDP internal", r"sandbox|rhdp internal|internal api"),
-    ("Storage", r"storage|\bs3\b"),
 ]
 
 

@@ -32,13 +32,18 @@ class TestBuildPayload:
 
         assert [p["provider"] for p in payload["providers"]] == ["AWS"]
 
-    def test_keeps_distinct_buckets_separate(self):
+    def test_identical_evidence_for_one_bucket_counts_once(self):
+        # Found in the 2026-11-17 snapshot: two raw names were two views of the
+        # same audit bucket, so the fleet total was inflated by 4/73/1.
         payload = pub.build_payload(_snapshot([
             {"provider": "Datastores", "verified_live": 4, "live_locations": 73, "untracked_live": 1},
             {"provider": "Storage", "verified_live": 4, "live_locations": 73, "untracked_live": 1},
         ]))
 
-        assert len(payload["providers"]) == 2
+        assert payload["providers"] == [
+            {"provider": "Datastores / storage", "verified_live": 4,
+             "live_locations": 73, "untracked_live": 1},
+        ]
 
 
 class TestPublish:

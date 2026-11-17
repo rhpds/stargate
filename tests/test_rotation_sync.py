@@ -131,6 +131,8 @@ class TestBucketFor:
         ("P1 — AWS; DNS/Route 53 account credentials", "AWS"),
         ("OCP SA Token (infra02)", "OpenShift / SA tokens"),
         ("ReachMail", "ReachMail"),
+        ("Storage", "Datastores / storage"),
+        ("Datastores", "Datastores / storage"),
         ("", "Unclassified"),
     ])
     def test_raw_provider_names_map_to_canonical_buckets(self, raw, expected):

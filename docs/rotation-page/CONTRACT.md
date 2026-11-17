@@ -88,6 +88,8 @@ raw provider names through the same buckets and posts the result. See
 - unknown provider creates the row with ticket counters at 0 (it will be filled
   by the next Jira sync)
 - idempotent: re-posting the same date/provider overwrites the verified fields
+- `verified_at` is stamped on every ingest row — the page shows it separately
+  from the Jira sync time
 
 ## Behaviours (BDD)
 
