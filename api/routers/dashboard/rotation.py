@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import urllib.parse
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List
 
@@ -105,6 +106,12 @@ def rotation_provider(provider: str, db: Session = Depends(get_db)):
 
     tickets.sort(key=lambda t: (_STATUS_RANK.get((t.status or "").lower(), 1), t.issue_key))
     base_url = os.environ.get("STARGATE_JIRA_URL", "https://redhat.atlassian.net").rstrip("/")
+    keys = ",".join(t.issue_key for t in tickets)
+    jira_url = (
+        f"{base_url}/issues/?jql=" + urllib.parse.quote(f"key in ({keys})")
+        if tickets
+        else None
+    )
 
     closed = sum(1 for t in tickets if (t.status or "").lower() == "closed")
     in_progress = sum(1 for t in tickets if (t.status or "").lower() == "in progress")
@@ -126,6 +133,7 @@ def rotation_provider(provider: str, db: Session = Depends(get_db)):
             if snapshot
             else None
         ),
+        "jira_url": jira_url,
         "tickets": [
             {
                 "key": t.issue_key,
@@ -155,6 +163,7 @@ def dashboard_rotation(db: Session = Depends(get_db)):
             "source": {
                 "jira": "unconfigured" if not jira_configured() else "ok",
                 "verification": "none",
+                "verification_at": None,
             },
             "links": _links(),
             "summary": {
@@ -247,6 +256,7 @@ def dashboard_rotation(db: Session = Depends(get_db)):
         for r in latest_rows
     )
     synced = [r.synced_at for r in latest_rows if r.synced_at]
+    verified_times = [r.verified_at for r in latest_rows if r.verified_at]
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -254,6 +264,7 @@ def dashboard_rotation(db: Session = Depends(get_db)):
         "source": {
             "jira": "ok",
             "verification": "snapshot" if verified else "none",
+            "verification_at": max(verified_times).isoformat() if verified_times else None,
         },
         "links": _links(),
         "summary": totals,

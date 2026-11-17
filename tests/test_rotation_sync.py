@@ -27,6 +27,14 @@ class TestProviderParsing:
         ("[turkeyvulture] Maintenance — Rotate x (IBM Cloud)", "IBM Cloud"),
         ("[turkeyvulture] Maintenance — Rotate x (Registry credentials — issuer unverified)", "Registry"),
         ("[turkeyvulture] Maintenance — Rotate something with no parenthetical", "Unclassified"),
+        ("[turkeyvulture] Maintenance — Rotate x (sandbox-api-configs) (AWS / Route 53)", "AWS"),
+        ("[turkeyvulture] Maintenance — Rotate x (Token (maas))", "AI / MaaS"),
+        ("[turkeyvulture] Maintenance — Rotate x (P1 — Bitwarden Secrets Manager)", "Provider unset"),
+        ("[turkeyvulture] Maintenance — Rotate AWS temporary/IAM credentials; IBM API key; "
+         "OpenShift service-account credentials (P3 — Per-placement issued credentials)",
+         "Provider unset"),
+        ("[turkeyvulture] Maintenance — Rotate x (AWS / IBM Cloud)", "Multiple providers"),
+        ("RHDP MaaS — Record and verify 881 virtual-key revocations", "AI / MaaS"),
     ])
     def test_parse_provider(self, summary, expected):
         assert rs.parse_provider(summary) == expected

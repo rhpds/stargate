@@ -33,7 +33,8 @@ Unique: `(snapshot_date, provider)`.
 {
   "generated_at": "ISO8601",
   "last_sync": "ISO8601|null",
-  "source": {"jira": "ok|unconfigured|error", "verification": "snapshot|none"},
+  "source": {"jira": "ok|unconfigured|error", "verification": "snapshot|none",
+             "verification_at": "ISO8601|null"},
   "summary": {"tickets":0,"closed":0,"closed_pct":0,"in_progress":0,"new":0,
               "unassigned":0,"verified_live":0,"live_locations":0,
               "untracked_live":0,"providers":0},
@@ -61,6 +62,7 @@ raw provider names through the same buckets and posts the result. See
   "provider": "AWS",
   "counts": {"tickets":0,"closed":0,"in_progress":0,"new":0,"unassigned":0},
   "audit": {"verified_live":0,"live_locations":0,"untracked_live":0},
+  "jira_url": "https://.../issues/?jql=key%20in%20(...)|null",
   "tickets": [{"key":"GPTEINFRA-1","summary":"...","status":"In Progress",
                "assignee":"...","url":"https://.../browse/GPTEINFRA-1"}]
 }
@@ -69,6 +71,9 @@ raw provider names through the same buckets and posts the result. See
 - 404 for a provider with neither tickets nor an audit row
 - tickets ordered action-first: In Progress, New, Closed, then key
 - `audit` is `null` when only tickets exist
+- `jira_url` is a precise `key in (...)` filter, so it opens exactly these tickets
+- `source.verification_at` is when the audit last wrote the verified fields,
+  not when Jira synced
 - reads stored tickets, never Jira, so it cannot disagree with the table
 
 `POST /integration/rotation-snapshot` (admin key required)
@@ -106,6 +111,8 @@ raw provider names through the same buckets and posts the result. See
 - ingest for an unknown provider
 - ticket upsert: update in place, prune tickets that left the epic, ignore the epic row
 - provider detail: action-first ordering, 404 for unknown, audit-only provider opens
+- provider taxonomy: a second parenthetical (`(sandbox-api-configs) (AWS / Route 53)`),
+  nested groups, priority-only labels → `Provider unset`, two providers → `Multiple providers`
 
 ## Non-goals
 

@@ -103,7 +103,7 @@ function ProviderDetail({ provider }: { provider: string }) {
     return <div className="text-xs text-[#EE0000] py-2">Could not load this provider's tickets.</div>;
   }
 
-  const { counts, audit, tickets } = data;
+  const { counts, audit, tickets, jira_url } = data;
 
   return (
     <div className="border-l-2 border-[#2e2e2e] pl-3 py-2 space-y-2">
@@ -118,6 +118,16 @@ function ProviderDetail({ provider }: { provider: string }) {
             audit: {audit.verified_live} verified · {audit.live_locations} locations ·{' '}
             {audit.untracked_live} untracked
           </span>
+        )}
+        {jira_url && (
+          <a
+            href={jira_url}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-auto text-[#73BCF7] hover:underline"
+          >
+            Open in Jira ↗
+          </a>
         )}
       </div>
       {tickets.length === 0 ? (
@@ -256,6 +266,7 @@ export default function Rotation() {
         <p className="text-sm text-[#6A6E73] mt-1">
           Jira owns the plan (GPTEINFRA-18544) · the audit owns what is live ·{' '}
           {last_sync ? `Jira synced ${relativeTime(last_sync)}` : 'no Jira sync yet'}
+          {source.verification_at ? ` · audit verified ${relativeTime(source.verification_at)}` : ''}
         </p>
         {links.length > 0 && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
