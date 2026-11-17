@@ -77,3 +77,40 @@ class TestPagination:
         issues = rs.fetch_issues("https://jira", "user", "tok")
         assert len(issues) == 2
         assert calls["n"] == 2
+
+
+class TestPageRequest:
+    def test_next_token_is_sent_to_jira(self, monkeypatch):
+        """Found live: the token was never added, so page 1 repeated forever."""
+        seen = {}
+
+        class _Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return b'{"issues": [], "isLast": true}'
+
+        def fake_urlopen(request, timeout=None):
+            seen["url"] = request.full_url
+            return _Response()
+
+        monkeypatch.setattr(rs.urllib.request, "urlopen", fake_urlopen)
+        rs._fetch_page("https://jira/rest/api/3/search/jql?jql=x", "auth", "t2")
+
+        assert "nextPageToken=t2" in seen["url"]
+
+
+class TestPaginationGuard:
+    def test_repeated_token_raises_instead_of_looping(self, monkeypatch):
+        page = {
+            "issues": [_issue("A-1", "[turkeyvulture] Rotate a (AWS)")],
+            "isLast": False,
+            "nextPageToken": "same",
+        }
+        monkeypatch.setattr(rs, "_fetch_page", lambda url, token, next_token=None: page)
+        with pytest.raises(RuntimeError, match="did not advance"):
+            rs.fetch_issues("https://jira", "user", "tok")

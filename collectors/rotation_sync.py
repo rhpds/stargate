@@ -122,6 +122,9 @@ def aggregate_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def _fetch_page(url: str, auth: str, next_token: Optional[str] = None) -> Dict[str, Any]:
     """One Jira search page. `auth` is the pre-encoded Basic credential."""
+    if next_token:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}nextPageToken={urllib.parse.quote(next_token, safe='')}"
     request = urllib.request.Request(
         url,
         headers={"Authorization": f"Basic {auth}", "Accept": "application/json"},
@@ -147,6 +150,7 @@ def fetch_issues(
 
     issues: List[Dict[str, Any]] = []
     next_token: Optional[str] = None
+    seen_tokens: set[str] = set()
     while True:
         page = _fetch_page(url, auth, next_token)
         issues.extend(page.get("issues") or [])
@@ -155,6 +159,11 @@ def fetch_issues(
         next_token = page.get("nextPageToken")
         if not next_token:
             break
+        # A server that repeats a token would loop forever. Found live once:
+        # the token was computed but never sent, so page 1 repeated endlessly.
+        if next_token in seen_tokens:
+            raise RuntimeError("Jira pagination did not advance (repeated nextPageToken)")
+        seen_tokens.add(next_token)
     return issues
 
 
