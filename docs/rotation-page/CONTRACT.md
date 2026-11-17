@@ -55,7 +55,7 @@ returns `[]`. The page only renders them — Drive permissions are Google's.
 raw provider names through the same buckets and posts the result. See
 `DAILY-AUDIT.md`.
 
-`GET /dashboard/rotation/providers/{provider}`
+`GET /dashboard/rotation/provider?name=<provider>`
 
 ```json
 {
@@ -68,6 +68,8 @@ raw provider names through the same buckets and posts the result. See
 }
 ```
 
+- `name` is a query parameter so provider names containing `/`
+  (`OpenShift / SA tokens`) are addressable
 - 404 for a provider with neither tickets nor an audit row
 - tickets ordered action-first: In Progress, New, Closed, then key
 - `audit` is `null` when only tickets exist

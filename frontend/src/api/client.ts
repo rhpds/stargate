@@ -294,7 +294,7 @@ export const api = {
     request<CredentialsResponse>(`/dashboard/credentials${refresh ? '?refresh=true' : ''}`),
   getRotation: () => request<RotationResponse>('/dashboard/rotation'),
   getRotationProvider: (provider: string) =>
-    request<RotationProviderDetail>(`/dashboard/rotation/providers/${encodeURIComponent(provider)}`),
+    request<RotationProviderDetail>(`/dashboard/rotation/provider?name=${encodeURIComponent(provider)}`),
   getCatalogItemDetail: (itemName: string) => request<CatalogItemDetail>(`/dashboard/catalog/${encodeURIComponent(itemName)}`),
 
   // Historical trends

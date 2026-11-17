@@ -120,7 +120,7 @@ class TestProviderDetail:
         self._seed_ticket(db, "GPTEINFRA-1", "AWS", "New", None)
         self._seed_ticket(db, "GPTEINFRA-3", "AWS", "In Progress", "Guillaume")
 
-        body = client.get("/dashboard/rotation/providers/AWS").json()
+        body = client.get("/dashboard/rotation/provider", params={"name": "AWS"}).json()
 
         assert body["provider"] == "AWS"
         assert body["counts"] == {
@@ -134,12 +134,20 @@ class TestProviderDetail:
         assert body["audit"] == {"verified_live": 50, "live_locations": 300, "untracked_live": 0}
 
     def test_unknown_provider_is_404(self, client, db):
-        assert client.get("/dashboard/rotation/providers/NewCo").status_code == 404
+        assert client.get("/dashboard/rotation/provider", params={"name": "NewCo"}).status_code == 404
+
+    def test_provider_names_with_a_slash_are_addressable(self, client, db):
+        _seed(db, date(2026, 11, 18), "OpenShift / SA tokens", 1, 0, 0, 1, 1, 4, 8, 4)
+        body = client.get(
+            "/dashboard/rotation/provider", params={"name": "OpenShift / SA tokens"}
+        ).json()
+        assert body["provider"] == "OpenShift / SA tokens"
+        assert body["audit"]["verified_live"] == 4
 
     def test_audit_only_provider_still_opens(self, client, db):
         _seed(db, date(2026, 11, 18), "NewCo", 0, 0, 0, 0, 0, 2, 3, 2)
 
-        body = client.get("/dashboard/rotation/providers/NewCo").json()
+        body = client.get("/dashboard/rotation/provider", params={"name": "NewCo"}).json()
 
         assert body["tickets"] == []
         assert body["audit"]["verified_live"] == 2
