@@ -340,7 +340,10 @@ def record_credential_evaluations(report: Dict[str, Any], db) -> int:
 
     recorded = 0
     for r in report.get("results", []):
-        run_id = f"cred-health-{r['credential']}-{r['probed_at'][:13]}"
+        # Include the outcome: without it, a recovery inside the same hour is
+        # skipped as a duplicate and the page shows the stale failure for up to
+        # an hour (found live 2026-11-17 after rotating the MaaS key).
+        run_id = f"cred-health-{r['credential']}-{r['probed_at'][:13]}-{r['outcome']}"
         exists = (
             db.query(EvaluationRecord)
             .filter(
