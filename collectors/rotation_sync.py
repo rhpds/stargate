@@ -61,6 +61,15 @@ _RULES = [
 
 _PRIORITY_TAG = re.compile(r"^p\d+[a-z]?\b|priority")
 
+# Buckets the rules actually produce. Anything else is a raw fallback — fine
+# for a ticket title, useless as a credential's provider.
+KNOWN_BUCKETS = frozenset(name for name, _ in _RULES) | {
+    "Unclassified",
+    "Provider unset",
+    "Multiple providers",
+    "Unresolved / other",
+}
+
 
 def bucket_for(raw: str) -> str:
     """Canonical provider bucket for a raw provider/type string.
