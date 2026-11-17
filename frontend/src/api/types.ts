@@ -1113,3 +1113,28 @@ export interface RotationResponse {
   trend: RotationTrendPoint[];
   links: RotationSourceLink[];
 }
+
+export interface RotationTicket {
+  key: string;
+  summary: string;
+  status: string;
+  assignee: string | null;
+  url: string;
+}
+
+export interface RotationProviderDetail {
+  provider: string;
+  counts: {
+    tickets: number;
+    closed: number;
+    in_progress: number;
+    new: number;
+    unassigned: number;
+  };
+  audit: {
+    verified_live: number;
+    live_locations: number;
+    untracked_live: number;
+  } | null;
+  tickets: RotationTicket[];
+}

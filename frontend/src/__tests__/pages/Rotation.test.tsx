@@ -7,13 +7,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { RotationResponse } from '../../api/types';
 
 const useRotation = vi.fn();
+const useRotationProvider = vi.fn();
 
 vi.mock('../../api/hooks', () => ({
   useRotation: () => useRotation(),
+  useRotationProvider: (provider: string | null) => useRotationProvider(provider),
 }));
 
 import Rotation from '../../pages/Rotation';
@@ -72,8 +74,34 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
   };
 }
 
+const providerDetail = {
+  provider: 'AWS',
+  counts: { tickets: 2, closed: 0, in_progress: 1, new: 1, unassigned: 1 },
+  audit: { verified_live: 30, live_locations: 150, untracked_live: 4 },
+  tickets: [
+    {
+      key: 'GPTEINFRA-3',
+      summary: '[turkeyvulture] Maintenance — Rotate cluster-scheduler-token (AWS)',
+      status: 'In Progress',
+      assignee: 'Guillaume',
+      url: 'https://redhat.atlassian.net/browse/GPTEINFRA-3',
+    },
+    {
+      key: 'GPTEINFRA-2',
+      summary: '[turkeyvulture] Maintenance — Rotate models_aws_s3_access_key (AWS)',
+      status: 'New',
+      assignee: null,
+      url: 'https://redhat.atlassian.net/browse/GPTEINFRA-2',
+    },
+  ],
+};
+
 describe('Rotation page', () => {
-  beforeEach(() => useRotation.mockReset());
+  beforeEach(() => {
+    useRotation.mockReset();
+    useRotationProvider.mockReset();
+    useRotationProvider.mockReturnValue({ data: providerDetail, isLoading: false, isError: false });
+  });
 
   it('shows an explicit empty state instead of fake zeros', () => {
     useRotation.mockReturnValue({
@@ -155,6 +183,30 @@ describe('Rotation page', () => {
     render(<Rotation />);
 
     expect(screen.queryByText('Source data:')).not.toBeInTheDocument();
+  });
+
+  it('opens a provider into its tickets', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+    fireEvent.click(screen.getByRole('button', { name: /AWS/ }));
+
+    expect(screen.getByText('GPTEINFRA-3')).toBeInTheDocument();
+    expect(screen.getByText('Guillaume')).toBeInTheDocument();
+    expect(screen.getByText(/audit: 30 verified/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /AWS/ })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('closes the detail on a second click', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+    const row = screen.getByRole('button', { name: /AWS/ });
+    fireEvent.click(row);
+    fireEvent.click(row);
+
+    expect(screen.queryByText('GPTEINFRA-3')).not.toBeInTheDocument();
+    expect(row).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('surfaces a failed load instead of an empty table', () => {

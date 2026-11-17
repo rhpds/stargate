@@ -54,6 +54,23 @@ returns `[]`. The page only renders them — Drive permissions are Google's.
 raw provider names through the same buckets and posts the result. See
 `DAILY-AUDIT.md`.
 
+`GET /dashboard/rotation/providers/{provider}`
+
+```json
+{
+  "provider": "AWS",
+  "counts": {"tickets":0,"closed":0,"in_progress":0,"new":0,"unassigned":0},
+  "audit": {"verified_live":0,"live_locations":0,"untracked_live":0},
+  "tickets": [{"key":"GPTEINFRA-1","summary":"...","status":"In Progress",
+               "assignee":"...","url":"https://.../browse/GPTEINFRA-1"}]
+}
+```
+
+- 404 for a provider with neither tickets nor an audit row
+- tickets ordered action-first: In Progress, New, Closed, then key
+- `audit` is `null` when only tickets exist
+- reads stored tickets, never Jira, so it cannot disagree with the table
+
 `POST /integration/rotation-snapshot` (admin key required)
 
 ```json
@@ -87,6 +104,8 @@ raw provider names through the same buckets and posts the result. See
 - unassigned counting
 - upsert idempotency for both sync and ingest
 - ingest for an unknown provider
+- ticket upsert: update in place, prune tickets that left the epic, ignore the epic row
+- provider detail: action-first ordering, 404 for unknown, audit-only provider opens
 
 ## Non-goals
 

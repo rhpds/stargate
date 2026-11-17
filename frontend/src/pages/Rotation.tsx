@@ -7,8 +7,9 @@
  * them — the gap between the two is the finding.
  */
 
+import { useState } from 'react';
 import type { RotationProvider, RotationResponse, RotationTrendPoint } from '../api/types';
-import { useRotation } from '../api/hooks';
+import { useRotation, useRotationProvider } from '../api/hooks';
 import { MetricCard, SectionHeader, relativeTime } from '../components/ui';
 
 function pctTone(pct: number): string {
@@ -86,10 +87,100 @@ function TrendChart({ trend }: { trend: RotationTrendPoint[] }) {
   );
 }
 
-function ProviderRow({ row }: { row: RotationProvider }) {
+const STATUS_TONE: Record<string, string> = {
+  closed: '#3E8635',
+  'in progress': '#F0AB00',
+  new: '#6A6E73',
+};
+
+function ProviderDetail({ provider }: { provider: string }) {
+  const { data, isLoading, isError } = useRotationProvider(provider);
+
+  if (isLoading) {
+    return <div className="text-xs text-[#6A6E73] py-2">Loading tickets…</div>;
+  }
+  if (isError || !data) {
+    return <div className="text-xs text-[#EE0000] py-2">Could not load this provider's tickets.</div>;
+  }
+
+  const { counts, audit, tickets } = data;
+
   return (
-    <tr className="border-b border-[#1a1a1a] last:border-0">
-      <td className="py-2 pr-4 text-sm text-white">{row.provider}</td>
+    <div className="border-l-2 border-[#2e2e2e] pl-3 py-2 space-y-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6A6E73]">
+        <span><span className="text-white">{counts.tickets}</span> tickets</span>
+        <span><span className="text-white">{counts.closed}</span> closed</span>
+        <span><span className="text-white">{counts.in_progress}</span> in progress</span>
+        <span><span className="text-white">{counts.new}</span> new</span>
+        <span><span className="text-white">{counts.unassigned}</span> unassigned</span>
+        {audit && (
+          <span className="text-[#c7c7c7]">
+            audit: {audit.verified_live} verified · {audit.live_locations} locations ·{' '}
+            {audit.untracked_live} untracked
+          </span>
+        )}
+      </div>
+      {tickets.length === 0 ? (
+        <p className="text-xs text-[#6A6E73]">
+          No tickets for this provider — its live credentials are the untracked ones.
+        </p>
+      ) : (
+        <ul className="space-y-1">
+          {tickets.map((ticket) => (
+            <li key={ticket.key} className="flex items-center gap-2 text-xs">
+              <span
+                className="shrink-0 w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: STATUS_TONE[ticket.status.toLowerCase()] ?? '#6A6E73' }}
+                aria-hidden="true"
+              />
+              <a
+                href={ticket.url}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 text-[#73BCF7] hover:underline tabular-nums"
+              >
+                {ticket.key}
+              </a>
+              <span className="min-w-0 flex-1 truncate text-[#c7c7c7]" title={ticket.summary}>
+                {ticket.summary}
+              </span>
+              <span className="shrink-0 text-[10px] uppercase tracking-wider text-[#6A6E73]">
+                {ticket.status}
+              </span>
+              <span className="shrink-0 w-28 text-right text-[10px] text-[#6A6E73] truncate">
+                {ticket.assignee ?? 'unassigned'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ProviderRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  row: RotationProvider;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+    <tr className="border-b border-[#1a1a1a]">
+      <td className="py-2 pr-4 text-sm text-white">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="flex items-center gap-1.5 text-left hover:text-[#73BCF7]"
+        >
+          <span className="text-[#6A6E73] text-[10px]">{expanded ? '▾' : '▸'}</span>
+          {row.provider}
+        </button>
+      </td>
       <td className="py-2 px-2 text-right text-sm tabular-nums text-[#c7c7c7]">{row.tickets}</td>
       <td className="py-2 px-2 text-right text-sm tabular-nums text-[#c7c7c7]">{row.closed}</td>
       <td className="py-2 px-2">
@@ -103,6 +194,14 @@ function ProviderRow({ row }: { row: RotationProvider }) {
         {row.untracked_live}
       </td>
     </tr>
+    {expanded && (
+      <tr className="border-b border-[#1a1a1a]">
+        <td colSpan={9} className="pb-2">
+          <ProviderDetail provider={row.provider} />
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 
@@ -127,6 +226,7 @@ function EmptyState({ data }: { data: RotationResponse }) {
 
 export default function Rotation() {
   const { data, isLoading, isError } = useRotation();
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -236,7 +336,12 @@ export default function Rotation() {
                 </thead>
                 <tbody>
                   {providers.map((row) => (
-                    <ProviderRow key={row.provider} row={row} />
+                    <ProviderRow
+                      key={row.provider}
+                      row={row}
+                      expanded={expanded === row.provider}
+                      onToggle={() => setExpanded(expanded === row.provider ? null : row.provider)}
+                    />
                   ))}
                 </tbody>
               </table>

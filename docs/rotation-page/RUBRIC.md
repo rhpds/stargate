@@ -6,12 +6,12 @@ evidence is attached to the PR. A gate cannot be skipped; it can only be red.
 | Gate | Question | Evidence required | State |
 |---|---|---|---|
 | G1 Contract | Is the schema/API fixed before code? | `CONTRACT.md` + failing tests that encode it | **GREEN** — contract committed; both test files written and observed red first |
-| G2 Unit (TDD) | Do the pure rules have cases? | provider parse, aggregation, pagination, unassigned | **GREEN** — `tests/test_rotation_sync.py`, 11 passed |
-| G3 Behaviour (BDD) | Do the page-level behaviours hold? | empty state, totals, ingest side-by-side, trend | **GREEN** — `frontend/src/__tests__/pages/Rotation.test.tsx`, 5 passed |
-| G4 Contract API | Do the endpoints obey the shapes and auth? | 200 shape, 403 without key, 201 ingest, idempotency | **GREEN** — `tests/test_rotation_api.py`, 6 passed |
+| G2 Unit (TDD) | Do the pure rules have cases? | provider parse, aggregation, pagination, unassigned | **GREEN** — `tests/test_rotation_sync.py`, 22 passed |
+| G3 Behaviour (BDD) | Do the page-level behaviours hold? | empty state, totals, ingest side-by-side, trend | **GREEN** — `frontend/src/__tests__/pages/Rotation.test.tsx`, 9 passed; publisher 6 |
+| G4 Contract API | Do the endpoints obey the shapes and auth? | 200 shape, 403 without key, 201 ingest, idempotency | **GREEN** — `tests/test_rotation_api.py`, 12 passed |
 | G5 Evidence (EDD) | Is the red→green transition recorded? | red run captured, green run captured, receipt JSON | **GREEN** — `test-receipts/rotation-page-2026-11-17.json` |
 | G6 Live | Does it show real numbers in production? | endpoint output + deployed page | **GREEN** — deployed 2026-11-17; `source.jira=ok`, 226 tickets / 85 closed / 153 verified live / 1,829 locations; new bundle served by the frontend pod |
-| G7 Non-regression | Did anything else break? | full suite + ruff + tsc + frontend tests | **GREEN** — 2459 passed; ruff clean; tsc clean; 24 frontend tests; build ok |
+| G7 Non-regression | Did anything else break? | full suite + ruff + tsc + frontend tests | **GREEN** — 2482 passed; ruff clean; tsc clean; 24 frontend tests; build ok |
 | G8 Ops | Can it be re-run and trusted? | sync loop, last_sync surfaced, ingest documented | **GREEN** — loop observed running in production (`227 issues → 45 providers`); 30-min interval gated by `STARGATE_ROTATION_SYNC_ENABLED`; `last_sync` in payload; ingest documented |
 
 **AMBER** = implementation exists but the evidence is not attached.
@@ -29,7 +29,7 @@ RED (pre-implementation tree):
 GREEN:
 
 - `pytest tests/test_rotation_sync.py tests/test_rotation_api.py -q` → 17 passed
-- `pytest -m "not integration" -q` → 2459 passed, 17 skipped
+- `pytest -m "not integration" -q` → 2482 passed, 17 skipped
 - `ruff check .` → clean · `tsc --noEmit` → clean · `npm test` → 24 passed ·
   `npm run build` → ok
 

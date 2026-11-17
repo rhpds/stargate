@@ -386,3 +386,12 @@ export function useCredentials() {
 export function useRotation() {
   return useQuery({ queryKey: ['rotation'], queryFn: () => api.getRotation(), refetchInterval: 120_000 });
 }
+
+/** One provider's tickets, fetched only when its row is opened. */
+export function useRotationProvider(provider: string | null) {
+  return useQuery({
+    queryKey: ['rotation-provider', provider],
+    queryFn: () => api.getRotationProvider(provider as string),
+    enabled: Boolean(provider),
+  });
+}

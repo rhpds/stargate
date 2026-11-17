@@ -127,3 +127,44 @@ class TestBucketFor:
     ])
     def test_raw_provider_names_map_to_canonical_buckets(self, raw, expected):
         assert rs.bucket_for(raw) == expected
+
+
+class TestTicketUpsert:
+    def _issue(self, key, summary, status="New", assignee=None):
+        return _issue(key, summary, status, assignee)
+
+    def test_stores_and_updates_tickets(self, db):
+        rs.upsert_tickets(db, [
+            self._issue("A-1", "[turkeyvulture] Rotate a (AWS)", "New", "Ashok"),
+        ])
+        db.commit()
+        rs.upsert_tickets(db, [
+            self._issue("A-1", "[turkeyvulture] Rotate a (AWS)", "Closed", "Ashok"),
+        ])
+        db.commit()
+
+        from db.models import RotationTicket
+        row = db.query(RotationTicket).filter_by(issue_key="A-1").one()
+        assert (row.provider, row.status, row.assignee) == ("AWS", "Closed", "Ashok")
+
+    def test_removes_tickets_that_left_the_epic(self, db):
+        rs.upsert_tickets(db, [
+            self._issue("A-1", "[turkeyvulture] Rotate a (AWS)"),
+            self._issue("B-1", "[turkeyvulture] Rotate b (IBM Cloud)"),
+        ])
+        db.commit()
+        rs.upsert_tickets(db, [self._issue("A-1", "[turkeyvulture] Rotate a (AWS)")])
+        db.commit()
+
+        from db.models import RotationTicket
+        assert [t.issue_key for t in db.query(RotationTicket).all()] == ["A-1"]
+
+    def test_ignores_the_parent_epic(self, db):
+        rs.upsert_tickets(db, [
+            self._issue("GPTEINFRA-18544", "Maintenance - 2026 Turkey Vulture"),
+            self._issue("A-1", "[turkeyvulture] Rotate a (AWS)"),
+        ])
+        db.commit()
+
+        from db.models import RotationTicket
+        assert db.query(RotationTicket).count() == 1
