@@ -48,21 +48,25 @@ built in 202ms
 
 ## Cases pinned
 
-Sync (`tests/test_rotation_sync.py`, 11):
+Sync (`tests/test_rotation_sync.py`, 22):
 provider parsing including the nested `(OCP SA Token (infra02))`, `(AI / MaaS /
 Lightspeed — upstream unverified)` and no-parenthetical → `Unclassified`;
 parent epic excluded; status/unassigned counts; provider ordering; two-page
-pagination merged.
+pagination merged; ticket upsert updates in place and prunes tickets that left
+the epic; the parent epic is never stored.
 
-API (`tests/test_rotation_api.py`, 6):
+API (`tests/test_rotation_api.py`, 12):
 explicit empty payload; latest-day-only totals (never summed across days);
 ascending per-day trend; admin key required; ingest writes verified fields and
-creates unknown providers empty; ingest idempotent.
+creates unknown providers empty; ingest idempotent; source links from config,
+empty by default, malformed ignored; provider detail action-first ordering, 404
+for unknown, audit-only provider opens.
 
-Page (`frontend/src/__tests__/pages/Rotation.test.tsx`, 5):
+Page (`frontend/src/__tests__/pages/Rotation.test.tsx`, 9):
 empty state is explicit; Jira + audit numbers render together and the untracked
 gap is named; trend renders at two snapshots; a single snapshot is explained
-rather than drawn; a failed load is surfaced.
+rather than drawn; a provider row opens into its tickets and closes again; the
+source-data link renders only when configured; a failed load is surfaced.
 
 ## Live — 2026-11-17
 
@@ -93,3 +97,9 @@ stubbed `_fetch_page`, so they passed. Fixed in #111 and covered by two new
 tests. The loop was turned off in production until the fixed image was rolled
 out — the page kept serving its last snapshot, which is the intended failure
 mode.
+
+## Publisher (`tests/test_publish_rotation_snapshot.py`, 6)
+
+Raw audit names collapse into page buckets, rows with no evidence are dropped,
+distinct buckets stay separate, the admin key reaches the request, a missing
+key fails before any request, and a non-snapshot file is rejected.

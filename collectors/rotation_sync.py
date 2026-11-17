@@ -129,6 +129,56 @@ def aggregate_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(buckets.values(), key=lambda r: (-r["tickets"], r["provider"]))
 
 
+def _ticket_row(issue: Dict[str, Any]) -> Dict[str, Any]:
+    fields = issue.get("fields") or {}
+    return {
+        "issue_key": issue.get("key") or "",
+        "provider": parse_provider(fields.get("summary") or ""),
+        "summary": fields.get("summary") or "",
+        "status": (fields.get("status") or {}).get("name") or "",
+        "assignee": (fields.get("assignee") or {}).get("displayName") or None,
+    }
+
+
+def upsert_tickets(db, issues: List[Dict[str, Any]], now: Optional[datetime] = None) -> int:
+    """Store each child ticket so a provider row can open into its work.
+
+    Replaces the previous pull: the epic is the universe, so a ticket that
+    vanished from the search is removed rather than left stale on the page.
+    """
+    from db.models import RotationTicket
+
+    rows = [_ticket_row(issue) for issue in issues if _is_child(issue)]
+    keys = [row["issue_key"] for row in rows]
+    existing = {}
+    if keys:
+        existing = {
+            ticket.issue_key: ticket
+            for ticket in db.query(RotationTicket)
+            .filter(RotationTicket.issue_key.in_(keys))
+            .all()
+        }
+
+    for row in rows:
+        ticket = existing.get(row["issue_key"])
+        if ticket is None:
+            ticket = RotationTicket(issue_key=row["issue_key"])
+            db.add(ticket)
+        ticket.provider = row["provider"]
+        ticket.summary = row["summary"]
+        ticket.status = row["status"]
+        ticket.assignee = row["assignee"]
+        ticket.synced_at = now or datetime.now(timezone.utc)
+
+    if keys:
+        db.query(RotationTicket).filter(~RotationTicket.issue_key.in_(keys)).delete(
+            synchronize_session=False
+        )
+    else:
+        db.query(RotationTicket).delete()
+    return len(rows)
+
+
 def _fetch_page(url: str, auth: str, next_token: Optional[str] = None) -> Dict[str, Any]:
     """One Jira search page. `auth` is the pre-encoded Basic credential."""
     if next_token:
@@ -204,6 +254,7 @@ def sync(db) -> Dict[str, Any]:
     rows = aggregate_issues(issues)
     today = datetime.now(timezone.utc).date()
     now = datetime.now(timezone.utc)
+    upsert_tickets(db, issues, now)
 
     for row in rows:
         record = (

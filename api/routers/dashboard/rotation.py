@@ -17,7 +17,7 @@ import os
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -70,6 +70,72 @@ def _row(row) -> Dict[str, Any]:
         "verified_live": row.verified_live or 0,
         "live_locations": row.live_locations or 0,
         "untracked_live": row.untracked_live or 0,
+    }
+
+
+_STATUS_RANK = {"in progress": 0, "new": 1, "closed": 2}
+
+
+@router.get("/dashboard/rotation/providers/{provider}")
+def rotation_provider(provider: str, db: Session = Depends(get_db)):
+    """One provider's tickets, with the audit's numbers beside them.
+
+    Reads the tickets the sync stored — never Jira — so this cannot disagree
+    with the counts on the table.
+    """
+    from db.models import RotationSnapshot, RotationTicket
+
+    tickets = (
+        db.query(RotationTicket)
+        .filter(RotationTicket.provider == provider)
+        .all()
+    )
+
+    latest_date = db.query(func.max(RotationSnapshot.snapshot_date)).scalar()
+    snapshot = None
+    if latest_date is not None:
+        snapshot = (
+            db.query(RotationSnapshot)
+            .filter_by(snapshot_date=latest_date, provider=provider)
+            .first()
+        )
+
+    if not tickets and snapshot is None:
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+
+    tickets.sort(key=lambda t: (_STATUS_RANK.get((t.status or "").lower(), 1), t.issue_key))
+    base_url = os.environ.get("STARGATE_JIRA_URL", "https://redhat.atlassian.net").rstrip("/")
+
+    closed = sum(1 for t in tickets if (t.status or "").lower() == "closed")
+    in_progress = sum(1 for t in tickets if (t.status or "").lower() == "in progress")
+    return {
+        "provider": provider,
+        "counts": {
+            "tickets": len(tickets),
+            "closed": closed,
+            "in_progress": in_progress,
+            "new": len(tickets) - closed - in_progress,
+            "unassigned": sum(1 for t in tickets if not t.assignee),
+        },
+        "audit": (
+            {
+                "verified_live": snapshot.verified_live or 0,
+                "live_locations": snapshot.live_locations or 0,
+                "untracked_live": snapshot.untracked_live or 0,
+            }
+            if snapshot
+            else None
+        ),
+        "tickets": [
+            {
+                "key": t.issue_key,
+                "summary": t.summary,
+                "status": t.status,
+                "assignee": t.assignee,
+                "url": f"{base_url}/browse/{t.issue_key}",
+            }
+            for t in tickets
+        ],
     }
 
 

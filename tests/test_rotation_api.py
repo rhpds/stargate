@@ -101,3 +101,41 @@ class TestSourceLinks:
     def test_malformed_links_are_ignored(self, client, monkeypatch):
         monkeypatch.setenv("STARGATE_ROTATION_LINKS", "{not json")
         assert client.get("/dashboard/rotation").json()["links"] == []
+
+
+class TestProviderDetail:
+    def _seed_ticket(self, db, key, provider, status, assignee):
+        from db.models import RotationTicket
+        db.add(RotationTicket(issue_key=key, provider=provider,
+                              summary=f"[turkeyvulture] Rotate {key} ({provider})",
+                              status=status, assignee=assignee))
+        db.commit()
+
+    def test_lists_actionable_tickets_first(self, client, db):
+        _seed(db, date(2026, 11, 18), "AWS", 3, 1, 0, 2, 1, 50, 300, 0)
+        self._seed_ticket(db, "GPTEINFRA-2", "AWS", "Closed", "Ashok")
+        self._seed_ticket(db, "GPTEINFRA-1", "AWS", "New", None)
+        self._seed_ticket(db, "GPTEINFRA-3", "AWS", "In Progress", "Guillaume")
+
+        body = client.get("/dashboard/rotation/providers/AWS").json()
+
+        assert body["provider"] == "AWS"
+        assert body["counts"] == {
+            "tickets": 3, "closed": 1, "in_progress": 1, "new": 1, "unassigned": 1,
+        }
+        assert [t["key"] for t in body["tickets"]] == [
+            "GPTEINFRA-3", "GPTEINFRA-1", "GPTEINFRA-2",
+        ]
+        assert body["tickets"][0]["url"].endswith("/browse/GPTEINFRA-3")
+        assert body["audit"] == {"verified_live": 50, "live_locations": 300, "untracked_live": 0}
+
+    def test_unknown_provider_is_404(self, client, db):
+        assert client.get("/dashboard/rotation/providers/NewCo").status_code == 404
+
+    def test_audit_only_provider_still_opens(self, client, db):
+        _seed(db, date(2026, 11, 18), "NewCo", 0, 0, 0, 0, 0, 2, 3, 2)
+
+        body = client.get("/dashboard/rotation/providers/NewCo").json()
+
+        assert body["tickets"] == []
+        assert body["audit"]["verified_live"] == 2

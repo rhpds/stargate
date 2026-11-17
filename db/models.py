@@ -768,3 +768,23 @@ class RotationSnapshot(Base):
     live_locations = Column(Integer, nullable=False, default=0)
     untracked_live = Column(Integer, nullable=False, default=0)
     synced_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class RotationTicket(Base):
+    """One Jira child ticket from the Turkey Vulture epic.
+
+    The rotation page shows counts; a provider row opens into these. Written by
+    `collectors/rotation_sync.py` on the same pull that writes the counters, so
+    the drill-down never queries Jira and cannot disagree with the table.
+    Pruned on every sync: the epic is the universe.
+    """
+
+    __tablename__ = "rotation_tickets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    issue_key = Column(String(40), nullable=False, unique=True, index=True)
+    provider = Column(String(80), nullable=False, index=True)
+    summary = Column(Text, nullable=False)
+    status = Column(String(40), nullable=False)
+    assignee = Column(String(120), nullable=True)
+    synced_at = Column(DateTime(timezone=True), nullable=True)
