@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import type { RotationResponse } from '../../api/types';
 
 const useRotation = vi.fn();
@@ -140,9 +140,10 @@ describe('Rotation page', () => {
     expect(screen.getByText('Progress by provider')).toBeInTheDocument();
     expect(screen.getByText('AWS')).toBeInTheDocument();
     expect(screen.getByText('IBM Cloud')).toBeInTheDocument();
-    // Jira total and the audit's verified count are both present.
-    expect(screen.getByText('15')).toBeInTheDocument();
-    expect(screen.getByText('34')).toBeInTheDocument();
+    // Jira total and the audit's verified count are both present (in the
+    // metric cards and again in the totals row).
+    expect(screen.getAllByText('15').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('34').length).toBeGreaterThan(0);
     // The disagreement is stated, not reconciled away.
     expect(screen.getByText(/5 live credentials have no ticket/i)).toBeInTheDocument();
   });
@@ -188,6 +189,20 @@ describe('Rotation page', () => {
     render(<Rotation />);
 
     expect(screen.queryByText('Source data:')).not.toBeInTheDocument();
+  });
+
+  it('totals every column, including untracked, without adding a fake provider', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+
+    const totals = within(screen.getByTestId('rotation-totals'));
+    expect(totals.getByText('15')).toBeInTheDocument();
+    expect(totals.getByText('40%')).toBeInTheDocument();
+    expect(totals.getByText('34')).toBeInTheDocument();
+    expect(totals.getByText('5')).toBeInTheDocument();
+    // Provider rows only; the total is a footer, not a provider.
+    expect(screen.getAllByRole('button', { name: /AWS|IBM Cloud/ })).toHaveLength(2);
   });
 
   it('says when the audit last verified the numbers', () => {
