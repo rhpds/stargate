@@ -178,3 +178,48 @@ class TestTicketUpsert:
 
         from db.models import RotationTicket
         assert db.query(RotationTicket).count() == 1
+
+
+class TestPruneStaleProviders:
+    def _row(self, db, provider, tickets, verified=0):
+        from db.models import RotationSnapshot
+        from datetime import date, datetime, timezone
+        db.add(RotationSnapshot(
+            snapshot_date=date(2026, 11, 17), provider=provider, tickets=tickets,
+            closed=0, in_progress=0, new=tickets, unassigned=0,
+            verified_live=verified, live_locations=0, untracked_live=0,
+            synced_at=datetime.now(timezone.utc)))
+        db.commit()
+
+    def test_removes_stale_ticket_rows(self, db):
+        from datetime import date
+        from db.models import RotationSnapshot
+        self._row(db, "aka gpe) (AWS", 1)   # old taxonomy artefact
+
+        removed = rs.prune_stale_providers(db, date(2026, 11, 17), ["AWS"])
+        db.commit()
+
+        assert removed == 1
+        assert db.query(RotationSnapshot).count() == 0
+
+    def test_keeps_audit_only_rows(self, db):
+        from datetime import date
+        from db.models import RotationSnapshot
+        self._row(db, "NewCo", 0, verified=2)
+
+        rs.prune_stale_providers(db, date(2026, 11, 17), ["AWS"])
+        db.commit()
+
+        row = db.query(RotationSnapshot).filter_by(provider="NewCo").one()
+        assert row.verified_live == 2
+
+    def test_zeroes_ticket_counters_but_keeps_audit(self, db):
+        from datetime import date
+        from db.models import RotationSnapshot
+        self._row(db, "OldName", 5, verified=4)
+
+        rs.prune_stale_providers(db, date(2026, 11, 17), ["AWS"])
+        db.commit()
+
+        row = db.query(RotationSnapshot).filter_by(provider="OldName").one()
+        assert (row.tickets, row.verified_live) == (0, 4)

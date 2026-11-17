@@ -223,6 +223,36 @@ def upsert_tickets(db, issues: List[Dict[str, Any]], now: Optional[datetime] = N
     return len(rows)
 
 
+def prune_stale_providers(db, day, providers: List[str]) -> int:
+    """Drop provider rows that no longer exist for `day`.
+
+    Without this, a taxonomy change (or a provider whose last ticket closed)
+    leaves yesterday's name in today's totals and every number is inflated.
+    Rows carrying audit evidence are kept but have their ticket counters
+    zeroed — the audit saw something real, even if Jira has no ticket for it.
+    """
+    from db.models import RotationSnapshot
+
+    stale = (
+        db.query(RotationSnapshot)
+        .filter(RotationSnapshot.snapshot_date == day)
+        .filter(~RotationSnapshot.provider.in_(providers) if providers else True)
+        .all()
+    )
+    removed = 0
+    for row in stale:
+        if (row.verified_live or 0) + (row.live_locations or 0) + (row.untracked_live or 0) == 0:
+            db.delete(row)
+            removed += 1
+        else:
+            row.tickets = 0
+            row.closed = 0
+            row.in_progress = 0
+            row.new = 0
+            row.unassigned = 0
+    return removed
+
+
 def _fetch_page(url: str, auth: str, next_token: Optional[str] = None) -> Dict[str, Any]:
     """One Jira search page. `auth` is the pre-encoded Basic credential."""
     if next_token:
@@ -322,6 +352,7 @@ def sync(db) -> Dict[str, Any]:
         record.unassigned = row["unassigned"]
         record.synced_at = now
 
+    prune_stale_providers(db, today, [row["provider"] for row in rows])
     db.commit()
     logger.info(
         "Rotation sync: %s issues → %s providers for %s", len(issues), len(rows), today
