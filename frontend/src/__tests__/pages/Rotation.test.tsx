@@ -61,6 +61,9 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
         untracked_live: 1,
       },
     ],
+    links: [
+      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example' },
+    ],
     trend: [
       { date: '2026-11-16', tickets: 15, closed: 4, in_progress: 1, new: 10, unassigned: 5, verified_live: 30, live_locations: 150, untracked_live: 5 },
       { date: '2026-11-17', tickets: 15, closed: 6, in_progress: 1, new: 8, unassigned: 4, verified_live: 34, live_locations: 162, untracked_live: 5 },
@@ -77,7 +80,10 @@ describe('Rotation page', () => {
       data: response({
         source: { jira: 'unconfigured', verification: 'none' },
         providers: [],
-        trend: [],
+        links: [
+      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example' },
+    ],
+    trend: [],
         summary: {
           tickets: 0, closed: 0, closed_pct: 0, in_progress: 0, new: 0, unassigned: 0,
           verified_live: 0, live_locations: 0, untracked_live: 0, providers: 0,
@@ -131,6 +137,24 @@ describe('Rotation page', () => {
 
     expect(screen.getByText(/One snapshot so far/i)).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /rotation trend/i })).not.toBeInTheDocument();
+  });
+
+  it('links to where the source data lives', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+
+    const link = screen.getByRole('link', { name: /progress spreadsheet/i });
+    expect(link).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/example');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('omits the source row when no links are configured', () => {
+    useRotation.mockReturnValue({ data: response({ links: [] }), isLoading: false, isError: false });
+
+    render(<Rotation />);
+
+    expect(screen.queryByText('Source data:')).not.toBeInTheDocument();
   });
 
   it('surfaces a failed load instead of an empty table', () => {

@@ -11,7 +11,9 @@ and `POST /integration/rotation-snapshot` — never from Jira on a page load.
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List
 
@@ -24,6 +26,34 @@ from db.database import get_db
 logger = logging.getLogger("stargate.dashboard.rotation")
 
 router = APIRouter()
+
+
+def _links() -> List[Dict[str, str]]:
+    """Source-data links (Drive/Sheets), configured by deployment.
+
+    The page never fetches these; it only points at them. Drive permissions are
+    enforced by Google, so a link is safe to render for anyone who can already
+    open the page.
+    """
+    raw = os.environ.get("STARGATE_ROTATION_LINKS", "").strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        logger.warning("STARGATE_ROTATION_LINKS is not valid JSON; ignoring")
+        return []
+    if not isinstance(parsed, list):
+        logger.warning("STARGATE_ROTATION_LINKS must be a JSON list; ignoring")
+        return []
+    links = []
+    for item in parsed:
+        if isinstance(item, dict) and item.get("url"):
+            links.append({
+                "label": str(item.get("label") or "Source data"),
+                "url": str(item["url"]),
+            })
+    return links
 
 
 def _row(row) -> Dict[str, Any]:
@@ -60,6 +90,7 @@ def dashboard_rotation(db: Session = Depends(get_db)):
                 "jira": "unconfigured" if not jira_configured() else "ok",
                 "verification": "none",
             },
+            "links": _links(),
             "summary": {
                 "tickets": 0,
                 "closed": 0,
@@ -158,6 +189,7 @@ def dashboard_rotation(db: Session = Depends(get_db)):
             "jira": "ok",
             "verification": "snapshot" if verified else "none",
         },
+        "links": _links(),
         "summary": totals,
         "providers": providers,
         "trend": trend,

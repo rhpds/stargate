@@ -36,7 +36,7 @@ TIMEOUT_SECONDS = 30
 # Provider buckets — the order matters: first match wins, so put the specific
 # names before the patterns that could swallow them.
 _RULES = [
-    ("AWS", r"^aws\b|amazon|assumerole"),
+    ("AWS", r"\baws\b|amazon|assumerole"),
     ("Microsoft Azure", r"azure"),
     ("Google Cloud", r"google|\bgcp\b|vertex"),
     ("IBM Cloud", r"\bibm\b"),
@@ -60,6 +60,22 @@ _RULES = [
 ]
 
 
+def bucket_for(raw: str) -> str:
+    """Canonical provider bucket for a raw provider/type string.
+
+    Shared with the audit publisher so a name that arrived through a ticket and
+    the same name that arrived through a snapshot land in one row.
+    """
+    cleaned = (raw or "").strip()
+    lowered = cleaned.lower()
+    if not lowered:
+        return "Unclassified"
+    for name, pattern in _RULES:
+        if re.search(pattern, lowered):
+            return name
+    return cleaned
+
+
 def parse_provider(summary: str) -> str:
     """Provider bucket from the ticket's trailing parenthetical.
 
@@ -69,14 +85,7 @@ def parse_provider(summary: str) -> str:
     match the outermost trailing group rather than the last short token.
     """
     match = re.search(r"\((.+)\)\s*$", summary or "")
-    raw = (match.group(1) if match else "").strip()
-    if not raw:
-        return "Unclassified"
-    lowered = raw.lower()
-    for name, pattern in _RULES:
-        if re.search(pattern, lowered):
-            return name
-    return raw
+    return bucket_for(match.group(1) if match else "")
 
 
 def _is_child(issue: Dict[str, Any]) -> bool:

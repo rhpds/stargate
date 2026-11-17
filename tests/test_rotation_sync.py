@@ -114,3 +114,16 @@ class TestPaginationGuard:
         monkeypatch.setattr(rs, "_fetch_page", lambda url, token, next_token=None: page)
         with pytest.raises(RuntimeError, match="did not advance"):
             rs.fetch_issues("https://jira", "user", "tok")
+
+
+class TestBucketFor:
+    @pytest.mark.parametrize("raw,expected", [
+        ("AWS", "AWS"),
+        ("Microsoft Azure", "Microsoft Azure"),
+        ("P1 — AWS; DNS/Route 53 account credentials", "AWS"),
+        ("OCP SA Token (infra02)", "OpenShift / SA tokens"),
+        ("ReachMail", "ReachMail"),
+        ("", "Unclassified"),
+    ])
+    def test_raw_provider_names_map_to_canonical_buckets(self, raw, expected):
+        assert rs.bucket_for(raw) == expected

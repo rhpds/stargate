@@ -146,7 +146,7 @@ export default function Rotation() {
     );
   }
 
-  const { summary, providers, trend, source, last_sync } = data;
+  const { summary, providers, trend, source, last_sync, links } = data;
   const hasData = summary.providers > 0;
 
   return (
@@ -157,6 +157,22 @@ export default function Rotation() {
           Jira owns the plan (GPTEINFRA-18544) · the audit owns what is live ·{' '}
           {last_sync ? `Jira synced ${relativeTime(last_sync)}` : 'no Jira sync yet'}
         </p>
+        {links.length > 0 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
+            <span className="text-[#6A6E73]">Source data:</span>
+            {links.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#73BCF7] hover:underline"
+              >
+                {link.label} ↗
+              </a>
+            ))}
+          </div>
+        )}
       </header>
 
       {!hasData ? (
