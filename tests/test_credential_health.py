@@ -194,6 +194,25 @@ class TestRunCheck:
         assert {r.lab_code for r in rows} == {"(credential)"}
 
 
+class TestRecoveryVisibility:
+    """A recovery inside the same hour must not be swallowed as a duplicate."""
+
+    def test_failure_then_success_in_one_hour_both_persist(self, db):
+        failed = ch._result("maas:litellm", "bearer", "ENV", "fail", 401,
+                            "credential_rejected", "HTTP 401")
+        recovered = ch._result("maas:litellm", "bearer", "ENV", "pass", 200)
+        recovered["probed_at"] = failed["probed_at"]
+
+        assert ch.record_credential_evaluations({"results": [failed]}, db) == 1
+        assert ch.record_credential_evaluations({"results": [recovered]}, db) == 1
+
+        from db.models import EvaluationRecord
+        rows = (db.query(EvaluationRecord)
+                .filter_by(stage_id="credential-health", cluster_name="maas:litellm")
+                .order_by(EvaluationRecord.id.desc()).all())
+        assert [r.outcome for r in rows] == ["pass", "fail"]
+
+
 class TestCredentialsEndpoint:
     def test_returns_latest_per_credential(self, client, db):
         from db.models import EvaluationRecord
