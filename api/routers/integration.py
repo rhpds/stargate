@@ -366,7 +366,7 @@ def receive_rotation_credentials(
     stored — only the sha256[:16] identifier the audit already publishes.
     """
     from db.models import RotationCredential, RotationSnapshot, RotationTicket
-    from collectors.rotation_sync import bucket_for
+    from collectors.rotation_sync import KNOWN_BUCKETS, bucket_for
 
     # A ticketed credential inherits its ticket's provider — that join is
     # exact. Only untracked credentials need a name-based guess.
@@ -394,6 +394,8 @@ def receive_rotation_credentials(
                 break
         if not provider:
             provider = bucket_for(item.provider or f"{item.credential} {item.example_location}")
+        if provider not in KNOWN_BUCKETS:
+            provider = "Unresolved / other"
         record = (
             db.query(RotationCredential)
             .filter_by(snapshot_date=req.date, credential_id=item.id)

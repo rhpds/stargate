@@ -247,3 +247,21 @@ class TestCredentialAggregates:
         from db.models import RotationSnapshot
         ghost = db.query(RotationSnapshot).filter_by(provider="Ghost").one()
         assert (ghost.tickets, ghost.verified_live) == (3, 0)
+
+
+class TestUnresolvedBucket:
+    def test_unknown_credential_names_do_not_become_providers(self, client, db):
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [
+                {"id": "u1", "credential": "fvmw-password", "live_copies": 9},
+                {"id": "u2", "credential": "some_random_thing", "live_copies": 2},
+                {"id": "a1", "credential": "aws_key", "provider": "AWS", "live_copies": 1},
+            ],
+        })
+
+        from db.models import RotationSnapshot
+        providers = {p.provider for p in db.query(RotationSnapshot).all()}
+        assert providers == {"Unresolved / other", "AWS"}
+        unresolved = db.query(RotationSnapshot).filter_by(provider="Unresolved / other").one()
+        assert (unresolved.verified_live, unresolved.live_locations) == (2, 11)
