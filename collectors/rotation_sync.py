@@ -87,7 +87,7 @@ def bucket_for(raw: str) -> str:
         return matches[0]
     if _PRIORITY_TAG.search(lowered):
         return "Provider unset"
-    return cleaned
+    return cleaned[:80]  # column width; long raw names are a fallback, not a taxonomy
 
 
 def _trailing_group(text: str) -> str:

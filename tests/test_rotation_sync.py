@@ -131,6 +131,7 @@ class TestBucketFor:
         ("P1 — AWS; DNS/Route 53 account credentials", "AWS"),
         ("OCP SA Token (infra02)", "OpenShift / SA tokens"),
         ("ReachMail", "ReachMail"),
+        ("x" * 120, "x" * 80),
         ("Storage", "Datastores / storage"),
         ("Datastores", "Datastores / storage"),
         ("", "Unclassified"),
