@@ -166,6 +166,11 @@ def normalize_for_showroom_healthy(evidence_list: List[CollectedEvidence]) -> Di
         "readyz_returns_200": False,
         "content_loaded": False,
         "response_time_acceptable": True,
+        # Diagnostics carried through so the failure message can name the URL.
+        "route_url": "",
+        "http_status": 0,
+        "ready_endpoint_count": None,
+        "catalog_item": "",
     }
     for ev in evidence_list:
         if ev.resource_kind == "ShowroomHealth":
@@ -174,6 +179,13 @@ def normalize_for_showroom_healthy(evidence_list: List[CollectedEvidence]) -> Di
             result["readyz_returns_200"] = ev.observed.get("readyz_returns_200", False)
             result["content_loaded"] = ev.observed.get("content_loaded", False)
             result["response_time_acceptable"] = ev.observed.get("response_time_acceptable", True)
+            result["route_url"] = ev.observed.get("route_url") or result["route_url"]
+            result["http_status"] = ev.observed.get("http_status") or result["http_status"]
+            result["catalog_item"] = ev.observed.get("catalog_item") or result["catalog_item"]
+        elif ev.resource_kind == "Endpoints":
+            count = ev.observed.get("ready_endpoint_count")
+            if count is not None:
+                result["ready_endpoint_count"] = (result["ready_endpoint_count"] or 0) + count
     return result
 
 

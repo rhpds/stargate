@@ -5,9 +5,48 @@ Read-only. No mutation. No write verbs.
 
 from __future__ import annotations
 
+import re
 from typing import Dict
 
 from collectors.openshift.collect_resource_state import CollectedEvidence
+
+
+_SECRETISH = re.compile(
+    r"password|passwd|token|secret|credential|api[_-]?key|private[_-]?key", re.IGNORECASE
+)
+
+# Keys in parameter_values.__meta__ that identify the lab source. An allowlist,
+# not a blocklist: a namespace suffix is shared by a whole catalog, so this is
+# what a reviewer needs to reproduce a failure.
+_LAB_SOURCE_KEYS = ("repo_url", "repo", "ref", "branch", "config", "catalog")
+
+
+def _catalog_item(spec_vars: Dict) -> str:
+    item = spec_vars.get("catalog_item")
+    if isinstance(item, dict):
+        return str((item.get("metadata") or {}).get("name") or item.get("name") or "")
+    if isinstance(item, str):
+        return item
+    return str(spec_vars.get("catalog_item_name") or "")
+
+
+def _lab_source(spec_vars: Dict) -> Dict[str, str]:
+    """The agnosticv repo/ref that produced this request, if present.
+
+    Only allowlisted, non-secret-shaped keys — never arbitrary vars. Secrets in
+    AnarchySubject vars are real; this collector must not copy them into
+    evidence that is retained for 90 days.
+    """
+    meta = ((spec_vars.get("parameter_values") or {}).get("__meta__") or {})
+    agnosticv = meta.get("agnosticv_meta") or {}
+    source: Dict[str, str] = {}
+    for key in _LAB_SOURCE_KEYS:
+        if key in agnosticv and not _SECRETISH.search(key):
+            source[key] = agnosticv[key]
+    for key in ("lab_repo", "lab_ref"):
+        if key in meta and not _SECRETISH.search(key):
+            source[key] = meta[key]
+    return source
 
 
 def collect_anarchysubject(data: Dict) -> CollectedEvidence:
@@ -48,6 +87,11 @@ def collect_anarchysubject(data: Dict) -> CollectedEvidence:
             "state_is_started": state == "started",
             "current_state": state,
             "no_error_conditions": not has_error,
+            # Identity, so a failure can be reproduced: a namespace suffix such
+            # as zt-rhelbu is shared by an entire catalog.
+            "catalog_item": _catalog_item(spec_vars),
+            "guid": str(spec_vars.get("guid") or ""),
+            "lab_source": _lab_source(spec_vars),
         },
     )
 

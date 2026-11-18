@@ -30,5 +30,10 @@ def collect_showroom_health(data: Dict) -> CollectedEvidence:
             "readyz_returns_200": status.get("readyz_status") == 200,
             "content_loaded": status.get("content_loaded", False),
             "response_time_acceptable": response_time < RESPONSE_TIME_THRESHOLD_MS,
+            # Reproducibility: a failure without these is a riddle.
+            "route_url": status.get("route_url") or "",
+            "http_status": status.get("http_status") or status.get("readyz_status") or 0,
+            "error": status.get("error") or "",
+            "catalog_item": status.get("catalog_item") or "",
         },
     )
