@@ -159,6 +159,23 @@ def get_showroom_context(run_id: str = "", namespace: str = "") -> str:
 
 
 @mcp.tool()
+def get_failure_precision(hours: int = 24) -> str:
+    """How much of each failure class is noise: volume, labs affected, and the
+    share of labs that also passed the same stage in the window (self-resolved).
+
+    A class that mostly self-resolves is flapping or measuring the wrong thing.
+    Use before trusting a headline failure count, or when deciding which class
+    to fix first.
+    """
+    db = _db()
+    try:
+        from db.repository import failure_precision
+        return json.dumps(failure_precision(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_failure_classes() -> str:
     """The failure-classification taxonomy (wire format): every class with
     its patterns, severity, source catalog, and category."""

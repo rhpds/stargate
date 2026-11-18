@@ -2163,3 +2163,84 @@ def get_run_showroom_context(db, run_id: str):
         "catalog_item": observed.get("catalog_item") or None,
         "checked_at": checked.timestamp.isoformat() if checked else None,
     }
+
+
+def failure_precision(db, hours: int = 24):
+    """Per failure class: volume, reach, and whether it self-resolves.
+
+    `self_resolved` = a lab that failed this class also passed the same stage
+    somewhere in the window. That is a noise signal, not ground truth: a class
+    that mostly self-resolves is either flapping or measuring the wrong thing
+    (showroom_route_reachable probed adminer/containerview routes for weeks).
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    passes = {
+        (stage, lab)
+        for stage, lab in db.query(EvaluationRecord.stage_id, EvaluationRecord.lab_code)
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.outcome == "pass",
+            EvaluationRecord.lab_code.isnot(None),
+        )
+        .distinct()
+    }
+
+    rows = (
+        db.query(
+            EvaluationRecord.failure_class,
+            EvaluationRecord.stage_id,
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.failure_class.isnot(None),
+        )
+        .all()
+    )
+
+    agg = {}
+    for failure_class, stage, lab, cluster in rows:
+        entry = agg.setdefault(failure_class, {
+            "evaluations": 0, "labs": set(), "clusters": set(), "stages": set(),
+        })
+        entry["evaluations"] += 1
+        if lab:
+            entry["labs"].add(lab)
+        if stage:
+            entry["stages"].add(stage)
+        if cluster:
+            entry["clusters"].add(cluster)
+
+    classes = []
+    for failure_class, entry in agg.items():
+        resolved = {
+            lab
+            for lab in entry["labs"]
+            if any((stage, lab) in passes for stage in entry["stages"])
+        }
+        labs = len(entry["labs"])
+        classes.append({
+            "failure_class": failure_class,
+            "evaluations": entry["evaluations"],
+            "labs": labs,
+            "clusters": len(entry["clusters"]),
+            "self_resolved_labs": len(resolved),
+            "self_resolved_pct": round(100 * len(resolved) / labs) if labs else 0,
+        })
+
+    classes.sort(key=lambda row: (-row["evaluations"], row["failure_class"]))
+    return {
+        "window_hours": hours,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "classes": classes,
+        "summary": {
+            "classes": len(classes),
+            "evaluations": sum(row["evaluations"] for row in classes),
+        },
+    }
