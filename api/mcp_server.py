@@ -20,6 +20,8 @@ platform API key (X-API-Key), enforced by the app middleware on /mcp paths.
 
 from __future__ import annotations
 
+import os
+
 import json
 from datetime import datetime, timezone
 from typing import Optional
@@ -167,6 +169,12 @@ def get_failure_classes() -> str:
     return json.dumps(classes, default=str, separators=(",", ":"))
 
 
+def _readonly_caller() -> bool:
+    """True when the key on this request is scoped read-only."""
+    from api.routers._shared import _is_readonly_api_key
+    return _is_readonly_api_key(os.environ.get("_MCP_CALLER_KEY", ""))
+
+
 @mcp.tool()
 def review_diagnosis(investigation_id: int, approved: bool, notes: str = "") -> str:
     """Review a diagnosis: record your agreement or disagreement. This is an
@@ -180,6 +188,9 @@ def review_diagnosis(investigation_id: int, approved: bool, notes: str = "") -> 
     or ask), whether you approve (true/false), and optional notes explaining
     your reasoning.
     """
+    if _readonly_caller():
+        return "ERROR: this is a read-only API key — review requires a write key."
+
     from engine.review_service import perform_review, reviewer_id_from_key
 
     db = _db()
@@ -200,6 +211,8 @@ def comment_action(action_id: int, comment: str) -> str:
 
     Provide the action_id (from get_causal_chain or ask) and your comment.
     """
+    if _readonly_caller():
+        return "ERROR: this is a read-only API key — commenting requires a write key."
     from datetime import datetime, timezone
     from db.database import get_session_factory
     from db.models import PendingAction
