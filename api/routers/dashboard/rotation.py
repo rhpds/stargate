@@ -215,10 +215,59 @@ def dashboard_rotation(db: Session = Depends(get_db)):
     latest_rows = (
         db.query(RotationSnapshot)
         .filter(RotationSnapshot.snapshot_date == latest_date)
-        .order_by(RotationSnapshot.tickets.desc(), RotationSnapshot.provider.asc())
         .all()
     )
-    providers = [_row(r) for r in latest_rows]
+
+    # The audit runs daily, Jira every 30 minutes. On a fresh UTC day there are
+    # tickets and no verification yet — show the last known verification with
+    # its timestamp rather than a wall of zeros pretending nothing was audited.
+    latest_audit: Dict[str, Any] = {}
+    for row in (
+        db.query(RotationSnapshot)
+        .filter(RotationSnapshot.verified_at.isnot(None))
+        .order_by(RotationSnapshot.snapshot_date.desc())
+        .limit(5000)
+    ):
+        latest_audit.setdefault(row.provider, row)
+
+    merged: Dict[str, Dict[str, Any]] = {}
+    for row in latest_rows:
+        audit_row = latest_audit.get(row.provider)
+        merged[row.provider] = {
+            "provider": row.provider,
+            "tickets": row.tickets or 0,
+            "closed": row.closed or 0,
+            "in_progress": row.in_progress or 0,
+            "new": row.new or 0,
+            "unassigned": row.unassigned or 0,
+            "verified_live": (audit_row.verified_live or 0) if audit_row else 0,
+            "live_locations": (audit_row.live_locations or 0) if audit_row else 0,
+            "untracked_live": (audit_row.untracked_live or 0) if audit_row else 0,
+        }
+    for provider, audit_row in latest_audit.items():
+        if provider in merged:
+            continue
+        merged[provider] = {
+            "provider": provider,
+            "tickets": 0,
+            "closed": 0,
+            "in_progress": 0,
+            "new": 0,
+            "unassigned": 0,
+            "verified_live": audit_row.verified_live or 0,
+            "live_locations": audit_row.live_locations or 0,
+            "untracked_live": audit_row.untracked_live or 0,
+        }
+
+    def _pct(item: Dict[str, Any]) -> int:
+        return round(100 * item["closed"] / item["tickets"]) if item["tickets"] else 0
+
+    providers = [
+        {**item, "closed_pct": _pct(item)}
+        for item in sorted(
+            merged.values(), key=lambda i: (-i["tickets"], i["provider"])
+        )
+    ]
 
     totals: Dict[str, int] = {
         key: sum(p[key] for p in providers)
@@ -282,11 +331,11 @@ def dashboard_rotation(db: Session = Depends(get_db)):
     ]
 
     verified = any(
-        (r.verified_live or 0) + (r.live_locations or 0) + (r.untracked_live or 0) > 0
-        for r in latest_rows
+        (row.verified_live or 0) + (row.live_locations or 0) + (row.untracked_live or 0) > 0
+        for row in latest_audit.values()
     )
     synced = [r.synced_at for r in latest_rows if r.synced_at]
-    verified_times = [r.verified_at for r in latest_rows if r.verified_at]
+    verified_times = [row.verified_at for row in latest_audit.values() if row.verified_at]
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),

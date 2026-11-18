@@ -162,7 +162,8 @@ class TestCredentialIngest:
 
     def test_stores_rows_and_canonicalises_provider(self, client, db):
         payload = {"date": "2026-11-18", "credentials": [
-            {"id": "abc123", "credential": "storage_thing", "provider": "S3 bucket",
+            {"id": "abc123", "credential": "storage_thing",
+             "provider": "Storage / access-key issuer unverified",
              "live_copies": 12, "coverage": "not-in-tracker"},
             {"id": "def456", "credential": "cluster_scheduler_token",
              "provider": "", "live_copies": 3, "coverage": "in-jira",
@@ -278,3 +279,52 @@ class TestEmptyProviderRemoval:
 
         from db.models import RotationSnapshot
         assert db.query(RotationSnapshot).filter_by(provider="Ghost").count() == 0
+
+
+class TestAuditProviderPrecedence:
+    def test_supplied_audit_provider_wins_over_the_ticket(self, client, db):
+        from db.models import RotationTicket
+        db.add(RotationTicket(issue_key="GPTEINFRA-9", provider="Registry",
+                              summary="[turkeyvulture] x (Registry)", status="New"))
+        db.commit()
+
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [{"id": "q1", "credential": "quay_pull",
+                             "provider": "Quay", "jira_keys": "GPTEINFRA-9",
+                             "live_copies": 1}],
+        })
+
+        from db.models import RotationCredential
+        row = db.query(RotationCredential).filter_by(credential_id="q1").one()
+        assert row.provider == "Registry"
+
+    def test_unknown_supplied_provider_is_unresolved(self, client, db):
+        client.post("/integration/rotation-credentials", json={
+            "date": "2026-11-18",
+            "credentials": [{"id": "z1", "credential": "x", "provider": "Mystery Corp",
+                             "live_copies": 1}],
+        })
+
+        from db.models import RotationCredential
+        row = db.query(RotationCredential).filter_by(credential_id="z1").one()
+        assert row.provider == "Unresolved / other"
+
+
+class TestLastKnownVerification:
+    def test_new_day_shows_the_last_audit_with_its_age(self, client, db):
+        _seed(db, date(2026, 11, 17), "AWS", 12, 5, 1, 6, 3, 50, 300, 0)
+        _seed(db, date(2026, 11, 18), "AWS", 13, 5, 1, 7, 3, 0, 0, 0)
+        # Today's sync has run; today's audit has not.
+        from db.models import RotationSnapshot
+        db.query(RotationSnapshot).filter_by(snapshot_date=date(2026, 11, 18)).update(
+            {"verified_at": None}
+        )
+        db.commit()
+
+        body = client.get("/dashboard/rotation").json()
+
+        assert body["summary"]["tickets"] == 13
+        assert body["summary"]["verified_live"] == 50
+        assert body["source"]["verification"] == "snapshot"
+        assert body["source"]["verification_at"] is not None
