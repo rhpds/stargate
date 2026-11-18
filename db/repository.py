@@ -2130,7 +2130,14 @@ def get_run_showroom_context(db, run_id: str):
         return max(matches, key=lambda r: r.timestamp) if matches else None
 
     health = newest("ShowroomHealth")
-    route = newest("Route")
+    routes = [r for r in rows if r.type == "Route"]
+    # A namespace can expose the container view alongside the showroom; the
+    # newest route is not necessarily the one that failed.
+    showroom_routes = [
+        r for r in routes
+        if "showroom" in (((r.observed or {}).get("host") or "").lower())
+    ]
+    route = max(showroom_routes, key=lambda r: r.timestamp) if showroom_routes else newest("Route")
     endpoints = [r for r in rows if r.type == "Endpoints"]
     observed = (health.observed or {}) if health else {}
 

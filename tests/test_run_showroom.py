@@ -21,8 +21,9 @@ def _run(client, run_id="run-1", namespace="sandbox-abc12-zt-rhelbu"):
 
 def _evidence(db, run_id, kind, observed, ts=None):
     from db.models import EvidenceRecord
+    from uuid import uuid4
     db.add(EvidenceRecord(
-        evidence_id=f"ev-{kind}-{run_id}",
+        evidence_id=f"ev-{kind}-{uuid4().hex[:8]}",
         run_id=run_id,
         stage_id="showroom-healthy",
         type=kind,
@@ -72,3 +73,22 @@ class TestRunShowroom:
 
     def test_unknown_run_is_404(self, client, db):
         assert client.get("/runs/nope/showroom").status_code == 404
+
+
+class TestRouteSelection:
+    def test_prefers_the_showroom_route_over_the_newest_route(self, client, db):
+        from datetime import datetime, timezone, timedelta
+
+        run_id = _run(client, run_id="run-2")
+        now = datetime.now(timezone.utc)
+        _evidence(db, run_id, "Route", {
+            "host": "showroom-abc12.apps.example.com", "admitted": True,
+        }, ts=now - timedelta(seconds=1))
+        # The container view is newer — but it is not the showroom.
+        _evidence(db, run_id, "Route", {
+            "host": "containerview-abc12.apps.example.com", "admitted": True,
+        }, ts=now)
+
+        body = client.get(f"/runs/{run_id}/showroom").json()
+
+        assert body["route_url"] == "https://showroom-abc12.apps.example.com"
