@@ -125,6 +125,38 @@ def query_evaluations(namespace: str, limit: int = 10) -> str:
 
 
 @mcp.tool()
+def get_showroom_context(run_id: str = "", namespace: str = "") -> str:
+    """Showroom URL, HTTP status, ready endpoint count and catalog item for a
+    run — or the latest run in a namespace. Use this after query_evaluations
+    reports showroom_not_ready: it is the reproduction context (the sandbox
+    itself may already be deleted; evidence is kept for the retention window).
+    """
+    from db.models import EvaluationRecord
+
+    db = _db()
+    try:
+        if not run_id and namespace:
+            ev = (
+                db.query(EvaluationRecord)
+                .filter(EvaluationRecord.lab_code == namespace)
+                .order_by(EvaluationRecord.id.desc())
+                .first()
+            )
+            run_id = ev.run_id if ev else ""
+        if not run_id:
+            return "ERROR: provide run_id or namespace with recorded evaluations"
+
+        from db.repository import get_run_showroom_context
+        context = get_run_showroom_context(db, run_id)
+        if context is None:
+            return json.dumps({"run_id": run_id, "found": False,
+                               "reason": "no evidence stored for this run"})
+        return json.dumps({"namespace": namespace or None, **context}, default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_failure_classes() -> str:
     """The failure-classification taxonomy (wire format): every class with
     its patterns, severity, source catalog, and category."""
