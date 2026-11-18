@@ -366,7 +366,7 @@ def receive_rotation_credentials(
     stored — only the sha256[:16] identifier the audit already publishes.
     """
     from db.models import RotationCredential, RotationSnapshot, RotationTicket
-    from collectors.rotation_sync import KNOWN_BUCKETS, bucket_for
+    from collectors.rotation_sync import bucket_for, canonical_provider
 
     # A ticketed credential inherits its ticket's provider — that join is
     # exact. Only untracked credentials need a name-based guess.
@@ -387,15 +387,20 @@ def receive_rotation_credentials(
 
     verified_at = datetime.now(timezone.utc)
     for item in req.credentials:
-        provider = ""
-        for key in (item.jira_keys or "").split(";"):
-            if key.strip() in ticket_provider:
-                provider = ticket_provider[key.strip()]
-                break
-        if not provider:
-            provider = bucket_for(item.provider or f"{item.credential} {item.example_location}")
-        if provider not in KNOWN_BUCKETS:
-            provider = "Unresolved / other"
+        # The audit's own classification wins — it is what the report shows.
+        # Then the ticket (exact), then the name, then an honest catch-all.
+        if item.provider:
+            provider = canonical_provider(item.provider)
+        else:
+            provider = ""
+            for key in (item.jira_keys or "").split(";"):
+                if key.strip() in ticket_provider:
+                    provider = ticket_provider[key.strip()]
+                    break
+            if not provider:
+                provider = canonical_provider(
+                    bucket_for(f"{item.credential} {item.example_location}")
+                )
         record = (
             db.query(RotationCredential)
             .filter_by(snapshot_date=req.date, credential_id=item.id)

@@ -103,7 +103,7 @@ def build_credentials(csv_path: str) -> List[Dict[str, Any]]:
             credentials.append({
                 "id": credential_id,
                 "credential": (row.get("credential") or "")[:200],
-                "provider": (row.get("provider") or "")[:80],
+                "provider": (row.get("provider") or row.get("provider_bucket") or "")[:80],
                 "live_copies": copies,
                 "clusters": (row.get("clusters") or "")[:500],
                 "example_location": (row.get("example_location") or "")[:300],

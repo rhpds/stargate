@@ -61,6 +61,26 @@ _RULES = [
 
 _PRIORITY_TAG = re.compile(r"^p\d+[a-z]?\b|priority")
 
+# The audit's provider vocabulary differs from the ticket vocabulary. Map it to
+# the page's buckets so a credential and its own ticket land in one row.
+PROVIDER_ALIASES = {
+    "unresolved api / token issuer": "Unresolved / other",
+    "aap / automation services": "AAP / automation",
+    "ai / maas / lightspeed — upstream unverified": "AI / MaaS",
+    "oauth / sso — issuer unverified": "OAuth / SSO",
+    "google cloud / workspace": "Google Cloud",
+    "registry credentials — issuer unverified": "Registry",
+    "quay": "Registry",
+    "red hat registry": "Registry",
+    "openshift / kubernetes": "OpenShift / SA tokens",
+    "rhdp internal apis": "RHDP internal",
+    "storage / access-key issuer unverified": "Datastores / storage",
+    "p4a — public-facing certificate service": "TLS / certificates",
+    "p1 — maas / litellm api": "AI / MaaS",
+    "git credentials": "Git credentials — host unverified",
+}
+
+
 # Buckets the rules actually produce. Anything else is a raw fallback — fine
 # for a ticket title, useless as a credential's provider.
 KNOWN_BUCKETS = frozenset(name for name, _ in _RULES) | {
@@ -69,6 +89,21 @@ KNOWN_BUCKETS = frozenset(name for name, _ in _RULES) | {
     "Multiple providers",
     "Unresolved / other",
 }
+
+
+def canonical_provider(raw: str) -> str:
+    """Audit provider name → the page's bucket, or an honest catch-all.
+
+    The audit classifies every credential; its names are more specific than the
+    ticket buckets. Anything unrecognised is *unresolved*, not a new provider.
+    """
+    cleaned = (raw or "").strip()
+    alias = PROVIDER_ALIASES.get(cleaned.lower())
+    if alias:
+        return alias
+    if cleaned in KNOWN_BUCKETS:
+        return cleaned
+    return "Unresolved / other"
 
 
 def bucket_for(raw: str) -> str:
