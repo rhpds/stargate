@@ -52,7 +52,27 @@ _ADDITIONAL_KEYS = [
     if k.strip()
 ]
 
-_ALL_VALID_KEYS = [ADMIN_API_KEY] + _ADDITIONAL_KEYS if ADMIN_API_KEY else _ADDITIONAL_KEYS
+# Read-only keys authenticate (MCP queries, dashboard reads) but cannot reach
+# an admin/mutating endpoint. Use for agents and people who only need answers.
+_READONLY_KEYS = [
+    k.strip() for k in os.environ.get("STARGATE_READONLY_API_KEYS", "").split(",")
+    if k.strip()
+]
+
+_ALL_VALID_KEYS = (
+    ([ADMIN_API_KEY] if ADMIN_API_KEY else []) + _ADDITIONAL_KEYS + _READONLY_KEYS
+)
+
+
+def _is_readonly_api_key(api_key: str) -> bool:
+    """True when this key is explicitly scoped read-only."""
+    import hmac
+    if not api_key or not _READONLY_KEYS:
+        return False
+    return any(
+        hmac.compare_digest(api_key.encode(), valid.encode())
+        for valid in _READONLY_KEYS
+    )
 
 
 def _is_valid_api_key(api_key: str) -> bool:
@@ -96,6 +116,8 @@ def _origin_from_url(url: str) -> str:
 def require_admin(request: Request = None, api_key: str = Security(_api_key_header)):
     """Require API key or trusted proxy auth. Used for mutating admin operations."""
     if _is_valid_api_key(api_key):
+        if _is_readonly_api_key(api_key):
+            raise HTTPException(status_code=403, detail="Read-only API key")
         return
     if request and TRUST_PROXY_AUTH:
         oauth_user = request.headers.get("x-forwarded-user", "")
