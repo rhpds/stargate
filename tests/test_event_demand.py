@@ -9,11 +9,14 @@ audiences (workshop) is not in the data, so the demand is bounded,
 not pointed.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from engine.event_demand import project_event_demand
 
 NOW = datetime.now(timezone.utc)
+# Inside the projection window regardless of the calendar date. The old
+# hardcoded 2026-11-17 passed only on that day and failed the next.
+DAY = (NOW + timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 def _session(event_id, date, start, end, attendees, lab="LB1"):
@@ -36,19 +39,19 @@ class TestEventDemand:
         """Shared event + date: the people bound is the max attendance
         (one rotating cohort), not the sum."""
         result = project_event_demand([
-            _session(46, "2026-11-17", "08:00:00", "18:00:00", 70, lab="R1"),
-            _session(46, "2026-11-17", "08:00:00", "18:00:00", 70, lab="R2"),
-            _session(46, "2026-11-17", "08:00:00", "18:00:00", 70, lab="R3"),
+            _session(46, DAY, "08:00:00", "18:00:00", 70, lab="R1"),
+            _session(46, DAY, "08:00:00", "18:00:00", 70, lab="R2"),
+            _session(46, DAY, "08:00:00", "18:00:00", 70, lab="R3"),
         ], start=NOW, days=7)
-        day = result["events"]["46"]["days"]["2026-11-17"]
+        day = result["events"]["46"]["days"][DAY]
         assert day["cohort_bound"] == 70
 
     def test_summed_bound_is_the_workshop_upper(self):
         result = project_event_demand([
-            _session(46, "2026-11-17", "08:00:00", "18:00:00", 70, lab="R1"),
-            _session(46, "2026-11-17", "08:00:00", "18:00:00", 70, lab="R2"),
+            _session(46, DAY, "08:00:00", "18:00:00", 70, lab="R1"),
+            _session(46, DAY, "08:00:00", "18:00:00", 70, lab="R2"),
         ], start=NOW, days=7)
-        day = result["events"]["46"]["days"]["2026-11-17"]
+        day = result["events"]["46"]["days"][DAY]
         assert day["summed_bound"] == 140
 
     def test_peak_concurrent_uses_real_times(self):
