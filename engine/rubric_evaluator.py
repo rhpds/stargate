@@ -24,6 +24,31 @@ class EvaluationResult:
     timeout_seconds: int | None = None
 
 
+def _entry_failure_context(name: str, evidence: dict[str, object]) -> str:
+    """Diagnostics for the failure message.
+
+    Found Nov 18: 'Entry criterion not met: showroom_route_reachable' with no
+    URL, status or endpoint count is not reproducible — the reader cannot tell
+    a 503 from a 502 from a slow page.
+    """
+    if name != "showroom_route_reachable":
+        return ""
+    parts = []
+    url = evidence.get("route_url")
+    if url:
+        parts.append(str(url))
+    status = evidence.get("http_status")
+    if status:
+        parts.append(f"HTTP {status}")
+    ready = evidence.get("ready_endpoint_count")
+    if ready is not None:
+        parts.append(f"{ready} ready endpoint{'s' if ready != 1 else ''}")
+    catalog = evidence.get("catalog_item")
+    if catalog:
+        parts.append(f"catalog {catalog}")
+    return f" — {', '.join(parts)}" if parts else ""
+
+
 def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationResult:
     criteria_results: list[CriterionResult] = []
     timeout = rubric.timeout_seconds
@@ -48,7 +73,10 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
                 outcome=StageOutcome.FAIL,
                 failure_class=failure_class,
                 sub_class=sub.get("sub_class"),
-                message=f"Entry criterion not met: {criterion.name}",
+                message=(
+                    f"Entry criterion not met: {criterion.name}"
+                    f"{_entry_failure_context(criterion.name, evidence)}"
+                ),
                 criteria_results=criteria_results,
                 timeout_seconds=timeout,
             )

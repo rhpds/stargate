@@ -428,17 +428,23 @@ class ClusterWorker:
 
         # Extract serviceUuid from namespace labels for lab name resolution
         service_uuid = None
+        catalog_item = ""
         try:
             ns_file = f"{tmpdir}/namespace.json"
             if os.path.exists(ns_file):
                 with open(ns_file) as f:
                     ns_data = json.load(f)
                 service_uuid = ns_data.get("metadata", {}).get("labels", {}).get("serviceUuid")
+                # env_type is the catalog item slug (e.g. zt-rhel-bu-lab-developer-cnv);
+                # a namespace suffix is shared by a whole catalog.
+                catalog_item = (
+                    ns_data.get("metadata", {}).get("annotations", {}).get("env_type", "")
+                )
         except Exception:
             pass
 
         # HTTP health checks for showroom
-        self._check_showroom_health(namespace, tmpdir)
+        self._check_showroom_health(namespace, tmpdir, catalog_item=catalog_item)
 
         demo_id, stages = _detect_demo_type(namespace)
 
@@ -548,18 +554,31 @@ class ClusterWorker:
         if resolved:
             logger.info("Resolved %d lab names from Sandbox API", resolved)
 
-    def _check_showroom_health(self, namespace: str, tmpdir: str):
+    def _check_showroom_health(self, namespace: str, tmpdir: str, catalog_item: str = ""):
         """Check showroom readiness via route URL."""
         import ssl
         import urllib.request as urllib_req
 
         try:
+            # A namespace can carry several routes; prefer the showroom one
+            # rather than "whichever is first in the list".
             r = subprocess.run(
-                ["oc", "get", "route", "-n", namespace, "-o",
-                 "jsonpath={.items[0].spec.host}"],
+                ["oc", "get", "routes", "-n", namespace, "-o",
+                 'jsonpath={range .items[*]}{.metadata.name}={.spec.host}{"\\n"}{end}'],
                 capture_output=True, text=True, timeout=10, env=self._env,
             )
-            host = r.stdout.strip()
+            host = ""
+            for line in r.stdout.splitlines():
+                name, _, candidate = line.partition("=")
+                if candidate and "showroom" in name.lower():
+                    host = candidate
+                    break
+            if not host:
+                for line in r.stdout.splitlines():
+                    _, _, candidate = line.partition("=")
+                    if candidate:
+                        host = candidate
+                        break
             if not host:
                 return
 
@@ -571,16 +590,24 @@ class ClusterWorker:
             showroom_reachable = False
             response_time = 99999
             readyz_status = 0
+            error = ""
+            import time as _t
+            start = _t.time()
             try:
-                import time as _t
-                start = _t.time()
                 req = urllib_req.Request(f"https://{host}")
                 resp = urllib_req.urlopen(req, timeout=5, context=ctx)
                 response_time = int((_t.time() - start) * 1000)
                 showroom_reachable = resp.status == 200
                 readyz_status = resp.status
-            except Exception:
-                pass
+            except urllib_req.HTTPError as exc:
+                # A 503 here is the difference between "no endpoints" and
+                # "upstream refused" — swallowing it made failures unreproducible.
+                response_time = int((_t.time() - start) * 1000)
+                readyz_status = exc.code
+                error = f"HTTP {exc.code}"
+            except Exception as exc:
+                response_time = int((_t.time() - start) * 1000)
+                error = f"{type(exc).__name__}: {str(exc)[:120]}"
 
             showroom_data = {
                 "kind": "ShowroomHealth",
@@ -591,6 +618,11 @@ class ClusterWorker:
                     "readyz_status": readyz_status,
                     "content_loaded": showroom_reachable,
                     "response_time_ms": response_time,
+                    # Reproducibility: the URL and status travel with the failure.
+                    "route_url": f"https://{host}",
+                    "http_status": readyz_status,
+                    "error": error,
+                    "catalog_item": catalog_item,
                 },
             }
             with open(f"{tmpdir}/showroom_health.json", "w") as f:

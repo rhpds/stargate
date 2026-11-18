@@ -95,3 +95,64 @@ class TestShowroomRubricPipeline:
         result = evaluate_rubric(rubric, normalized)
         assert result.outcome == StageOutcome.FAIL
         assert "Entry criterion" in result.message
+
+
+class TestShowroomDiagnostics:
+    """A failing showroom check must carry the URL and status — without them
+    the failure is not reproducible (reviewer feedback, 2026-11-18)."""
+
+    def _health(self, **status):
+        base = {
+            "pod_running": True,
+            "route_reachable": False,
+            "readyz_status": 0,
+            "response_time_ms": 120,
+        }
+        base.update(status)
+        return {"metadata": {"name": "showroom", "namespace": "sandbox-x"},
+                "status": base}
+
+    def test_collector_carries_route_url_status_and_error(self):
+        ev = collect_showroom_health(self._health(
+            route_url="https://showroom-x.apps.example.com",
+            http_status=503,
+            error="HTTP 503",
+            catalog_item="zt-rhel-bu-lab-developer-cnv",
+        ))
+        assert ev.observed["route_url"] == "https://showroom-x.apps.example.com"
+        assert ev.observed["http_status"] == 503
+        assert ev.observed["error"] == "HTTP 503"
+        assert ev.observed["catalog_item"] == "zt-rhel-bu-lab-developer-cnv"
+
+    def test_normalizer_carries_diagnostics_and_ready_endpoints(self):
+        health = collect_showroom_health(self._health(
+            route_url="https://showroom-x.apps.example.com", http_status=503,
+            catalog_item="zt-rhel-bu-lab-developer-cnv"))
+        endpoints = collect_from_data({
+            "kind": "Endpoints",
+            "metadata": {"name": "showroom", "namespace": "sandbox-x"},
+            "subsets": [],
+        })
+        normalized = normalize_evidence("showroom-healthy", [health, endpoints])
+
+        assert normalized["route_url"] == "https://showroom-x.apps.example.com"
+        assert normalized["http_status"] == 503
+        assert normalized["ready_endpoint_count"] == 0
+        assert normalized["catalog_item"] == "zt-rhel-bu-lab-developer-cnv"
+
+    def test_failure_message_names_the_url_and_status(self):
+        rubric = load_rubric(RUBRIC_DIR / "showroom-healthy.yaml")
+        normalized = normalize_evidence("showroom-healthy", [])
+        normalized.update({
+            "route_url": "https://showroom-x.apps.example.com",
+            "http_status": 503,
+            "ready_endpoint_count": 0,
+            "catalog_item": "zt-rhel-bu-lab-developer-cnv",
+        })
+        result = evaluate_rubric(rubric, normalized)
+
+        assert result.outcome == StageOutcome.FAIL
+        assert "showroom-x.apps.example.com" in result.message
+        assert "503" in result.message
+        assert "0 ready endpoints" in result.message
+        assert "zt-rhel-bu-lab-developer-cnv" in result.message
