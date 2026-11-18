@@ -20,7 +20,7 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — watches the 
 - **Control-Plane Monitoring** — Babylon WorkshopProvision conditions distinguish failed/stalled provisions from successful empty results; all 4 AAP controllers collected
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
-- **MCP Server** — 18 tools (16 query + 2 review) including natural-language `ask` (RAG over 351+ documents including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English — including the discovery tools (`list_investigations`, `list_pending_actions`, `get_provisioning_summary`) so an agent can find what needs attention without knowing IDs first; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 19 tools (17 query + 2 review) including natural-language `ask` (RAG over 351+ documents including the team's Confluence RCA record) at `/mcp`; any MCP-compatible agent can query the platform in plain English — including the discovery tools (`list_investigations`, `list_pending_actions`, `get_provisioning_summary`) so an agent can find what needs attention without knowing IDs first; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change Correlation** — RHDP has no formal change management, so StarGate is the change record: GitHub PRs (merged + in review) and Jira tickets correlated against failure onset, path-matched to each lab's AgnosticV files
 - **Saturation Correlation** — the capacity-saturation signature (rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere); validated against the documented Oct 13–14 2026 ocpv08 incident
 - **Platform Health Monitoring** — four loops watching what the platform depends on: LLM gateway model endpoints (15m), external dependencies (SSO/api.openshift.com/registry, 5m), storage headroom + OLM catalog freshness (5m), and saturation correlation. All persist as evaluations so degradation is a trend
@@ -64,7 +64,7 @@ Frontend (React 19 + Vite + Tailwind 4 — question-first IA, drawers)
     +-- Policy Engine (deterministic recommendations)
     +-- GeoLux Governance (pre-approval constraint checks)
     +-- Remediation Executor (gated, audited)
-    +-- MCP Server (18 tools at /mcp)
+    +-- MCP Server (19 tools at /mcp)
     +-- Causal Chain (symptom → evidence → diagnosis → remedy → proof)
     |
     PostgreSQL 15 (retention: 90d run-detail cascade, 60d GeoLux streams)

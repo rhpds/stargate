@@ -128,6 +128,39 @@ namespaces (infra tenants) have no episodes by design.
 
 ---
 
+### 2b. `get_showroom_context` — is it reproducible?
+
+**What it does:** Returns the reproduction context for a showroom failure:
+route URL, HTTP status, ready endpoint count, error, catalog item, and when it
+was checked. It reads stored evidence, not the cluster, so it still answers
+after the sandbox has been deleted (within the run-retention window).
+
+**Ask things like:**
+- "Give me the showroom URL and status for sandbox-82cd9-zt-rhelbu"
+- "Which catalog item is failing here — and what did the route return?"
+
+**Arguments:**
+
+| Arg | Type | Default | Meaning |
+|---|---|---|---|
+| `run_id` | string | — | A specific run (takes precedence) |
+| `namespace` | string | — | Latest run in this namespace, if `run_id` is absent |
+
+**Example response:**
+
+> ```
+> {"run_id": "scan-ocpv-infra01-...", "route_url": "https://showroom-82cd9.apps.example.com",
+>  "http_status": 503, "error": "HTTP 503", "ready_endpoint_count": 0,
+>  "catalog_item": "zt-rhel-bu-lab-developer-cnv", "checked_at": "2026-11-18T09:12:04+00:00"}
+> ```
+
+**Good to know:** `503` means the route has no ready endpoints; `502` means the
+proxy could not reach its upstream; a slow `200` means the page answered but
+the probe's 5-second budget expired. That distinction is the first branch point
+in triage.
+
+---
+
 ### 3. `query_evaluations` — the symptom history
 
 **What it does:** Recent readiness evaluations for a workload: outcome

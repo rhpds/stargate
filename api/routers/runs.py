@@ -321,6 +321,24 @@ def get_run_report(run_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/runs/{run_id}/showroom")
+def get_run_showroom(run_id: str, db: Session = Depends(get_db)):
+    """The showroom context for a run, from stored evidence.
+
+    A failed sandbox is deleted, but the Route and ShowroomHealth evidence are
+    retained for the run-retention window. This is the URL, status, ready
+    endpoint count and catalog item needed to reproduce the failure.
+    """
+    run = repository.get_run(db, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+    context = repository.get_run_showroom_context(db, run_id)
+    if context is None:
+        raise HTTPException(status_code=404, detail=f"No evidence for run {run_id}")
+    return {"namespace": run.namespace, **context}
+
+
 # ---------------------------------------------------------------------------
 # Bundle (Stage 3 -- with history)
 # ---------------------------------------------------------------------------

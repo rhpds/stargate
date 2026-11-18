@@ -2111,3 +2111,47 @@ def record_reclamation_resolution(
 def dedupe_key_action(dedupe_key: str) -> str:
     """The resolution_action value used for dedupe (source:ref form)."""
     return dedupe_key.replace("reclamation:", "", 1)
+
+
+def get_run_showroom_context(db, run_id: str):
+    """Showroom URL, status, endpoints and catalog item for a run.
+
+    Reads stored evidence rather than the cluster, so a deleted sandbox can
+    still be reproduced for the retention window.
+    """
+    from db.models import EvidenceRecord
+
+    rows = db.query(EvidenceRecord).filter(EvidenceRecord.run_id == run_id).all()
+    if not rows:
+        return None
+
+    def newest(kind):
+        matches = [r for r in rows if r.type == kind]
+        return max(matches, key=lambda r: r.timestamp) if matches else None
+
+    health = newest("ShowroomHealth")
+    route = newest("Route")
+    endpoints = [r for r in rows if r.type == "Endpoints"]
+    observed = (health.observed or {}) if health else {}
+
+    route_url = observed.get("route_url") or ""
+    if not route_url and route:
+        host = (route.observed or {}).get("host")
+        route_url = f"https://{host}" if host else ""
+
+    ready = observed.get("ready_endpoint_count")
+    if ready is None and endpoints:
+        ready = sum(
+            (e.observed or {}).get("ready_endpoint_count") or 0 for e in endpoints
+        )
+
+    checked = health or route
+    return {
+        "run_id": run_id,
+        "route_url": route_url or None,
+        "http_status": observed.get("http_status"),
+        "error": observed.get("error") or None,
+        "ready_endpoint_count": ready,
+        "catalog_item": observed.get("catalog_item") or None,
+        "checked_at": checked.timestamp.isoformat() if checked else None,
+    }

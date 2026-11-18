@@ -70,7 +70,7 @@ claude mcp add stargate -- npx -y mcp-remote \
 stale CLI syntax — both fixed here. If you find another rough edge, the
 repo is public: contributions welcome.)
 
-## The tools (18 total — 16 query, 2 review)
+## The tools (19 total — 17 query, 2 review)
 
 For per-tool examples — the questions to ask, the arguments, and real
 responses from production — see the **[MCP Tool
@@ -85,6 +85,7 @@ Cookbook](mcp-tool-cookbook.md)**. The tables below are the summary.
 | **list_reclamation_artifacts** | What a dying workload left behind: namespace, leaked PVs, placement, reclamation targets |
 | **get_causal_chain** | The full evidence chain for an investigation: symptom → evidence → diagnosis → action → remediation → verification |
 | **query_evaluations** | Recent evaluation history for a workload |
+| **get_showroom_context** | Why a showroom failed: route URL, HTTP status, ready endpoints, catalog item — from stored evidence, so it works after the sandbox is deleted |
 | **get_failure_classes** | The failure taxonomy: classes, patterns, severity, remediation guidance |
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
