@@ -2147,10 +2147,11 @@ def get_run_showroom_context(db, run_id: str):
         route_url = f"https://{host}" if host else ""
 
     ready = observed.get("ready_endpoint_count")
-    if ready is None and endpoints:
-        ready = sum(
-            (e.observed or {}).get("ready_endpoint_count") or 0 for e in endpoints
-        )
+    if ready is None and len(endpoints) == 1:
+        # A namespace has an Endpoints object per Service. Summing them is
+        # meaningless (a real run showed 30 for one showroom); only a single
+        # unambiguous object is safe to report.
+        ready = (endpoints[0].observed or {}).get("ready_endpoint_count")
 
     checked = health or route
     return {

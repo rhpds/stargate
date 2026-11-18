@@ -92,3 +92,16 @@ class TestRouteSelection:
         body = client.get(f"/runs/{run_id}/showroom").json()
 
         assert body["route_url"] == "https://showroom-abc12.apps.example.com"
+
+
+class TestReadyEndpointAmbiguity:
+    def test_does_not_sum_every_service_in_the_namespace(self, client, db):
+        run_id = _run(client, run_id="run-3")
+        _evidence(db, run_id, "Route", {"host": "showroom-abc12.apps.example.com"})
+        for _ in range(3):
+            _evidence(db, run_id, "Endpoints", {"ready_endpoint_count": 10})
+
+        body = client.get(f"/runs/{run_id}/showroom").json()
+
+        # Three services × 10 is not "30 showroom endpoints".
+        assert body["ready_endpoint_count"] is None
