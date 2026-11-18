@@ -87,6 +87,9 @@ function TrendChart({ trend }: { trend: RotationTrendPoint[] }) {
   );
 }
 
+const METHOD_URL =
+  'https://github.com/rhpds/stargate/blob/main/docs/rotation-page/METHOD.md';
+
 const STATUS_TONE: Record<string, string> = {
   closed: '#3E8635',
   'in progress': '#F0AB00',
@@ -421,6 +424,61 @@ export default function Rotation() {
               locations and untracked come from the admin-run audit ingest — StarGate's
               cluster-reader SA cannot read Secrets, so it never probes customer credentials.
             </p>
+
+            <details className="mt-3 bg-[#212121] border border-[#2e2e2e] rounded-lg px-4 py-3 text-xs text-[#6A6E73]">
+              <summary className="cursor-pointer text-[#c7c7c7]">
+                How these numbers are made
+              </summary>
+              <ol className="mt-2 space-y-1 list-decimal list-inside">
+                <li>
+                  <span className="text-white">Jira</span> is pulled every 30 minutes. The provider
+                  is the last balanced parenthetical of the title — a priority or an unlabelled
+                  ticket is reported as <span className="text-white">Provider unset</span>, never
+                  guessed.
+                </li>
+                <li>
+                  <span className="text-white">The audit</span> hashes every secret value in memory
+                  across the fleet. The hash is stored; the value never is. Two clusters holding
+                  the same key produce one credential id — that is what makes "87 copies"
+                  measurable.
+                </li>
+                <li>
+                  A credential is tied to a ticket by its <span className="text-white">id</span>,
+                  and to a provider by the audit's classification. Provider totals are derived from
+                  the credential rows, so a row can never disagree with the list behind it.
+                </li>
+                <li>
+                  The page reads <span className="text-white">today's tickets</span> and the most
+                  recent <span className="text-white">verified</span> audit — the header shows how
+                  old that verification is. A day with no audit shows no number, not a zero.
+                </li>
+                <li>
+                  Tickets and credentials are not 1:1: one ticket can cover several values, one
+                  value can live in hundreds of places.
+                </li>
+              </ol>
+              <p className="mt-2">
+                Full method:{' '}
+                <a
+                  href={METHOD_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#73BCF7] hover:underline"
+                >
+                  METHOD.md ↗
+                </a>{' '}
+                · raw exports are in the{' '}
+                <a
+                  href={links.find((l) => l.label.startsWith('Audit'))?.url ?? METHOD_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#73BCF7] hover:underline"
+                >
+                  audit folder ↗
+                </a>
+                .
+              </p>
+            </details>
           </section>
 
           <section>

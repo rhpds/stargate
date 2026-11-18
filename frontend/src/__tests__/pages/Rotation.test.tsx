@@ -68,7 +68,8 @@ function response(overrides: Partial<RotationResponse> = {}): RotationResponse {
       },
     ],
     links: [
-      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example' },
+      { label: 'Audit exports', url: 'https://docs.google.com/spreadsheets/d/example' },
+      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example2' },
     ],
     trend: [
       { date: '2026-11-16', tickets: 15, closed: 4, in_progress: 1, new: 10, unassigned: 5, verified_live: 30, live_locations: 150, untracked_live: 5 },
@@ -135,7 +136,8 @@ describe('Rotation page', () => {
         source: { jira: 'unconfigured', verification: 'none', verification_at: null },
         providers: [],
         links: [
-      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example' },
+      { label: 'Audit exports', url: 'https://docs.google.com/spreadsheets/d/example' },
+      { label: 'Progress spreadsheet', url: 'https://docs.google.com/spreadsheets/d/example2' },
     ],
     trend: [],
         summary: {
@@ -200,7 +202,7 @@ describe('Rotation page', () => {
     render(<Rotation />);
 
     const link = screen.getByRole('link', { name: /progress spreadsheet/i });
-    expect(link).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/example');
+    expect(link).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/example2');
     expect(link).toHaveAttribute('target', '_blank');
   });
 
@@ -224,6 +226,22 @@ describe('Rotation page', () => {
     expect(totals.getByText('5')).toBeInTheDocument();
     // Provider rows only; the total is a footer, not a provider.
     expect(screen.getAllByRole('button', { name: /AWS|IBM Cloud/ })).toHaveLength(2);
+  });
+
+  it('explains how the numbers are made, with a link to the method', () => {
+    useRotation.mockReturnValue({ data: response(), isLoading: false, isError: false });
+
+    render(<Rotation />);
+
+    expect(screen.getByText('How these numbers are made')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /METHOD\.md/i })).toHaveAttribute(
+      'href',
+      'https://github.com/rhpds/stargate/blob/main/docs/rotation-page/METHOD.md',
+    );
+    expect(screen.getByRole('link', { name: /audit folder/i })).toHaveAttribute(
+      'href',
+      'https://docs.google.com/spreadsheets/d/example',
+    );
   });
 
   it('says when the audit last verified the numbers', () => {
