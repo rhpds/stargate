@@ -27,7 +27,10 @@ def collect_showroom_health(data: Dict) -> CollectedEvidence:
         observed={
             "showroom_pod_running": status.get("pod_running", False),
             "showroom_route_reachable": status.get("route_reachable", False),
-            "readyz_returns_200": status.get("readyz_status") == 200,
+            "readyz_returns_200": (
+                None if status.get("readyz_status") is None
+                else status.get("readyz_status") == 200
+            ),
             "content_loaded": status.get("content_loaded", False),
             "response_time_acceptable": response_time < RESPONSE_TIME_THRESHOLD_MS,
             # Reproducibility: a failure without these is a riddle.

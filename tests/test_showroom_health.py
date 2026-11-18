@@ -156,3 +156,34 @@ class TestShowroomDiagnostics:
         assert "503" in result.message
         assert "0 ready endpoints" in result.message
         assert "zt-rhel-bu-lab-developer-cnv" in result.message
+
+
+class TestNoShowroomRoute:
+    """A namespace with no showroom route must be indeterminate, not failed.
+
+    Found on 16 Nov: the probe sampled adminer/containerview routes and reported
+    showroom_not_ready while the showroom deployment was healthy.
+    """
+
+    def _health(self):
+        return {"metadata": {"name": "showroom", "namespace": "sandbox-vm-only"},
+                "status": {"pod_running": True, "route_reachable": None,
+                           "readyz_status": None, "content_loaded": None,
+                           "response_time_ms": 0, "route_url": "",
+                           "http_status": 0,
+                           "error": "no route with 'showroom' in the name"}}
+
+    def test_collector_preserves_unobserved(self):
+        ev = collect_showroom_health(self._health())
+        assert ev.observed["showroom_route_reachable"] is None
+
+    def test_normalizer_preserves_unobserved(self):
+        normalized = normalize_evidence("showroom-healthy", [collect_showroom_health(self._health())])
+        assert normalized["showroom_route_reachable"] is None
+
+    def test_rubric_reports_indeterminate_not_fail(self):
+        rubric = load_rubric(RUBRIC_DIR / "showroom-healthy.yaml")
+        normalized = normalize_evidence("showroom-healthy", [collect_showroom_health(self._health())])
+        result = evaluate_rubric(rubric, normalized)
+        assert result.outcome == StageOutcome.INDETERMINATE
+        assert result.failure_class is None

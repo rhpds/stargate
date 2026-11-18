@@ -35,6 +35,21 @@ from cli.kubeconfigs import SECRETS_DIR, resolve_kubeconfig
 
 logger = logging.getLogger(__name__)
 
+
+def _pick_showroom_host(stdout: str) -> str:
+    """The `showroom-*` route host, or "" when the namespace has none.
+
+    A namespace can expose adminer, console, containerview and showroom routes.
+    Taking "the first route" measured the wrong thing: 16 Nov failures probed
+    containerview and adminer while the showroom was healthy.
+    """
+    for line in (stdout or "").splitlines():
+        name, _, host = line.partition("=")
+        if host and "showroom" in name.strip().lower():
+            return host.strip()
+    return ""
+
+
 VM_STAGES = "namespace-ready,storage-clone-ready,vm-runtime-ready"
 CONTAINER_VM_STAGES = "namespace-ready,deployment-ready,route-ready,storage-clone-ready,vm-runtime-ready,showroom-healthy"
 CONTAINER_STAGES = "namespace-ready,deployment-ready,route-ready,showroom-healthy"
@@ -567,19 +582,28 @@ class ClusterWorker:
                  'jsonpath={range .items[*]}{.metadata.name}={.spec.host}{"\\n"}{end}'],
                 capture_output=True, text=True, timeout=10, env=self._env,
             )
-            host = ""
-            for line in r.stdout.splitlines():
-                name, _, candidate = line.partition("=")
-                if candidate and "showroom" in name.lower():
-                    host = candidate
-                    break
+            host = _pick_showroom_host(r.stdout)
             if not host:
-                for line in r.stdout.splitlines():
-                    _, _, candidate = line.partition("=")
-                    if candidate:
-                        host = candidate
-                        break
-            if not host:
+                # No showroom route: the lab may have none. Report it as
+                # unobserved (indeterminate), not as a failure of a route we
+                # never should have probed.
+                showroom_data = {
+                    "kind": "ShowroomHealth",
+                    "metadata": {"name": "showroom", "namespace": namespace},
+                    "status": {
+                        "pod_running": True,
+                        "route_reachable": None,
+                        "readyz_status": None,
+                        "content_loaded": None,
+                        "response_time_ms": 0,
+                        "route_url": "",
+                        "http_status": 0,
+                        "error": "no route with 'showroom' in the name",
+                        "catalog_item": catalog_item,
+                    },
+                }
+                with open(f"{tmpdir}/showroom_health.json", "w") as f:
+                    json.dump(showroom_data, f)
                 return
 
             ctx = ssl.create_default_context()
