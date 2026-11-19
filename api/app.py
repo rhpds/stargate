@@ -114,9 +114,13 @@ try:
             window = _mcp_rate_state.setdefault(provided, [])
             while window and now - window[0] > 60:
                 window.pop(0)
-            if len(window) >= 60:
+            # Per-key ceiling. MCP clients open a session and list tools before
+            # doing work, so 60/min was easy to hit with one agent. Configurable
+            # because the right number depends on the client's polling pattern.
+            limit = int(os.environ.get("STARGATE_MCP_RATE_LIMIT_PER_MINUTE", "240"))
+            if len(window) >= limit:
                 return JSONResponse(
-                    {"detail": "MCP rate limit exceeded (60 requests/minute)"},
+                    {"detail": f"MCP rate limit exceeded ({limit} requests/minute)"},
                     status_code=429,
                 )
             window.append(now)
