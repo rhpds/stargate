@@ -2886,6 +2886,7 @@ def lab_story(db, lab: str, hours: int = 168):
         InvestigationRecord,
         KnowledgeEntry,
         PendingAction,
+        RemediationRecord,
     )
 
     now = datetime.now(timezone.utc)
@@ -2945,6 +2946,21 @@ def lab_story(db, lab: str, hours: int = 168):
         )
     knowledge_total = db.query(KnowledgeEntry).filter(KnowledgeEntry.active == True).count()  # noqa: E712
 
+    thirty_days = now - timedelta(days=30)
+    investigations_30d = (
+        db.query(InvestigationRecord)
+        .filter(InvestigationRecord.created_at >= thirty_days)
+        .count()
+    )
+    verified_30d = (
+        db.query(RemediationRecord)
+        .filter(
+            RemediationRecord.applied_at >= thirty_days,
+            RemediationRecord.verification_eval_id.isnot(None),
+        )
+        .count()
+    )
+
     diagnosis = (chain.get("diagnosis") or {}) if isinstance(chain, dict) else {}
     root_cause = investigation.root_cause if investigation else ""
     legs = {
@@ -2998,6 +3014,11 @@ def lab_story(db, lab: str, hours: int = 168):
         "learning": {
             "knowledge_for_lab": knowledge_for_lab,
             "knowledge_total": knowledge_total,
+        },
+        "gate": {
+            "investigations_30d": investigations_30d,
+            "pending_total": pending_total,
+            "verified_30d": verified_30d,
         },
         "sources": [
             "evaluations", "causal-chain", "approval-queue", "knowledge",
