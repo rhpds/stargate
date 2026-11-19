@@ -454,6 +454,20 @@ def get_lab_history(
     )
 
 
+@router.get("/labs/session-coverage")
+def get_session_coverage(hours_back: int = 6, hours_ahead: int = 6,
+                         db: Session = Depends(get_db)):
+    """Planned seats vs provisioned/healthy labs for sessions in the window."""
+    from api.routers.capacity import _lab_code_resolution
+    from collectors.labagator.collect_labagator import collect_sessions
+    from engine.session_coverage import coverage
+
+    return coverage(
+        db, collect_sessions() or [], _lab_code_resolution(),
+        hours_back=hours_back, hours_ahead=hours_ahead,
+    )
+
+
 @router.get("/labs/live")
 def get_live_labs(window_hours: int = 2, limit: int = 500,
                   db: Session = Depends(get_db)):
