@@ -32,7 +32,7 @@ logger = logging.getLogger("stargate.qa")
 # into sections so long docs don't lose their tail to the character cap.
 _DOC_FILES = (
     "workflows.md",
-    "mcp-agent-guide.md",
+    "stargate-mcp-agent-guide.md",
     "architecture.md",
     "evidence-observation-semantics.md",
     "runbook.md",
@@ -42,7 +42,9 @@ _DOC_FILES = (
     "rotation-page/METHOD.md",
     "rotation-page/DAILY-AUDIT.md",
     "post-summit-babylon-integration.md",
-    # Confluence-sourced operational knowledge (validated, read-only)
+    # Optional local Confluence mirror (validated, read-only). It is gitignored
+    # for public-repo sanitisation, so these entries resolve only where the
+    # mirror is present; shipping docs/ is what the image relies on.
     "confluence/demo-platform-provision-failure-classification.md",
     "confluence/troubleshooting-destroy-with-babylon.md",
     "confluence/troubleshooting-provision-with-babylon.md",
@@ -150,7 +152,8 @@ def _knowledge_corpus() -> List[Dict]:
             "validating 19 of 20 failure classes on synthetic ground truth, and an "
             "MCP server for natural-language access from any AI tool. The platform "
             "collects from 4 AAP controllers (prod0, prod1, event0, event1), scans "
-            "8 clusters, and processes millions of evaluations."
+            "five clusters by default (ocpv05-ocpv09, configurable), and processes "
+            "millions of evaluations."
         ),
     })
 

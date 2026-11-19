@@ -34,6 +34,7 @@ COPY rubrics/ rubrics/
 COPY remediations/ remediations/
 COPY prompts/ prompts/
 COPY failure-classes/ failure-classes/
+COPY docs/ docs/
 COPY integrations/ integrations/
 COPY celery_app.py .
 COPY tasks/ tasks/
