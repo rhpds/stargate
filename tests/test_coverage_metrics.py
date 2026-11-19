@@ -48,10 +48,9 @@ class TestFailureOwners:
     def test_groups_labs_by_namespace_owner(self, db):
         from db.repository import failure_owners
 
-        _evidence(db, "scan-1", "Namespace", {
-            "name": "sandbox-a", "owner": "alice", "owner_email": "alice@example.com",
-            "catalog_item": "zt-rhel-bu-lab-developer-cnv",
-        })
+        from db.models import LabMapping
+        db.add(LabMapping(lab_code="sandbox-a", owner="alice"))
+        db.commit()
         _fail(db, "r1", lab="sandbox-a")
         _fail(db, "r2", lab="sandbox-b")  # no namespace evidence → unattributed
 
