@@ -891,6 +891,22 @@ class ClusterWorker:
                 data=body,
                 headers=self._api_headers(),
             )
+            resp = send(req)
+            outcome = ""
+            try:
+                outcome = json.loads(resp.read()).get("outcome", "") if resp else ""
+            except Exception:
+                outcome = ""
+
+            # Close the run: tier-1 scans created a run every cycle and never
+            # completed it (98% of production runs were stuck in `running`).
+            req = urllib_req.Request(
+                f"{self.api_url}/runs/{run_id}/complete",
+                data=json.dumps(
+                    {"status": "failed" if outcome == "fail" else "completed"}
+                ).encode(),
+                headers=self._api_headers(),
+            )
             send(req)
         except Exception as e:
             logger.warning("Failed to persist %s evaluation: %s", stage_id, e)
