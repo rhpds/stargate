@@ -23,6 +23,7 @@ from api.routers._shared import (
     _fetch_labagator_sessions,
     limiter,
     require_admin,
+    require_admin_read,
     PIPELINE_STAGES,
     EXECUTOR_KUBECONFIG,
 )
@@ -1521,7 +1522,7 @@ def run_remediation_playbook(req: PlaybookRunRequest, db: Session = Depends(get_
 def get_causal_chain(
     investigation_id: Optional[int] = None,
     namespace: Optional[str] = None,
-    db: Session = Depends(get_db), _auth=Depends(require_admin),
+    db: Session = Depends(get_db), _auth=Depends(require_admin_read),
 ):
     """Assemble the causal chain for an investigation.
 
