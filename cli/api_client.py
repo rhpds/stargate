@@ -92,6 +92,9 @@ class StarGateClient:
             data["evidence"] = evidence
         return self._post(f"/runs/{run_id}/stages/{stage_id}/evaluate", data)
 
+    def complete_run(self, run_id: str, status: str = "completed") -> dict:
+        return self._post(f"/runs/{run_id}/complete", {"status": status})
+
     def get_report(self, run_id: str) -> dict:
         return self._get(f"/runs/{run_id}/report")
 

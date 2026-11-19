@@ -435,6 +435,12 @@ def _persist_to_api(
         # Preserve the same unobserved/null criteria used by local evaluation.
         client.evaluate_stage(run_id, stage_id, evidence=normalize_evidence(stage_id, collected))
 
+    # Close the run. Without this it stays `running` forever, which is why
+    # 98% of production runs had no completion time.
+    client.complete_run(
+        run_id, "failed" if any(r["outcome"] == "fail" for r in results) else "completed"
+    )
+
     if out_format == "text":
         print(f"  Persisted {len(results)} stages with {len(collected)} evidence items each.")
         print(f"  View report: curl {api_url}/runs/{run_id}/report")

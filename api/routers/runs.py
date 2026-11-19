@@ -24,6 +24,7 @@ from engine.models import (
 from engine.rubric_evaluator import evaluate_rubric
 
 from api.schemas import (
+    CompleteRunRequest,
     CreateRunRequest,
     SubmitEvidenceRequest,
     EvaluateRequest,
@@ -273,6 +274,28 @@ def evaluate_stage(run_id: str, stage_id: str, req: EvaluateRequest,
 # ---------------------------------------------------------------------------
 # Reports
 # ---------------------------------------------------------------------------
+
+@router.post("/runs/{run_id}/complete")
+def complete_run(run_id: str, req: CompleteRunRequest,
+                 db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Close a run and stamp `completed_at`.
+
+    Without this the CLI-created runs never left `running`: 541,317 of 551,765
+    production runs were open, which silently broke MTTR, duration and
+    last-passing-run queries.
+    """
+    run = repository.get_run(db, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    if req.status not in ("completed", "failed"):
+        raise HTTPException(status_code=400, detail="status must be completed or failed")
+
+    repository.update_run_status(
+        db, run_id, RunStatus(req.status),
+        completed_at=datetime.now(timezone.utc),
+    )
+    return {"run_id": run_id, "status": req.status}
+
 
 @router.get("/runs/{run_id}/report")
 def get_run_report(run_id: str, db: Session = Depends(get_db)):

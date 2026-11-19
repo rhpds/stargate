@@ -54,6 +54,13 @@ class StageResponse(BaseModel):
 
 # --- Evidence ---
 
+class CompleteRunRequest(BaseModel):
+    """Close a run. `completed` = evaluation finished; `failed` = it finished
+    with a failed stage. Either way `completed_at` is set."""
+
+    status: str = "completed"
+
+
 class SubmitEvidenceRequest(BaseModel):
     evidence_id: Optional[str] = None
     type: str
