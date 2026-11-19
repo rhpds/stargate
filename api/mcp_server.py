@@ -113,7 +113,7 @@ def get_causal_chain(investigation_id: Optional[int] = None, namespace: Optional
     db = _db()
     try:
         chain = build_causal_chain(db, investigation_id=investigation_id, namespace=namespace)
-        return json.dumps(chain, default=str)[:20000]
+        return bounded_json(chain, limit=20000)
     finally:
         db.close()
 
@@ -124,6 +124,32 @@ def query_evaluations(namespace: str, limit: int = 10) -> str:
     message, timestamp)."""
     from engine.investigation_agent import tool_query_evaluations
     return tool_query_evaluations(namespace, limit)
+
+
+def bounded_json(value, limit: int = 20000) -> str:
+    """Serialise without ever cutting the payload mid-token.
+
+    A sliced JSON string is worse than a smaller answer: clients cannot parse
+    it. Shrink long strings and lists, and say that we did.
+    """
+    text = json.dumps(value, default=str)
+    if len(text) <= limit:
+        return text
+
+    def shrink(item, depth=0):
+        if isinstance(item, str):
+            return item if len(item) <= 600 else item[:600] + "…"
+        if isinstance(item, list):
+            return [shrink(entry, depth + 1) for entry in item[:10]]
+        if isinstance(item, dict):
+            return {key: shrink(entry, depth + 1) for key, entry in item.items()}
+        return item
+
+    return json.dumps(
+        {**shrink(value), "truncated": True,
+         "note": f"payload exceeded {limit} bytes; long fields shortened, lists capped"},
+        default=str,
+    )
 
 
 @mcp.tool()
@@ -401,20 +427,57 @@ def comment_action(action_id: int, comment: str) -> str:
         return f"ERROR adding comment: {str(error)[:200]}"
 
 
+_PROOF_FIELDS = (
+    "status", "proof_type", "cycles_completed", "cycles_failed",
+    "consecutive_passes", "gate", "last_run",
+)
+
+
+def compact_proof_matrix(data: dict) -> dict:
+    """Project the 1.4 MB proof matrix down to what answers 'what is proven?'.
+
+    The per-class history and cycle_results are 95% of the file; slicing the
+    raw JSON at 30 KB returned invalid JSON and hid the gate. Keep the verdicts
+    and count them.
+    """
+    from collections import Counter
+
+    classes = data.get("failure_classes") or {}
+    compact = {
+        name: {key: value[key] for key in _PROOF_FIELDS if key in value}
+        for name, value in classes.items()
+    }
+    return {
+        "type": data.get("type"),
+        "namespace": data.get("namespace"),
+        "cluster": data.get("cluster"),
+        "updated_at": data.get("updated_at"),
+        "summary": {
+            "classes": len(compact),
+            "by_gate": dict(Counter(v.get("gate", "unknown") for v in compact.values())),
+            "by_status": dict(Counter(v.get("status", "unknown") for v in compact.values())),
+            "remediation_proven": sum(1 for v in compact.values() if v.get("gate") == "full_auto"),
+            "detection_proven": sum(1 for v in compact.values() if v.get("gate") == "investigation_proven"),
+        },
+        "failure_classes": compact,
+    }
+
+
 @mcp.tool()
 def get_proof_matrix() -> str:
-    """Proof-lab state: per failure class — status, cycles, consecutive
-    passes, gate (full_auto = remediation-proven, investigation_proven =
-    detection-proven), last run — plus the summary by accumulated proof."""
+    """Proof-lab verdicts: per failure class — status, cycles, consecutive
+    passes and gate (full_auto = remediation-proven, investigation_proven =
+    detection-proven), plus counts. History is omitted to keep valid JSON."""
     import os
+
     state_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), "scan-history", "proof-matrix.json"
     )
     try:
         with open(state_path) as handle:
-            return handle.read()[:30000]
+            return json.dumps(compact_proof_matrix(json.load(handle)), default=str)
     except FileNotFoundError:
-        return "No proof matrix recorded yet."
+        return json.dumps({"error": "no proof matrix recorded yet"})
     except Exception as error:
         return f"ERROR reading proof matrix: {str(error)[:200]}"
 

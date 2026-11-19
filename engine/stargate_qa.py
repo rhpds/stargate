@@ -263,6 +263,31 @@ def _structured_context(question: str) -> List[str]:
 
     # Direct-answer path for fleet-level questions — no namespace needed
     question_lower = question.lower()
+
+    # "What does it look like right now?" is a LIVE question. Retrieval over
+    # docs answers it with architecture prose; put the live state first and
+    # mark it authoritative so synthesis prefers it.
+    wants_now = any(phrase in question_lower for phrase in (
+        "right now", "currently", "current state", "look like", "looks like",
+        "live state", "how many labs", "what is running", "status of the fleet",
+        "fleet status",
+    ))
+    if wants_now:
+        try:
+            from db.database import get_session_factory
+            from db.repository import live_labs
+
+            session = get_session_factory()()
+            try:
+                report = live_labs(session, window_hours=2, limit=1)
+            finally:
+                session.close()
+            contexts.append(
+                "[live state — authoritative for questions about now]\n"
+                + json.dumps(report.get("summary", {}), default=str)
+            )
+        except Exception:
+            pass
     if any(word in question_lower for word in ("recent", "last", "latest", "today", "recently")):
         if any(word in question_lower for word in ("episode", "lifecycle", "provisioning", "reclamation", "outcome")):
             try:
@@ -347,7 +372,9 @@ _ANSWER_CONTRACT = (
     "Platform operations). Answer ONLY from the provided context. Cite the "
     "source of every claim as [source:...]. If the context does not answer "
     "the question, say exactly what is missing — do not guess, do not "
-    "invent data, and never recommend destructive actions. Keep answers "
+    "invent data, and never recommend destructive actions. If a "
+    "[live state] block is present, it is authoritative for questions about "
+    "now; documents explain mechanism, not current counts. Keep answers "
     "under 250 words."
 )
 
@@ -449,8 +476,8 @@ def ask_stargate(question: str) -> str:
     context_parts = []
     for doc in knowledge[:3]:  # top 3, not top 5
         context_parts.append(f"[source: {doc['source']}]\n{doc['text'][:800]}")  # 800, not 1200
-    context_parts.extend(structured[:2])  # max 2 structured contexts
-    context = "\n\n".join(context_parts)[:6000]  # 6K, not 20K
+    context_parts.extend(structured[:3])  # live state first when present
+    context = "\n\n".join(context_parts)[:8000]  # 8K: room for a live block
 
     from api.llm import call_llm
     # qwen3-14b: measured 6.6s for 6K context vs llama-scout-17b's 30s+

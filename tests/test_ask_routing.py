@@ -30,3 +30,15 @@ class TestAskRouting:
         _seed(db)
         contexts = _structured_context("what happened in sandbox-abc12-zt-rhelbu?")
         assert any(c.startswith("[lab session for sandbox-abc12-zt-rhelbu]") for c in contexts)
+
+
+class TestLiveStateRouting:
+    def test_now_question_gets_live_state_first(self, db):
+        _seed(db)
+        contexts = _structured_context("what does the platform look like right now?")
+        assert contexts and contexts[0].startswith("[live state")
+
+    def test_live_block_carries_counts(self, db):
+        _seed(db)
+        block = _structured_context("what is running right now?")[0]
+        assert "labs" in block

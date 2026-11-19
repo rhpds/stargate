@@ -2345,35 +2345,17 @@ def evidence_completeness(db, hours: int = 24):
 
 
 def failure_owners(db, hours: int = 24):
-    """Which owner/team is behind the failing labs, from namespace annotations.
+    """Which owner/team is behind the failing labs.
 
-    Ownership is recorded by the provisioner; StarGate only reads it. Labs
-    without an annotation are reported as unattributed rather than dropped.
+    Reads the provisioner's LabMapping (indexed by lab_code) rather than
+    scanning Namespace evidence: that scan read tens of millions of evidence
+    rows and blew the route timeout, so the tool never returned.
     """
     from datetime import datetime, timedelta, timezone
 
-    from db.models import EvaluationRecord, EvidenceRecord
+    from db.models import EvaluationRecord, LabMapping
 
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-
-    owners = {}
-    for observed, timestamp in (
-        db.query(EvidenceRecord.observed, EvidenceRecord.timestamp)
-        .filter(
-            EvidenceRecord.type == "Namespace",
-            EvidenceRecord.timestamp >= since,
-        )
-        .order_by(EvidenceRecord.timestamp.asc())
-    ):
-        data = observed or {}
-        name = data.get("name")
-        if not name:
-            continue
-        owners[name] = {
-            "owner": data.get("owner") or "",
-            "owner_email": data.get("owner_email") or "",
-            "catalog_item": data.get("catalog_item") or "",
-        }
 
     by_lab = {}
     for failure_class, lab, cluster in (
@@ -2395,9 +2377,19 @@ def failure_owners(db, hours: int = 24):
         if cluster:
             entry["clusters"].add(cluster)
 
+    owners = {}
+    if by_lab:
+        owners = {
+            lab_code: owner
+            for lab_code, owner in db.query(LabMapping.lab_code, LabMapping.owner)
+            .filter(LabMapping.lab_code.in_(list(by_lab)))
+            .all()
+            if owner
+        }
+
     grouped = {}
     for lab, info in by_lab.items():
-        who = owners.get(lab, {}).get("owner") or "(unattributed)"
+        who = owners.get(lab) or "(unattributed)"
         entry = grouped.setdefault(who, {
             "owner": who, "labs": set(), "failures": 0, "classes": set(),
         })
@@ -2569,6 +2561,160 @@ def lab_session(db, namespace: str, hours: int = 168):
             "anarchy_last_error": (latest_anarchy or {}).get("no_error_conditions") is False,
         },
         "timeline": transitions[-50:],
+    }
+
+
+def lab_story(db, lab: str, hours: int = 168):
+    """One lab's whole loop, as one object: signal → class → decision → action → learning.
+
+    The demo (and any reviewer) should not have to stitch five endpoints with
+    five different subjects. Everything here is read-only and sourced from
+    stored evidence; absences are reported as absences.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import (
+        EvaluationRecord,
+        InvestigationRecord,
+        KnowledgeEntry,
+        PendingAction,
+        RemediationRecord,
+    )
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=hours)
+
+    evaluations = (
+        db.query(EvaluationRecord)
+        .filter(
+            EvaluationRecord.lab_code == lab,
+            EvaluationRecord.evaluated_at >= since,
+        )
+        .order_by(EvaluationRecord.evaluated_at.desc())
+        .all()
+    )
+    session = lab_session(db, lab, hours=hours)
+    if not evaluations and not session.get("found"):
+        return {"found": False, "lab": lab, "window_hours": hours}
+
+    latest_by_stage = {}
+    for evaluation in evaluations:
+        latest_by_stage.setdefault(evaluation.stage_id, evaluation)
+    failing = next(
+        (e for e in evaluations if e.outcome == "fail"), None
+    )
+
+    investigation = (
+        db.query(InvestigationRecord)
+        .filter(
+            (InvestigationRecord.namespace == lab)
+            | (InvestigationRecord.lab_code == lab)
+        )
+        .order_by(InvestigationRecord.id.desc())
+        .first()
+    )
+
+    chain = {}
+    if investigation:
+        try:
+            chain = build_causal_chain(db, investigation_id=investigation.id)
+        except Exception:
+            chain = {}
+
+    pending = (
+        db.query(PendingAction)
+        .filter(PendingAction.target == lab, PendingAction.status == "pending")
+        .order_by(PendingAction.id.desc())
+        .first()
+    )
+    pending_total = db.query(PendingAction).filter(PendingAction.status == "pending").count()
+
+    knowledge_for_lab = 0
+    if investigation:
+        knowledge_for_lab = (
+            db.query(KnowledgeEntry)
+            .filter(KnowledgeEntry.investigation_id == investigation.id)
+            .count()
+        )
+    knowledge_total = db.query(KnowledgeEntry).filter(KnowledgeEntry.active == True).count()  # noqa: E712
+
+    thirty_days = now - timedelta(days=30)
+    investigations_30d = (
+        db.query(InvestigationRecord)
+        .filter(InvestigationRecord.created_at >= thirty_days)
+        .count()
+    )
+    verified_30d = (
+        db.query(RemediationRecord)
+        .filter(
+            RemediationRecord.applied_at >= thirty_days,
+            RemediationRecord.verification_eval_id.isnot(None),
+        )
+        .count()
+    )
+
+    diagnosis = (chain.get("diagnosis") or {}) if isinstance(chain, dict) else {}
+    root_cause = investigation.root_cause if investigation else ""
+    legs = {
+        "symptom": bool(chain.get("symptom")),
+        "evidence": bool(chain.get("evidence")),
+        "diagnosis": bool(root_cause),
+        "adjudication": bool(chain.get("adjudication")),
+        "action": bool(chain.get("action") or pending),
+        "remediation": bool(chain.get("remediation")),
+        "verification": bool(chain.get("verification")),
+    }
+
+    criterion = ""
+    if failing and failing.message:
+        criterion = failing.message.replace("Entry criterion not met: ", "").split(" — ")[0]
+
+    return {
+        "found": True,
+        "lab": lab,
+        "generated_at": now.isoformat(),
+        "window_hours": hours,
+        "signal": {
+            "state": "failing" if failing else ("ready" if latest_by_stage and all(e.outcome == "pass" for e in latest_by_stage.values()) else "unknown"),
+            "cluster": session.get("cluster", ""),
+            "owner": session.get("owner", ""),
+            "catalog_item": session.get("catalog_item", ""),
+            "first_seen": session.get("first_seen"),
+            "last_seen": session.get("last_seen"),
+            "stages": {stage: evaluation.outcome for stage, evaluation in latest_by_stage.items()},
+        },
+        "classification": {
+            "stage": failing.stage_id if failing else None,
+            "failure_class": failing.failure_class if failing else None,
+            "criterion": criterion or None,
+            "message": (failing.message or "")[:200] if failing else None,
+            "at": failing.evaluated_at.isoformat() if failing else None,
+        },
+        "decision": {
+            "investigation_id": investigation.id if investigation else None,
+            "chain_complete": bool(chain.get("chain_complete")) if chain else False,
+            "missing_legs": chain.get("missing_legs", []) if chain else [],
+            "root_cause": (root_cause or str(diagnosis.get("root_cause") or ""))[:300],
+            "legs": legs,
+        },
+        "action": {
+            "pending_for_lab": 1 if pending else 0,
+            "action_type": pending.action_type if pending else None,
+            "confidence": pending.confidence if pending else None,
+            "queue_pending_total": pending_total,
+        },
+        "learning": {
+            "knowledge_for_lab": knowledge_for_lab,
+            "knowledge_total": knowledge_total,
+        },
+        "gate": {
+            "investigations_30d": investigations_30d,
+            "pending_total": pending_total,
+            "verified_30d": verified_30d,
+        },
+        "sources": [
+            "evaluations", "causal-chain", "approval-queue", "knowledge",
+        ],
     }
 
 
@@ -2869,158 +3015,4 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
             "by_family": dict(Counter(r["family"] for r in records).most_common(8)),
         },
         "labs": records[:limit],
-    }
-
-
-def lab_story(db, lab: str, hours: int = 168):
-    """One lab's whole loop, as one object: signal → class → decision → action → learning.
-
-    The demo (and any reviewer) should not have to stitch five endpoints with
-    five different subjects. Everything here is read-only and sourced from
-    stored evidence; absences are reported as absences.
-    """
-    from datetime import datetime, timedelta, timezone
-
-    from db.models import (
-        EvaluationRecord,
-        InvestigationRecord,
-        KnowledgeEntry,
-        PendingAction,
-        RemediationRecord,
-    )
-
-    now = datetime.now(timezone.utc)
-    since = now - timedelta(hours=hours)
-
-    evaluations = (
-        db.query(EvaluationRecord)
-        .filter(
-            EvaluationRecord.lab_code == lab,
-            EvaluationRecord.evaluated_at >= since,
-        )
-        .order_by(EvaluationRecord.evaluated_at.desc())
-        .all()
-    )
-    session = lab_session(db, lab, hours=hours)
-    if not evaluations and not session.get("found"):
-        return {"found": False, "lab": lab, "window_hours": hours}
-
-    latest_by_stage = {}
-    for evaluation in evaluations:
-        latest_by_stage.setdefault(evaluation.stage_id, evaluation)
-    failing = next(
-        (e for e in evaluations if e.outcome == "fail"), None
-    )
-
-    investigation = (
-        db.query(InvestigationRecord)
-        .filter(
-            (InvestigationRecord.namespace == lab)
-            | (InvestigationRecord.lab_code == lab)
-        )
-        .order_by(InvestigationRecord.id.desc())
-        .first()
-    )
-
-    chain = {}
-    if investigation:
-        try:
-            chain = build_causal_chain(db, investigation_id=investigation.id)
-        except Exception:
-            chain = {}
-
-    pending = (
-        db.query(PendingAction)
-        .filter(PendingAction.target == lab, PendingAction.status == "pending")
-        .order_by(PendingAction.id.desc())
-        .first()
-    )
-    pending_total = db.query(PendingAction).filter(PendingAction.status == "pending").count()
-
-    knowledge_for_lab = 0
-    if investigation:
-        knowledge_for_lab = (
-            db.query(KnowledgeEntry)
-            .filter(KnowledgeEntry.investigation_id == investigation.id)
-            .count()
-        )
-    knowledge_total = db.query(KnowledgeEntry).filter(KnowledgeEntry.active == True).count()  # noqa: E712
-
-    thirty_days = now - timedelta(days=30)
-    investigations_30d = (
-        db.query(InvestigationRecord)
-        .filter(InvestigationRecord.created_at >= thirty_days)
-        .count()
-    )
-    verified_30d = (
-        db.query(RemediationRecord)
-        .filter(
-            RemediationRecord.applied_at >= thirty_days,
-            RemediationRecord.verification_eval_id.isnot(None),
-        )
-        .count()
-    )
-
-    diagnosis = (chain.get("diagnosis") or {}) if isinstance(chain, dict) else {}
-    root_cause = investigation.root_cause if investigation else ""
-    legs = {
-        "symptom": bool(chain.get("symptom")),
-        "evidence": bool(chain.get("evidence")),
-        "diagnosis": bool(root_cause),
-        "adjudication": bool(chain.get("adjudication")),
-        "action": bool(chain.get("action") or pending),
-        "remediation": bool(chain.get("remediation")),
-        "verification": bool(chain.get("verification")),
-    }
-
-    criterion = ""
-    if failing and failing.message:
-        criterion = failing.message.replace("Entry criterion not met: ", "").split(" — ")[0]
-
-    return {
-        "found": True,
-        "lab": lab,
-        "generated_at": now.isoformat(),
-        "window_hours": hours,
-        "signal": {
-            "state": "failing" if failing else ("ready" if latest_by_stage and all(e.outcome == "pass" for e in latest_by_stage.values()) else "unknown"),
-            "cluster": session.get("cluster", ""),
-            "owner": session.get("owner", ""),
-            "catalog_item": session.get("catalog_item", ""),
-            "first_seen": session.get("first_seen"),
-            "last_seen": session.get("last_seen"),
-            "stages": {stage: evaluation.outcome for stage, evaluation in latest_by_stage.items()},
-        },
-        "classification": {
-            "stage": failing.stage_id if failing else None,
-            "failure_class": failing.failure_class if failing else None,
-            "criterion": criterion or None,
-            "message": (failing.message or "")[:200] if failing else None,
-            "at": failing.evaluated_at.isoformat() if failing else None,
-        },
-        "decision": {
-            "investigation_id": investigation.id if investigation else None,
-            "chain_complete": bool(chain.get("chain_complete")) if chain else False,
-            "missing_legs": chain.get("missing_legs", []) if chain else [],
-            "root_cause": (root_cause or str(diagnosis.get("root_cause") or ""))[:300],
-            "legs": legs,
-        },
-        "action": {
-            "pending_for_lab": 1 if pending else 0,
-            "action_type": pending.action_type if pending else None,
-            "confidence": pending.confidence if pending else None,
-            "queue_pending_total": pending_total,
-        },
-        "learning": {
-            "knowledge_for_lab": knowledge_for_lab,
-            "knowledge_total": knowledge_total,
-        },
-        "gate": {
-            "investigations_30d": investigations_30d,
-            "pending_total": pending_total,
-            "verified_30d": verified_30d,
-        },
-        "sources": [
-            "evaluations", "causal-chain", "approval-queue", "knowledge",
-        ],
     }
