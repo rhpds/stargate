@@ -64,9 +64,12 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
         # Unknown entries must not hide a later observed required failure.
         # Resolve unknowns only after examining the remaining criteria.
         if criterion.required and passed is False:
-            failure_class = _classify_failure(rubric, evidence)
-            if not failure_class:
-                failure_class = _classify_entry_failure(criterion.name)
+            # An entry gate that failed did not pass, so exit-criteria rules
+            # (e.g. pods_not_ready needs deployment_exists) do not apply — they
+            # were mislabelling teardown namespaces as pods_not_ready.
+            failure_class = _classify_entry_failure(criterion.name)
+            if failure_class not in ENTRY_FAILURE_MAP.values():
+                failure_class = _classify_failure(rubric, evidence) or failure_class
             sub = sub_classify(failure_class, f"Entry criterion not met: {criterion.name}")
             return EvaluationResult(
                 stage_id=rubric.stage,
