@@ -2572,12 +2572,12 @@ def lab_session(db, namespace: str, hours: int = 168):
     }
 
 
-def fleet_divergence(db, hours: int = 24, min_failures: int = 1):
-    """Same lab family passing on one cluster while failing on another.
+def fleet_divergence(db, hours: int = 24, min_sample: int = 5, min_gap: int = 50):
+    """A lab family that works on one cluster and not on another.
 
-    The cleanest platform-vs-lab signal we can produce from data we already
-    have: a lab family that works somewhere and not elsewhere in the same
-    window is a cluster or config problem, not a bad lab.
+    Comparing "any pass" vs "any fail" is useless — every cluster has both.
+    This compares per-cluster pass rates and reports only a meaningful gap
+    (default: ≥50 points, ≥5 evaluations per cluster).
     """
     from collections import defaultdict
     from datetime import datetime, timedelta, timezone
@@ -2608,31 +2608,35 @@ def fleet_divergence(db, hours: int = 24, min_failures: int = 1):
 
     divergences = []
     for (family, stage), clusters in agg.items():
-        passing = [c for c, counts in clusters.items() if counts["pass"] > 0]
-        failing = [c for c, counts in clusters.items() if counts["fail"] > 0]
-        if not passing or not failing:
+        rates = {}
+        for cluster, counts in clusters.items():
+            total = counts["pass"] + counts["fail"]
+            if total < min_sample:
+                continue
+            rates[cluster] = 100 * counts["pass"] / total
+        if len(rates) < 2:
             continue
-        if sum(clusters[c]["fail"] for c in failing) < min_failures:
+        best, worst = max(rates, key=rates.get), min(rates, key=rates.get)
+        if rates[best] - rates[worst] < min_gap:
             continue
         divergences.append({
             "family": family,
             "stage": stage,
+            "gap_points": round(rates[best] - rates[worst]),
+            "best_cluster": {"cluster": best, "pass_pct": round(rates[best])},
+            "worst_cluster": {"cluster": worst, "pass_pct": round(rates[worst])},
             "clusters": [
                 {
                     "cluster": cluster,
-                    "pass": counts["pass"],
-                    "fail": counts["fail"],
-                    "pass_pct": round(100 * counts["pass"] / (counts["pass"] + counts["fail"])),
+                    "pass": clusters[cluster]["pass"],
+                    "fail": clusters[cluster]["fail"],
+                    "pass_pct": round(rates[cluster]) if cluster in rates else None,
                 }
-                for cluster, counts in sorted(clusters.items())
+                for cluster in sorted(clusters)
             ],
-            "failing_clusters": sorted(failing),
-            "passing_clusters": sorted(passing),
         })
 
-    divergences.sort(
-        key=lambda row: -sum(c["fail"] for c in row["clusters"])
-    )
+    divergences.sort(key=lambda row: -row["gap_points"])
     return {"window_hours": hours, "divergences": divergences[:20]}
 
 
