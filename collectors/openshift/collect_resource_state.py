@@ -26,7 +26,9 @@ class CollectedEvidence:
 
 def collect_namespace(data: Dict) -> CollectedEvidence:
     phase = data.get("status", {}).get("phase", "Unknown")
-    name = data.get("metadata", {}).get("name", "unknown")
+    metadata = data.get("metadata", {})
+    name = metadata.get("name", "unknown")
+    annotations = metadata.get("annotations") or {}
     return CollectedEvidence(
         resource_kind="Namespace",
         resource_name=name,
@@ -34,6 +36,12 @@ def collect_namespace(data: Dict) -> CollectedEvidence:
         observed={
             "namespace_exists": phase == "Active",
             "phase": phase,
+            # Identity + ownership: who to ask when this lab fails, and which
+            # catalog item it came from.
+            "name": name,
+            "catalog_item": annotations.get("env_type", ""),
+            "owner": annotations.get("owner") or annotations.get("owner_email") or "",
+            "owner_email": annotations.get("owner_email", ""),
         },
     )
 

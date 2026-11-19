@@ -815,3 +815,18 @@ class RotationCredential(Base):
     coverage = Column(String(30), nullable=True)
     jira_keys = Column(String(200), nullable=True)
     verified_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class PrecisionDigest(Base):
+    """A stored weekly precision narrative — the RAG-safe half of the numbers.
+
+    Tables belong behind tools; a digest is a document that can be cited. One
+    row per period; the latest is added to the `ask` corpus.
+    """
+
+    __tablename__ = "precision_digests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    period = Column(String(20), nullable=False, unique=True)
+    markdown = Column(Text, nullable=False)
+    generated_at = Column(DateTime(timezone=True), nullable=False, index=True)

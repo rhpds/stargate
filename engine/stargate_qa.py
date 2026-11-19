@@ -170,6 +170,21 @@ def _knowledge_corpus() -> List[Dict]:
     except Exception as error:
         logger.debug("taxonomy corpus unavailable: %s", error)
 
+    # The stored weekly precision digest: a narrative, not a table — the only
+    # safe way to put numbers in a retrieval corpus.
+    try:
+        from db.database import get_session_factory
+        from db.repository import latest_precision_digest
+        session = get_session_factory()()
+        try:
+            digest = latest_precision_digest(session)
+            if digest:
+                docs.extend(_split_doc(f"precision-digest:{digest.period}", digest.markdown))
+        finally:
+            session.close()
+    except Exception as error:
+        logger.debug("precision digest unavailable: %s", error)
+
     docs_dir = Path(__file__).parent.parent / "docs"
     for name in _DOC_FILES:
         try:
