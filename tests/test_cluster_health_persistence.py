@@ -25,7 +25,8 @@ def test_cluster_health_retries_transient_api_failure(monkeypatch):
     worker.persist_cluster_health()
 
     assert calls[0] == calls[1] == "http://stargate-api:8090/runs"
-    assert len(calls) == 9  # one retry plus seven successful requests
+    assert len(calls) == 10  # one retry plus eight successful requests
+    assert calls[-1].endswith("/complete")  # the run is closed, not left running
 
 
 def test_cluster_health_run_ids_include_subsecond_uniqueness(monkeypatch):
