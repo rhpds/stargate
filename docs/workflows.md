@@ -10,62 +10,24 @@ For agent/MCP access, see [mcp-agent-guide.md](mcp-agent-guide.md).
 
 ## 1. The Main Loop: Detect → Classify → Investigate → Suggest → Approve → Verify
 
+```mermaid
+flowchart LR
+  SC["Scheduled scan"] --> EV["Evidence<br/>namespace, pods, routes, endpoints, VMs"]
+  EV --> RUB{"Rubric evaluation"}
+  RUB -->|pass| OK["Stage pass<br/>run completed"]
+  RUB -->|fail| CLS["Failure classification"]
+  CLS --> INV["Investigation agent<br/>15 tools, causal chain"]
+  INV --> DX["Diagnosis"]
+  DX --> ADJ["Adjudication / review"]
+  ADJ --> PA["Pending action<br/>human approval"]
+  PA --> EX["Gated executor"]
+  EX --> VE{"Verification eval"}
+  VE -->|pass| KB["Knowledge base + receipt"]
+  VE -->|fail| INV
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌──────────┐    │
-│  │ SCANNER  │───▶│ RUBRIC   │───▶│ CLASSIFIER   │───▶│ SONNET   │    │
-│  │ (5m/15m/ │    │ EVALUATE │    │ (LLM + regex │    │ AGENT    │    │
-│  │  1h)     │    │          │    │  + taxonomy) │    │ (15 tools)│    │
-│  └────┬─────┘    └────┬─────┘    └──────┬───────┘    └────┬─────┘    │
-│       │               │                 │                  │          │
-│       ▼               ▼                 ▼                  ▼          │
-│  ┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌──────────┐    │
-│  │ Evidence │───▶│Evaluation│───▶│  Proposed    │───▶│Investiga-│    │
-│  │ submitted│    │ Records  │    │Classification│    │tion +    │    │
-│  │ to API   │    │(pass/fail)│   │(quality-gated)│   │diagnosis │    │
-│  └──────────┘    └──────────┘    └──────────────┘    └────┬─────┘    │
-│                                                            │          │
-│                              ┌─────────────────────────────┘          │
-│                              ▼                                        │
-│                    ┌──────────────────┐                               │
-│                    │ ACTIONABLE?      │                               │
-│                    │ (verdict from    │                               │
-│                    │  investigation)  │                               │
-│                    └────┬────────┬────┘                               │
-│                         │        │                                    │
-│                    YES  │        │  NO (TRANSIENT/UNKNOWN)             │
-│                         ▼        ▼                                    │
-│              ┌────────────┐  ┌──────────┐                            │
-│              │ Pending    │  │ Auto-    │                            │
-│              │ Action     │  │ resolve  │                            │
-│              │ (queued)   │  │ (shadow) │                            │
-│              └─────┬──────┘  └──────────┘                            │
-│                    │                                                  │
-│                    ▼                                                  │
-│              ┌────────────┐     ┌──────────┐                        │
-│              │ GEOLUX     │────▶│ HUMAN    │                        │
-│              │ precheck   │     │ decides  │                        │
-│              │(safe/unsafe)│    │(approve/ │                        │
-│              └────────────┘     │ reject)  │                        │
-│                                 └────┬─────┘                        │
-│                                      │ approve                      │
-│                                      ▼                              │
-│                              ┌──────────────┐                       │
-│                              │ GATED        │                       │
-│                              │ EXECUTOR     │                       │
-│                              │ (5 gates)    │                       │
-│                              └──────┬───────┘                       │
-│                                     │                               │
-│                                     ▼                               │
-│                              ┌──────────────┐                       │
-│                              │ VERIFICATION │                       │
-│                              │ EVAL         │                       │
-│                              │ (pass = done)│                       │
-│                              └──────────────┘                       │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+
+Full diagrams, including the architecture and data model:
+[diagrams.md](diagrams.md).
 
 ### Step-by-step with data locations
 
