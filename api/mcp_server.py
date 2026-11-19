@@ -176,6 +176,32 @@ def get_failure_precision(hours: int = 24) -> str:
 
 
 @mcp.tool()
+def get_evidence_completeness(hours: int = 24) -> str:
+    """Of the runs failing each class, how many carry the evidence needed to
+    diagnose it. A failure you cannot diagnose costs an investigation and
+    returns nothing."""
+    db = _db()
+    try:
+        from db.repository import evidence_completeness
+        return json.dumps(evidence_completeness(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def get_failure_owners(hours: int = 24) -> str:
+    """Which owner/team is behind the failing labs, grouped from namespace
+    annotations, with lab counts, failure counts and top classes. Labs without
+    an annotation are reported as (unattributed), not dropped."""
+    db = _db()
+    try:
+        from db.repository import failure_owners
+        return json.dumps(failure_owners(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_failure_classes() -> str:
     """The failure-classification taxonomy (wire format): every class with
     its patterns, severity, source catalog, and category."""

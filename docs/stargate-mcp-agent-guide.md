@@ -70,7 +70,7 @@ claude mcp add stargate -- npx -y mcp-remote \
 stale CLI syntax — both fixed here. If you find another rough edge, the
 repo is public: contributions welcome.)
 
-## The tools (20 total — 18 query, 2 review)
+## The tools (22 total — 20 query, 2 review)
 
 For per-tool examples — the questions to ask, the arguments, and real
 responses from production — see the **[MCP Tool
@@ -88,6 +88,8 @@ Cookbook](mcp-tool-cookbook.md)**. The tables below are the summary.
 | **get_showroom_context** | Why a showroom failed: route URL, HTTP status, ready endpoints, catalog item — from stored evidence, so it works after the sandbox is deleted |
 | **get_failure_classes** | The failure taxonomy: classes, patterns, severity, remediation guidance |
 | **get_failure_precision** | Which failure classes are real: volume, labs affected, and the share that self-resolve in the window — the noise metric |
+| **get_evidence_completeness** | Can we diagnose what we report? Per class, the share of failing runs carrying the evidence that class needs |
+| **get_failure_owners** | Who owns the failing labs, from namespace annotations, with failure counts and top classes |
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |
 | **get_recent_episodes** | Recent lifecycle episodes across the fleet |
 | **get_cluster_saturation** | Which clusters show the capacity-saturation signature (rate spike + diverse symptoms + labs failing here while passing elsewhere), with severity and remediation guidance |

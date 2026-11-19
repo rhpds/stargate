@@ -10,6 +10,7 @@ from api.routers.admin.monitoring import router as monitoring_router
 from api.routers.admin.analytics import router as analytics_router
 from api.routers.admin.functional import router as functional_router
 from api.routers.admin.stateless_pilot import router as stateless_pilot_router
+from api.routers.admin.precision import router as precision_router
 
 router = APIRouter()
 router.include_router(scheduler_router)
@@ -20,6 +21,7 @@ router.include_router(monitoring_router)
 router.include_router(analytics_router)
 router.include_router(functional_router)
 router.include_router(stateless_pilot_router)
+router.include_router(precision_router)
 
 # Re-exports for external consumers
 from api.routers.admin.approval import VALID_EXECUTION_MODES  # noqa: E402, F401

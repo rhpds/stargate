@@ -2165,7 +2165,7 @@ def get_run_showroom_context(db, run_id: str):
     }
 
 
-def failure_precision(db, hours: int = 24):
+def failure_precision(db, hours: int = 24, since=None, until=None):
     """Per failure class: volume, reach, and whether it self-resolves.
 
     `self_resolved` = a lab that failed this class also passed the same stage
@@ -2177,13 +2177,15 @@ def failure_precision(db, hours: int = 24):
 
     from db.models import EvaluationRecord
 
-    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    until = until or datetime.now(timezone.utc)
+    since = since or (until - timedelta(hours=hours))
 
     passes = {
         (stage, lab)
         for stage, lab in db.query(EvaluationRecord.stage_id, EvaluationRecord.lab_code)
         .filter(
             EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.evaluated_at < until,
             EvaluationRecord.outcome == "pass",
             EvaluationRecord.lab_code.isnot(None),
         )
@@ -2199,6 +2201,7 @@ def failure_precision(db, hours: int = 24):
         )
         .filter(
             EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.evaluated_at < until,
             EvaluationRecord.failure_class.isnot(None),
         )
         .all()
@@ -2244,3 +2247,172 @@ def failure_precision(db, hours: int = 24):
             "evaluations": sum(row["evaluations"] for row in classes),
         },
     }
+
+
+def save_precision_digest(db, period: str, markdown: str, generated_at=None):
+    """Upsert one week's digest."""
+    from datetime import datetime, timezone
+
+    from db.models import PrecisionDigest
+
+    generated_at = generated_at or datetime.now(timezone.utc)
+    row = db.query(PrecisionDigest).filter_by(period=period).first()
+    if row is None:
+        row = PrecisionDigest(period=period, markdown=markdown, generated_at=generated_at)
+        db.add(row)
+    else:
+        row.markdown = markdown
+        row.generated_at = generated_at
+    db.commit()
+    return row
+
+
+def latest_precision_digest(db):
+    """The most recently generated digest, or None."""
+    from db.models import PrecisionDigest
+
+    return (
+        db.query(PrecisionDigest)
+        .order_by(PrecisionDigest.generated_at.desc())
+        .first()
+    )
+
+
+# Evidence that should exist for a class to be diagnosable at all.
+EXPECTED_EVIDENCE = {
+    "showroom_not_ready": ("Route", "ShowroomHealth"),
+    "showroom_content_missing": ("Route", "ShowroomHealth"),
+    "pods_not_ready": ("PodList", "Deployment"),
+    "deployment_not_ready": ("Deployment", "PodList"),
+    "vmi_not_running": ("VirtualMachineInstance", "VirtualMachine"),
+    "service_has_no_endpoints": ("Endpoints", "Service"),
+    "route_not_admitted": ("Route",),
+    "pvc_pending": ("PersistentVolumeClaim",),
+}
+
+
+def evidence_completeness(db, hours: int = 24):
+    """Of the runs failing a class, how many carry the evidence to diagnose it?
+
+    A failure you cannot diagnose is worse than no failure record: it costs an
+    investigation and returns nothing.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord, EvidenceRecord
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    failing = (
+        db.query(EvaluationRecord.failure_class, EvaluationRecord.run_id)
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.failure_class.in_(list(EXPECTED_EVIDENCE)),
+        )
+        .distinct()
+        .all()
+    )
+
+    runs_by_class = {}
+    for failure_class, run_id in failing:
+        runs_by_class.setdefault(failure_class, set()).add(run_id)
+
+    all_runs = {run_id for runs in runs_by_class.values() for run_id in runs}
+    kinds_by_run = {}
+    if all_runs:
+        for run_id, evidence_type in (
+            db.query(EvidenceRecord.run_id, EvidenceRecord.type)
+            .filter(EvidenceRecord.run_id.in_(all_runs))
+            .distinct()
+        ):
+            kinds_by_run.setdefault(run_id, set()).add(evidence_type)
+
+    rows = []
+    for failure_class, run_ids in runs_by_class.items():
+        expected = EXPECTED_EVIDENCE[failure_class]
+        covered = sum(
+            1 for run_id in run_ids
+            if all(kind in kinds_by_run.get(run_id, set()) for kind in expected)
+        )
+        rows.append({
+            "failure_class": failure_class,
+            "failing_runs": len(run_ids),
+            "expected": list(expected),
+            "covered_runs": covered,
+            "coverage_pct": round(100 * covered / len(run_ids)) if run_ids else 0,
+        })
+    rows.sort(key=lambda row: (row["coverage_pct"], -row["failing_runs"]))
+    return {"window_hours": hours, "classes": rows}
+
+
+def failure_owners(db, hours: int = 24):
+    """Which owner/team is behind the failing labs, from namespace annotations.
+
+    Ownership is recorded by the provisioner; StarGate only reads it. Labs
+    without an annotation are reported as unattributed rather than dropped.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord, EvidenceRecord
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    owners = {}
+    for observed, timestamp in (
+        db.query(EvidenceRecord.observed, EvidenceRecord.timestamp)
+        .filter(
+            EvidenceRecord.type == "Namespace",
+            EvidenceRecord.timestamp >= since,
+        )
+        .order_by(EvidenceRecord.timestamp.asc())
+    ):
+        data = observed or {}
+        name = data.get("name")
+        if not name:
+            continue
+        owners[name] = {
+            "owner": data.get("owner") or "",
+            "owner_email": data.get("owner_email") or "",
+            "catalog_item": data.get("catalog_item") or "",
+        }
+
+    by_lab = {}
+    for failure_class, lab, cluster in (
+        db.query(
+            EvaluationRecord.failure_class,
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.failure_class.isnot(None),
+            EvaluationRecord.lab_code.isnot(None),
+        )
+        .all()
+    ):
+        entry = by_lab.setdefault(lab, {"failures": 0, "classes": set(), "clusters": set()})
+        entry["failures"] += 1
+        entry["classes"].add(failure_class)
+        if cluster:
+            entry["clusters"].add(cluster)
+
+    grouped = {}
+    for lab, info in by_lab.items():
+        who = owners.get(lab, {}).get("owner") or "(unattributed)"
+        entry = grouped.setdefault(who, {
+            "owner": who, "labs": set(), "failures": 0, "classes": set(),
+        })
+        entry["labs"].add(lab)
+        entry["failures"] += info["failures"]
+        entry["classes"] |= info["classes"]
+
+    rows = [
+        {
+            "owner": entry["owner"],
+            "labs": len(entry["labs"]),
+            "failures": entry["failures"],
+            "top_classes": sorted(entry["classes"])[:4],
+        }
+        for entry in grouped.values()
+    ]
+    rows.sort(key=lambda row: -row["failures"])
+    return {"window_hours": hours, "owners": rows}
