@@ -2760,3 +2760,110 @@ def mcp_usage(db, hours: int = 168):
         "methods": dict(by_method.most_common()),
         "daily": [{"date": day, "calls": count} for day, count in sorted(daily.items())],
     }
+
+
+def live_labs(db, window_hours: int = 2, limit: int = 500):
+    """The current state of every lab seen in the window.
+
+    "Live" means the scanner evaluated it recently — roughly every 5-15
+    minutes. State is derived per stage from the latest outcome, so a lab that
+    failed deployment but passed namespace is reported as failing, not ready.
+    Owner/catalog come from LabMapping: namespace annotations are usually empty.
+    """
+    from collections import Counter
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord, LabMapping
+    from engine.namespace import strip_sandbox_prefix
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=window_hours)
+
+    def _aware(value):
+        # SQLite returns naive datetimes; Postgres returns aware ones.
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+    rows = (
+        db.query(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+            EvaluationRecord.stage_id,
+            EvaluationRecord.outcome,
+            EvaluationRecord.failure_class,
+            EvaluationRecord.evaluated_at,
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.lab_code.isnot(None),
+        )
+        .order_by(EvaluationRecord.evaluated_at.asc())
+        .all()
+    )
+
+    labs = {}
+    for lab, cluster, stage, outcome, failure_class, at in rows:
+        entry = labs.setdefault(lab, {
+            "lab": lab,
+            "cluster": cluster or "",
+            "stages": {},
+            "first_seen": at,
+            "last_seen": at,
+            "failure_class": None,
+        })
+        entry["stages"][stage] = outcome
+        entry["last_seen"] = at
+        if cluster:
+            entry["cluster"] = cluster
+        if outcome == "fail" and failure_class:
+            entry["failure_class"] = failure_class
+
+    mappings = {}
+    if labs:
+        for mapping in (
+            db.query(LabMapping).filter(LabMapping.lab_code.in_(list(labs))).all()
+        ):
+            mappings[mapping.lab_code] = mapping
+
+    records = []
+    for lab, entry in labs.items():
+        entry["first_seen"] = _aware(entry["first_seen"])
+        entry["last_seen"] = _aware(entry["last_seen"])
+        outcomes = set(entry["stages"].values())
+        if "fail" in outcomes:
+            state = "failing"
+        elif outcomes == {"pass"}:
+            state = "ready"
+        else:
+            state = "unknown"
+        mapping = mappings.get(lab)
+        records.append({
+            "lab": lab,
+            "family": strip_sandbox_prefix(lab),
+            "cluster": entry["cluster"],
+            "state": state,
+            "stages": entry["stages"],
+            "failure_class": entry["failure_class"] if state == "failing" else None,
+            "owner": (mapping.owner if mapping else "") or "",
+            "catalog_item": (mapping.ci_slug if mapping else "") or "",
+            "first_seen": entry["first_seen"].isoformat(),
+            "last_seen": entry["last_seen"].isoformat(),
+            "age_minutes": round((now - entry["first_seen"]).total_seconds() / 60),
+            "idle_minutes": round((now - entry["last_seen"]).total_seconds() / 60),
+        })
+
+    records.sort(key=lambda r: (r["state"] != "failing", -r["age_minutes"]))
+    summary = Counter(record["state"] for record in records)
+    return {
+        "window_hours": window_hours,
+        "generated_at": now.isoformat(),
+        "summary": {
+            "labs": len(records),
+            "ready": summary.get("ready", 0),
+            "failing": summary.get("failing", 0),
+            "unknown": summary.get("unknown", 0),
+            "unowned": sum(1 for r in records if not r["owner"]),
+            "by_cluster": dict(Counter(r["cluster"] for r in records).most_common()),
+            "by_family": dict(Counter(r["family"] for r in records).most_common(8)),
+        },
+        "labs": records[:limit],
+    }
