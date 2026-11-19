@@ -176,6 +176,32 @@ def get_failure_precision(hours: int = 24) -> str:
 
 
 @mcp.tool()
+def get_session_coverage(hours_back: int = 6, hours_ahead: int = 6) -> str:
+    """Planned seats vs reality for sessions in the window: for each scheduled
+    session, how many sandboxes were provisioned, how many are ready, failing
+    or unknown, and how many seats never appeared.
+
+    Shape 1 only (one sandbox per attendee). Multi-user labs show as one
+    namespace, not N seats — that needs RUM or app-level telemetry.
+    """
+    from api.routers.capacity import _lab_code_resolution
+    from collectors.labagator.collect_labagator import collect_sessions
+    from engine.session_coverage import coverage
+
+    db = _db()
+    try:
+        sessions = collect_sessions() or []
+        catalog_by_code = _lab_code_resolution()
+        return json.dumps(
+            coverage(db, sessions, catalog_by_code,
+                     hours_back=hours_back, hours_ahead=hours_ahead),
+            default=str,
+        )
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_live_labs(window_hours: int = 2, limit: int = 200) -> str:
     """What is running right now: every lab the scanner saw in the window, its
     state (ready / failing / unknown), current failure class, owner, catalog
