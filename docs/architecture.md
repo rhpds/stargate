@@ -20,52 +20,36 @@ Labagator, and Demolition to produce a unified view of lab readiness.
 
 ## Component Diagram
 
-```
-                          +--------------------------+
-                          |      React Frontend      |
-                          |   (Vite / Tailwind 4)    |
-                          +------------+-------------+
-                                       |
-                                       | HTTP
-                                       v
-+------------------+          +--------+--------+         +-----------------+
-|   LLM Service    | <------> |   FastAPI API   | <-----> |   PostgreSQL    |
-| Granite 3.2 8B   |  REST    |   (api/app.py)  |  SQL    | (15, persistent)|
-|  via LiteLLM     |          +--+-----------+--+         +-----------------+
-+------------------+             |           |
-                                 |           |
-              +------------------+           +------------------+
-              |                                                 |
-              v                                                 v
-   +----------+-----------+                       +-------------+----------+
-   |   Scanner Scheduler  |                       |   Babylon Worker       |
-   |  (cli/scheduler.py)  |                       |  (cli/babylon_worker)  |
-   +---+--+--+--+--+--+---+                       +------------------------+
-       |  |  |  |  |  |                                      |
-       v  v  v  v  v  v                                      v
-   +------+ +------+ +------+                   +------------+----------+
-   |cluster-05| |cluster-07| |cluster-08|  ...              | cluster-us-east         |
-   |cluster-09| |infra | |infra |                   | (Babylon ctrl plane)  |
-   |      | |  01  | |  02  |                   | Poolboy / Anarchy     |
-   +------+ +------+ +------+                   +-----------------------+
-       |                                                     |
-       v                                                     v
-  +---------+     +------------+     +----------+     +-------------+
-  | Rubric  |     |  Policy    |     | Event    |     | Labagator / |
-  | Engine  |     |  Engine    |     |   Bus    |     | Demolition  |
-  |(engine/)|     |(engine/    |     |(events/) |     | (external)  |
-  |         |     | policy.py) |     |          |     +-------------+
-  +---------+     +------------+     +----------+
-
-              +-------------------------------------------+
-              |     Synthetic Client Emulator             |
-              |  (stargate-synthetic-client-emulator/)    |
-              |  7 scenarios, feedback loop, substrate    |
-              +-------------------------------------------+
-
+```mermaid
+flowchart TB
+  subgraph Sources["Sources — read-only"]
+    C["5 OpenShift clusters<br/>ocpv05–ocpv09"]
+    A["4 AAP controllers"]
+    J["Jira · GitHub · Labagator"]
+    B["Babylon / Anarchy · Sandbox API"]
+  end
+  COLL["Collectors and scanners<br/>scheduler 5–15 min · babylon 180 s"]
+  API["FastAPI ingestion<br/>runs · stages · evidence · evaluations"]
+  DB[("PostgreSQL<br/>evidence, evaluations, investigations,<br/>snapshots, mappings")]
+  subgraph Engine["Evaluation and reasoning"]
+    RUB["Rubric evaluator"]
+    CLS["Classifier"]
+    INV["Investigation agent"]
+    ADJ["Adjudication"]
+    CAP["Capacity and demand"]
+  end
+  subgraph Surfaces["Surfaces"]
+    REST["REST API"]
+    MCP["MCP server (28 tools)"]
+    UI["React dashboard"]
+  end
+  Sources --> COLL --> API --> DB
+  DB --> Engine --> DB
+  DB --> Surfaces
 ```
 
----
+Full set, including the event workflow and identity model:
+[diagrams.md](diagrams.md).
 
 ## Data Flow
 
