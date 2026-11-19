@@ -2505,13 +2505,25 @@ def lab_session(db, namespace: str, hours: int = 168):
     anarchy = [item for item in evidence if item.type == "AnarchySubject"]
     latest_anarchy = anarchy[-1].observed if anarchy else {}
 
+    # Namespace annotations are not always populated; the provisioner's
+    # mapping (lab_code → owner/ci_slug) is the next best identity.
+    from db.models import LabMapping, RunRecord as _RunRecord
+
+    mapping = db.query(LabMapping).filter(LabMapping.lab_code == namespace).first()
+    run_rows = (
+        db.query(_RunRecord).filter(_RunRecord.run_id.in_(run_ids)).all()
+        if run_ids else []
+    )
+
     failed = [evaluation for evaluation in evals if evaluation.outcome == "fail"]
     owners = {
-        "owner": (latest_namespace or {}).get("owner", ""),
-        "owner_email": (latest_namespace or {}).get("owner_email", ""),
-        "catalog_item": (latest_namespace or {}).get("catalog_item", ""),
+        "owner": (latest_namespace or {}).get("owner") or (mapping.owner if mapping else "") or "",
+        "owner_email": (latest_namespace or {}).get("owner_email") or "",
+        "catalog_item": (latest_namespace or {}).get("catalog_item")
+        or (mapping.ci_slug if mapping else "")
+        or "",
     }
-    clusters = Counter(run.cluster_name for run in runs if run.cluster_name)
+    clusters = Counter(run.cluster_name for run in run_rows if run.cluster_name)
 
     return {
         "found": True,
@@ -2525,9 +2537,9 @@ def lab_session(db, namespace: str, hours: int = 168):
         "last_seen": last_seen.isoformat(),
         "duration_minutes": round((last_seen - first_seen).total_seconds() / 60),
         "runs": {
-            "total": len(runs),
-            "failed": sum(1 for run in runs if run.status == "failed"),
-            "open": sum(1 for run in runs if run.status in ("pending", "running")),
+            "total": len(run_rows),
+            "failed": sum(1 for run in run_rows if run.status == "failed"),
+            "open": sum(1 for run in run_rows if run.status in ("pending", "running")),
         },
         "evaluations": {
             "total": len(evals),

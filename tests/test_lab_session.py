@@ -116,3 +116,34 @@ class TestSurfaces:
 
         assert body["found"] is True
         assert body["evaluations"]["total"] == 1
+
+
+class TestIdentityFallback:
+    def test_uses_the_provisioner_mapping_when_annotations_are_empty(self, db):
+        from db.models import LabMapping
+        from db.repository import lab_session
+
+        _run(db, "r5")
+        _eval(db, "r5", "namespace-ready", "pass", 1)
+        _evidence(db, "r5", "Namespace", {
+            "name": "sandbox-x", "phase": "Active", "owner": "", "catalog_item": "",
+        })
+        db.add(LabMapping(lab_code="sandbox-x", owner="babylon",
+                          ci_slug="zero-touch-base-rhel"))
+        db.commit()
+
+        session = lab_session(db, "sandbox-x")
+
+        assert session["owner"] == "babylon"
+        assert session["catalog_item"] == "zero-touch-base-rhel"
+
+    def test_counts_container_runs(self, db):
+        from db.repository import lab_session
+
+        _run(db, "zt-rhel-9", namespace="sg-ocpv08-xyz")
+        _eval(db, "zt-rhel-9", "showroom-healthy", "pass", 2, lab="sandbox-z")
+
+        session = lab_session(db, "sandbox-z")
+
+        assert session["runs"]["total"] == 1
+        assert session["cluster"] == "ocpv08"
