@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import subprocess
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -46,6 +47,17 @@ def collect_namespace(data: Dict) -> CollectedEvidence:
     )
 
 
+def _age_minutes(timestamp: Optional[str]) -> Optional[int]:
+    """Minutes since an RFC3339 creationTimestamp, or None if unparseable."""
+    if not timestamp:
+        return None
+    try:
+        created = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return int((datetime.now(timezone.utc) - created).total_seconds() // 60)
+
+
 def collect_deployment(data: Dict) -> CollectedEvidence:
     metadata = data.get("metadata", {})
     spec = data.get("spec", {})
@@ -57,19 +69,27 @@ def collect_deployment(data: Dict) -> CollectedEvidence:
     unavailable = status.get("unavailableReplicas", 0) or 0
 
     conditions = {c["type"]: c["status"] for c in status.get("conditions", [])}
+    available_condition = conditions.get("Available") == "True"
 
     return CollectedEvidence(
         resource_kind="Deployment",
         resource_name=metadata.get("name", "unknown"),
         namespace=metadata.get("namespace", "unknown"),
         observed={
+            # Naming the deployment is the difference between "something is
+            # not ready" and a diagnosis.
+            "name": metadata.get("name", "unknown"),
             "deployment_exists": True,
             "desired_replicas": desired,
             "ready_replicas": ready,
             "available_replicas": available,
             "unavailable_replicas": unavailable,
-            "desired_replicas_ready": ready >= desired and desired > 0,
-            "available": conditions.get("Available") == "True",
+            # A Deployment scaled to zero is complete by Kubernetes' own
+            # definition (Available=True). The old `desired > 0` made it fail
+            # forever: 56% of pods_not_ready was this one condition.
+            "desired_replicas_ready": ready >= desired and (desired > 0 or available_condition),
+            "available": available_condition,
+            "age_minutes": _age_minutes(metadata.get("creationTimestamp")),
         },
     )
 
@@ -96,10 +116,13 @@ def collect_pods(data: Dict) -> CollectedEvidence:
         total_restarts = sum(cs.get("restartCount", 0) for cs in container_statuses)
 
         is_crashloop = False
+        waiting_reason = ""
         for cs in container_statuses:
             waiting = cs.get("state", {}).get("waiting", {})
             if waiting.get("reason") == "CrashLoopBackOff":
                 is_crashloop = True
+            if waiting.get("reason") and not waiting_reason:
+                waiting_reason = waiting["reason"]
 
         if pod_ready:
             ready_count += 1
@@ -112,6 +135,8 @@ def collect_pods(data: Dict) -> CollectedEvidence:
             "ready": pod_ready,
             "restarts": total_restarts,
             "crashloop": is_crashloop,
+            "waiting_reason": waiting_reason,
+            "age_minutes": _age_minutes(pod_meta.get("creationTimestamp")),
         })
 
     return CollectedEvidence(
@@ -124,6 +149,15 @@ def collect_pods(data: Dict) -> CollectedEvidence:
             "crashloop_pods": crashloop_count,
             "no_crashloop_pods": crashloop_count == 0,
             "all_pods_ready": ready_count == total and total > 0,
+            # Warm-up is not failure: a pod younger than the start-up budget
+            # that is not ready yet is unobserved, not broken.
+            "unready_pods_are_young": bool(
+                [d for d in pod_details if not d["ready"]]
+            ) and all(
+                d["age_minutes"] is not None and d["age_minutes"] < 15
+                for d in pod_details
+                if not d["ready"]
+            ),
             "pod_details": pod_details,
         },
     )

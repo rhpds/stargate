@@ -26,14 +26,34 @@ def normalize_for_deployment_ready(evidence_list: List[CollectedEvidence]) -> Di
         "desired_replicas_ready": False,
         "no_crashloop_pods": True,
     }
+    deployment_flags = []
+    deployment_young = []
+    pods_all_ready = True
+    pods_unready_young = False
+    saw_pods = False
+
     for ev in evidence_list:
         if ev.resource_kind == "Namespace":
             result["namespace_exists"] = ev.observed.get("namespace_exists", False)
         elif ev.resource_kind == "Deployment":
-            result["deployment_exists"] = ev.observed.get("deployment_exists", False)
-            result["desired_replicas_ready"] = ev.observed.get("desired_replicas_ready", False)
+            result["deployment_exists"] = result["deployment_exists"] or ev.observed.get("deployment_exists", False)
+            deployment_flags.append(bool(ev.observed.get("desired_replicas_ready", False)))
+            age = ev.observed.get("age_minutes")
+            deployment_young.append(age is not None and age < 15)
         elif ev.resource_kind == "PodList":
-            result["no_crashloop_pods"] = ev.observed.get("no_crashloop_pods", True)
+            saw_pods = True
+            result["no_crashloop_pods"] = result["no_crashloop_pods"] and ev.observed.get("no_crashloop_pods", True)
+            pods_all_ready = pods_all_ready and ev.observed.get("all_pods_ready", True)
+            pods_unready_young = ev.observed.get("unready_pods_are_young", False)
+
+    if deployment_flags:
+        if all(deployment_flags):
+            result["desired_replicas_ready"] = True
+        elif all(deployment_young) or (saw_pods and not pods_all_ready and pods_unready_young):
+            # Still starting: the criterion is unobserved, not failed.
+            result["desired_replicas_ready"] = None
+        else:
+            result["desired_replicas_ready"] = False
     return result
 
 
