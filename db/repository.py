@@ -2416,3 +2416,145 @@ def failure_owners(db, hours: int = 24):
     ]
     rows.sort(key=lambda row: -row["failures"])
     return {"window_hours": hours, "owners": rows}
+
+
+def lab_session(db, namespace: str, hours: int = 168):
+    """One lab's life, assembled from what we already recorded.
+
+    A lab is identified by its namespace: scans store it as `lab_code`, while
+    container runs store a different `namespace`, so both are followed. This is
+    the environment timeline — readiness, flapping, failures and teardown — not
+    user behaviour (that needs RUM, which the showroom does not have yet).
+    """
+    from collections import Counter, defaultdict
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord, EvidenceRecord, RunRecord
+
+    until = datetime.now(timezone.utc)
+    since = until - timedelta(hours=hours)
+
+    runs = (
+        db.query(RunRecord)
+        .filter(RunRecord.namespace == namespace, RunRecord.started_at >= since)
+        .all()
+    )
+    run_ids = {run.run_id for run in runs}
+
+    evals = (
+        db.query(EvaluationRecord)
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.evaluated_at < until,
+            (EvaluationRecord.lab_code == namespace)
+            | (EvaluationRecord.run_id.in_(run_ids) if run_ids else False),
+        )
+        .order_by(EvaluationRecord.evaluated_at.asc())
+        .all()
+    )
+    run_ids |= {evaluation.run_id for evaluation in evals}
+
+    evidence = []
+    if run_ids:
+        evidence = (
+            db.query(EvidenceRecord)
+            .filter(EvidenceRecord.run_id.in_(run_ids))
+            .order_by(EvidenceRecord.timestamp.asc())
+            .all()
+        )
+
+    if not runs and not evals and not evidence:
+        return {"found": False, "namespace": namespace, "window_hours": hours}
+
+    stamps = [run.started_at for run in runs if run.started_at]
+    stamps += [evaluation.evaluated_at for evaluation in evals if evaluation.evaluated_at]
+    stamps += [item.timestamp for item in evidence if item.timestamp]
+    first_seen = min(stamps)
+    last_seen = max(stamps)
+
+    # Stage-by-stage transitions: fail→pass is a flap, not progress.
+    by_stage = defaultdict(list)
+    for evaluation in evals:
+        by_stage[evaluation.stage_id].append(evaluation)
+
+    transitions = []
+    flaps = 0
+    first_pass = {}
+    for stage, sequence in by_stage.items():
+        previous = None
+        for evaluation in sequence:
+            if previous is not None and evaluation.outcome != previous:
+                transitions.append({
+                    "at": evaluation.evaluated_at.isoformat(),
+                    "stage": stage,
+                    "from": previous,
+                    "to": evaluation.outcome,
+                })
+                if previous == "fail" and evaluation.outcome == "pass":
+                    flaps += 1
+            if evaluation.outcome == "pass" and stage not in first_pass:
+                first_pass[stage] = evaluation.evaluated_at
+            previous = evaluation.outcome
+
+    ready_at = max(first_pass.values()) if first_pass else None
+    observed_stages = {evaluation.stage_id for evaluation in evals}
+    all_stages_passed = observed_stages and observed_stages == set(first_pass)
+
+    namespace_evidence = [item for item in evidence if item.type == "Namespace"]
+    latest_namespace = namespace_evidence[-1].observed if namespace_evidence else {}
+    anarchy = [item for item in evidence if item.type == "AnarchySubject"]
+    latest_anarchy = anarchy[-1].observed if anarchy else {}
+
+    failed = [evaluation for evaluation in evals if evaluation.outcome == "fail"]
+    owners = {
+        "owner": (latest_namespace or {}).get("owner", ""),
+        "owner_email": (latest_namespace or {}).get("owner_email", ""),
+        "catalog_item": (latest_namespace or {}).get("catalog_item", ""),
+    }
+    clusters = Counter(run.cluster_name for run in runs if run.cluster_name)
+
+    return {
+        "found": True,
+        "namespace": namespace,
+        "window_hours": hours,
+        "owner": owners["owner"],
+        "owner_email": owners["owner_email"],
+        "catalog_item": owners["catalog_item"],
+        "cluster": clusters.most_common(1)[0][0] if clusters else "",
+        "first_seen": first_seen.isoformat(),
+        "last_seen": last_seen.isoformat(),
+        "duration_minutes": round((last_seen - first_seen).total_seconds() / 60),
+        "runs": {
+            "total": len(runs),
+            "failed": sum(1 for run in runs if run.status == "failed"),
+            "open": sum(1 for run in runs if run.status in ("pending", "running")),
+        },
+        "evaluations": {
+            "total": len(evals),
+            "failed": len(failed),
+            "top_failure_classes": [
+                {"class": name, "count": count}
+                for name, count in Counter(
+                    evaluation.failure_class for evaluation in failed
+                    if evaluation.failure_class
+                ).most_common(5)
+            ],
+        },
+        "ready_at": ready_at.isoformat() if (ready_at and all_stages_passed) else None,
+        "time_to_ready_minutes": (
+            round((ready_at - first_seen).total_seconds() / 60)
+            if (ready_at and all_stages_passed)
+            else None
+        ),
+        "flaps": flaps,
+        "evidence": {
+            "count": len(evidence),
+            "kinds": sorted({item.type for item in evidence}),
+        },
+        "state": {
+            "namespace_phase": (latest_namespace or {}).get("phase"),
+            "anarchy_state": (latest_anarchy or {}).get("current_state"),
+            "anarchy_last_error": (latest_anarchy or {}).get("no_error_conditions") is False,
+        },
+        "timeline": transitions[-50:],
+    }
