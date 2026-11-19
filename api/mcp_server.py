@@ -176,6 +176,23 @@ def get_failure_precision(hours: int = 24) -> str:
 
 
 @mcp.tool()
+def get_lab_session(namespace: str, hours: int = 168) -> str:
+    """One lab's life from stored data: owner and catalog item, first/last
+    seen, duration, runs, readiness and time-to-ready, flapping, failure
+    classes, evidence present, and teardown state.
+
+    This is the environment timeline, not user behaviour — the showroom has no
+    RUM yet, so "what the attendee did" is explicitly out of scope.
+    """
+    db = _db()
+    try:
+        from db.repository import lab_session
+        return json.dumps(lab_session(db, namespace, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_evidence_completeness(hours: int = 24) -> str:
     """Of the runs failing each class, how many carry the evidence needed to
     diagnose it. A failure you cannot diagnose costs an investigation and

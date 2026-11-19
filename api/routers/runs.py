@@ -454,6 +454,12 @@ def get_lab_history(
     )
 
 
+@router.get("/labs/{lab_code}/session")
+def get_lab_session(lab_code: str, hours: int = 168, db: Session = Depends(get_db)):
+    """One lab's timeline assembled from stored evidence and evaluations."""
+    return repository.lab_session(db, lab_code, hours=hours)
+
+
 @router.get("/labs/{lab_code}/failures")
 def get_lab_failures(
     lab_code: str,
