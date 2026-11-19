@@ -47,7 +47,7 @@ Before the agent runs, the system claims the relevant source events:
 
 The investigation agent is a Claude Sonnet instance with an 11.6KB system prompt defining it as a senior OpenShift SRE. It runs an iterative tool-calling loop — up to 12 iterations, 480 seconds max.
 
-### The 15 tools (all read-only)
+### The MCP tools (25 today; 23 read-only + 2 review)
 
 | Category | Tools |
 |---|---|

@@ -782,6 +782,46 @@ you:  "Did sandbox-<guid>-<lab> leak anything?"
 - **Attribution** — reviews and comments are recorded with your hashed
   key ID; knowledge entries show who confirmed them
 
+
+### 14. The fleet-analysis tools (added Nov 2026)
+
+Five of these answer questions the platform could not answer before; two close
+reproduction gaps. All read-only.
+
+| Tool | What it answers |
+|---|---|
+| `get_failure_precision(hours=24)` | Which failure classes are noisy: volume, labs, and the share that self-resolved. A class that mostly self-resolves is flapping or measuring the wrong thing. |
+| `get_recovery_time(hours=24)` | First fail → next pass per class: median, p90, max, and `unrecovered`. Zero is never reported as fast. |
+| `get_fleet_divergence(hours=24, min_sample=5)` | A lab family passing on one cluster and failing on another: per-cluster pass rates and the gap. Requires a ≥50-point gap and ≥5 evaluations per cluster, so it does not fire on noise. |
+| `get_evidence_completeness(hours=24)` | Of the runs failing a class, how many carry the evidence that class needs to be diagnosable. |
+| `get_failure_owners(hours=24)` | Failing labs grouped by the provisioner's owner annotation, with failure counts and top classes. Unattributed is explicit. |
+| `get_lab_session(namespace, hours=168)` | One lab's life: owner/catalog, first/last seen, readiness and time-to-ready, flapping, failure classes, evidence present, teardown state, and the last 50 stage transitions. |
+| `get_showroom_context(run_id or namespace)` | The reproduction context for a showroom failure: URL, HTTP status, ready endpoints, catalog item. Reads stored evidence, so it works after the sandbox is deleted. |
+
+**Example — is this class real?**
+
+> `get_failure_precision(hours=168)`
+>
+> ```
+> showroom_not_ready  evals=3758  labs=528  self_resolved_pct=34
+> pods_not_ready      evals=1688  labs=467  self_resolved_pct=83
+> service_has_no_endpoints evals=1413 labs=292 self_resolved_pct=0
+> ```
+
+**Example — what happened to one lab?**
+
+> `get_lab_session(namespace="sandbox-4tgzm-zt-rhelbu")`
+>
+> ```
+> owner=babylon  catalog=zero-touch-base-rhel  cluster=ocpv08
+> duration=444m  runs=6 (1 failed)  evaluations=36 (1 failed)  flaps=1
+> ```
+
+**Good to know:** these read StarGate's own records. "Self-resolved" is a noise
+proxy, not ground truth — a lab can fail, be remediated, and pass later.
+
+---
+
 ## Limits worth knowing
 
 - Rate limit: 60 requests/minute per key
