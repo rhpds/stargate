@@ -2713,3 +2713,50 @@ def recovery_time(db, hours: int = 24):
         })
     classes.sort(key=lambda row: (-(row["median_minutes"] or 0), -row["recoveries"]))
     return {"window_hours": hours, "classes": classes}
+
+
+def mcp_usage(db, hours: int = 168):
+    """Who used the MCP surface, and which tools — from the durable record.
+
+    Labels resolve key ids to people via STARGATE_API_KEY_LABELS
+    (JSON: {"929e6e5f": "wharris"}); the key itself is never stored.
+    """
+    import json
+    import os
+    from collections import Counter
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import MCPCall
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = (
+        db.query(MCPCall)
+        .filter(MCPCall.called_at >= since)
+        .order_by(MCPCall.called_at.asc())
+        .all()
+    )
+    try:
+        labels = json.loads(os.environ.get("STARGATE_API_KEY_LABELS", "") or "{}")
+    except ValueError:
+        labels = {}
+
+    by_key = Counter(row.key_id for row in rows)
+    by_method = Counter(row.method for row in rows)
+    tool_calls = Counter(row.tool for row in rows if row.method == "tools/call" and row.tool)
+    daily = Counter(row.called_at.date().isoformat() for row in rows)
+
+    return {
+        "window_hours": hours,
+        "total": len(rows),
+        "first_call": rows[0].called_at.isoformat() if rows else None,
+        "last_call": rows[-1].called_at.isoformat() if rows else None,
+        "by_key": [
+            {"key_id": key, "label": labels.get(key, ""), "calls": count}
+            for key, count in by_key.most_common()
+        ],
+        "tools": [
+            {"tool": tool, "calls": count} for tool, count in tool_calls.most_common()
+        ],
+        "methods": dict(by_method.most_common()),
+        "daily": [{"date": day, "calls": count} for day, count in sorted(daily.items())],
+    }

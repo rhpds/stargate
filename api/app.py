@@ -158,12 +158,34 @@ def emit_mcp_audit(api_key: str, method: str, tool: str, path: str) -> None:
     trail showed nothing.)
     """
     import hashlib
+    key_id = hashlib.sha256((api_key or "").encode()).hexdigest()[:8]
     logging.getLogger("stargate.mcp").info(
         "mcp request: method=%s tool=%s key_id=%s path=%s",
-        method or "-", tool or "-",
-        hashlib.sha256((api_key or "").encode()).hexdigest()[:8],
-        path,
+        method or "-", tool or "-", key_id, path,
     )
+    # Durable record: logs rotate within hours, so usage questions ("which
+    # tools are people using?") had no answer. Best-effort — never fail a
+    # request because the audit insert failed.
+    try:
+        from datetime import datetime, timezone
+
+        from db.database import get_session_factory
+        from db.models import MCPCall
+
+        session = get_session_factory()()
+        try:
+            session.add(MCPCall(
+                called_at=datetime.now(timezone.utc),
+                key_id=key_id,
+                method=(method or "")[:40] or "-",
+                tool=(tool or None) if tool else None,
+                path=(path or "")[:80],
+            ))
+            session.commit()
+        finally:
+            session.close()
+    except Exception:
+        pass
 
 
 _cors_origins = os.environ.get("STARGATE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8090").split(",")

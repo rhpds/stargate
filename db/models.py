@@ -830,3 +830,21 @@ class PrecisionDigest(Base):
     period = Column(String(20), nullable=False, unique=True)
     markdown = Column(Text, nullable=False)
     generated_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
+class MCPCall(Base):
+    """One audited MCP request — who called what, when.
+
+    Logs rotate in hours, so "which tools are people actually using" was
+    unanswerable. This is the durable record: key id (hash prefix), method,
+    tool. Never the question text or the key itself.
+    """
+
+    __tablename__ = "mcp_calls"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    called_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    key_id = Column(String(16), nullable=False, index=True)
+    method = Column(String(40), nullable=False)
+    tool = Column(String(80), nullable=True, index=True)
+    path = Column(String(80), nullable=True)

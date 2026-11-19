@@ -193,6 +193,19 @@ def get_lab_session(namespace: str, hours: int = 168) -> str:
 
 
 @mcp.tool()
+def get_mcp_usage(hours: int = 168) -> str:
+    """Who has been using this MCP surface and which tools: calls per key
+    (with labels when configured), per tool, per method, and per day. Built
+    from the durable audit record, not container logs (which rotate in hours)."""
+    db = _db()
+    try:
+        from db.repository import mcp_usage
+        return json.dumps(mcp_usage(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_fleet_divergence(hours: int = 24, min_sample: int = 5) -> str:
     """Lab families passing on one cluster while failing on another in the same
     window — the cleanest platform-vs-lab signal we can produce."""
