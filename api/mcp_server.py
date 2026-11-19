@@ -193,6 +193,30 @@ def get_lab_session(namespace: str, hours: int = 168) -> str:
 
 
 @mcp.tool()
+def get_fleet_divergence(hours: int = 24) -> str:
+    """Lab families passing on one cluster while failing on another in the same
+    window — the cleanest platform-vs-lab signal we can produce."""
+    db = _db()
+    try:
+        from db.repository import fleet_divergence
+        return json.dumps(fleet_divergence(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def get_recovery_time(hours: int = 24) -> str:
+    """First fail → next pass per failure class: median, p90, max, and how many
+    labs never recovered. Zero for 'never recovered' is not reported as fast."""
+    db = _db()
+    try:
+        from db.repository import recovery_time
+        return json.dumps(recovery_time(db, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_evidence_completeness(hours: int = 24) -> str:
     """Of the runs failing each class, how many carry the evidence needed to
     diagnose it. A failure you cannot diagnose costs an investigation and

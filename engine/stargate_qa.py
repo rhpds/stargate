@@ -39,6 +39,8 @@ _DOC_FILES = (
     "summary-refresh-release.md",
     "integration-findings.md",
     "proof-lab-ecosystem.md",
+    "rotation-page/METHOD.md",
+    "rotation-page/DAILY-AUDIT.md",
     "post-summit-babylon-integration.md",
     # Confluence-sourced operational knowledge (validated, read-only)
     "confluence/demo-platform-provision-failure-classification.md",
@@ -215,6 +217,36 @@ def _retrieve(question: str, corpus: List[Dict], k: int = 5) -> List[Dict]:
 _NAMESPACE_PATTERN = re.compile(r"\b(?:sandbox|user|lab|lb|summit)-[a-z0-9][a-z0-9-]{2,}", re.IGNORECASE)
 
 
+def _json_block(fn, db) -> str:
+    """Fetch a repository report and serialise it compactly."""
+    return json.dumps(fn(db), default=str, separators=(",", ":"))
+
+
+def db_precision(db):
+    from db.repository import failure_precision
+    return _json_block(lambda d: failure_precision(d, hours=168), db)
+
+
+def db_owners(db):
+    from db.repository import failure_owners
+    return _json_block(lambda d: failure_owners(d, hours=168), db)
+
+
+def db_divergence(db):
+    from db.repository import fleet_divergence
+    return _json_block(lambda d: fleet_divergence(d, hours=24), db)
+
+
+def db_recovery(db):
+    from db.repository import recovery_time
+    return _json_block(lambda d: recovery_time(d, hours=24), db)
+
+
+def db_completeness(db):
+    from db.repository import evidence_completeness
+    return _json_block(lambda d: evidence_completeness(d, hours=24), db)
+
+
 def _structured_context(question: str) -> List[str]:
     """Live operational context for namespaces mentioned in the question.
 
@@ -237,8 +269,56 @@ def _structured_context(question: str) -> List[str]:
             except Exception:
                 pass
 
+    # Fleet-level analysis questions: the numbers ARE the answer, so fetch them
+    # rather than relying on retrieval. Keep each block short — synthesis has a
+    # token budget and these are tables, not prose.
+    intents = (
+        (("noisy", "noise", "self-resolv", "precision", "false positive"),
+         "failure precision",
+         lambda db: db_precision(db)),
+        (("who owns", "owner", "owns", "which team"),
+         "failure owners",
+         lambda db: db_owners(db)),
+        (("divergen", "passing on", "one cluster", "works on", "cluster difference"),
+         "cross-cluster divergence",
+         lambda db: db_divergence(db)),
+        (("recover", "recovery", "how long", "mttr", "time to fix"),
+         "recovery time",
+         lambda db: db_recovery(db)),
+        (("evidence", "diagnos"),
+         "evidence completeness",
+         lambda db: db_completeness(db)),
+    )
+    try:
+        from db.database import get_session_factory
+        session = get_session_factory()()
+        try:
+            for keywords, label, fetch in intents:
+                if any(word in question_lower for word in keywords):
+                    try:
+                        contexts.append(f"[{label}]\n{fetch(session)[:1800]}")
+                    except Exception:
+                        pass
+        finally:
+            session.close()
+    except Exception:
+        pass
+
     namespaces = list(dict.fromkeys(_NAMESPACE_PATTERN.findall(question)))[:3]
     for namespace in namespaces:
+        try:
+            from db.database import get_session_factory
+            from db.repository import lab_session
+            session = get_session_factory()()
+            try:
+                contexts.append(
+                    f"[lab session for {namespace}]\n"
+                    + json.dumps(lab_session(session, namespace, hours=168), default=str)[:1800]
+                )
+            finally:
+                session.close()
+        except Exception:
+            pass
         try:
             outcomes = tool_query_lifecycle_outcomes(namespace)
             contexts.append(f"[lifecycle outcomes for {namespace}]\n{outcomes[:1500]}")
