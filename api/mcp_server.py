@@ -176,6 +176,21 @@ def get_failure_precision(hours: int = 24) -> str:
 
 
 @mcp.tool()
+def get_live_labs(window_hours: int = 2, limit: int = 200) -> str:
+    """What is running right now: every lab the scanner saw in the window, its
+    state (ready / failing / unknown), current failure class, owner, catalog
+    item, cluster, family, age and idle time — plus fleet totals."""
+    db = _db()
+    try:
+        from db.repository import live_labs
+        return json.dumps(
+            live_labs(db, window_hours=window_hours, limit=limit), default=str
+        )
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_lab_session(namespace: str, hours: int = 168) -> str:
     """One lab's life from stored data: owner and catalog item, first/last
     seen, duration, runs, readiness and time-to-ready, flapping, failure

@@ -454,6 +454,13 @@ def get_lab_history(
     )
 
 
+@router.get("/labs/live")
+def get_live_labs(window_hours: int = 2, limit: int = 500,
+                  db: Session = Depends(get_db)):
+    """Current state of every lab seen in the window."""
+    return repository.live_labs(db, window_hours=window_hours, limit=limit)
+
+
 @router.get("/labs/{lab_code}/session")
 def get_lab_session(lab_code: str, hours: int = 168, db: Session = Depends(get_db)):
     """One lab's timeline assembled from stored evidence and evaluations."""
