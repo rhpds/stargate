@@ -70,7 +70,7 @@ claude mcp add stargate -- npx -y mcp-remote \
 stale CLI syntax — both fixed here. If you find another rough edge, the
 repo is public: contributions welcome.)
 
-## The tools (23 total — 21 query, 2 review)
+## The tools (25 total — 23 query, 2 review)
 
 For per-tool examples — the questions to ask, the arguments, and real
 responses from production — see the **[MCP Tool
@@ -89,6 +89,8 @@ Cookbook](mcp-tool-cookbook.md)**. The tables below are the summary.
 | **get_failure_classes** | The failure taxonomy: classes, patterns, severity, remediation guidance |
 | **get_failure_precision** | Which failure classes are real: volume, labs affected, and the share that self-resolve in the window — the noise metric |
 | **get_lab_session** | One lab's life from stored data: owner/catalog, readiness, time-to-ready, flapping, failures, evidence, teardown — the environment timeline, not user behaviour |
+| **get_fleet_divergence** | Lab families passing on one cluster while failing on another — platform vs lab |
+| **get_recovery_time** | First fail → next pass per class: median, p90, max, and labs that never recovered |
 | **get_evidence_completeness** | Can we diagnose what we report? Per class, the share of failing runs carrying the evidence that class needs |
 | **get_failure_owners** | Who owns the failing labs, from namespace annotations, with failure counts and top classes |
 | **get_proof_matrix** | Proof-lab state: which failure classes are proven (remediation vs detection), gates, cycles |

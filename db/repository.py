@@ -2570,3 +2570,142 @@ def lab_session(db, namespace: str, hours: int = 168):
         },
         "timeline": transitions[-50:],
     }
+
+
+def fleet_divergence(db, hours: int = 24, min_failures: int = 1):
+    """Same lab family passing on one cluster while failing on another.
+
+    The cleanest platform-vs-lab signal we can produce from data we already
+    have: a lab family that works somewhere and not elsewhere in the same
+    window is a cluster or config problem, not a bad lab.
+    """
+    from collections import defaultdict
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord
+    from engine.namespace import strip_sandbox_prefix
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = (
+        db.query(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.cluster_name,
+            EvaluationRecord.stage_id,
+            EvaluationRecord.outcome,
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.lab_code.isnot(None),
+            EvaluationRecord.cluster_name.isnot(None),
+            EvaluationRecord.outcome.in_(("pass", "fail")),
+        )
+        .all()
+    )
+
+    agg = defaultdict(lambda: defaultdict(lambda: {"pass": 0, "fail": 0}))
+    for lab, cluster, stage, outcome in rows:
+        agg[(strip_sandbox_prefix(lab), stage)][cluster][outcome] += 1
+
+    divergences = []
+    for (family, stage), clusters in agg.items():
+        passing = [c for c, counts in clusters.items() if counts["pass"] > 0]
+        failing = [c for c, counts in clusters.items() if counts["fail"] > 0]
+        if not passing or not failing:
+            continue
+        if sum(clusters[c]["fail"] for c in failing) < min_failures:
+            continue
+        divergences.append({
+            "family": family,
+            "stage": stage,
+            "clusters": [
+                {
+                    "cluster": cluster,
+                    "pass": counts["pass"],
+                    "fail": counts["fail"],
+                    "pass_pct": round(100 * counts["pass"] / (counts["pass"] + counts["fail"])),
+                }
+                for cluster, counts in sorted(clusters.items())
+            ],
+            "failing_clusters": sorted(failing),
+            "passing_clusters": sorted(passing),
+        })
+
+    divergences.sort(
+        key=lambda row: -sum(c["fail"] for c in row["clusters"])
+    )
+    return {"window_hours": hours, "divergences": divergences[:20]}
+
+
+def recovery_time(db, hours: int = 24):
+    """First fail → next pass, per failure class and lab.
+
+    Uses run completion (fixed 19 Nov) only insofar as evaluations are ordered;
+    a lab that never passes is reported as unrecovered, not as a zero duration.
+    """
+    from collections import Counter, defaultdict
+    from datetime import datetime, timedelta, timezone
+
+    from db.models import EvaluationRecord
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = (
+        db.query(
+            EvaluationRecord.lab_code,
+            EvaluationRecord.stage_id,
+            EvaluationRecord.outcome,
+            EvaluationRecord.failure_class,
+            EvaluationRecord.evaluated_at,
+        )
+        .filter(
+            EvaluationRecord.evaluated_at >= since,
+            EvaluationRecord.lab_code.isnot(None),
+            EvaluationRecord.outcome.in_(("pass", "fail")),
+        )
+        .order_by(EvaluationRecord.evaluated_at.asc())
+        .all()
+    )
+
+    sequences = defaultdict(list)
+    for lab, stage, outcome, failure_class, at in rows:
+        sequences[(lab, stage)].append((at, outcome, failure_class))
+
+    durations = defaultdict(list)
+    unrecovered = Counter()
+    for sequence in sequences.values():
+        failed_at = None
+        failed_class = None
+        for at, outcome, failure_class in sequence:
+            if outcome == "fail":
+                failed_at = at
+                failed_class = failure_class or "unclassified"
+            elif outcome == "pass" and failed_at is not None:
+                durations[failed_class].append((at - failed_at).total_seconds() / 60)
+                failed_at = None
+        if failed_at is not None:
+            unrecovered[failed_class] += 1
+
+    import statistics
+
+    def _median(values):
+        return round(statistics.median(values)) if values else None
+
+    def _percentile(values, fraction):
+        if not values:
+            return None
+        ordered = sorted(values)
+        index = min(len(ordered) - 1, int(round(fraction * (len(ordered) - 1))))
+        return round(ordered[index])
+
+    classes = []
+    for failure_class in set(durations) | set(unrecovered):
+        values = durations.get(failure_class, [])
+        classes.append({
+            "failure_class": failure_class,
+            "recoveries": len(values),
+            "unrecovered": unrecovered.get(failure_class, 0),
+            "median_minutes": _median(values),
+            "p90_minutes": _percentile(values, 0.9),
+            "max_minutes": round(max(values)) if values else None,
+        })
+    classes.sort(key=lambda row: (-(row["median_minutes"] or 0), -row["recoveries"]))
+    return {"window_hours": hours, "classes": classes}
