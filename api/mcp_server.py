@@ -193,13 +193,15 @@ def get_lab_session(namespace: str, hours: int = 168) -> str:
 
 
 @mcp.tool()
-def get_fleet_divergence(hours: int = 24) -> str:
+def get_fleet_divergence(hours: int = 24, min_sample: int = 5) -> str:
     """Lab families passing on one cluster while failing on another in the same
     window — the cleanest platform-vs-lab signal we can produce."""
     db = _db()
     try:
         from db.repository import fleet_divergence
-        return json.dumps(fleet_divergence(db, hours=hours), default=str)
+        return json.dumps(
+            fleet_divergence(db, hours=hours, min_sample=min_sample), default=str
+        )
     finally:
         db.close()
 
