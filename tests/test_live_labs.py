@@ -72,3 +72,18 @@ class TestSurfaces:
               "pods_not_ready")
         out = mcp_server.get_live_labs(window_hours=2)
         assert '"state": "failing"' in out
+
+
+class TestOnlyRealLabs:
+    def test_service_and_cluster_evaluations_are_excluded(self, db):
+        from db.repository import live_labs
+
+        _eval(db, "sandbox-f-zt-rhelbu", "ocpv08", "namespace-ready", "pass", 2)
+        _eval(db, "babylon", "", "cluster-health", "pass", 2)
+        _eval(db, "primary", "", "model-endpoint-ready", "pass", 2)
+        _eval(db, "jira", "", "dependency-health", "pass", 2)
+
+        report = live_labs(db, window_hours=2)
+
+        assert report["summary"]["labs"] == 1
+        assert report["labs"][0]["lab"] == "sandbox-f-zt-rhelbu"

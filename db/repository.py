@@ -2794,7 +2794,10 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
         )
         .filter(
             EvaluationRecord.evaluated_at >= since,
-            EvaluationRecord.lab_code.isnot(None),
+            # Only real lab namespaces: cluster-health, dependency and model
+            # evaluations also set lab_code (to the cluster/service name), and
+            # counting those made "labs" include babylon, primary and jira.
+            EvaluationRecord.lab_code.like("sandbox-%"),
         )
         .order_by(EvaluationRecord.evaluated_at.asc())
         .all()
