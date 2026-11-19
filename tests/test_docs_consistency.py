@@ -46,3 +46,10 @@ class TestCorpus:
             and not (ROOT / "docs" / name).exists()
         ]
         assert missing == [], f"listed in the corpus but missing: {missing}"
+
+
+def test_dockerignore_does_not_exclude_docs():
+    """.dockerignore excluded docs/, so the COPY would fail and the corpus
+    would ship empty even after adding it to the Containerfile."""
+    ignored = (ROOT / ".dockerignore").read_text().splitlines()
+    assert "docs/" not in ignored
