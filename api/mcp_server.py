@@ -202,6 +202,20 @@ def get_session_coverage(hours_back: int = 6, hours_ahead: int = 6) -> str:
 
 
 @mcp.tool()
+def get_lab_story(lab: str, hours: int = 168) -> str:
+    """One lab's whole loop as a single object: signal and state, latest
+    classification (stage, class, failing criterion), the causal chain with
+    per-leg truth and missing legs, the pending action (or absence), and the
+    confirmed knowledge (or absence). Built for an end-to-end walkthrough."""
+    db = _db()
+    try:
+        from db.repository import lab_story
+        return json.dumps(lab_story(db, lab, hours=hours), default=str)
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def get_live_labs(window_hours: int = 2, limit: int = 200) -> str:
     """What is running right now: every lab the scanner saw in the window, its
     state (ready / failing / unknown), current failure class, owner, catalog
