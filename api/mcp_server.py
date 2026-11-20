@@ -244,8 +244,10 @@ def get_lab_story(lab: str, hours: int = 168) -> str:
 @mcp.tool()
 def get_live_labs(window_hours: int = 2, limit: int = 200) -> str:
     """What is running right now: every lab the scanner saw in the window, its
-    state (ready / failing / unknown), current failure class, owner, catalog
-    item, cluster, family, age and idle time — plus fleet totals."""
+    state (ready / failing / unknown — ready includes labs that passed every
+    required criterion but tripped an optional one, flagged `degraded` with the
+    warning stages), current failure class, owner, catalog item, cluster,
+    family, age and idle time — plus fleet totals."""
     db = _db()
     try:
         from db.repository import live_labs

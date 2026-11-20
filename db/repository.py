@@ -2914,6 +2914,14 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
     "Live" means the scanner evaluated it recently — roughly every 5-15
     minutes. State is derived per stage from the latest outcome, so a lab that
     failed deployment but passed namespace is reported as failing, not ready.
+
+    `ready` includes labs whose only non-pass outcome is `warn`, with
+    `degraded: true` and the warning stages listed. `warn` is reached only
+    after the evaluator rules out a required failure *and* rules out an
+    unobserved criterion, so it means "all required criteria observed
+    passing, an optional one observed failing" — not "not measured". `unknown`
+    is reserved for a stage that is genuinely indeterminate or in retry.
+
     Owner/catalog come from LabMapping: namespace annotations are usually empty.
     """
     from collections import Counter
@@ -2955,6 +2963,7 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
             "lab": lab,
             "cluster": cluster or "",
             "stages": {},
+            "warned": {},
             "first_seen": at,
             "last_seen": at,
             "failure_class": None,
@@ -2965,6 +2974,8 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
             entry["cluster"] = cluster
         if outcome == "fail" and failure_class:
             entry["failure_class"] = failure_class
+        if outcome == "warn" and failure_class:
+            entry["warned"][stage] = failure_class
 
     mappings = {}
     if labs:
@@ -2978,18 +2989,43 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
         entry["first_seen"] = _aware(entry["first_seen"])
         entry["last_seen"] = _aware(entry["last_seen"])
         outcomes = set(entry["stages"].values())
+        # `warn` is not ignorance. The rubric evaluator only reaches WARN after
+        # it has ruled out a required failure and ruled out any unobserved
+        # criterion (engine/rubric_evaluator.py: fail → indeterminate → warn →
+        # pass). WARN therefore means "every required criterion was observed
+        # passing, at least one optional criterion was observed failing" — a
+        # lab a user can be given, with a caveat. Reporting it as `unknown`
+        # claims we never measured it, which is the one thing we know is false.
+        #
+        # Verified against the live store rather than assumed: 172 warn rows in
+        # 2 h, 0 with a required criterion not observed True, 0 containing an
+        # unobserved criterion. All 172 were vm-runtime-ready with the VM
+        # running and the guest agent not connected.
+        #
+        # `retry` and `escalate` stay unknown: they are stage-level markers,
+        # not a statement about readiness.
         if "fail" in outcomes:
             state = "failing"
-        elif outcomes == {"pass"}:
+        elif outcomes <= {"pass", "warn"}:
             state = "ready"
         else:
             state = "unknown"
+        warnings = [
+            {"stage": stage, "failure_class": entry["warned"].get(stage)}
+            for stage, outcome in sorted(entry["stages"].items())
+            if outcome == "warn"
+        ]
         mapping = mappings.get(lab)
         records.append({
             "lab": lab,
             "family": strip_sandbox_prefix(lab),
             "cluster": entry["cluster"],
             "state": state,
+            # A lab that passed every required criterion but tripped an
+            # optional one is ready-with-caveat. `degraded` is a sub-count of
+            # ready, so it never claims a failing lab is merely degraded.
+            "degraded": state == "ready" and bool(warnings),
+            "warnings": warnings,
             "stages": entry["stages"],
             "failure_class": entry["failure_class"] if state == "failing" else None,
             "owner": (mapping.owner if mapping else "") or "",
@@ -3008,6 +3044,7 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
         "summary": {
             "labs": len(records),
             "ready": summary.get("ready", 0),
+            "degraded": sum(1 for r in records if r["degraded"]),
             "failing": summary.get("failing", 0),
             "unknown": summary.get("unknown", 0),
             "unowned": sum(1 for r in records if not r["owner"]),

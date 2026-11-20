@@ -35,6 +35,23 @@ indeterminate and no stage failed, rather than silently returning success.
 They show `[?]` and include the indeterminate count in text summaries. Observed
 stage failures retain exit code `1`; fully observed pass/warn runs retain `0`.
 
+### `warn` is observed, not unknown
+
+`engine/rubric_evaluator.py` resolves outcomes in a fixed order: required
+failure → unobserved criterion → optional failure → pass. `warn` is therefore
+only reachable *after* the evaluator has ruled out both a required failure and
+any unobserved criterion. It means "every required criterion was observed
+passing; at least one optional criterion was observed failing".
+
+Fleet reporting must not collapse that into `unknown`. `live_labs` reports such
+a lab as `ready` with `degraded: true` and a `warnings` list of the warning
+stages, and reserves `unknown` for a stage that is genuinely indeterminate (or
+in retry). Measured against the live store on 20 Nov 2026: 168 `warn`
+evaluations in two hours, none containing a required criterion that was not
+observed true and none containing an unobserved criterion — so the distinction
+is real, not theoretical. Calling these labs `unknown` was the same error as
+coercing an unobserved criterion to `false`, in the opposite direction.
+
 ## Corrected evidence boundaries
 
 Route admission and ready endpoints do not prove an HTTP response. The route
