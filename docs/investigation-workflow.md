@@ -143,7 +143,8 @@ Every ~6 hours, one proof cycle runs for the stalest failure class:
 - Injects a synthetic instance of the failure
 - Verifies the pipeline detects it with the correct classification
 - Verifies the remediation resolves it
-- **19 of 20 classes proven** (13 remediation-proof, 6 detection-proof)
+- **19 of 20 injected classes proven** (12 full-auto, 7 investigation-proven, 1 manual)
+- These are injected faults: they prove the engine detects and remediates what it is given, not that it covers the classes production actually emits
 - Gates decay on failure; `proven_ever` preserves history
 
 ---
