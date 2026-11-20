@@ -197,3 +197,60 @@ class TestNamespaceExistence:
             collector._check_namespace_existence(entries, {}, base)
         assert run.call_count == 1  # cached per cluster
         assert [e["namespace_exists"] for e in entries] == [True, True, True]
+
+
+class TestTeardownAgeBasis:
+    """Age is time since teardown was requested, not the environment's life."""
+
+    @staticmethod
+    def _item(name, state, created_h, deleted_h=None, transition_h=None):
+        now = datetime.now(timezone.utc)
+        def ts(hours):
+            return (now - timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
+        meta = {"name": name, "creationTimestamp": ts(created_h)}
+        if deleted_h is not None:
+            meta["deletionTimestamp"] = ts(deleted_h)
+        status = {"state": state}
+        if transition_h is not None:
+            status["lastTransitionTime"] = ts(transition_h)
+        return {
+            "metadata": meta,
+            "status": status,
+            "spec": {"vars": {"job_vars": {"namespace": "ns", "cluster_name": "ocpv05"}}},
+        }
+
+    def _run(self, tmp_path, items):
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = json.dumps({"items": items})
+            return collector.detect_stuck_teardowns(kubeconfig=str(kc))
+
+    def test_long_lived_environment_is_not_stuck_for_its_whole_life(self, tmp_path):
+        # Created 58 days ago, teardown requested 20 days ago: 20 days stuck.
+        result = self._run(tmp_path, [
+            self._item("long-lived", "destroying", created_h=1393, deleted_h=484),
+        ])
+        entry = result["stuck"][0]
+        assert 480 < entry["age_hours"] < 490
+        assert entry["age_basis"] == "deletionTimestamp"
+        assert entry["created_hours"] > 1300
+
+    def test_last_transition_used_when_no_delete_request(self, tmp_path):
+        result = self._run(tmp_path, [
+            self._item("no-delete", "destroy-failed", created_h=500, transition_h=5),
+        ])
+        entry = result["stuck"][0]
+        assert entry["age_basis"] == "lastTransitionTime"
+        assert 4 < entry["age_hours"] < 6
+
+    def test_destroy_pending_is_reported_as_a_queue(self, tmp_path):
+        result = self._run(tmp_path, [
+            self._item("queued-old", "destroy-pending", created_h=1000, deleted_h=800),
+            self._item("queued-new", "destroy-pending", created_h=3, deleted_h=1),
+            self._item("really-stuck", "destroying", created_h=30, deleted_h=29),
+        ])
+        assert result["stuck_count"] == 1
+        assert result["pending"]["count"] == 2
+        assert result["pending"]["over_7d"] == 1
