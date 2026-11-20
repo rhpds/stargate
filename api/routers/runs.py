@@ -1,5 +1,7 @@
 """Core CRUD/query endpoints — runs, stages, evidence, evaluation, labs, clusters, events, constraints."""
 
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -653,21 +655,81 @@ def get_lab_constraints(lab_id: str):
     return constraints
 
 
+_LAB_MAPPINGS_TTL = float(os.environ.get("STARGATE_LAB_MAPPINGS_TTL", "60"))
+_lab_mappings_cache: Dict[str, object] = {"ts": 0.0, "data": None}
+
+
+def _lab_mapping_payload(rows) -> List[Dict]:
+    """Collapse LabMapping rows into one entry per namespace pattern.
+
+    ``lab_mappings`` accumulates a row per namespace that has ever existed, and
+    every row of a family carries the *same* wildcard pattern with its own
+    namespace as lab_code. 133,346 rows therefore describe 13 distinct
+    patterns; shipping all of them meant a 16.7 MB response and ~2.9 s of ORM
+    object construction per call. ``guid:`` rows are Babylon placement
+    identities (101,121 of the table) and are not usable as a lab code.
+
+    The returned ``lab_code`` is the lexicographically smallest one for the
+    pattern — kept only so existing readers see a stable string. It is NOT a
+    lab identity: because the pattern is a wildcard, that row belongs to some
+    arbitrary namespace in the family. The scanner identifies labs by
+    namespace.
+    """
+    seen: Dict[str, Dict] = {}
+    for lab_code, pattern, ci_base, clusters in rows:
+        lab_code = lab_code or ""
+        pattern = pattern or ""
+        if not pattern or not lab_code or lab_code.startswith("guid:"):
+            continue
+        current = seen.get(pattern)
+        if current is None or lab_code < current["lab_code"]:
+            seen[pattern] = {
+                "lab_code": lab_code,
+                "namespace_pattern": pattern,
+                "ci_base": ci_base,
+                "clusters": clusters,
+            }
+    return [seen[k] for k in sorted(seen)]
+
+
 @router.get("/labs/mappings")
-async def get_lab_mappings():
-    """Return all lab mappings for namespace→lab resolution."""
+def get_lab_mappings():
+    """Namespace patterns from LabMapping, deduped and cached.
+
+    Deliberately a plain ``def``: the query and the JSON encode are blocking,
+    and as an ``async def`` this handler ran them on the event loop. With a
+    multi-megabyte payload that stalled every other request in the process,
+    including ``/health`` — which is what pushed the pod past its 3 s readiness
+    probe and made the Service flap.
+    """
+    now = time.monotonic()
+    cached = _lab_mappings_cache["data"]
+    if cached is not None and now - float(_lab_mappings_cache["ts"]) < _LAB_MAPPINGS_TTL:
+        return {"mappings": cached}
+
     from db.database import get_db
     from db.models import LabMapping
+
     db = next(get_db())
     try:
-        mappings = db.query(LabMapping).all()
-        return {"mappings": [
-            {"lab_code": m.lab_code, "namespace_pattern": m.namespace_pattern,
-             "ci_base": m.ci_base, "clusters": m.clusters}
-            for m in mappings if m.namespace_pattern
-        ]}
+        rows = (
+            db.query(
+                LabMapping.lab_code,
+                LabMapping.namespace_pattern,
+                LabMapping.ci_base,
+                LabMapping.clusters,
+            )
+            .filter(LabMapping.namespace_pattern.isnot(None))
+            .filter(~LabMapping.lab_code.like("guid:%"))
+            .all()
+        )
     finally:
         db.close()
+
+    payload = _lab_mapping_payload(rows)
+    _lab_mappings_cache["data"] = payload
+    _lab_mappings_cache["ts"] = time.monotonic()
+    return {"mappings": payload}
 
 
 @router.put("/labs/mappings")

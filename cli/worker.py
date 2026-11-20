@@ -364,17 +364,26 @@ class ClusterWorker:
         failed = 0
         failure_classes: Dict[str, int] = {}
 
-        # Load lab mappings for namespace→lab resolution
-        lab_mappings = self._get_lab_mappings()
-
         outcome_changes = []
         uuid_map: Dict[str, str] = {}  # serviceUuid -> namespace
         for ns in batch:
-            lab_code = None
-            if lab_mappings:
-                from engine.namespace_matcher import match_namespace_to_lab
-                lab_code = match_namespace_to_lab(ns, lab_mappings)
-            result = self._collect_namespace(ns, lab_code=lab_code)
+            # The lab identity IS the namespace — that is the key `live_labs`,
+            # `EvaluationRecord.lab_code` and every report group on.
+            #
+            # This used to be resolved through LabMapping, which holds one row
+            # per namespace that has ever existed, each carrying a *wildcard*
+            # pattern (`sandbox-*-zt-rhelbu`) and its own namespace as lab_code.
+            # `match_namespace_to_lab` returns the first pattern that matches,
+            # so every member of a family resolved to one arbitrary sibling.
+            # Measured against the live table: all 621 sandbox namespaces
+            # resolved to just 6 lab codes, with 444 of them writing into the
+            # single stale namespace `sandbox-5vpl6-ocp4-cluster`. The lab that
+            # was actually collected never received the evaluation, so it aged
+            # out of `live_labs` while a dead namespace kept looking healthy.
+            #
+            # LabMapping is for *enrichment* (owner, catalog item); it must not
+            # decide who the evidence belongs to.
+            result = self._collect_namespace(ns, lab_code=ns)
             if result:
                 if result.get("service_uuid"):
                     uuid_map[result["service_uuid"]] = ns
@@ -515,20 +524,6 @@ class ClusterWorker:
                 f"; stderr={stderr[-1000:]}" if stderr else "",
             )
             return None
-
-    def _get_lab_mappings(self) -> list:
-        """Fetch lab mappings from API for namespace→lab resolution."""
-        if not self.api_url:
-            return []
-        try:
-            import urllib.request
-            req = urllib.request.Request(f"{self.api_url}/labs/mappings")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read())
-                return data.get("mappings", [])
-        except Exception as e:
-            logger.warning("Lab mapping fetch failed: %s", e)
-            return []
 
     def _resolve_lab_names(self, uuid_map: Dict[str, str]):
         """Batch-resolve serviceUuids to lab names via Sandbox API and persist to LabMapping."""
