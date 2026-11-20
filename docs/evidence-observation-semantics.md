@@ -38,11 +38,52 @@ stage failures retain exit code `1`; fully observed pass/warn runs retain `0`.
 ## Corrected evidence boundaries
 
 Route admission and ready endpoints do not prove an HTTP response. The route
-normalizer leaves `health_endpoint_returns_200` unobserved. The generic smoke
+normalizer leaves `health_endpoint_returns_200` unobserved unless it is handed a
+probe result, and it performs no network call itself. The generic smoke
 normalizer likewise leaves its functional response and latency checks
-unobserved. Neither normalizer performs a network probe. A future approved probe
-collector and result contract are still needed to establish those observations;
-this change does not add either.
+unobserved.
+
+`collectors/openshift/probe_route_health.py` is the approved probe collector for
+that key. It issues one GET per Route, records the status line only, and carries
+the same tri-state discipline as every other evidence key:
+
+| Observation              | `health_endpoint_returns_200` | Why |
+|--------------------------|-------------------------------|-----|
+| 2xx or 3xx               | `true`                        | Something answered |
+| 4xx/5xx                  | `false`                       | Something answered with an error |
+| connection refused       | `false`                       | Nothing is listening |
+| timeout                  | `null` (unobserved)           | The probe learned nothing |
+| no Route host            | no probe emitted              | Nothing to request |
+
+Redirects are not followed: an OAuth-protected route returning 302 is up, and
+chasing it would leave the lab's host. No response body is read or retained.
+
+A lab serves several routes (showroom, control, vscode, node02, bastion...), so
+per-route results are combined existentially, not by taking the worst one:
+
+| Probes for one namespace        | `health_endpoint_returns_200` |
+|---------------------------------|-------------------------------|
+| at least one 2xx/3xx            | `true`                        |
+| none 2xx/3xx, at least one 4xx/5xx/refused | `false`            |
+| only timeouts / DNS failures    | `null`                        |
+
+The required criteria in `route-ready` are satisfied by ANY service or Route in
+the namespace (`service_exists`, `route_exists`, `ready_endpoint_count > 0`), so
+requiring every route to answer would hold the optional criterion to a stricter
+test than the required ones. Measured on 48 live lab namespaces: "every route
+answers" failed 25 of 48 — almost entirely routes whose backends the student is
+meant to create (`app-`, `app-secure-`, `clab-report`, `bastion-443`) — while
+"at least one route answers" passed 39 and failed the 9 where nothing answered
+at all. A timeout does not drag down a namespace that already answered.
+
+The probe is off by default. `cli/stargate.py collect-dir` runs it only when
+`STARGATE_ROUTE_PROBE` is set (`1`/`true`/`yes`/`on`), and only for namespaces
+whose Endpoints already report a ready address — a lab with nothing serving
+already fails as `service_has_no_endpoints`, so spending the timeout there buys
+no observation. `STARGATE_ROUTE_PROBE_TIMEOUT` (default 10s) bounds each
+request. With the flag unset, collection remains read-only topology and
+route-ready stays indeterminate, exactly as before.
+
 
 An Anarchy job's `completeTimestamp` establishes termination, not success.
 Explicit `successful` status supports success; explicit failed/error/canceled

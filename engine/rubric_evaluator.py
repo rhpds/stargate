@@ -122,6 +122,7 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
 
     if optional_failures:
         optional_names = ", ".join(c.name for c in optional_failures)
+        detail = _failed_observation_context([c.name for c in optional_failures], evidence)
         # Classify warns too: an optional-criteria failure with a matching
         # class (e.g. ceph_headroom_ok == false → ceph_near_full) carries
         # the class so downstream consumers (events, dashboards, MTTR by
@@ -131,7 +132,7 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
             stage_id=rubric.stage,
             outcome=StageOutcome.WARN,
             failure_class=failure_class,
-            message=f"Optional criteria failed: {optional_names}",
+            message=f"Optional criteria failed: {optional_names}{detail}",
             criteria_results=criteria_results,
             timeout_seconds=timeout,
         )
@@ -143,6 +144,31 @@ def evaluate_rubric(rubric: Rubric, evidence: dict[str, object]) -> EvaluationRe
         criteria_results=criteria_results,
         timeout_seconds=timeout,
     )
+
+
+def _failed_observation_context(failed_names: list[str], evidence: dict[str, object]) -> str:
+    """Name the observation behind a failed health criterion.
+
+    "Optional criteria failed: health_endpoint_returns_200" leaves the reader
+    unable to tell a 503 from a 403 from an unprobed route. The status line is
+    the finding, so it belongs in the message — same reason
+    ``_entry_failure_context`` carries the URL for showroom routes.
+    """
+    if "health_endpoint_returns_200" not in failed_names:
+        return ""
+    url = evidence.get("probed_url")
+    where = f" at {url}" if url else ""
+    # Several routes serve one lab, so a bare status understates the finding:
+    # "none of the 9 routes answered" is the actual observation.
+    probed = evidence.get("routes_probed")
+    scope = f"no route answered, {probed} probed: " if isinstance(probed, int) and probed > 1 else ""
+    status = evidence.get("http_status")
+    if status:
+        return f" ({scope}HTTP {status}{where})"
+    reason = evidence.get("probe_error")
+    if reason:
+        return f" ({scope}{reason}{where})"
+    return ""
 
 
 def _is_truthy(value: object) -> bool:

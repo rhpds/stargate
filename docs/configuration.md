@@ -207,6 +207,30 @@ check this env var before disabling TLS.
 
 ---
 
+## Readiness probing
+
+### STARGATE_ROUTE_PROBE
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `false`                                                     |
+| Description | When enabled, `collect-dir` issues one GET per Route (only in namespaces with a ready endpoint) so `route-ready` can observe `health_endpoint_returns_200`. Off by default: collection then stays read-only topology and the criterion remains unobserved. |
+| When to change | Enable on scanner deployments where route readiness must be proven by a response rather than by admission alone. |
+
+A timeout is recorded as unobserved, never as failure; a refused connection or
+an explicit 4xx/5xx is an observed non-200. See
+`docs/evidence-observation-semantics.md`.
+
+### STARGATE_ROUTE_PROBE_TIMEOUT
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `10`                                                        |
+| Description | Per-request bound in seconds for the route health probe. The probe runs sequentially, so a large namespace with many routes adds at most this long per route. |
+| When to change | Lower it when scan cycles must stay short; raise it for slow showroom deployments. |
+
+---
+
 ## CORS
 
 ### STARGATE_CORS_ORIGINS
@@ -1001,6 +1025,8 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_ADMIN_API_KEY`                 | `""`                    | Yes (prod)  |
 | `STARGATE_TRUST_PROXY_AUTH`              | `false`                 | No          |
 | `STARGATE_SSL_VERIFY`                    | `true`                  | No          |
+| `STARGATE_ROUTE_PROBE`                   | `false`                 | No          |
+| `STARGATE_ROUTE_PROBE_TIMEOUT`           | `10`                    | No          |
 | `STARGATE_CORS_ORIGINS`                  | localhost               | Yes (prod)  |
 | `STARGATE_CLUSTERS`                      | built-in list           | No          |
 | `STARGATE_CLUSTERS_FILE`                 | Not set                 | No          |

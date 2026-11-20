@@ -65,15 +65,67 @@ def normalize_for_route_ready(evidence_list: List[CollectedEvidence]) -> Dict[st
         "health_endpoint_returns_200": None,
         "ready_endpoint_count": 0,
     }
+    probes: List[CollectedEvidence] = []
     for ev in evidence_list:
         if ev.resource_kind == "Service":
             result["service_exists"] = ev.observed.get("service_exists", False)
         elif ev.resource_kind == "Route":
             result["route_exists"] = ev.observed.get("route_exists", False)
+            host = ev.observed.get("host") or ""
+            if host:
+                scheme = "http" if ev.observed.get("tls_termination") in (None, "") else "https"
+                result["route_url"] = f"{scheme}://{host}"
         elif ev.resource_kind == "Endpoints":
             result["service_has_ready_endpoints"] = ev.observed.get("service_has_ready_endpoints", False)
             result["ready_endpoint_count"] = ev.observed.get("ready_endpoint_count", 0)
-    # Topology is not an HTTP observation. No probe is executed by this normalizer.
+        elif ev.resource_kind == "HttpProbe":
+            # The only source for this key. Absent a probe the value stays
+            # None and the stage resolves indeterminate — which is the point.
+            probes.append(ev)
+
+    if probes:
+        # One lab serves several routes (showroom, control, vscode, node02...).
+        # Last-one-wins would make health depend on `oc get` ordering, so
+        # aggregate — existentially, matching the rubric this key completes.
+        #
+        # `service_exists`, `route_exists` and `service_has_ready_endpoints`
+        # are all satisfied by ANY service or route in the namespace. So the
+        # optional probe must not demand MORE than the required ones: on 48
+        # live lab namespaces, "every route must answer 2xx/3xx" failed 25 of
+        # 48, mostly because labs ship routes whose backends the student is
+        # meant to create (`app-`, `app-secure-`, `clab-report`, `bastion-443`).
+        # Those are healthy labs by the rubric's own definition. "At least one
+        # route answers" passed 39 of 48 and failed the 9 where nothing
+        # answered at all — the observation the criterion exists to make.
+        #
+        # Nulls do not drag down an answered lab, and are only reported when
+        # nothing conclusive came back (a timeout roster stays indeterminate).
+        observed = [ev.observed.get("health_endpoint_returns_200") for ev in probes]
+        answered = [ev for ev in probes if ev.observed.get("health_endpoint_returns_200") is True]
+        result["routes_probed"] = len(probes)
+        if answered:
+            result["health_endpoint_returns_200"] = True
+            result["probed_url"] = answered[0].observed.get("probed_url")
+        elif any(value is False for value in observed):
+            # Prefer a 5xx to report: a refused connection explains itself,
+            # a 503 means the router had no healthy backend at all.
+            failed = [
+                ev for ev in probes if ev.observed.get("health_endpoint_returns_200") is False
+            ]
+            failed.sort(key=lambda ev: -int(ev.observed.get("http_status") or 0))
+            worst = failed[0]
+            result["health_endpoint_returns_200"] = False
+            result["probed_url"] = worst.observed.get("probed_url")
+            if worst.observed.get("http_status") is not None:
+                result["http_status"] = worst.observed["http_status"]
+            if worst.observed.get("probe_error"):
+                result["probe_error"] = worst.observed["probe_error"]
+        else:
+            result["health_endpoint_returns_200"] = None
+
+    # Topology is not an HTTP observation: this normalizer still executes no
+    # probe. It only consumes one, when the caller ran
+    # collectors.openshift.probe_route_health first.
     return result
 
 
