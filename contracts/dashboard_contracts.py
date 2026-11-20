@@ -85,6 +85,11 @@ CONTRACTS = {
         fields=[
             FieldContract("cluster", "scanner", required=True, type="string"),
             FieldContract("health_rate", "stargate_db", required=False, type="float"),
+            # The cluster window is the newest N evaluations with no time bound,
+            # so the response has to say how old it is.
+            FieldContract("last_evaluated_at", "stargate_db", required=False, type="string"),
+            FieldContract("age_seconds", "stargate_db", required=False, type="int"),
+            FieldContract("freshness", "stargate_db", required=False, type="string"),
         ],
     ),
     "/dashboard/pools": ResponseContract(

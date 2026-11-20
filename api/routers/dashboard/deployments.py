@@ -656,6 +656,11 @@ def dashboard_clusters(db: Session = Depends(get_db)):
             "failure_classes": summary["failure_classes"],
             "labs_seen": summary["labs_seen"],
             "labs_failing": summary["labs_failing"],
+            # The window has no time bound, so the card ships its own age.
+            "last_evaluated_at": summary["last_evaluated_at"],
+            "window_started_at": summary["window_started_at"],
+            "age_seconds": summary["age_seconds"],
+            "freshness": summary["freshness"],
             "recent_failure_events": recent_failures,
             "systemic_events": systemic,
         })
