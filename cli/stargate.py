@@ -63,6 +63,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_cd.add_argument("--format", choices=["text", "json"], default="text", dest="out_format")
     p_cd.add_argument("--api-url", help="StarGate API URL to persist results (e.g. http://localhost:8080)")
     p_cd.add_argument("--demo-id", help="Demo ID for the run record", default="dir-collection")
+    p_cd.add_argument("--namespace", help="Namespace this directory was collected from (defaults to the directory name, which is a temp dir for the scanner)")
     p_cd.add_argument("--lab-code", help="Lab code (e.g. LB1088) for evidence bundle tracking")
     p_cd.add_argument("--cluster-name", help="Cluster name for evidence bundle tracking")
 
@@ -406,7 +407,12 @@ def _cmd_collect_dir(args) -> int:
     # Persist to API if --api-url provided
     run_id, persist_error = None, None
     if getattr(args, "api_url", None):
-        namespace = directory.name
+        # The directory is a temp dir (`sg-<cluster>-<random>`), so its name is
+        # not the namespace. 527,133 of 571,563 runs in the live store carry a
+        # temp-dir name in `runs.namespace` because of this: anything joining on
+        # that column had been reading a random string. Callers that know the
+        # namespace pass it; the directory name stays as a last resort.
+        namespace = getattr(args, "namespace", None) or directory.name
         run_id, persist_error = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
