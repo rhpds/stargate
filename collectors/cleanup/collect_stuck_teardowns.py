@@ -2,6 +2,14 @@
 
 Read-only. Checks AnarchySubject CRDs for subjects that have been
 in 'destroying' or 'destroy-failed' state for longer than a threshold.
+
+Age is measured from when teardown was requested (metadata.deletionTimestamp),
+falling back to the last state transition, then creation. Measuring from
+creation overstates the wait by the environment's whole lifetime — a subject
+created 58 days ago and deleted 20 days ago is stuck for 20 days, not 58.
+
+'destroy-pending' is a queue, not a failure: it is reported separately so a
+slow queue is never counted as a broken teardown.
 """
 
 import logging
@@ -59,7 +67,17 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
             query_error = (query_error or "") + f"{target}: {e}; "
 
     stuck = []
+    pending_ages = []
     now = datetime.now(timezone.utc)
+
+    def _hours_since(ts: str) -> Optional[float]:
+        if not ts:
+            return None
+        try:
+            parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            return None
+        return (now - parsed).total_seconds() / 3600
 
     for item in items:
         metadata = item.get("metadata", {})
@@ -73,27 +91,49 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
             or "unknown"
         )
 
+        created = metadata.get("creationTimestamp", "")
+        deleted = metadata.get("deletionTimestamp", "")
+        last_transition = status.get("lastTransitionTime", "")
+
+        # destroy-pending is a queue, not a failure. Report it separately so a
+        # slow queue is never confused with a broken teardown.
+        if state == "destroy-pending":
+            pending_age = _hours_since(deleted)
+            if pending_age is None:
+                pending_age = _hours_since(created)
+            if pending_age is not None:
+                pending_ages.append(pending_age)
+            continue
+
         if state not in ("destroying", "destroy-failed", "destroy-error"):
             continue
 
-        # Calculate age
-        created = metadata.get("creationTimestamp", "")
-        last_transition = status.get("lastTransitionTime", created)
-        try:
-            ts = datetime.fromisoformat(last_transition.replace("Z", "+00:00"))
-            age_hours = (now - ts).total_seconds() / 3600
-        except Exception:
+        # Age from the delete request when one exists: creation time includes
+        # the environment's whole life, which is not time spent stuck.
+        if deleted:
+            age_basis = "deletionTimestamp"
+            age_hours = _hours_since(deleted)
+        elif last_transition:
+            age_basis = "lastTransitionTime"
+            age_hours = _hours_since(last_transition)
+        else:
+            age_basis = "creationTimestamp"
+            age_hours = _hours_since(created)
+        if age_hours is None:
             age_hours = 0
 
         if age_hours >= STUCK_THRESHOLD_HOURS:
             name = metadata.get("name", "unknown")
             namespace = spec_vars.get("job_vars", {}).get("namespace", name)
             cluster = spec_vars.get("job_vars", {}).get("cluster_name", "unknown")
+            created_hours = _hours_since(created)
             stuck.append({
                 "anarchy_subject": name,
                 "namespace": namespace,
                 "state": state,
                 "age_hours": round(age_hours, 1),
+                "age_basis": age_basis,
+                "created_hours": round(created_hours, 1) if created_hours is not None else None,
                 "cluster": cluster,
             })
 
@@ -106,6 +146,12 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
         "stuck": stuck,
         "stuck_count": len(stuck),
         "threshold_hours": STUCK_THRESHOLD_HOURS,
+        "pending": {
+            "count": len(pending_ages),
+            "oldest_hours": round(max(pending_ages), 1) if pending_ages else 0,
+            "over_24h": sum(1 for h in pending_ages if h > 24),
+            "over_7d": sum(1 for h in pending_ages if h > 168),
+        },
     }
     if query_error:
         # Partial or total query failure: visible, but findings are still
