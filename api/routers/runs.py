@@ -1,5 +1,6 @@
 """Core CRUD/query endpoints — runs, stages, evidence, evaluation, labs, clusters, events, constraints."""
 
+import hashlib
 import os
 import time
 from datetime import datetime, timezone
@@ -49,9 +50,33 @@ router = APIRouter()
 # Runs
 # ---------------------------------------------------------------------------
 
+def build_run_id(demo_id: str, namespace: str, now: datetime) -> str:
+    """Build a run id that cannot collide across namespaces.
+
+    The id used to be ``{demo_id}-{timestamp}``. A tier-3 batch evaluates many
+    namespaces of the same family, and every namespace in a family shares one
+    ``demo_id`` (``sandbox-47sld-ocp4-cluster`` and ``sandbox-z9cxn-ocp4-cluster``
+    are both ``ocp4-cluster``). Two of them collected in the same second
+    therefore produced the *same* run id: the second one hit the 409 below and
+    its whole evaluation was thrown away. Measured on the live store: 21
+    same-second collisions among same-``demo_id`` runs in six hours, and one
+    dropped namespace was logged as "evaluated but not persisted: HTTP 409".
+
+    The namespace suffix keeps a deliberate property: the same namespace retried
+    within the same second still produces the same id, so the idempotent retry
+    path (a slow first attempt that already committed) keeps working. Only
+    *different* namespaces are separated.
+    """
+    stamp = now.strftime("%Y%m%d-%H%M%S")
+    digest = hashlib.sha1(namespace.encode("utf-8")).hexdigest()[:6]
+    return f"{demo_id}-{stamp}-{digest}"
+
+
 @router.post("/runs", status_code=201)
 def create_run(req: CreateRunRequest, db: Session = Depends(get_db), _auth=Depends(require_admin)):
-    run_id = req.run_id or f"{req.demo_id}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    run_id = req.run_id or build_run_id(
+        req.demo_id, req.namespace, datetime.now(timezone.utc)
+    )
     run = Run(
         run_id=run_id,
         demo_id=req.demo_id,
