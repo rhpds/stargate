@@ -35,7 +35,7 @@ logger = logging.getLogger("stargate.scan")
 # (ocp-us-east-1) are pre-rotation aliases that held revoked tokens; see
 # cli/kubeconfigs.py.
 _DEFAULT_CLUSTERS = {
-    "ocpv05": canonical_name("ocpv05"),
+    "ocpv03": canonical_name("ocpv03"),
     "ocpv06": canonical_name("ocpv06"),
     "ocpv07": canonical_name("ocpv07"),
     "ocpv08": canonical_name("ocpv08"),
