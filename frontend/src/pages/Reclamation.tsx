@@ -35,6 +35,12 @@ interface StuckTeardownsResult {
   total_subjects?: number;
   stuck?: StuckTeardownEntry[];
   stuck_count?: number;
+  /** Rows the detector could place on one of our clusters. */
+  attributable_count?: number;
+  /** Rows it could not — GPTE sandboxes, AWS account pools, and other
+   *  workloads that record no cluster at all. Still stuck, but not
+   *  necessarily something StarGate can remediate. */
+  unattributable_count?: number;
   threshold_hours?: number;
   error?: string;
   partial?: boolean;
@@ -214,6 +220,7 @@ export default function Reclamation() {
   const stuckTeardownCount = Math.max(teardownRows.length, destroyFailed + destroyError);
   const stuckObserved = !stuck.isLoading && !stuck.error;
   const thresholdHours = gaps.data?.stuck_teardowns?.threshold_hours ?? 2;
+  const unattributable = gaps.data?.stuck_teardowns?.unattributable_count ?? 0;
 
   const verdict: 'green' | 'amber' | 'red' | 'unknown' =
     leakCount != null && leakCount > 0 ? 'red'
@@ -276,7 +283,7 @@ export default function Reclamation() {
           <MetricCard
             label="Stuck teardowns"
             value={stuckTeardownCount}
-            sub={`${destroyFailed} destroy-failed · ${destroyError} destroy-error · threshold ${thresholdHours}h`}
+            sub={`${destroyFailed} destroy-failed · ${destroyError} destroy-error · threshold ${thresholdHours}h${unattributable > 0 ? ` · ${unattributable} not on a known cluster` : ''}`}
             accent={stuckTeardownCount > 0 ? 'amber' : 'green'}
           />
           <MetricCard

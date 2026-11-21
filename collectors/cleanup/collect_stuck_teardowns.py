@@ -26,6 +26,37 @@ logger = logging.getLogger("stargate.stuck_teardowns")
 STUCK_THRESHOLD_HOURS = float(os.environ.get("STARGATE_STUCK_TEARDOWN_HOURS", "2"))
 
 
+def _identity(spec_vars: Dict, subject_name: str) -> tuple:
+    """Resolve a subject's lab namespace and target cluster.
+
+    ``job_vars.namespace`` / ``job_vars.cluster_name`` were the only keys
+    read. Neither exists on the live control plane: of 2,692 AnarchySubjects
+    on the Babylon cluster, ``namespace`` and ``cluster_name`` are present on
+    zero. The real keys are ``sandbox_openshift_namespace`` (1,305) and
+    ``sandbox_openshift_cluster`` (1,002).
+
+    That mattered because ``cluster`` = "unknown" silently disabled the
+    namespace-existence check — it returns early on an unknown cluster — so
+    the detector could never say whether a stuck teardown still held any
+    resources. Measured before the fix: 98 stuck subjects, 98 with cluster
+    "unknown", 0 with an observed ``namespace_exists``.
+
+    The fallback is not a cure-all: many stuck subjects are GPTE sandboxes
+    and AWS account pools that do not record a cluster at all (57 of the 98
+    were ``sandboxes-gpte``). Those stay "unknown", which is honest, and
+    ``namespace_exists`` stays None. ``unattributable_count`` exists so the
+    alarm can say so instead of implying every row is a remediable lab.
+    """
+    job_vars = (spec_vars or {}).get("job_vars") or {}
+    namespace = (
+        job_vars.get("namespace")
+        or job_vars.get("sandbox_openshift_namespace")
+        or subject_name
+    )
+    cluster = job_vars.get("cluster_name") or job_vars.get("sandbox_openshift_cluster")
+    return namespace, cluster or "unknown"
+
+
 def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None) -> Dict:
     # NOTE: the -A query over ~2,600 AnarchySubjects takes >30s on the
     # Babylon control-plane — the old 30s timeout made the live detector
@@ -124,8 +155,7 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
 
         if age_hours >= STUCK_THRESHOLD_HOURS:
             name = metadata.get("name", "unknown")
-            namespace = spec_vars.get("job_vars", {}).get("namespace", name)
-            cluster = spec_vars.get("job_vars", {}).get("cluster_name", "unknown")
+            namespace, cluster = _identity(spec_vars, name)
             created_hours = _hours_since(created)
             stuck.append({
                 "anarchy_subject": name,
@@ -145,6 +175,15 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
         "total_subjects": len(items),
         "stuck": stuck,
         "stuck_count": len(stuck),
+        # A stuck subject we cannot place on a cluster is still stuck, but it
+        # is not necessarily something StarGate can remediate — split them out
+        # so the headline number is not read as "98 broken lab teardowns".
+        "attributable_count": sum(
+            1 for s in stuck if s.get("cluster") and s["cluster"] != "unknown"
+        ),
+        "unattributable_count": sum(
+            1 for s in stuck if not s.get("cluster") or s["cluster"] == "unknown"
+        ),
         "threshold_hours": STUCK_THRESHOLD_HOURS,
         "pending": {
             "count": len(pending_ages),

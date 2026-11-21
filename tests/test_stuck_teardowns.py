@@ -254,3 +254,66 @@ class TestTeardownAgeBasis:
         assert result["stuck_count"] == 1
         assert result["pending"]["count"] == 2
         assert result["pending"]["over_7d"] == 1
+
+
+class TestSubjectIdentity:
+    """A stuck subject must be attributable to a real lab and cluster.
+
+    Measured on the live Babylon control plane (2,692 AnarchySubjects):
+    ``job_vars.namespace`` and ``job_vars.cluster_name`` are present on zero
+    subjects. The real keys are ``sandbox_openshift_namespace`` and
+    ``sandbox_openshift_cluster``. Reading only the first pair left every row
+    with ``cluster: "unknown"``, which disables the namespace-existence check.
+    """
+
+    def _run(self, tmp_path, items):
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = json.dumps({"items": items})
+            return collector.detect_stuck_teardowns(kubeconfig=str(kc))
+
+    def _item(self, name, job_vars, age_h=10):
+        ts = (datetime.now(timezone.utc) - timedelta(hours=age_h)).isoformat().replace("+00:00", "Z")
+        return {
+            "metadata": {"name": name, "creationTimestamp": ts, "deletionTimestamp": ts},
+            "status": {"state": "destroying"},
+            "spec": {"vars": {"job_vars": job_vars}},
+        }
+
+    def test_sandbox_openshift_keys_are_read(self, tmp_path):
+        result = self._run(tmp_path, [self._item("agd-v2.lab.prod-abc-1", {
+            "sandbox_openshift_cluster": "ocpv07",
+            "sandbox_openshift_namespace": "sandbox-abc-1-ocp4-cluster",
+        })])
+
+        entry = result["stuck"][0]
+        assert entry["cluster"] == "ocpv07"
+        assert entry["namespace"] == "sandbox-abc-1-ocp4-cluster"
+
+    def test_cluster_name_still_wins_when_present(self, tmp_path):
+        result = self._run(tmp_path, [self._item("s", {
+            "cluster_name": "ocpv05",
+            "sandbox_openshift_cluster": "ocpv07",
+            "namespace": "sandbox-x",
+        })])
+
+        assert result["stuck"][0]["cluster"] == "ocpv05"
+        assert result["stuck"][0]["namespace"] == "sandbox-x"
+
+    def test_subject_without_any_cluster_key_stays_unknown_and_is_counted(self, tmp_path):
+        """GPTE sandboxes and AWS account pools record no cluster at all.
+        They are still stuck; they are just not attributable to our fleet."""
+        result = self._run(tmp_path, [
+            self._item("sandboxes-gpte.thing", {"guid": "abc"}),
+            self._item("attributable", {"sandbox_openshift_cluster": "ocpv06"}),
+        ])
+
+        assert result["stuck_count"] == 2
+        assert result["attributable_count"] == 1
+        assert result["unattributable_count"] == 1
+        unknown = next(s for s in result["stuck"] if s["anarchy_subject"] == "sandboxes-gpte.thing")
+        assert unknown["cluster"] == "unknown"
+        # An unknown cluster must not be queried, so existence stays unobserved.
+        assert unknown["namespace_exists"] is None
