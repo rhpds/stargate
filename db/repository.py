@@ -475,7 +475,19 @@ def get_cluster_failure_summary(
     cluster_name: str,
     limit: int = 200,
 ) -> dict:
-    """Aggregate failure data for a cluster."""
+    """Aggregate failure data for a cluster.
+
+    The window is the newest ``limit`` evaluations for the cluster with **no
+    time bound**, which is what the board wants while a cluster is being
+    scanned. It is also why every response carries its own age: a cluster that
+    stops reporting keeps its last window indefinitely, and a 0% health rate
+    from three weeks ago looks exactly like a 0% health rate from a minute ago.
+    Callers that render a card must show ``freshness`` beside the numbers.
+
+    ``freshness`` uses the same vocabulary as ``api.contracts.get_freshness``:
+    ``fresh`` under 5 minutes, ``aging`` up to 15, ``stale`` beyond that, and
+    ``unknown`` when the window is empty.
+    """
     records = (
         db.query(EvaluationRecord)
         .filter(EvaluationRecord.cluster_name == cluster_name)
@@ -513,6 +525,28 @@ def get_cluster_failure_summary(
     total = len(records)
     healthy = passed + warned
 
+    evaluated = [r.evaluated_at for r in records if r.evaluated_at is not None]
+    latest = max(evaluated) if evaluated else None
+    earliest = min(evaluated) if evaluated else None
+    # SQLite drops tzinfo on the way out; the column is UTC everywhere else.
+    if latest is not None and latest.tzinfo is None:
+        latest = latest.replace(tzinfo=timezone.utc)
+    if earliest is not None and earliest.tzinfo is None:
+        earliest = earliest.replace(tzinfo=timezone.utc)
+    age_seconds = (
+        max(int((datetime.now(timezone.utc) - latest).total_seconds()), 0)
+        if latest is not None
+        else None
+    )
+    if age_seconds is None:
+        freshness = "unknown"
+    elif age_seconds < 300:
+        freshness = "fresh"
+    elif age_seconds <= 900:
+        freshness = "aging"
+    else:
+        freshness = "stale"
+
     return {
         "cluster": cluster_name,
         "total_evaluations": total,
@@ -523,6 +557,10 @@ def get_cluster_failure_summary(
         "failure_classes": failure_classes,
         "labs_seen": len(labs_seen),
         "labs_failing": len(labs_failing),
+        "window_started_at": earliest,
+        "last_evaluated_at": latest,
+        "age_seconds": age_seconds,
+        "freshness": freshness,
     }
 
 
