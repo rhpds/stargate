@@ -9,7 +9,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
@@ -261,9 +261,9 @@ def _cmd_collect(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id = None
+    run_id, persist_error = None, None
     if getattr(args, "api_url", None):
-        run_id = _persist_to_api(
+        run_id, persist_error = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -278,6 +278,13 @@ def _cmd_collect(args) -> int:
         output = {"namespace": namespace, "results": results}
         if run_id:
             output["run_id"] = run_id
+        if getattr(args, "api_url", None):
+            # Callers must be able to tell "collected" from "stored". Silent
+            # drops here are how a lab goes dark while the scanner reports a
+            # clean cycle.
+            output["persisted"] = run_id is not None
+            if persist_error:
+                output["persist_error"] = persist_error
         print(json.dumps(output, indent=2))
     elif args.out_format == "text":
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -397,10 +404,10 @@ def _cmd_collect_dir(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id = None
+    run_id, persist_error = None, None
     if getattr(args, "api_url", None):
         namespace = directory.name
-        run_id = _persist_to_api(
+        run_id, persist_error = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -415,6 +422,10 @@ def _cmd_collect_dir(args) -> int:
         output = {"directory": str(directory), "results": results}
         if run_id:
             output["run_id"] = run_id
+        if getattr(args, "api_url", None):
+            output["persisted"] = run_id is not None
+            if persist_error:
+                output["persist_error"] = persist_error
         print(json.dumps(output, indent=2))
     else:
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -444,15 +455,19 @@ def _persist_to_api(
     collected: List[CollectedEvidence],
     results: List[Dict],
     out_format: str,
-) -> Optional[str]:
-    """Submit evidence and evaluations to the StarGate API. Returns run_id."""
+) -> Tuple[Optional[str], Optional[str]]:
+    """Submit evidence and evaluations to the StarGate API.
+
+    Returns ``(run_id, error)``. Persisting used to be gated on
+    ``/health == ok``, which treated a ``degraded`` report — a stale scanner, an
+    unconfigured LLM, an unreachable sandbox-api — as "do not persist" and
+    silently discarded the whole namespace evaluation. ``_post`` already
+    returns ``{"error": ...}`` for an unreachable API, so the gate bought
+    nothing and cost data.
+    """
     from cli.api_client import StarGateClient
 
     client = StarGateClient(api_url)
-
-    if not client.health():
-        print("  API not reachable, skipping persistence.", file=sys.stderr)
-        return None
 
     run_resp = client.create_run(
         demo_id=demo_id,
@@ -462,8 +477,9 @@ def _persist_to_api(
     )
     run_id = run_resp.get("run_id")
     if not run_id:
-        print(f"  Failed to create run: {run_resp}", file=sys.stderr)
-        return None
+        reason = run_resp.get("error") or str(run_resp)
+        print(f"  Failed to create run: {reason}", file=sys.stderr)
+        return None, reason
 
     if out_format == "text":
         print(f"\n  Persisting to API ({api_url})...")
@@ -496,7 +512,7 @@ def _persist_to_api(
         print(f"  Persisted {len(results)} stages with {len(collected)} evidence items each.")
         print(f"  View report: curl {api_url}/runs/{run_id}/report")
 
-    return run_id
+    return run_id, None
 
 
 # --- Helpers ---

@@ -135,6 +135,9 @@ class ClusterWorker:
     TIER2_INTERVAL = 300    # 5 minutes
     TIER3_INTERVAL = 300    # 5 minutes
     TIER3_BATCH_SIZE = 150  # namespaces per tier 3 cycle
+    # One namespace's collection is a batch of `oc get`s plus the probe run.
+    # Without a ceiling a single hung namespace blocks the whole cycle.
+    NS_COLLECT_TIMEOUT = int(os.environ.get("STARGATE_NS_COLLECT_TIMEOUT", "300"))
 
     def __init__(self, name: str, kubeconfig: str, api_url: Optional[str] = None):
         self.state = ClusterState(name=name, kubeconfig=kubeconfig)
@@ -356,6 +359,7 @@ class ClusterWorker:
             self.state.ns_rotation_index = (idx + remaining) % max(len(healthy), 1)
 
         persisted = 0
+        dropped = 0
         passed = 0
         failed = 0
         failure_classes: Dict[str, int] = {}
@@ -374,7 +378,17 @@ class ClusterWorker:
             if result:
                 if result.get("service_uuid"):
                     uuid_map[result["service_uuid"]] = ns
-                persisted += 1
+                if result.get("persisted") is False:
+                    # The collection succeeded and the stages were evaluated;
+                    # only the write was lost. Counting this as "persisted"
+                    # is how a lab goes dark while the cycle looks clean.
+                    dropped += 1
+                    logger.warning(
+                        "Namespace %s evaluated but not persisted: %s",
+                        ns, result.get("persist_error") or "no run_id returned",
+                    )
+                else:
+                    persisted += 1
                 stage_outcomes = [r.get("outcome") for r in result.get("results", [])]
                 ns_outcome = "pass" if stage_outcomes and all(
                     outcome == "pass" for outcome in stage_outcomes
@@ -407,6 +421,7 @@ class ClusterWorker:
         return {
             "batch_size": len(batch),
             "persisted": persisted,
+            "persist_failures": dropped,
             "passed": passed,
             "failed": failed,
             "failure_classes": failure_classes,
@@ -463,16 +478,26 @@ class ClusterWorker:
 
         demo_id, stages = _detect_demo_type(namespace)
 
-        r = subprocess.run(
-            [sys.executable, "-m", "cli.stargate", "collect-dir", tmpdir,
-             "--stages", stages,
-             "--api-url", self.api_url,
-             "--demo-id", demo_id,
-             "--lab-code", lab_code or namespace,
-             "--cluster-name", self.state.name,
-             "--format", "json"],
-            capture_output=True, text=True,
-        )
+        try:
+            r = subprocess.run(
+                [sys.executable, "-m", "cli.stargate", "collect-dir", tmpdir,
+                 "--stages", stages,
+                 "--api-url", self.api_url,
+                 "--demo-id", demo_id,
+                 "--lab-code", lab_code or namespace,
+                 "--cluster-name", self.state.name,
+                 "--format", "json"],
+                capture_output=True, text=True, timeout=self.NS_COLLECT_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            # A batch is 25 namespaces every 10 minutes, and route probes add
+            # up to STARGATE_ROUTE_PROBE_TIMEOUT per route inside this call.
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            logger.warning(
+                "Namespace collection timed out for %s after %ss",
+                namespace, self.NS_COLLECT_TIMEOUT,
+            )
+            return None
 
         shutil.rmtree(tmpdir, ignore_errors=True)
 
