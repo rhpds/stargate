@@ -43,6 +43,7 @@
 | [Babylon Integration](post-summit-babylon-integration.md) | Babylon/Poolboy control plane integration |
 | [Integration Findings](integration-findings.md) | Data source join reliability, gap analysis |
 | [Evidence Observation Semantics](evidence-observation-semantics.md) | The tri-state evidence contract: observed / unobserved / indeterminate |
+| [Taxonomy Registry Gap](taxonomy-registry-gap.md) | Proposed: one generated failure-class registry, enforced in CI (proposal) |
 
 ## Point-in-time reports
 
