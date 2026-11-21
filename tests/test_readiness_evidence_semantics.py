@@ -148,7 +148,6 @@ def test_scanner_does_not_recover_on_unobserved_results(monkeypatch, outcomes, e
     worker = ClusterWorker("synthetic", "/not-used", api_url="http://not-used")
     worker.state.all_sandbox_namespaces = ["example"]
     worker.state.ns_outcomes["example"] = "fail"
-    monkeypatch.setattr(worker, "_get_lab_mappings", dict)
     monkeypatch.setattr(worker, "_collect_namespace", lambda *a, **kw: {
         "results": [{"outcome": outcome} for outcome in outcomes],
     })
