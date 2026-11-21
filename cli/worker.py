@@ -493,6 +493,7 @@ class ClusterWorker:
                  "--stages", stages,
                  "--api-url", self.api_url,
                  "--demo-id", demo_id,
+                 "--namespace", namespace,
                  "--lab-code", lab_code or namespace,
                  "--cluster-name", self.state.name,
                  "--format", "json"],
