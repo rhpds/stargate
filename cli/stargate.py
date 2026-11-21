@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -295,6 +296,54 @@ def _cmd_collect(args) -> int:
     return 2 if any(r["outcome"] == "indeterminate" for r in results) else 0
 
 
+def _route_probe_enabled() -> bool:
+    return os.environ.get("STARGATE_ROUTE_PROBE", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _with_route_probes(collected: List[CollectedEvidence], quiet: bool) -> List[CollectedEvidence]:
+    """Attach HTTP probe evidence for this namespace's Route.
+
+    Disabled unless ``STARGATE_ROUTE_PROBE`` is set: a probe issues a real HTTP
+    request, and collection has always been read-only topology. When enabled,
+    the probe result becomes the sole source for ``health_endpoint_returns_200``;
+    without it that criterion stays unobserved and route-ready resolves
+    indeterminate (see docs/evidence-observation-semantics.md).
+
+    Routes with no ready endpoints are skipped — the request would only burn the
+    timeout, and ``service_has_no_endpoints`` is already the observed failure.
+    """
+    if not _route_probe_enabled():
+        return collected
+
+    from collectors.openshift.probe_route_health import probe_route_evidence
+
+    has_ready_endpoints = any(
+        ev.resource_kind == "Endpoints" and ev.observed.get("service_has_ready_endpoints")
+        for ev in collected
+    )
+    if not has_ready_endpoints:
+        return collected
+
+    try:
+        timeout = float(os.environ.get("STARGATE_ROUTE_PROBE_TIMEOUT", "10"))
+    except ValueError:
+        timeout = 10.0
+
+    probes: List[CollectedEvidence] = []
+    for ev in collected:
+        if ev.resource_kind != "Route" or not ev.observed.get("route_exists"):
+            continue
+        probe = probe_route_evidence(ev, timeout=timeout)
+        if probe is None:
+            continue
+        probes.append(probe)
+        if not quiet:
+            status = probe.observed.get("http_status")
+            detail = f"HTTP {status}" if status is not None else (probe.observed.get("probe_error") or "no answer")
+            print(f"  [probe] {probe.observed.get('probed_url')}: {detail}")
+    return collected + probes
+
+
 def _cmd_collect_dir(args) -> int:
     directory = Path(args.directory)
     if not directory.is_dir():
@@ -311,6 +360,8 @@ def _cmd_collect_dir(args) -> int:
         print(f"Collected {len(collected)} evidence items from {directory}")
         for ev in collected:
             print(f"  {ev.resource_kind}: {ev.resource_name}")
+
+    collected = _with_route_probes(collected, quiet=is_json)
 
     rubrics = _load_all_rubrics()
     stages = args.stages.split(",") if args.stages else list(rubrics.keys())

@@ -223,6 +223,9 @@ def collect_route(data: Dict) -> CollectedEvidence:
             "host": host,
             "admitted": admitted,
             "tls_termination": spec.get("tls", {}).get("termination"),
+            # A route may mount the app under a path prefix; a probe of "/"
+            # would then 404 an application that is perfectly healthy.
+            "path": spec.get("path") or "/",
         },
     )
 
