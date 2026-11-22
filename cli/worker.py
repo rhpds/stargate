@@ -29,7 +29,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from cli.kubeconfigs import SECRETS_DIR, resolve_kubeconfig
 
@@ -123,9 +123,87 @@ class ClusterState:
     scanned_namespaces: Set[str] = field(default_factory=set)
     all_sandbox_namespaces: List[str] = field(default_factory=list)
     ns_rotation_index: int = 0
+    failing_rotation_index: int = 0
     scan_count: int = 0
     ns_outcomes: Dict[str, str] = field(default_factory=dict)
     storage_catalog_data: Optional[Dict] = None
+
+
+def select_namespace_batch(
+    failing: Iterable[str],
+    healthy: Iterable[str],
+    batch_size: int,
+    ns_index: int = 0,
+    failing_index: int = 0,
+) -> Tuple[List[str], int, int]:
+    """Choose the namespaces for one tier-3 batch.
+
+    Failing namespaces go first because they are the ones worth watching, but
+    they must be *rotated* rather than taken from the front of a sorted list.
+    The previous selection did ``failing[:batch_size // 2]`` and then drew the
+    remainder from ``healthy``, which excluded every failing namespace by
+    definition. Any cluster whose failing set was larger than half the batch
+    therefore had namespaces in neither list: sorted past the cutoff of one,
+    filtered out of the other, and never collected again for as long as they
+    stayed broken. The fleet that needs the most attention was the least
+    observed, and nothing in the log said so.
+
+    Returns ``(batch, next_ns_index, next_failing_index)``.
+
+    Invariants, which the tests pin:
+
+    - every failing namespace is reachable within ``ceil(len(failing) / cap)``
+      consecutive ticks, where ``cap = batch_size // 2``;
+    - the healthy list keeps its caller-supplied order and rotates from
+      ``ns_index``, so coverage is even rather than front-loaded;
+    - a batch is ``batch_size`` long whenever the two lists together hold that
+      many namespaces — a cluster that is entirely failing still fills its
+      batch instead of shrinking to ``cap``.
+    """
+    if batch_size <= 0:
+        return [], ns_index, failing_index
+
+    failing_sorted = sorted(set(failing))
+    failing_set = set(failing_sorted)
+    healthy_ordered = [ns for ns in healthy if ns not in failing_set]
+
+    # Up to half the batch is reserved for the failing set; the rest rotates
+    # through everything else. Never reserve more than there is to reserve.
+    cap = max(1, batch_size // 2) if failing_sorted else 0
+
+    batch: List[str] = []
+    next_failing = failing_index
+    if failing_sorted:
+        take = min(cap, len(failing_sorted))
+        for i in range(take):
+            batch.append(failing_sorted[(failing_index + i) % len(failing_sorted)])
+        next_failing = (failing_index + take) % len(failing_sorted)
+
+    next_ns = ns_index
+    remaining = batch_size - len(batch)
+    if healthy_ordered and remaining > 0:
+        take = min(remaining, len(healthy_ordered))
+        for i in range(take):
+            batch.append(healthy_ordered[(ns_index + i) % len(healthy_ordered)])
+        next_ns = (ns_index + take) % len(healthy_ordered)
+        remaining -= take
+
+    # Fewer healthy namespaces than slots (or none at all): keep walking the
+    # failing rotation instead of emitting a short batch.
+    if remaining > 0 and failing_sorted:
+        seen = 0
+        cursor = next_failing
+        while remaining > 0 and seen < len(failing_sorted):
+            ns = failing_sorted[cursor % len(failing_sorted)]
+            cursor += 1
+            seen += 1
+            if ns in batch:
+                continue
+            batch.append(ns)
+            remaining -= 1
+        next_failing = cursor % len(failing_sorted)
+
+    return batch, next_ns, next_failing
 
 
 class ClusterWorker:
@@ -339,24 +417,18 @@ class ClusterWorker:
         if not self.api_url:
             return {"skipped": "no api_url configured"}
 
-        # Priority: scan failing namespaces first, then rotate through healthy ones
-        failing = sorted(self.state.failing_namespaces)
-        healthy = [ns for ns in self.state.all_sandbox_namespaces if ns not in self.state.failing_namespaces]
-
-        batch = []
-
-        # Always re-scan failing namespaces (up to half the batch)
-        batch.extend(failing[:self.TIER3_BATCH_SIZE // 2])
-
-        # Fill the rest from rotation
-        remaining = self.TIER3_BATCH_SIZE - len(batch)
-        if healthy and remaining > 0:
-            idx = self.state.ns_rotation_index
-            for i in range(remaining):
-                ns = healthy[(idx + i) % len(healthy)]
-                if ns not in batch:
-                    batch.append(ns)
-            self.state.ns_rotation_index = (idx + remaining) % max(len(healthy), 1)
+        # Priority: scan failing namespaces first, then rotate through healthy
+        # ones. Both lists rotate — see select_namespace_batch for why taking
+        # the failing set off the front of a sorted list starved the rest.
+        batch, self.state.ns_rotation_index, self.state.failing_rotation_index = (
+            select_namespace_batch(
+                self.state.failing_namespaces,
+                self.state.all_sandbox_namespaces,
+                self.TIER3_BATCH_SIZE,
+                ns_index=self.state.ns_rotation_index,
+                failing_index=self.state.failing_rotation_index,
+            )
+        )
 
         persisted = 0
         dropped = 0
