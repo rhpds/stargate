@@ -171,8 +171,14 @@ is passed:
 
 ```bash
 python3 -m cli.scheduler --api-url http://localhost:8090 \
-  --tier3 600 --batch 25 --tier3-independent
+  --tier3 300 --batch 25 --tier3-independent
 ```
+
+Note that `tier3` becomes the floor once the batch is out of the tick: with
+`--tier3 600` and a 444 s batch the cadence is 600 s, not 444 s, so `tier3` has
+to sit at or below the batch duration for the flag to buy anything. Ordering it
+that way is deliberate — `max()` picks whichever is slower, so a batch that
+overruns the interval still runs back-to-back.
 
 The tier-1 loop is unchanged either way, so tier 1 keeps its own period and the
 cadence warning in the log still refers to the tick only.
