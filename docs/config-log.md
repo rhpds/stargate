@@ -45,9 +45,14 @@ deployment; they join the Friday build.
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
-- The manifests still disagree with production: `deploy/helm/stargate/values.yaml`,
+- The manifests disagreed with production: `deploy/helm/stargate/values.yaml`,
   `deploy/helm/stargate/values-infra01.yaml`, and
-  `deploy/agnosticv/stargate-platform/prod.yaml` all list `ocpv05` and omit
-  `ocpv03`. They were not edited here because that does not change the running
-  deployment, and they carry clusters (`ocpv-infra01`, `ocpv-infra02`,
-  `ocp-us-east-1`) that the live args do not.
+  `deploy/agnosticv/stargate-platform/prod.yaml` all list `ocpv05` (retired — its
+  API host no longer resolves) and omit `ocpv03`, and they carry clusters
+  (`ocpv-infra01`, `ocpv-infra02`, `ocp-us-east-1`) that the live args do not.
+  They were not edited in this record because that does not change the running
+  deployment. `#168` corrects all of them to
+  `ocpv03,ocpv06,ocpv07,ocpv08,ocpv09`, alongside the change that makes the
+  value authoritative: `--clusters` used to be intersected with
+  `STARGATE_CLUSTERS` and unknown names were dropped silently, which is the only
+  reason a wrong list was survivable.
