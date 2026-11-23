@@ -32,26 +32,40 @@ from typing import Dict, List, Optional
 
 from cli.worker import ClusterWorker
 from cli.scan import CLUSTERS
-from cli.kubeconfigs import resolve_kubeconfig
+from cli.kubeconfigs import canonical_name, resolve_kubeconfig
 
 logger = logging.getLogger("stargate.scheduler")
 
 
 def select_clusters(registry: Dict[str, str], requested: str = "") -> tuple:
-    """Pick the clusters to start, and name the ones that did not match.
+    """Pick the clusters to start, and name the requested ones the registry lacks.
 
-    ``--clusters`` is intersected with the registry. Unknown names used to be
-    dropped without a word: the Deployment hardcoded ``--clusters ocpv05,...``
-    while ``STARGATE_CLUSTERS`` carried ``ocpv06-09``, so the intersection was
-    quietly four clusters, ``ocpv03`` was never started, and 47 live labs went
-    unscored for 18 days while the scheduler reported a healthy cycle. Returns
-    ``(selected, unknown)`` so the caller can say which names were ignored.
+    ``--clusters`` *defines* the set; it is no longer intersected with the
+    registry. The intersection was the bug: the Deployment hardcoded
+    ``--clusters ocpv05,...`` while ``STARGATE_CLUSTERS`` carried
+    ``ocpv06-09``, so the result was quietly four clusters, ``ocpv03`` was never
+    started, and 47 live labs went unscored for 18 days while the scheduler
+    reported a healthy cycle. "Four of the five names you asked for matched" is
+    not a healthy cycle, and an intersection can never be larger than its
+    smallest input.
+
+    A requested name the registry does not carry is still started, with its
+    canonical kubeconfig name, and returned in ``unknown`` so the caller can
+    say the registry and the command line disagree. That is how a new cluster
+    gets added without editing two places in lockstep: the scheduler tries it
+    and logs the missing credential by path.
     """
     if not requested:
         return dict(registry), []
-    names = {n.strip() for n in requested.split(",") if n.strip()}
-    unknown = sorted(names - set(registry))
-    return {k: v for k, v in registry.items() if k in names}, unknown
+
+    selected: Dict[str, str] = {}
+    for name in (n.strip() for n in requested.split(",")):
+        if not name or name in selected:
+            continue
+        selected[name] = registry.get(name) or canonical_name(name)
+
+    unknown = sorted(name for name in selected if name not in registry)
+    return selected, unknown
 
 
 class WorkerThread:
@@ -508,8 +522,15 @@ def main():
     clusters, unknown = select_clusters(CLUSTERS, args.clusters or "")
     if unknown:
         print(
-            f"WARNING: --clusters names not in STARGATE_CLUSTERS, ignored: "
-            f"{', '.join(unknown)}",
+            f"NOTE: --clusters names not in STARGATE_CLUSTERS: {', '.join(unknown)} "
+            f"— starting them with their canonical kubeconfig names",
+            file=sys.stderr,
+        )
+    omitted = sorted(set(CLUSTERS) - set(clusters))
+    if args.clusters and omitted:
+        print(
+            f"NOTE: --clusters omits {', '.join(omitted)} from STARGATE_CLUSTERS "
+            f"— not scanned",
             file=sys.stderr,
         )
     if args.clusters and not clusters:

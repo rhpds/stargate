@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from db.lab_identity import lab_code_filter
 from db.models import (
     AuditLog,
     EvaluationRecord,
@@ -2989,7 +2990,9 @@ def live_labs(db, window_hours: int = 2, limit: int = 500):
             # Only real lab namespaces: cluster-health, dependency and model
             # evaluations also set lab_code (to the cluster/service name), and
             # counting those made "labs" include babylon, primary and jira.
-            EvaluationRecord.lab_code.like("sandbox-%"),
+            # The predicate itself lives in db/lab_identity.py, so the API, the
+            # miners and the collector cannot drift apart on what a lab is.
+            lab_code_filter(EvaluationRecord.lab_code),
         )
         .order_by(EvaluationRecord.evaluated_at.asc())
         .all()

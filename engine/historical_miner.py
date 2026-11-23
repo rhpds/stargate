@@ -350,6 +350,7 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
     Does NOT execute any remediation — shadow only.
     """
     import urllib.request
+    from db.lab_identity import lab_code_filter
     from db.models import EvaluationRecord
     from sqlalchemy import func
 
@@ -376,7 +377,7 @@ def run_shadow_cycle(db, max_failures: int = 10) -> Dict:
         EvaluationRecord.outcome == "fail",
         EvaluationRecord.failure_class.isnot(None),
         EvaluationRecord.failure_class != "",
-        EvaluationRecord.lab_code.like("sandbox-%"),
+        lab_code_filter(EvaluationRecord.lab_code),
     ).order_by(EvaluationRecord.id).limit(max_failures).all()
 
     if not new_failures:

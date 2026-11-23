@@ -1,12 +1,23 @@
-"""Resolve cluster kubeconfig files, with legacy filename aliases.
+"""Resolve cluster kubeconfig files.
+
+Canonical name is `kubeconfig-<cluster>`, and it is the only name this module
+resolves on its own.
 
 The 2026 Turkey Vulture rotation replaced the scanner service-account tokens.
-The old filenames `kubeconfig` and `kubeconfig-cnv` held revoked tokens; they
-survived only because code defaults and two helper scripts still named them, so
-any redeploy or manual scan run pointed at dead credentials.
+The old filenames `kubeconfig` (ocp-us-east-1) and `kubeconfig-cnv` (ocpv06)
+held revoked tokens. They survived the rotation because resolution fell back to
+them when the canonical file was missing — so a deployment that lost a
+canonical copy would silently keep working against a dead credential, and
+`ocpv06` was one missing file away from scanning nothing while reporting a
+healthy cycle.
 
-Canonical name is `kubeconfig-<cluster>`. Legacy names are still readable so an
-existing deployment keeps working while the copies are cleaned up.
+That fallback is gone. A missing canonical file is now a visible error naming
+the file that should be there, which is what `Scheduler` logs and what
+`credential-health` reports.
+
+An explicitly configured filename is still honoured, including a legacy one:
+that is a deliberate operator choice (a comma-separated `STARGATE_CLUSTERS`
+mapping exists for it), not a silent fallback.
 """
 
 from __future__ import annotations
@@ -15,12 +26,6 @@ from pathlib import Path
 from typing import Optional
 
 SECRETS_DIR = Path(__file__).parent.parent / "secrets"
-
-# cluster -> pre-rotation filename. Read-only fallback; never written.
-LEGACY_ALIASES = {
-    "ocpv06": "kubeconfig-cnv",
-    "ocp-us-east-1": "kubeconfig",
-}
 
 
 def canonical_name(cluster: str) -> str:
@@ -36,25 +41,14 @@ def resolve_kubeconfig(
     """Return the kubeconfig path for a cluster.
 
     Resolution order: the explicitly configured filename, then the canonical
-    name, then the pre-rotation alias. Returns the canonical path when nothing
-    exists, so the caller's error names the file that should be there rather
-    than a legacy one that never will be.
+    name. Returns the canonical path when nothing exists, so the caller's error
+    names the file that should be there.
     """
     base = Path(secrets_dir) if secrets_dir else SECRETS_DIR
 
     if kubeconfig:
-        explicit = base / kubeconfig
-        if explicit.exists():
-            return explicit
-        alias = LEGACY_ALIASES.get(cluster)
-        if alias and (base / alias).exists():
-            return base / alias
-        return explicit
+        # An explicitly configured filename is what the operator asked for;
+        # return it even when missing so the error names that path.
+        return base / kubeconfig
 
-    canonical = base / canonical_name(cluster)
-    if canonical.exists():
-        return canonical
-    alias = LEGACY_ALIASES.get(cluster)
-    if alias and (base / alias).exists():
-        return base / alias
-    return canonical
+    return base / canonical_name(cluster)

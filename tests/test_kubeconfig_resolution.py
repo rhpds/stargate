@@ -1,10 +1,11 @@
-"""Kubeconfig resolution across canonical and pre-rotation filenames.
+"""Kubeconfig resolution: canonical names, and nothing reached by accident.
 
 The 2026 Turkey Vulture rotation revoked the scanner tokens but left the old
 filenames in code defaults (`kubeconfig-cnv` for ocpv06, `kubeconfig` for
-ocp-us-east-1). A redeploy would have pointed the scanner at dead credentials,
-so resolution now prefers `kubeconfig-<cluster>` and only falls back to the
-legacy name while it still exists.
+ocp-us-east-1). Resolution used to fall back to those names whenever the
+canonical file was missing, which meant a lost canonical copy silently kept
+working against a dead credential. The fallback is gone; an explicitly
+configured filename is still honoured, because that is a deliberate choice.
 """
 
 from pathlib import Path
@@ -32,12 +33,18 @@ class TestResolution:
 
         assert resolved.name == "kubeconfig-ocpv06"
 
-    def test_falls_back_to_legacy_alias(self, tmp_path):
+    def test_missing_canonical_file_does_not_fall_back_to_the_legacy_alias(self, tmp_path):
+        """The revoked token must not be reached by accident.
+
+        `kubeconfig-cnv` held a revoked token after the 2026 rotation. As long
+        as resolution fell back to it, deleting the canonical copy left ocpv06
+        scanning nothing while the cycle still looked healthy.
+        """
         _touch(tmp_path / "kubeconfig-cnv")
 
         resolved = resolve_kubeconfig("ocpv06", secrets_dir=tmp_path)
 
-        assert resolved.name == "kubeconfig-cnv"
+        assert resolved.name == "kubeconfig-ocpv06"
 
     def test_returns_canonical_path_when_nothing_exists(self, tmp_path):
         resolved = resolve_kubeconfig("ocpv06", secrets_dir=tmp_path)

@@ -64,6 +64,7 @@ def coverage(
 ) -> Dict[str, Any]:
     """Planned vs provisioned vs healthy, per session."""
     from db.models import EvaluationRecord, LabMapping
+    from db.lab_identity import lab_code_filter
 
     now = now or datetime.now(timezone.utc)
     window_start = now - timedelta(hours=hours_back)
@@ -102,7 +103,7 @@ def coverage(
         .filter(
             EvaluationRecord.evaluated_at >= query_start,
             EvaluationRecord.evaluated_at <= query_end,
-            EvaluationRecord.lab_code.like("sandbox-%"),
+            lab_code_filter(EvaluationRecord.lab_code),
         )
         .order_by(EvaluationRecord.evaluated_at.asc())
         .all()
