@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from cli.kubeconfigs import resolve_kubeconfig
 from contracts.outcome_contracts import ProvisionOutcome, resolve_provision_outcome
 
 # Contract outcome → failure-class string for WorkshopProvision findings.
@@ -32,9 +33,10 @@ WORKSHOP_PROVISION_CLASSES = {
     ProvisionOutcome.STALLED: "workshop_provision_stalled",
 }
 
-SECRETS_DIR = Path(__file__).parent.parent / "secrets"
-_kc_default = SECRETS_DIR / "kubeconfig-ocp-us-east-1"
-KUBECONFIG = str(_kc_default if _kc_default.exists() else SECRETS_DIR / "kubeconfig")
+# Canonical only. The old `kubeconfig` fallback held a revoked token, so a
+# missing canonical copy used to leave the control-plane collector pointing at
+# dead credentials instead of reporting them missing.
+KUBECONFIG = str(resolve_kubeconfig("ocp-us-east-1"))
 
 
 def _oc(args: List[str], timeout: int = 30) -> Optional[str]:

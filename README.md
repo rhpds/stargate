@@ -13,7 +13,7 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — watches the 
 
 **The platform underneath:**
 
-- **Cluster Scanning** — the five provisioning clusters (ocpv05–09) on a tiered schedule (5m/15m/1h): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
+- **Cluster Scanning** — the five provisioning clusters (ocpv03, ocpv06–09) on a tiered schedule (5m/15m/1h): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
 - **Rubric Evaluation** — each lab namespace evaluated against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, storage-catalog-health, …)
 - **AI Classification** — unclassified failures sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for failure-class proposals
 - **Durable Investigations** — idempotent source events claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
@@ -53,7 +53,7 @@ Frontend (React 19 + Vite + Tailwind 4 — question-first IA, drawers)
     |
     FastAPI (Python 3.11)
     |
-    +-- Scanner Workers (provisioning clusters ocpv05-09, tiered schedule)
+    +-- Scanner Workers (provisioning clusters ocpv03, ocpv06-09, tiered schedule)
     +-- Babylon Worker (control-plane collector)
     +-- Gap Detectors (stuck teardowns via Babylon; leaks via a worker cluster)
     +-- AAP Collector (4 controllers: prod0, prod1, event0, event1)
@@ -205,7 +205,7 @@ tests/                  Test suite
 | `scripts/build-and-tag.sh` | Build images with git-SHA tags for reproducible deploys |
 | `scripts/deploy.sh` | Build, push, and deploy to infra01 (`--build-only`, `--deploy-only`, `--sync-env`) |
 | `scripts/deploy-infra01.sh` | Full Helm-based deploy with secrets and OAuth setup |
-| `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning (ocpv05's expire periodically — run this when it drops out) |
+| `scripts/refresh-kubeconfigs.sh` | Create long-lived SA tokens for cluster scanning (run this when a cluster drops out) |
 | `scripts/test-auto-remediation.sh` | E2E auto-remediation test suite |
 | `scripts/confluence_sync.py` | Mirror docs to the Confluence page tree (idempotent, label-based change detection; run post-release) |
 
@@ -274,7 +274,7 @@ for per-tool examples — what to ask, what each tool returns.
 - [x] **The knowledge loop is turning** — the first-ever human reviews produced 9 knowledge entries; approved diagnoses publish to the versioned knowledge base, so every review makes the next investigation better.
 - [x] **Reclamation ground truth** — teardown outcomes with artifact enumeration, the stuck-teardown detector (44 found live on its first correct run), the leak detector pointed at the worker clusters (was querying infra01 — no PVs there), and concentration analysis.
 - [x] **Deepfield removed** — the internal product was 94% of the approval queue (10,195 pending actions, 130+ free-text action types) and the calibration study proved its scores don't predict outcomes. Ingestion endpoint, event forwarding, admin proxy, page, and namespace allowlist all removed; the 21,700 historical rows preserved for the adjudication backtest.
-- [x] **Scanner scope fixed** — provisioning clusters only (ocpv05–09); infrastructure clusters removed from the investigation path (they were noise, not signal). A cluster-naming mismatch that silently dropped half the fleet from scans was found and fixed.
+- [x] **Scanner scope fixed** — provisioning clusters only (ocpv03, ocpv06–09); infrastructure clusters removed from the investigation path (they were noise, not signal). A cluster-naming mismatch that silently dropped half the fleet from scans was found and fixed.
 - [x] **MCP discovery tools** — `list_investigations`, `list_pending_actions`, `get_provisioning_summary`: an agent could review and drill by ID but couldn't discover what needs attention. Now the triage pattern works start-to-finish over MCP.
 
 ### Current
@@ -282,7 +282,7 @@ for per-tool examples — what to ask, what each tool returns.
 - [ ] **Adoption** — the platform works; usage is the remaining feature. MCP calls by the team, reviews flowing through the queue, knowledge compounding.
 - [ ] **Alert wiring** — `SlackConsumer` exists but no webhook is configured; monitors emit events nobody receives. One env var.
 - [ ] **Monitoring-gaps async** — the endpoint runs synchronous `oc` calls against the Babylon control-plane and times out (>120s); needs a kick-off-and-poll pattern.
-- [ ] **ocpv05 scanner credentials** — expire periodically; run `scripts/refresh-kubeconfigs.sh`.
+- [ ] **Three provisioning clusters have no scanner credentials** — ocpv01, ocpv02 and ocpv04 are live with 329 started labs between them and have never been scanned; see `docs/cluster-fleet.md`.
 - [ ] **Replay the remaining controllers** — prod0 in progress; event0 next; prod1/event1 behind bastion auth. Includes the deeper `archive/` directories (19GB on prod0 alone).
 - [ ] **Partner controller in live collection** — the replay exposed that the partner AAP is not among the 4 live-collected controllers.
 - [ ] **Cascade integration decision** — Monday Nov 16: OSS as shadow subject, proof as control (`docs/cascade-integration-design.md`).

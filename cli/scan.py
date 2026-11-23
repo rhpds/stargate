@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from cli.kubeconfigs import SECRETS_DIR, canonical_name, resolve_kubeconfig
+from db.lab_identity import is_lab_namespace
 
 logger = logging.getLogger("stargate.scan")
 
@@ -434,7 +435,7 @@ def run_scan(
                 ns_set = set()
                 for line in r.stdout.split("\n"):
                     parts = line.split()
-                    if len(parts) >= 4 and parts[0].startswith("sandbox-") and parts[3] == "Running":
+                    if len(parts) >= 4 and is_lab_namespace(parts[0]) and parts[3] == "Running":
                         ns_set.add(parts[0])
             except Exception:
                 continue

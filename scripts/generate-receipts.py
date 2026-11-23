@@ -170,10 +170,8 @@ def generate_infrastructure():
             "sa": "stargate-executor",
             "role": "stargate-executor-role (namespace-scoped write)",
         },
-        "scanner_clusters": [
-            "ocpv05", "ocpv06", "ocpv07", "ocpv08", "ocpv09",
-            "ocpv-infra01", "ocpv-infra02", "ocp-us-east-1",
-        ],
+        # Provisioning clusters only; ocpv05 retired, infra clusters excluded.
+        "scanner_clusters": ["ocpv03", "ocpv06", "ocpv07", "ocpv08", "ocpv09"],
         "scanner_sa": "stargate-scanner (cluster-reader, read-only)",
         "database": "PostgreSQL 15, 20Gi PVC",
         "llm": "Granite 3.2 8B on Intel Gaudi via LiteLLM",

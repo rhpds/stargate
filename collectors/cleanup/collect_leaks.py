@@ -4,11 +4,13 @@ Read-only. Checks for PVs bound to namespaces that no longer exist,
 and PVCs referencing PVs that are gone or in Lost phase.
 """
 
+import json
 import logging
 import os
 import subprocess
-import json
 from typing import Dict, List, Set
+
+from db.lab_identity import is_lab_namespace
 
 logger = logging.getLogger("stargate.resource_leaks")
 
@@ -73,7 +75,7 @@ def detect_resource_leaks(kubeconfig: str = "") -> Dict:
 
         # Check PVCs across sandbox namespaces for broken volume references
         for ns in existing_ns:
-            if not (ns.startswith("sandbox-") or ns.startswith("showroom-")):
+            if not (is_lab_namespace(ns) or ns.startswith("showroom-")):
                 continue
             try:
                 r2 = subprocess.run(

@@ -124,7 +124,7 @@ python3 -m cli.scheduler --api-url http://localhost:8090
 
 # Specific clusters
 python3 -m cli.scheduler --api-url http://localhost:8090 \
-  --clusters ocpv05,ocpv06,ocpv07,ocpv08,ocpv09   # provisioning clusters only
+  --clusters ocpv03,ocpv06,ocpv07,ocpv08,ocpv09   # provisioning clusters only
 
 # Custom intervals
 python3 -m cli.scheduler --api-url http://localhost:8090 \

@@ -32,14 +32,41 @@ def test_every_matching_name_is_started():
     assert unknown == []
 
 
-def test_a_name_missing_from_the_registry_is_reported_not_silently_dropped():
-    """The dead cluster: requested, not in the registry."""
+def test_a_name_missing_from_the_registry_is_started_not_silently_dropped():
+    """The dead cluster, and the shape of the fix.
+
+    Requesting a cluster the registry does not carry used to intersect it away.
+    Now it is attempted with its canonical kubeconfig name — so a credential
+    request for a new cluster is one env change, not two in lockstep — and
+    reported so the operator can see the two sources disagree.
+    """
     registry = {"ocpv03": "kubeconfig-ocpv03", "ocpv06": "kubeconfig-ocpv06"}
 
     selected, unknown = select_clusters(registry, "ocpv05,ocpv06")
 
-    assert selected == {"ocpv06": "kubeconfig-ocpv06"}
-    assert unknown == ["ocpv05"], "the operator has to see that ocpv05 did not match"
+    assert selected == {
+        "ocpv05": "kubeconfig-ocpv05",
+        "ocpv06": "kubeconfig-ocpv06",
+    }
+    assert unknown == ["ocpv05"], "the operator has to see that ocpv05 is not in the registry"
+
+
+def test_requesting_only_the_registry_cluster_still_starts_the_other_one():
+    """The 18-day bug: registry and --clusters agreed on nothing but ocpv06."""
+    registry = {"ocpv06": "kubeconfig-ocpv06"}
+
+    selected, unknown = select_clusters(registry, "ocpv03,ocpv06")
+
+    assert set(selected) == {"ocpv03", "ocpv06"}
+    assert unknown == ["ocpv03"]
+
+
+def test_a_registry_filename_is_preferred_over_the_canonical_one():
+    registry = {"ocpv06": "custom-ocpv06"}
+
+    selected, _ = select_clusters(registry, "ocpv06")
+
+    assert selected == {"ocpv06": "custom-ocpv06"}
 
 
 def test_no_request_means_the_whole_registry():

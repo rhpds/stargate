@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from db.database import get_db, init_db
+from db.lab_identity import lab_code_filter
 from db import repository
 from contracts.outcome_contracts import ReclamationOutcome, resolve_reclamation_outcome
 from engine.runtime_diagnostics import diagnostic_stage
@@ -1034,7 +1035,7 @@ def _scan_for_investigations(db, logger):
             EvaluationRecord.outcome == "fail",
             EvaluationRecord.failure_class.isnot(None),
             EvaluationRecord.lab_code.isnot(None),
-            EvaluationRecord.lab_code.like("sandbox-%"),
+            lab_code_filter(EvaluationRecord.lab_code),
             EvaluationRecord.evaluated_at >= cutoff,
         ).group_by(
             EvaluationRecord.lab_code,

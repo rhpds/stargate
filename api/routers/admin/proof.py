@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from db.database import get_db
+from db.lab_identity import lab_code_filter
 from db import repository
 from api.routers._shared import (
     limiter,
@@ -540,7 +541,7 @@ def get_provision_readiness_mismatches(
             EvaluationRecord.stage_id != "aap-provisioning",
             EvaluationRecord.lab_code.isnot(None),
             EvaluationRecord.lab_code != "",
-            EvaluationRecord.lab_code.like("sandbox-%"),
+            lab_code_filter(EvaluationRecord.lab_code),
         )
         .group_by(EvaluationRecord.lab_code, EvaluationRecord.cluster_name)
         .all()

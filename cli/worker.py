@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from cli.kubeconfigs import SECRETS_DIR, resolve_kubeconfig
+from db.lab_identity import is_lab_namespace
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +363,7 @@ class ClusterWorker:
                 current_status[key] = status
 
                 is_lab_ns = (
-                    ns.startswith("sandbox-")
+                    is_lab_namespace(ns)
                     or ns.startswith("showroom-")
                     or ns.startswith("ocp4-cluster-")
                     or (ns.startswith("user-") and "showroom" in pod)

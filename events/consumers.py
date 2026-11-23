@@ -9,6 +9,8 @@ import time
 import urllib.request
 from typing import Optional
 
+from db.lab_identity import is_lab_namespace
+
 from events.bus import EventConsumer
 from events.models import Event
 
@@ -173,7 +175,7 @@ class GeoLuxConsumer(EventConsumer):
         if event.event_type not in self._FORWARD_TYPES:
             return False
         ns = getattr(event, 'lab_code', '') or ''
-        if not (ns.startswith("sandbox-") or ns.startswith("showroom-")):
+        if not (is_lab_namespace(ns) or ns.startswith("showroom-")):
             return False
         return True
 
