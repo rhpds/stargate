@@ -266,10 +266,19 @@ recommendations:
 | today (B=25, in the tick loop) | 744 s | 121 | 3.0 h |
 | `--batch 50` | 1,181 s | 152 | 2.4 h |
 | `--tier3 300` | 744 s | 121 | 3.0 h |
-| tier 3 out of the tick loop, B=25 | 444 s | 203 | **1.8 h** |
+| tier 3 on its own thread, B=25, `--tier3 600` | 600 s | 150 | 2.5 h |
+| tier 3 on its own thread, B=25, `--tier3 300` | 444 s | 203 | **1.8 h** |
+| tier 3 on its own thread, B=50 | 881 s | 204 | **1.8 h** |
 
-Only the last one crosses the 2 h window, and it does so with a smaller batch
-than today's. This is also why the "batch size is a weak lever" analysis above
+The fifth row is the one that matters, and it is not "remove the tick" alone:
+out of the loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at the
+current `--tier3 600` the flag buys 2.5 h and no more — 600 s becomes the new
+floor, exactly as 744 s was the old one. Lowering the interval to anything at
+or below the batch duration is what removes the floor. The last row reaches the
+same place without touching `--tier3`, which is why the two levers are
+complements rather than alternatives: `max()` picks whichever is slower.
+
+Only those two rows cross the 2 h window. This is also why the "batch size is a weak lever" analysis above
 was right at `c = 16–27 s` and is not right at `c ≈ 17 s`: the fixed 300 s term
 is now large relative to the work, so anything that removes it beats anything
 that amortises it. Both statements are kept in this document because the
