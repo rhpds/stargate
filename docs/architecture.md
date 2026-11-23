@@ -312,15 +312,34 @@ apply simulated actions, evaluate after-state, verify resolution.
 - **API**: `https://YOUR-STARGATE-API-ROUTE
 - **Internal registry**: `image-registry.openshift-image-registry.svc:5000/stargate`
 
-### Scanner Clusters (provisioning clusters only — ocpv05–09)
+### Scanner Clusters
 
-| Cluster   | Kubeconfig file        | Role                     |
-|-----------|------------------------|--------------------------|
-| ocpv05    | kubeconfig-ocpv05      | Lab workloads (creds expire — run refresh-kubeconfigs.sh) |
-| ocpv06    | kubeconfig-ocpv06      | Lab workloads            |
-| ocpv07    | kubeconfig-ocpv07      | Lab workloads (CNV)      |
-| ocpv08    | kubeconfig-ocpv08      | Lab workloads            |
-| ocpv09    | kubeconfig-ocpv09      | Lab workloads            |
+Scanned today (2026-11-23):
+
+| Cluster   | Kubeconfig file        | Site   | Role                     |
+|-----------|------------------------|--------|--------------------------|
+| ocpv03    | kubeconfig-ocpv03      | dal10  | Lab workloads            |
+| ocpv06    | kubeconfig-ocpv06      | dal10  | Lab workloads            |
+| ocpv07    | kubeconfig-ocpv07      | wdc06  | Lab workloads (CNV)      |
+| ocpv08    | kubeconfig-ocpv08      | dal10  | Lab workloads            |
+| ocpv09    | kubeconfig-ocpv09      | dal13  | Lab workloads            |
+
+Live but **not** scanned — no credentials exist for them (measured 2026-11-23):
+
+| Cluster   | Site   | Started labs |
+|-----------|--------|--------------|
+| ocpv01    | dfw3   | 244          |
+| ocpv02    | dfw3   | 77           |
+| ocpv04    | lon3   | 8            |
+
+`ocpv01` is the busiest provisioning cluster in the platform. Roughly a quarter
+of running labs are unscored as a result. The full inventory, method and
+caveats are in [`docs/cluster-fleet.md`](cluster-fleet.md); read that before
+changing any cluster list.
+
+`ocpv05` no longer resolves (`api.ocpv05.dal10.infra.demo.redhat.com` is
+NXDOMAIN) and has not been scanned since 2026-10-21. Its kubeconfig is still in
+`stargate-kubeconfigs`.
 
 Infrastructure clusters (infra01, infra02, ocp-us-east-1) are **not** in the
 scanner — they are not provisioning clusters (Nov 16 decision). The Babylon
@@ -328,7 +347,9 @@ control-plane (ocp-us-east-1) is queried directly by the gap detectors
 (stuck teardowns) via STARGATE_GAP_KUBECONFIG; the leak detector uses a
 worker-cluster kubeconfig via STARGATE_LEAK_KUBECONFIG.
 
-Scanner service accounts have `cluster-reader` (read-only) access.
+Scanner service accounts have `cluster-reader` (read-only) access, with the
+exception of `tenantclusterpools.babylon.gpte.redhat.com`, which is forbidden —
+the scanner cannot enumerate the fleet.
 
 ### Test Namespace
 
