@@ -213,6 +213,13 @@ class ClusterWorker:
     TIER2_INTERVAL = 300    # 5 minutes
     TIER3_INTERVAL = 300    # 5 minutes
     TIER3_BATCH_SIZE = 150  # namespaces per tier 3 cycle
+    # When set, tier 3 is not run inside `tick()`; the scheduler drives it from
+    # its own thread (`WorkerThread._run_tier3`). Off by default, which
+    # reproduces the old behaviour exactly. See `run_tier3_batch` for why it
+    # exists: inside the tick, a batch's cadence is `tick_duration +
+    # TIER1_INTERVAL`, and that sleep was 40% of the cycle on the live
+    # scheduler (measured 2026-11-23).
+    TIER3_INDEPENDENT = False
     # One namespace's collection is a batch of `oc get`s plus the probe run.
     # Without a ceiling a single hung namespace blocks the whole cycle.
     NS_COLLECT_TIMEOUT = int(os.environ.get("STARGATE_NS_COLLECT_TIMEOUT", "300"))
@@ -223,6 +230,9 @@ class ClusterWorker:
         self._kc_path = str(resolve_kubeconfig(name, kubeconfig))
         self._env = {**os.environ, "KUBECONFIG": self._kc_path}
         self._api_key = os.environ.get("STARGATE_ADMIN_API_KEY", "")
+        # Last tier-3 result from the independent thread, so the scheduler can
+        # still report `namespaces` in the tick result and on the dashboard.
+        self.last_tier3_result: Optional[Dict] = None
 
     def _api_headers(self, content_type: str = "application/json") -> dict:
         headers = {"Content-Type": content_type}
@@ -273,7 +283,7 @@ class ClusterWorker:
             result["pods"] = self._last_pod_result
 
         # Tier 3: Namespace evidence (persisted)
-        if now - self.state.last_ns_scan >= self.TIER3_INTERVAL:
+        if not self.TIER3_INDEPENDENT and now - self.state.last_ns_scan >= self.TIER3_INTERVAL:
             t3 = self._tier3_namespaces()
             result["namespaces"] = t3
             result["tiers_run"].append(3)
@@ -411,6 +421,33 @@ class ClusterWorker:
 
         except Exception as e:
             return {"error": str(e)}
+
+    def run_tier3_batch(self) -> Dict:
+        """Collect one tier-3 batch on its own clock, outside the tick loop.
+
+        Inside `tick()` a batch's cadence is `tick_duration + TIER1_INTERVAL`:
+        the loop ticks, then sleeps, and the tier-3 gate rides on top. Measured
+        on the live scheduler on 2026-11-23, an ocpv07 batch cost 444 s and the
+        following 300 s sleep was 40% of the 744 s cycle — so making the batch
+        cheaper (a CPU limit change that halved per-namespace cost) bought only
+        1.46x throughput, because the sleep is a fixed term.
+
+        Called from its own thread, the cadence is the batch itself:
+        `max(TIER3_INTERVAL, batch_duration)`. Nothing here is new work; it is
+        `_tier3_namespaces` with the bookkeeping the tick used to do.
+        """
+        started = time.time()
+        try:
+            result = self._tier3_namespaces()
+        except Exception as e:
+            logger.exception("Tier 3 batch failed on %s: %s", self.state.name, e)
+            return {"error": str(e)}
+        # `last_ns_scan` is stamped from the start of the batch, matching what
+        # tick() does with `now`, so a slow batch does not add its own duration
+        # to the next interval as well.
+        self.state.last_ns_scan = started
+        self.last_tier3_result = result
+        return result
 
     def _tier3_namespaces(self) -> Dict:
         """Tier 3: Namespace evidence collection — rotated batch, persisted."""
