@@ -253,7 +253,7 @@ CORS middleware allows credentials, GET/POST methods, and the headers
 | Property    | Value                                                      |
 |-------------|-------------------------------------------------------------|
 | Default     | Not set (uses built-in default list)                        |
-| Description | Cluster names to scan. Accepts a comma-separated list or a JSON mapping of name → kubeconfig file (e.g., `{"ocpv05":"kubeconfig-ocpv05",...}`). Provisioning clusters ONLY (ocpv05–ocpv09) — infrastructure clusters (infra01, infra02, ocp-us-east-1) are excluded from the scanner per the Nov 16 decision; they are queried directly by the gap detectors instead. |
+| Description | Cluster names to scan. Accepts a comma-separated list or a JSON mapping of name → kubeconfig file (e.g., `{"ocpv03":"kubeconfig-ocpv03",...}`). This value *defines* the scanned set. Provisioning clusters ONLY (ocpv03, ocpv06–ocpv09) — infrastructure clusters (infra01, infra02, ocp-us-east-1) are excluded from the scanner per the Nov 16 decision; they are queried directly by the gap detectors instead. |
 | When to change | Set to override the default cluster list. Each cluster needs a matching kubeconfig file in `secrets/`. |
 
 ### STARGATE_CLUSTERS_FILE

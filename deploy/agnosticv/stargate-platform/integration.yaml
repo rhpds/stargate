@@ -3,7 +3,8 @@
 
 stargate_execution_target: test
 stargate_dry_run: "false"
-stargate_scanner_clusters: ocpv05,ocpv06,ocpv07
+# ocpv05 retired; staging kept to the two clusters it already named.
+stargate_scanner_clusters: ocpv06,ocpv07
 stargate_postgres_storage: 10Gi
 stargate_oauth_enabled: true
 

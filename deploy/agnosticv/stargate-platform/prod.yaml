@@ -3,7 +3,8 @@
 
 stargate_execution_target: test
 stargate_dry_run: "false"
-stargate_scanner_clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+# Provisioning clusters only; ocpv05 retired, infra clusters excluded.
+stargate_scanner_clusters: ocpv03,ocpv06,ocpv07,ocpv08,ocpv09
 stargate_postgres_storage: 20Gi
 stargate_oauth_enabled: true
 stargate_ssl_verify: "false"

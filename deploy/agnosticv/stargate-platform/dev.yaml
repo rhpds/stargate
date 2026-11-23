@@ -1,5 +1,6 @@
 ---
-# Dev stage — CNV clusters (ocpv05-10), mock execution, minimal resources
+# Dev stage — CNV clusters (ocpv06-09), mock execution, minimal resources.
+# ocpv05 was retired and ocpv10 never existed.
 
 stargate_execution_target: mock
 stargate_dry_run: "true"

@@ -152,7 +152,7 @@ def _knowledge_corpus() -> List[Dict]:
             "validating 19 of 20 failure classes on synthetic ground truth, and an "
             "MCP server for natural-language access from any AI tool. The platform "
             "collects from 4 AAP controllers (prod0, prod1, event0, event1), scans "
-            "five clusters by default (ocpv05-ocpv09, configurable), and processes "
+            "five clusters by default (ocpv03, ocpv06-ocpv09, configurable), and processes "
             "millions of evaluations."
         ),
     })

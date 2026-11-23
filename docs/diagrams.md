@@ -11,7 +11,7 @@ two; this file holds the full set, including the identity model.
 ```mermaid
 flowchart TB
   subgraph Sources["Sources — read-only"]
-    C["5 OpenShift clusters<br/>ocpv05–ocpv09"]
+    C["5 OpenShift clusters<br/>ocpv03, ocpv06–09"]
     A["4 AAP controllers<br/>prod0, prod1, event0, event1"]
     J["Jira<br/>epic + tickets"]
     G["GitHub<br/>PRs, charts, catalog"]
@@ -138,7 +138,7 @@ flowchart TB
   end
   REG["internal image registry<br/>api · frontend · scanner"]
   ROUTE["OpenShift Route + oauth-proxy"]
-  CL["monitored clusters<br/>ocpv05–ocpv09"]
+  CL["monitored clusters<br/>ocpv03, ocpv06–09"]
 
   ROUTE --> FE
   ROUTE --> AP

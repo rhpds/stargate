@@ -47,15 +47,13 @@ if oc get secret stargate-kubeconfigs -n "$NAMESPACE" &>/dev/null; then
   oc delete secret stargate-kubeconfigs -n "$NAMESPACE"
 fi
 oc create secret generic stargate-kubeconfigs -n "$NAMESPACE" \
-  --from-file=kubeconfig-ocpv05="${PROJECT_DIR}/secrets/kubeconfig-ocpv05" \
-  --from-file=kubeconfig-cnv="${PROJECT_DIR}/secrets/kubeconfig-cnv" \
+  --from-file=kubeconfig-ocpv06="${PROJECT_DIR}/secrets/kubeconfig-ocpv06" \
   --from-file=kubeconfig-ocpv07="${PROJECT_DIR}/secrets/kubeconfig-ocpv07" \
   --from-file=kubeconfig-ocpv08="${PROJECT_DIR}/secrets/kubeconfig-ocpv08" \
   --from-file=kubeconfig-ocpv09="${PROJECT_DIR}/secrets/kubeconfig-ocpv09" \
-  --from-file=kubeconfig-ocpv10="${PROJECT_DIR}/secrets/kubeconfig-ocpv10" \
   --from-file=kubeconfig-infra01="${PROJECT_DIR}/secrets/kubeconfig-infra01" \
   --from-file=kubeconfig-infra02="${PROJECT_DIR}/secrets/kubeconfig-infra02" \
-  --from-file=kubeconfig="${PROJECT_DIR}/secrets/kubeconfig" \
+  --from-file=kubeconfig-ocp-us-east-1="${PROJECT_DIR}/secrets/kubeconfig-ocp-us-east-1" \
   --from-file=kubeconfig-executor="${PROJECT_DIR}/secrets/kubeconfig-executor"
 
 # Create app secrets

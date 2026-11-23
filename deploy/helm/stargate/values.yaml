@@ -28,7 +28,11 @@ scanner:
   sandboxApiUrl: http://sandbox-api.babylon-sandbox-api.svc:8080
   labagatorUrl: ""
   demolitionUrl: ""
-  clusters: ocpv05,ocpv06,ocpv07,ocpv08,ocpv09,ocpv-infra01,ocpv-infra02,ocp-us-east-1
+  # Provisioning clusters only. ocpv05 was retired (its API host no longer
+  # resolves); infra01/02 and ocp-us-east-1 are not provisioning clusters and
+  # are queried directly by the gap detectors. This single value is both
+  # --clusters and STARGATE_CLUSTERS, so it defines the fleet.
+  clusters: ocpv03,ocpv06,ocpv07,ocpv08,ocpv09
   tier1: 300
   tier2: 900
   tier3: 600
