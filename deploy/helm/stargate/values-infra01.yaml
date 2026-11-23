@@ -34,7 +34,10 @@ scanner:
   clusters: ocpv03,ocpv06,ocpv07,ocpv08,ocpv09
   tier1: 300
   tier2: 900
-  tier3: 600
+  # Must match values.yaml: tier 3 is on its own thread here too, and 600 would
+  # become the cadence floor again (ocpv07 2.5h instead of 1.7h).
+  tier3: 300
+  tier3Independent: true
   batch: 25
 
 babylonWorker:
