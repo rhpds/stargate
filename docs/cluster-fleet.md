@@ -258,17 +258,26 @@ example: its tier-3 tick costs 255 s, so the tick period is 555 s, below the
 would take ocpv03 to 555 s (1.55× more) and change nothing on ocpv07, whose
 period already exceeds the gate.
 
-Which makes the levers, as arithmetic on measured quantities rather than
-recommendations:
+Which makes the levers. One of them has since been measured; the rest are still
+arithmetic on measured quantities:
 
-| Change | ocpv07 cadence | namespaces/h | 370-namespace sweep |
-|---|---|---|---|
-| today (B=25, in the tick loop) | 744 s | 121 | 3.0 h |
-| `--batch 50` | 1,181 s | 152 | 2.4 h |
-| `--tier3 300` | 744 s | 121 | 3.0 h |
-| tier 3 on its own thread, B=25, `--tier3 600` | 600 s | 150 | 2.5 h |
-| tier 3 on its own thread, B=25, `--tier3 300` | 444 s | 203 | **1.8 h** |
-| tier 3 on its own thread, B=50 | 881 s | 204 | **1.8 h** |
+| Change | ocpv07 cadence | namespaces/h | 370-namespace sweep | |
+|---|---|---|---|---|
+| today (B=25, in the tick loop) | 744 s | 121 | 3.0 h | measured |
+| `--batch 50` | **1,225 s** | **147** | **2.5 h** | measured |
+| `--tier3 300` | 744 s | 121 | 3.0 h | arithmetic |
+| tier 3 on its own thread, B=25, `--tier3 600` | 600 s | 150 | 2.5 h | arithmetic |
+| tier 3 on its own thread, B=25, `--tier3 300` | 437 s | 206 | **1.8 h** | arithmetic |
+| tier 3 on its own thread, B=50 | 892 s | 202 | **1.8 h** | arithmetic |
+
+**Batch 50 was measured on 2026-11-23 19:31–20:24Z** and the arithmetic held:
+1,225 s against 1,181 s predicted, 147 namespaces/h, 2.5 h. Four of the five
+live clusters land at roughly 2 h or better on it; ocpv07, the largest, does
+not. The row is kept because the measurement carries a cost the table cannot
+show — the batch is inside the tier-1 tick, so the tick that carried it cost
+899 s of work plus the 300 s sleep, and **tier 1 went from 744 s to 1,218 s on
+ocpv07**. Node metrics read once every 20 minutes is not a trade this document
+can recommend. It was reverted, and `docs/config-log.md` has both rows.
 
 The fifth row is the one that matters, and it is not "remove the tick" alone:
 out of the loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at the
@@ -278,10 +287,11 @@ or below the batch duration is what removes the floor. The last row reaches the
 same place without touching `--tier3`, which is why the two levers are
 complements rather than alternatives: `max()` picks whichever is slower.
 
-Only those two rows cross the 2 h window. This is also why the "batch size is a weak lever" analysis above
-was right at `c = 16–27 s` and is not right at `c ≈ 17 s`: the fixed 300 s term
-is now large relative to the work, so anything that removes it beats anything
-that amortises it. Both statements are kept in this document because the
+Two rows cross the 2 h window and both need `#171`; nothing reachable by a
+config change alone does. This is also why the "batch size is a weak lever"
+analysis above was right at `c = 16–27 s` and is not right at `c ≈ 17–18 s`: the
+fixed 300 s term is now large relative to the work, so anything that removes it
+beats anything that amortises it. Both statements are kept in this document because the
 regime, not the arithmetic, is what changed.
 
 ## What closing the gap requires
