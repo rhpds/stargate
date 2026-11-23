@@ -89,20 +89,90 @@ adding new ones:
 | `kubeconfig` | pre-rotation alias for `ocp-us-east-1`, revoked token |
 | `kubeconfig-cnv` | pre-rotation alias for `ocpv06`, revoked token |
 
+## How fast tier 3 re-checks a lab
+
+Tier 3 scans one namespace at a time, `--batch 25` per cycle, inside the same
+tick loop as tiers 1 and 2. Measured 2026-11-23 15:30–17:34Z on post-`#161`
+data, recoverable from `runs` alone (a new batch starts when the gap between
+consecutive rows exceeds 90 s):
+
+| Cluster | `sandbox-*` namespaces | Cost per namespace | Batch span | Inter-batch gap | Full sweep |
+|---|---|---|---|---|---|
+| ocpv03 | 62 | 15.9 s | 349 s | 314 s | 0.5 h |
+| ocpv06 | 320 | 23.5 s | 584 s | 327 s | 3.3 h |
+| ocpv07 | 370 | 27.1 s | 680 s | 337 s | 4.2 h |
+| ocpv08 | 329 | 26.9 s | 684 s | 330 s | 3.7 h |
+| ocpv09 | 249 | 22.9 s | 585 s | 327 s | 2.5 h |
+
+Namespace counts move with the lab lifecycle: these were sampled at 17:33Z,
+which is why ocpv03 reads 62 here and 64 where this document measured the
+subject field earlier.
+
+The sweep period is `(N/B)·(B·c + g)`, which reduces to `N·c + N·g/B`: total
+per-namespace work `N·c` plus the idle gap amortised over however large a batch
+is. That has two consequences worth stating plainly, because both intuitive
+fixes disappoint in different ways.
+
+**Batch size is a weak lever.** Doubling `--batch` from 25 to 50 buys 16–22%,
+not the halving it looks like it should. `N·c` is 56–67% of the period and does
+not move at all with batch size; only the gap term shrinks. Anyone reaching for
+`--batch 50` to fix freshness will be disappointed and will have lengthened
+individual ticks while doing it.
+
+**Per-namespace cost is the lever — but a smaller one than it looks.** `c`
+decomposes into ten `oc get` calls, an in-namespace evaluation, and showroom
+probes. Measured from inside the scheduler pod with no competing load: the ten
+gets cost 10.4–13.6 s on ocpv03/06/09 but only 4.5–6.5 s on ocpv07; the
+evaluation is 0.5–2.8 s. Production `c` is 16–27 s, so the remainder is probe
+time plus contention — five workers share one pod and one Python interpreter.
+
+Running those ten gets at 5-way is worth **1.4× on ocpv03, 1.8× on ocpv09,
+2.2× on ocpv06, and nothing measurable on ocpv07**, where the API server rather
+than the client's sequencing is the bottleneck. End to end that is roughly 20%
+off a sweep — the same order as doubling the batch, from a change that touches
+every namespace's hot path.
+
+This section previously claimed 45–54%, which is what the arithmetic says if
+the gets were the whole of `c` and the API server had spare capacity. Neither
+is true, and the measurement is what caught it; the number is recorded wrong
+here on purpose rather than quietly dropped.
+
+Two caveats. A 20% gain puts the worst cluster at ~3.3 h against a 2 h window,
+so it narrows the gap without closing it. And the largest term — the 16–27 s of
+production `c` that is neither the gets nor the evaluation — is unexplained,
+which makes it the thing to measure next rather than a thing to optimise.
+
+Separately, the denominator is every `sandbox-*` namespace, so on ocpv07 about
+30% of the work (111 of 370) is spent on namespaces with no pods to observe. A
+lab mid-provision looks identical to a dead namespace until its pods appear,
+which is why this is a cost to reduce carefully rather than an obvious saving.
+
+Measured coverage of the namespaces that do have pods: 703 of 994 within a 2 h
+window, 71%. This is a *different* 71% from the three-quarters figure below,
+and the coincidence is worth flagging so the two are not read as one number.
+This one is temporal: of the clusters we scan, how much of the fleet is inside
+the window at any moment. The other is membership: of the clusters that run
+labs, how many we scan at all. They are independent, and a lab can be missed
+by either or by both — so the honest combined statement is lower than either
+number alone.
+
 ## What closing the gap requires
 
 1. **Credentials**: `cluster-reader` kubeconfigs for `ocpv01`, `ocpv02`,
    `ocpv04`, held in `stargate-kubeconfigs` under the canonical names. Same
    service-account model as the existing five; read-only.
-2. **One registry, not two**: `--clusters` is *intersected* with
-   `STARGATE_CLUSTERS`, so a name in only one is dropped without a word. Collapse
-   to a single source before adding clusters, and remove the legacy alias
-   fallback that resolves `ocpv06` to a revoked token.
+2. **One registry, not two**: `--clusters` was *intersected* with
+   `STARGATE_CLUSTERS`, so a name in only one was dropped without a word. PR
+   `#168` collapses this to a single source with `--clusters` authoritative, and
+   removes the legacy alias fallback that resolves `ocpv06` to a revoked token.
+   Do not add clusters by editing one of the two lists.
 3. **Capacity**: this is not free. Tier 1 was measured at 760–950 s median
    against a 300 s target on the five-cluster fleet (`#165` records overruns).
    Adding three clusters and ~330 labs, two of them CNV-heavy, makes that worse.
-   Coverage and cadence are in direct conflict until tier 3 stops sharing the
-   tick loop.
+   Tier 3 already re-checks the busiest cluster only every 4.2 h ("How fast
+   tier 3 re-checks a lab"), so a new cluster joins a rotation that is behind,
+   not a spare one. Adding clusters and fixing cadence are the same job.
 
 Until 1–3 are done, treat any fleet-wide statement from StarGate as covering
-roughly three quarters of running labs.
+roughly three quarters of running labs — and note that the temporal gap
+compounds it rather than overlapping with it.
