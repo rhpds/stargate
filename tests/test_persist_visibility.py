@@ -68,7 +68,7 @@ def test_degraded_health_does_not_discard_the_evaluation(monkeypatch):
     monkeypatch.setattr("cli.api_client.StarGateClient", client)
     monkeypatch.setenv("STARGATE_ADMIN_API_KEY", "")
 
-    run_id, error = _persist(client)
+    run_id, error, evidence = _persist(client)
 
     assert run_id == "run-123"
     assert error is None
@@ -80,7 +80,7 @@ def test_unreachable_api_reports_why(monkeypatch):
     client = _Recorder(run_error="connection refused")
     monkeypatch.setattr("cli.api_client.StarGateClient", client)
 
-    run_id, error = _persist(client)
+    run_id, error, evidence = _persist(client)
 
     assert run_id is None
     assert error == "connection refused"
@@ -94,7 +94,7 @@ def test_collect_dir_json_says_when_the_write_was_lost(monkeypatch, tmp_path, ca
         "status": {"phase": "Active"},
     }))
 
-    monkeypatch.setattr(sg, "_persist_to_api", lambda **kwargs: (None, "connection refused"))
+    monkeypatch.setattr(sg, "_persist_to_api", lambda **kwargs: (None, "connection refused", {}))
 
     rc = sg.main([
         "collect-dir", str(tmp_path),
@@ -118,7 +118,7 @@ def test_collect_dir_json_says_when_the_write_landed(monkeypatch, tmp_path, caps
         "status": {"phase": "Active"},
     }))
 
-    monkeypatch.setattr(sg, "_persist_to_api", lambda **kwargs: ("run-123", None))
+    monkeypatch.setattr(sg, "_persist_to_api", lambda **kwargs: ("run-123", None, {}))
 
     sg.main([
         "collect-dir", str(tmp_path),
@@ -131,6 +131,37 @@ def test_collect_dir_json_says_when_the_write_landed(monkeypatch, tmp_path, caps
     assert payload["persisted"] is True
     assert payload["run_id"] == "run-123"
     assert "persist_error" not in payload
+
+
+def test_collect_dir_json_reports_rejected_evidence_rows(monkeypatch, tmp_path, capsys):
+    """A stored run whose evidence was partially refused is not a clean write.
+
+    ``persisted: true`` only says a run exists. The rubric read the evidence
+    that was collected, so a refusal means the report and the record disagree.
+    """
+    (tmp_path / "namespace.json").write_text(json.dumps({
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {"name": "sandbox-abc12-zt-rhelbu"},
+        "status": {"phase": "Active"},
+    }))
+
+    monkeypatch.setattr(
+        sg, "_persist_to_api",
+        lambda **kwargs: ("run-123", None, {"rows": 160, "rejected": 5}),
+    )
+
+    sg.main([
+        "collect-dir", str(tmp_path),
+        "--stages", "namespace-ready",
+        "--api-url", "http://stargate-api:8090",
+        "--format", "json",
+    ])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["persisted"] is True
+    assert payload["evidence_rows"] == 160
+    assert payload["evidence_rejected"] == 5
 
 
 def test_offline_collection_reports_no_persistence_field(tmp_path, capsys):

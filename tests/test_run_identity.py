@@ -77,7 +77,7 @@ def _collect_dir(monkeypatch, tmp_path, *extra):
     seen = {}
     monkeypatch.setattr(
         sg, "_persist_to_api",
-        lambda **kwargs: seen.update(kwargs) or ("run-123", None),
+        lambda **kwargs: seen.update(kwargs) or ("run-123", None, {}),
     )
     sg.main([
         "collect-dir", str(tmp_path),

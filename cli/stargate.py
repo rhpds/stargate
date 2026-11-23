@@ -262,9 +262,9 @@ def _cmd_collect(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id, persist_error = None, None
+    run_id, persist_error, evidence_counts = None, None, {}
     if getattr(args, "api_url", None):
-        run_id, persist_error = _persist_to_api(
+        run_id, persist_error, evidence_counts = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -286,6 +286,7 @@ def _cmd_collect(args) -> int:
             output["persisted"] = run_id is not None
             if persist_error:
                 output["persist_error"] = persist_error
+            _add_evidence_counts(output, evidence_counts)
         print(json.dumps(output, indent=2))
     elif args.out_format == "text":
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -405,7 +406,7 @@ def _cmd_collect_dir(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id, persist_error = None, None
+    run_id, persist_error, evidence_counts = None, None, {}
     if getattr(args, "api_url", None):
         # The directory is a temp dir (`sg-<cluster>-<random>`), so its name is
         # not the namespace. 527,133 of 571,563 runs in the live store carry a
@@ -413,7 +414,7 @@ def _cmd_collect_dir(args) -> int:
         # that column had been reading a random string. Callers that know the
         # namespace pass it; the directory name stays as a last resort.
         namespace = getattr(args, "namespace", None) or directory.name
-        run_id, persist_error = _persist_to_api(
+        run_id, persist_error, evidence_counts = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -432,6 +433,7 @@ def _cmd_collect_dir(args) -> int:
             output["persisted"] = run_id is not None
             if persist_error:
                 output["persist_error"] = persist_error
+            _add_evidence_counts(output, evidence_counts)
         print(json.dumps(output, indent=2))
     else:
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -516,6 +518,19 @@ def _submit_evidence_rows(client, run_id: str, stage_id: str, payloads: List[Dic
     return created, failed
 
 
+def _add_evidence_counts(output: Dict, counts: Dict) -> None:
+    """Record how many evidence rows the API actually kept.
+
+    ``persisted`` only says a run exists. These numbers say whether the
+    evidence the rubric read is the evidence the API stored — a stage whose
+    rows were refused used to still report ``persisted: true``.
+    """
+    if not counts:
+        return
+    output["evidence_rows"] = counts.get("rows", 0)
+    output["evidence_rejected"] = counts.get("rejected", 0)
+
+
 def _persist_to_api(
     api_url: str,
     demo_id: str,
@@ -528,12 +543,16 @@ def _persist_to_api(
 ) -> Tuple[Optional[str], Optional[str]]:
     """Submit evidence and evaluations to the StarGate API.
 
-    Returns ``(run_id, error)``. Persisting used to be gated on
-    ``/health == ok``, which treated a ``degraded`` report — a stale scanner, an
-    unconfigured LLM, an unreachable sandbox-api — as "do not persist" and
-    silently discarded the whole namespace evaluation. ``_post`` already
-    returns ``{"error": ...}`` for an unreachable API, so the gate bought
-    nothing and cost data.
+    Returns ``(run_id, error, evidence_counts)`` where ``evidence_counts`` is
+    ``{"rows": stored, "rejected": refused_by_api}``. Persisting used to be
+    gated on ``/health == ok``, which treated a ``degraded`` report — a stale
+    scanner, an unconfigured LLM, an unreachable sandbox-api — as "do not
+    persist" and silently discarded the whole namespace evaluation. ``_post``
+    already returns ``{"error": ...}`` for an unreachable API, so the gate
+    bought nothing and cost data.
+
+    The counts exist because ``persisted`` only says a run exists; it does not
+    say the evidence a rubric read is the evidence the API stored.
     """
     from cli.api_client import StarGateClient
 
@@ -549,7 +568,7 @@ def _persist_to_api(
     if not run_id:
         reason = run_resp.get("error") or str(run_resp)
         print(f"  Failed to create run: {reason}", file=sys.stderr)
-        return None, reason
+        return None, reason, {}
 
     if out_format == "text":
         print(f"\n  Persisting to API ({api_url})...")
@@ -598,7 +617,7 @@ def _persist_to_api(
         )
         print(f"  View report: curl {api_url}/runs/{run_id}/report")
 
-    return run_id, None
+    return run_id, None, {"rows": created_evidence, "rejected": failed_evidence}
 
 
 # --- Helpers ---

@@ -192,7 +192,7 @@ def test_three_stages_of_55_rows_make_three_requests(monkeypatch):
     monkeypatch.setattr("cli.api_client.StarGateClient", lambda base_url: client)
     monkeypatch.delenv("STARGATE_EVIDENCE_BATCH", raising=False)
 
-    run_id, error = sg._persist_to_api(
+    run_id, error, evidence = sg._persist_to_api(
         api_url="http://stargate-api:8090",
         demo_id="demo",
         namespace="sandbox-abc12-zt-rhelbu",
@@ -207,6 +207,7 @@ def test_three_stages_of_55_rows_make_three_requests(monkeypatch):
     )
 
     assert (run_id, error) == ("run-batch", None)
+    assert evidence == {"rows": 165, "rejected": 0}
     # 165 rows, 3 requests — the count the batched transport replaces 165 of
     assert [len(call[2]) for call in client.batch_calls] == [55, 55, 55]
     assert client.single_calls == []
@@ -221,7 +222,7 @@ def test_no_collected_objects_makes_no_evidence_request(monkeypatch):
     client = _BatchClient()
     monkeypatch.setattr("cli.api_client.StarGateClient", lambda base_url: client)
 
-    run_id, error = sg._persist_to_api(
+    run_id, error, evidence = sg._persist_to_api(
         api_url="http://stargate-api:8090",
         demo_id="demo",
         namespace="ns",
@@ -236,3 +237,54 @@ def test_no_collected_objects_makes_no_evidence_request(monkeypatch):
     assert client.batch_calls == []
     assert client.single_calls == []
     assert client.evaluated == ["namespace-ready"]
+
+
+def test_rejected_rows_survive_the_persist_boundary(monkeypatch):
+    """The count is what the cycle report has to work with."""
+    client = _BatchClient(batch_failures=2)
+    monkeypatch.setattr("cli.api_client.StarGateClient", lambda base_url: client)
+
+    _, error, evidence = sg._persist_to_api(
+        api_url="http://stargate-api:8090",
+        demo_id="demo",
+        namespace="ns",
+        lab_code=None,
+        cluster_name=None,
+        collected=_collected(10),
+        results=[{"stage_id": "namespace-ready", "outcome": "pass"}],
+        out_format="json",
+    )
+
+    assert error is None
+    assert evidence == {"rows": 8, "rejected": 2}
+
+
+# --- the cycle report -----------------------------------------------------
+
+def test_tier3_summary_reports_rejected_evidence():
+    """A stored run with refused rows must not read as a clean write."""
+    from types import SimpleNamespace
+
+    from cli.worker import ClusterWorker
+
+    worker = ClusterWorker.__new__(ClusterWorker)
+    worker.api_url = "http://stargate-api:8090"
+    worker.TIER3_BATCH_SIZE = 10
+    worker.state = SimpleNamespace(
+        failing_namespaces=[],
+        all_sandbox_namespaces=["ns-a", "ns-b"],
+        ns_rotation_index=0,
+        failing_rotation_index=0,
+        scanned_namespaces=set(),
+        ns_outcomes={},
+    )
+    worker._collect_namespace = lambda ns, lab_code=None: {
+        "persisted": True,
+        "evidence_rejected": 5 if ns == "ns-a" else 0,
+        "results": [{"outcome": "pass"}],
+    }
+
+    result = worker._tier3_namespaces()
+
+    assert result["persisted"] == 2
+    assert result["evidence_rejected"] == 5
