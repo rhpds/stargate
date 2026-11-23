@@ -157,30 +157,47 @@ number alone.
 
 ### The real limit is CPU, not code
 
-Measured from inside the pod, one namespace's work outside the tick is roughly
-6 s: gets 4.5–6.5 s on ocpv07, evaluation 0.5–2.8 s, showroom probe 0.7–2.2 s.
-Production `c` on the same cluster is 27.1 s. The missing factor of four is not
-mysterious — the scheduler runs with a **CPU limit of 1** while hosting five
-cluster workers, the Babylon worker and a `python3 -m cli.stargate` subprocess
-for every namespace evaluated.
+Two facts, and then a hypothesis that has not been tested yet.
+
+**Fact one: the pod is out of CPU.** It runs with a **CPU limit of 1** while
+hosting five cluster workers, the Babylon worker, and a
+`python3 -m cli.stargate` subprocess for every namespace evaluated.
 
 ```
 usage_usec 9585466659   nr_periods 118206   nr_throttled 89823
 throttled_usec 88092818085              (76% of periods throttled)
 ```
 
-The pod sits at 973m of a 1000m limit, on a 96-core node. It is not waiting on
-the API server; it is being stopped by its own cgroup.
+It sits at 973m of a 1000m limit, on a 96-core node.
 
-This is why concurrency does not help on ocpv07: there is no spare CPU to run
-the reads in parallel, so overlapping them only changes which one is throttled
-first. It is also the most likely explanation for tier 1's 760–950 s median
-against a 300 s target (`#165`), which has been treated as a scheduler bug.
+**Fact two: production `c` is several times the cost of the work.** Measured
+one namespace at a time, `c` is about 6 s on ocpv07 — reads 4.5–6.5 s,
+evaluation 0.5–2.8 s, showroom probe 0.7–2.2 s. Derived from `runs`, the same
+cluster's production `c` is 27.1 s.
 
-Raising the CPU limit is a configuration change, not a release, and is
-reversible. Whether it closes the cadence gap is testable with the measurement
-above: compare `runs`-derived batch spans before and after, no instrumentation
-needed.
+The hypothesis is that the gap is CPU starvation rather than API latency or
+mine. It is *not* established, and the measurement is weaker than it looks: the
+6 s figure was taken inside the same throttled pod, and the same namespace
+measured 10.85 s on one run and 4.45 s on another. Variance of that size
+exceeds the effect being claimed, so treat the attribution as a guess and the
+gap itself as the finding. It would also explain concurrency being worthless on
+ocpv07 — no spare CPU means overlapping reads only changes which one is
+throttled first — and tier 1's 760–950 s median against a 300 s target (`#165`),
+which has been treated as a scheduler bug.
+
+**Where the fix lives.** `scanner.resources` is in
+`deploy/helm/stargate/values.yaml`, so the change belongs in the chart; a live
+`oc set resources` on its own would be reverted by the next `helm upgrade`.
+No new image is needed — the limits are not baked into the scanner build — but
+the pod does restart when they change, so it is a rollout rather than a no-op
+and follows the release rules.
+
+**How to tell if the guess is right.** The measurement is already available and
+needs no instrumentation: compare `runs`-derived batch spans before and after
+the change. If `c` does not fall, the hypothesis is wrong and the next thing to
+measure is where a namespace's time actually goes — which is worth doing either
+way, because the 6 s baseline is the only number here that was taken under
+controlled conditions, and it disagrees with production by 4.5×.
 
 ## What closing the gap requires
 
