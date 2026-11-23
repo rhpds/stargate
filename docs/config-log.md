@@ -40,6 +40,47 @@ Also merged at 15:41 on 2026-11-23, **not built**: `#162` `87391e1`, `#163`
 `9a8d87e`, `#164` `227eea3`, `#165` `1e46bb4`. They change no running
 deployment; they join the Friday build.
 
+## 2026-11-23 ~18:56 — the scheduler was throttled, not slow
+
+The cadence work so far (`#167`) had been reasoning about collector code and
+batch size. The cgroup said the limit was neither.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| ~18:56 | `deploy/stargate-scheduler`, container `scheduler`, `resources` | requests `cpu: 500m` → `1`; limits `cpu: 1` → `3`; memory unchanged (requests `1Gi`, limits `2Gi`) | `/sys/fs/cgroup/cpu.stat` in the pod showed **89,823 of 118,206 CFS periods throttled (76%)**, `throttled_usec` 88,093 CPU-seconds (~24.5 CPU-hours) of running time lost, with usage pinned at 973m of a 1000m limit. Tier-3 collection is serial in-process, so a 1-CPU ceiling was the collection rate. The node was not the constraint: `ocp-infra01-worker03` has 95,500m allocatable and was 10% CPU-busy. | `oc set resources deploy/stargate-scheduler -n stargate --limits=cpu=1,memory=2Gi --requests=cpu=500m,memory=1Gi` |
+
+The pod restarted at 18:55:50Z (`stargate-scheduler-85f89cfb45-7mgb7`); image,
+`command`, and `args` were untouched, so this is a rollout of the same digest
+`sha256:1b5a4b72…`.
+
+Measured after, not inferred:
+
+- Throttling since the restart: 1,633 of 7,189 periods (22.7%), and 213 of 609
+  periods (35%) in a 60 s window taken mid-batch — the steady state moves with
+  the scan phase, and 35% is the honest in-burst figure, not the 11.9% read in
+  the first minutes.
+- Per-lab collection cost `c = span/(n−1)` over tier-3 batches from `runs`
+  (batch split at gaps > 120 s, `n ≥ 5`), same-day windows before and after the
+  restart:
+
+  | Cluster | `c` before | `c` after | avg batch span before → after |
+  |---|---|---|---|
+  | ocpv03 | 19.7 s | 9.6 s | 467 s → 180 s |
+  | ocpv06 | 31.2 s | 13.7 s | 749 s → 305 s |
+  | ocpv07 | 33.8 s | 17.1 s | 783 s → 285 s |
+  | ocpv08 | 32.9 s | 15.6 s | 791 s → 275 s |
+  | ocpv09 | 31.2 s | 16.1 s | 748 s → 262 s |
+
+- The write path survived the restart: every tier-3 row since has
+  `namespace = lab_code`.
+
+`#169` carries the same numbers into `deploy/helm/stargate/values.yaml` so the
+chart stops asking for the CPU that caused this. That chart change is **not**
+the deploy path — the `stargate` Helm release has been `failed` since revision 7
+and its image refs are `:latest` while the live Deployments are digest-pinned,
+so a `helm upgrade` would unpin them. The live change above was made with
+`oc set resources` and is the record of what is actually running.
+
 ## Still owed
 
 - A Jira or AAP note, which is where the team's change record actually lives
