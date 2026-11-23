@@ -200,6 +200,58 @@ _RUBRIC_CACHE_TTL = 300
 
 # --- File readers (TTL cached) ---
 
+# A scan snapshot is written every 5 minutes from whatever the workers have
+# reported so far. One minute after a scheduler restart, only the workers that
+# have already finished a tick appear in it — so the newest file can describe
+# two clusters out of five, and the fleet view then reports a two-cluster
+# fleet. That is not hypothetical: after a pod restart on 2026-11-23 the 18:57
+# snapshot held ocpv03 and ocpv06 while the 18:52 one held all five.
+#
+# So the test for a usable snapshot is which clusters it covers, not whether it
+# is non-empty. The windows are bounded on purpose: too short and a restart
+# still shows a shrunken fleet; too long and a cluster genuinely dropped (a
+# revoked kubeconfig) hides behind an old snapshot for that long. Six files at
+# a 5-minute cadence is ~30 minutes.
+SCAN_LOOKBACK_FILES = 6
+
+
+def _snapshot_clusters(data) -> set:
+    """The cluster names a snapshot covers, ignoring malformed rows."""
+    return {
+        row.get("cluster")
+        for row in data
+        if isinstance(row, dict) and row.get("cluster")
+    }
+
+
+def _newest_complete_scan(scan_dir) -> List[Dict]:
+    """The newest snapshot that is not missing clusters its neighbours have.
+
+    A snapshot written mid-cycle covers a subset of the fleet. Comparing sizes
+    within the recent window is what distinguishes "this tick had two workers
+    done" from "the fleet is two clusters", without the reader having to know
+    the configured cluster list — which the API does not.
+    """
+    candidates = []
+    for path in sorted(scan_dir.glob("scan-*.json"), reverse=True)[:SCAN_LOOKBACK_FILES]:
+        try:
+            with open(path) as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, list) and data:
+            candidates.append((data, _snapshot_clusters(data)))
+
+    if not candidates:
+        return []
+
+    widest = max(len(clusters) for _, clusters in candidates)
+    for data, clusters in candidates:  # newest first
+        if len(clusters) >= widest:
+            return data
+    return []
+
+
 def _load_latest_scan() -> List[Dict]:
     """Load the most recent scan. Cached 30s. Tries live scheduler → files → DB."""
     if time.time() - _scan_cache["ts"] < _FILE_CACHE_TTL:
@@ -261,15 +313,7 @@ def _load_latest_scan_inner() -> List[Dict]:
     # Priority 2: scan-history files
     if not data:
         scan_dir = Path(__file__).parent.parent.parent / "scan-history"
-        scan_files = sorted(scan_dir.glob("scan-*.json"), reverse=True)
-        for scan_file in scan_files:
-            with open(scan_file) as f:
-                data = json.load(f)
-            if len(data) > 1:
-                break
-        if not data and scan_files:
-            with open(scan_files[0]) as f:
-                data = json.load(f)
+        data = _newest_complete_scan(scan_dir)
 
     # Priority 3: database
     if not data:
