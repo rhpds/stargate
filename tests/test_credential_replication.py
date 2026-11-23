@@ -2,7 +2,7 @@
 
 import json
 
-from scripts.credential_replication_check import diff_counts, main
+from scripts.credential_replication_check import diff_counts, main, report
 
 
 def _baseline(count: int, label: str = "fvmw-password"):
@@ -29,6 +29,52 @@ class TestDiff:
     def test_unknown_hash_is_ignored(self):
         # a hash that is not in the baseline cannot be classified
         assert diff_counts(_baseline(0), {"ffffffffffffffff": 40}, tolerance=5) == []
+
+
+class TestReport:
+    """Drift belongs to the cluster it was measured on, not to the credential."""
+
+    def _capture(self, monkeypatch):
+        posted = []
+
+        class _Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def fake_urlopen(request, timeout=None):
+            posted.append(json.loads(request.data.decode()))
+            return _Response()
+
+        monkeypatch.setattr(
+            "scripts.credential_replication_check.urllib.request.urlopen", fake_urlopen
+        )
+        return posted
+
+    def test_cluster_name_is_the_cluster_not_the_credential(self, monkeypatch):
+        posted = self._capture(monkeypatch)
+        drift = diff_counts(_baseline(900), {"abc123def4567890": 951}, tolerance=5)
+
+        assert report(drift, "http://api:8090", "key", "ocpv-infra01") == 1
+
+        payload = posted[0]
+        assert payload["cluster_name"] == "ocpv-infra01"
+        # the old value was "replication:<sha256>", which no cluster filter matches
+        assert not any(
+            str(value).startswith("replication:") for value in payload.values()
+        )
+
+    def test_credential_is_still_named(self, monkeypatch):
+        posted = self._capture(monkeypatch)
+        drift = diff_counts(_baseline(900), {"abc123def4567890": 951}, tolerance=5)
+
+        report(drift, "http://api:8090", "key", "ocpv-infra01")
+
+        summary = posted[0]["error_summary"]
+        assert "fvmw-password" in summary
+        assert "abc123def4567890" in summary
 
 
 class TestMain:

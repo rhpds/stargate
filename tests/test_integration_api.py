@@ -31,6 +31,35 @@ class TestExternalEvidence:
         assert resp.status_code == 201
         assert resp.json()["outcome"] == "pass"
 
+    def test_evidence_is_time_stamped(self, client, db):
+        """External evidence is a point-in-time observation and must say when.
+
+        Without ``started_at`` the row exists but is excluded from every
+        time-bounded query (fleet snapshots, cadence checks, coverage windows).
+        All 208 rows written before this fix had a NULL ``started_at``.
+        """
+        from db.models import RunRecord
+
+        resp = client.post("/integration/external-evidence", json={
+            "source": "credential-replication",
+            "lab_code": "(credential)",
+            "cluster_name": "ocpv-infra01",
+            "outcome": "fail",
+            "error_summary": "fvmw-password grew by 51 copies",
+        })
+        assert resp.status_code == 201
+
+        db.expire_all()
+        record = (
+            db.query(RunRecord)
+            .filter(RunRecord.run_id == resp.json()["run_id"])
+            .first()
+        )
+        assert record is not None
+        assert record.started_at is not None
+        assert record.completed_at is not None
+        assert record.cluster_name == "ocpv-infra01"
+
 
 class TestFeedback:
     def _create_evaluation(self, client):

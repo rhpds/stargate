@@ -41,6 +41,7 @@ def create_run(db: Session, run: Run) -> Run:
         rubric_version=run.rubric_version,
         git_sha=run.git_sha,
         started_at=run.started_at,
+        completed_at=run.completed_at,
     )
     db.add(record)
     db.commit()

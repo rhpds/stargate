@@ -22,8 +22,16 @@ router = APIRouter()
 
 @router.post("/integration/external-evidence", status_code=201)
 def receive_external_evidence(req: ExternalEvidenceRequest, db: Session = Depends(get_db), _auth=Depends(require_admin)):
-    """Receive evidence from Demolition or other external systems."""
-    run_id = f"ext-{req.source}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    """Receive evidence from Demolition or other external systems.
+
+    Every row written here is a point-in-time observation: it happened when we
+    received it. ``started_at``/``completed_at`` were left NULL, which made
+    external evidence invisible to every time-bounded query — the fleet
+    snapshots, the cadence checks, and the coverage windows all filter on
+    ``started_at``, so these rows existed but were never in scope.
+    """
+    observed_at = datetime.now(timezone.utc)
+    run_id = f"ext-{req.source}-{observed_at.strftime('%Y%m%d-%H%M%S')}"
     run = Run(
         run_id=run_id,
         demo_id=f"external-{req.source}",
@@ -31,6 +39,8 @@ def receive_external_evidence(req: ExternalEvidenceRequest, db: Session = Depend
         requested_by=req.source,
         status=RunStatus.COMPLETED if req.outcome == "pass" else RunStatus.FAILED,
         rubric_version="external",
+        started_at=observed_at,
+        completed_at=observed_at,
     )
     repository.create_run(db, run)
 
