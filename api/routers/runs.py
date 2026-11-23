@@ -30,6 +30,7 @@ from api.schemas import (
     CompleteRunRequest,
     CreateRunRequest,
     SubmitEvidenceRequest,
+    SubmitEvidenceBatchRequest,
     EvaluateRequest,
     EvaluateResponse,
 )
@@ -157,27 +158,20 @@ def start_stage(run_id: str, stage_id: str, db: Session = Depends(get_db), _auth
 # Evidence
 # ---------------------------------------------------------------------------
 
-@router.post("/runs/{run_id}/stages/{stage_id}/evidence", status_code=201)
-def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
-                    db: Session = Depends(get_db), _auth=Depends(require_admin)):
-    run = repository.get_run(db, run_id)
-    if not run:
-        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    stage = repository.get_stage(db, run_id, stage_id)
-    if not stage:
-        raise HTTPException(status_code=404, detail=f"Stage {stage_id} not found")
+def _evidence_from_request(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
+                           default_timestamp: datetime) -> Evidence:
+    """Turn one request item into a domain ``Evidence``.
 
-    # Server-generated IDs use the full 32-hex uuid4 space. The original
-    # 8-hex prefix (4.3B space) collided once the evidence table passed
-    # ~70M rows (Nov 2026: 70.5M rows, 27GB): every insert had a ~1.6%
-    # birthday-collision chance, producing ~10 dropped-evidence 500s per
-    # minute fleet-wide (56k UniqueViolations in 4 days of postgres logs).
-    evidence_id = req.evidence_id or f"ev-{uuid4().hex}"
-    ts = datetime.fromisoformat(req.timestamp) if req.timestamp else datetime.now(timezone.utc)
+    Server-generated IDs use the full 32-hex uuid4 space. The original 8-hex
+    prefix (4.3B space) collided once the evidence table passed ~70M rows
+    (Nov 2026: 70.5M rows, 27GB): every insert had a ~1.6% birthday-collision
+    chance, producing ~10 dropped-evidence 500s per minute fleet-wide (56k
+    UniqueViolations in 4 days of postgres logs).
+    """
+    ts = datetime.fromisoformat(req.timestamp) if req.timestamp else default_timestamp
     resource = EvidenceResource(**req.resource) if req.resource else None
-
-    evidence = Evidence(
-        evidence_id=evidence_id,
+    return Evidence(
+        evidence_id=req.evidence_id or f"ev-{uuid4().hex}",
         run_id=run_id,
         stage_id=stage_id,
         type=req.type,
@@ -188,6 +182,19 @@ def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
         timestamp=ts,
         raw_ref=req.raw_ref,
     )
+
+
+@router.post("/runs/{run_id}/stages/{stage_id}/evidence", status_code=201)
+def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
+                    db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    run = repository.get_run(db, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    stage = repository.get_stage(db, run_id, stage_id)
+    if not stage:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} not found")
+
+    evidence = _evidence_from_request(run_id, stage_id, req, datetime.now(timezone.utc))
     # Collision-resilient insert: a client-supplied duplicate is a 409; a
     # server-generated collision (legacy 8-hex rows, or cosmic bad luck)
     # redraws instead of dropping the evidence with a 500.
@@ -200,6 +207,48 @@ def submit_evidence(run_id: str, stage_id: str, req: SubmitEvidenceRequest,
                 raise HTTPException(status_code=409, detail=f"Evidence {req.evidence_id} already exists")
             evidence.evidence_id = f"ev-{uuid4().hex}"
     raise HTTPException(status_code=500, detail="Could not generate a unique evidence id")
+
+
+@router.post("/runs/{run_id}/stages/{stage_id}/evidence/batch", status_code=201)
+def submit_evidence_batch(run_id: str, stage_id: str, req: SubmitEvidenceBatchRequest,
+                          db: Session = Depends(get_db), _auth=Depends(require_admin)):
+    """Insert a stage's evidence in one request and one commit.
+
+    The rows are identical to what ``submit_evidence`` accepts one at a time;
+    only the transport changes. A batch that hits a duplicate id falls back to
+    per-row inserts so one collision cannot cost the whole stage — rows are
+    reported, never dropped silently.
+    """
+    run = repository.get_run(db, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    stage = repository.get_stage(db, run_id, stage_id)
+    if not stage:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} not found")
+
+    now = datetime.now(timezone.utc)
+    evidence = [_evidence_from_request(run_id, stage_id, item, now) for item in req.items]
+
+    try:
+        ids = repository.create_evidence_batch(db, evidence)
+        return {"created": len(ids), "evidence_ids": ids, "failed": []}
+    except IntegrityError:
+        db.rollback()
+
+    created: List[str] = []
+    failed: List[Dict] = []
+    for index, item in enumerate(evidence):
+        try:
+            repository.create_evidence(db, item)
+            created.append(item.evidence_id)
+        except IntegrityError:
+            db.rollback()
+            failed.append({
+                "index": index,
+                "evidence_id": item.evidence_id,
+                "detail": f"Evidence {item.evidence_id} already exists",
+            })
+    return {"created": len(created), "evidence_ids": created, "failed": failed}
 
 
 # ---------------------------------------------------------------------------

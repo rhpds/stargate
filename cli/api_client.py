@@ -86,6 +86,16 @@ class StarGateClient:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
+    def submit_evidence_batch(self, run_id: str, stage_id: str, items: List[Dict]) -> dict:
+        """Post a whole stage's evidence in one request.
+
+        ``items`` are the same payloads ``submit_evidence`` sends one at a
+        time. The server inserts them in one transaction and answers with
+        ``created``/``evidence_ids`` plus a ``failed`` list for any row it
+        could not insert.
+        """
+        return self._post(f"/runs/{run_id}/stages/{stage_id}/evidence/batch", {"items": items})
+
     def evaluate_stage(self, run_id: str, stage_id: str, evidence: Optional[Dict] = None) -> dict:
         data = {}
         if evidence:

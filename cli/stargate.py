@@ -452,6 +452,70 @@ def _cmd_collect_dir(args) -> int:
 
 # --- API Persistence ---
 
+#: Evidence rows per POST. A 55-user CNV namespace is 165 rows (3 stages x 55
+#: objects) and each row used to be its own request; batching changes the
+#: transport only. 0 or 1 keeps the legacy one-POST-per-row path.
+_DEFAULT_EVIDENCE_BATCH = 100
+
+#: Mirrors ``api.schemas.MAX_EVIDENCE_BATCH``. Clamping here means a typo in
+#: the env var cannot produce a request the API will reject.
+_MAX_EVIDENCE_BATCH = 500
+
+
+def _evidence_batch_size() -> int:
+    """Rows per evidence request, from ``STARGATE_EVIDENCE_BATCH``.
+
+    A bad or oversized value falls back to something the API accepts rather
+    than failing the scan; the env var is a kill switch (0/1 = one POST per
+    row), not a tuning knob that should ever stop collection.
+    """
+    raw = os.environ.get("STARGATE_EVIDENCE_BATCH", "").strip()
+    if not raw:
+        return _DEFAULT_EVIDENCE_BATCH
+    try:
+        return min(max(0, int(raw)), _MAX_EVIDENCE_BATCH)
+    except ValueError:
+        return _DEFAULT_EVIDENCE_BATCH
+
+
+def _submit_evidence_rows(client, run_id: str, stage_id: str, payloads: List[Dict],
+                          batch_size: int) -> Tuple[int, int]:
+    """Submit one stage's evidence rows, returning ``(created, failed)``.
+
+    A batch that fails at the transport level — an API old enough not to have
+    the endpoint, a proxy request cap — is retried row by row, so a deploy
+    skew costs a little time instead of a stage's evidence.
+    """
+    if batch_size <= 1:
+        chunks = [payloads]
+    else:
+        chunks = [payloads[i:i + batch_size] for i in range(0, len(payloads), batch_size)]
+
+    created = failed = 0
+    for chunk in chunks:
+        if batch_size > 1:
+            resp = client.submit_evidence_batch(run_id, stage_id, chunk)
+            if not resp.get("error"):
+                created += resp.get("created", 0)
+                failed += len(resp.get("failed") or [])
+                continue
+
+        for payload in chunk:
+            one = client.submit_evidence(
+                run_id=run_id,
+                stage_id=stage_id,
+                evidence_type=payload["type"],
+                source=payload["source"],
+                observed=payload["observed"],
+                result=payload["result"],
+            )
+            if one.get("error"):
+                failed += 1
+            else:
+                created += 1
+    return created, failed
+
+
 def _persist_to_api(
     api_url: str,
     demo_id: str,
@@ -491,19 +555,27 @@ def _persist_to_api(
         print(f"\n  Persisting to API ({api_url})...")
         print(f"  Run: {run_id}")
 
+    batch_size = _evidence_batch_size()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    created_evidence, failed_evidence = 0, 0
+
     for r in results:
         stage_id = r["stage_id"]
         client.start_stage(run_id, stage_id)
 
-        for ev in collected:
-            client.submit_evidence(
-                run_id=run_id,
-                stage_id=stage_id,
-                evidence_type=ev.resource_kind,
-                source=ev.source,
-                observed=ev.observed,
-                result=r["outcome"],
-            )
+        payloads = [
+            {
+                "type": ev.resource_kind,
+                "source": ev.source,
+                "observed": ev.observed,
+                "result": r["outcome"],
+                "timestamp": timestamp,
+            }
+            for ev in collected
+        ]
+        created, failed = _submit_evidence_rows(client, run_id, stage_id, payloads, batch_size)
+        created_evidence += created
+        failed_evidence += failed
 
         # Preserve the same unobserved/null criteria used by local evaluation.
         client.evaluate_stage(run_id, stage_id, evidence=normalize_evidence(stage_id, collected))
@@ -515,7 +587,15 @@ def _persist_to_api(
     )
 
     if out_format == "text":
-        print(f"  Persisted {len(results)} stages with {len(collected)} evidence items each.")
+        if failed_evidence:
+            print(
+                f"  Warning: the API rejected {failed_evidence} evidence rows.",
+                file=sys.stderr,
+            )
+        print(
+            f"  Persisted {len(results)} stages with {len(collected)} evidence items each "
+            f"({created_evidence} rows)."
+        )
         print(f"  View report: curl {api_url}/runs/{run_id}/report")
 
     return run_id, None
