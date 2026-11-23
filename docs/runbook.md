@@ -157,6 +157,32 @@ podman-compose -f podman-compose.yml logs -f babylon-worker
 Workers stagger by 30 seconds between clusters. The Babylon control plane
 worker starts after all cluster workers and runs every 3 minutes.
 
+### Where tier 3 runs
+
+By default a tier-3 batch runs *inside* the tier-1 tick, so its real cadence is
+`tick_duration + tier1`, not `tier3`. Measured on the live scheduler on
+2026-11-23, that sleep was 40% of the cycle on ocpv07 (744 s, of which 300 s was
+the sleep) — which is why halving per-namespace cost only bought 1.46×
+throughput.
+
+`--tier3-independent` gives tier 3 its own thread, making the cadence
+`max(tier3, batch_duration)`. It is off by default, so nothing changes until it
+is passed:
+
+```bash
+python3 -m cli.scheduler --api-url http://localhost:8090 \
+  --tier3 300 --batch 25 --tier3-independent
+```
+
+Note that `tier3` becomes the floor once the batch is out of the tick: with
+`--tier3 600` and a 444 s batch the cadence is 600 s, not 444 s, so `tier3` has
+to sit at or below the batch duration for the flag to buy anything. Ordering it
+that way is deliberate — `max()` picks whichever is slower, so a batch that
+overruns the interval still runs back-to-back.
+
+The tier-1 loop is unchanged either way, so tier 1 keeps its own period and the
+cadence warning in the log still refers to the tick only.
+
 ---
 
 ## Switch Evidence Modes

@@ -71,14 +71,22 @@ def select_clusters(registry: Dict[str, str], requested: str = "") -> tuple:
 class WorkerThread:
     """Wraps a ClusterWorker in a thread with offset scheduling."""
 
-    def __init__(self, worker: ClusterWorker, offset_seconds: float):
+    def __init__(
+        self,
+        worker: ClusterWorker,
+        offset_seconds: float,
+        tier3_independent: bool = False,
+    ):
         self.worker = worker
         self.offset = offset_seconds
+        self.tier3_independent = tier3_independent
         self.thread: Optional[threading.Thread] = None
+        self.tier3_thread: Optional[threading.Thread] = None
         self.running = False
         self.last_result: Optional[Dict] = None
         self.error_count = 0
         self.tick_count = 0
+        self.tier3_count = 0
         self._last_cadence_warning = 0.0
 
     # A cadence warning is a standing condition, not an event: say it once per
@@ -93,6 +101,13 @@ class WorkerThread:
             daemon=True,
         )
         self.thread.start()
+        if self.tier3_independent:
+            self.tier3_thread = threading.Thread(
+                target=self._run_tier3,
+                name=f"worker-{self.worker.state.name}-t3",
+                daemon=True,
+            )
+            self.tier3_thread.start()
 
     def stop(self):
         self.running = False
@@ -111,6 +126,11 @@ class WorkerThread:
             started = time.time()
             try:
                 self.last_result = self.worker.tick()
+                if self.tier3_independent and self.worker.last_tier3_result:
+                    # Tier 3 runs elsewhere now; keep the tick result shaped the
+                    # same way so the dashboard's NS column and the history
+                    # writer do not go blank.
+                    self.last_result["namespaces"] = self.worker.last_tier3_result
                 self.tick_count += 1
                 self.error_count = 0
             except Exception as e:
@@ -129,6 +149,41 @@ class WorkerThread:
 
             # Sleep until next tier 1 interval
             time.sleep(self.worker.TIER1_INTERVAL)
+
+    def _run_tier3(self):
+        """Run tier-3 batches on their own schedule, outside the tick loop.
+
+        `tick(); sleep(TIER1_INTERVAL)` makes a batch's cadence
+        `tick_duration + TIER1_INTERVAL`, so a cheaper batch cannot shorten it —
+        measured 2026-11-23: halving per-namespace cost moved ocpv07 from 1,084 s
+        to 744 s, of which 300 s was the sleep. Here the cadence is the batch
+        plus whatever is needed to reach `TIER3_INTERVAL`, i.e.
+        `max(TIER3_INTERVAL, batch_duration)`.
+
+        The first batch waits for the tier-1 tick to land, so a cluster is never
+        hit by a node scan and a namespace batch at the same instant.
+        """
+        if self.offset > 0:
+            time.sleep(self.offset)
+
+        waited = 0.0
+        while self.running and self.tick_count == 0 and waited < 120:
+            time.sleep(5)
+            waited += 5
+
+        while self.running:
+            started = time.time()
+            try:
+                self.worker.run_tier3_batch()
+                self.tier3_count += 1
+            except Exception as e:
+                # run_tier3_batch already logs and returns the error; this
+                # catches the impossible case so the thread cannot die.
+                logger.error("Tier 3 thread for %s failed: %s", self.worker.state.name, e)
+                time.sleep(60)
+                continue
+
+            time.sleep(tier3_sleep(self.worker.TIER3_INTERVAL, time.time() - started))
 
     def _report_cadence(self, tick_duration: float):
         """Say so when a tick overruns the tier-1 interval.
@@ -154,6 +209,16 @@ class WorkerThread:
             return
         self._last_cadence_warning = now
         logger.warning("%s", warn)
+
+
+def tier3_sleep(interval: float, batch_duration: float) -> float:
+    """Seconds to wait before the next independent tier-3 batch.
+
+    The cadence is `max(interval, batch_duration)`: a batch that overruns its
+    interval is followed immediately by the next one rather than accumulating
+    debt. Never negative, because `time.sleep` would raise.
+    """
+    return max(0.0, interval - batch_duration)
 
 
 def cadence_warning(
@@ -196,6 +261,7 @@ class Scheduler:
         tier3: int = 300,
         tier3_batch: int = 150,
         include_babylon: bool = True,
+        tier3_independent: bool = False,
     ):
         self.workers: List[WorkerThread] = []
         self._shutdown = threading.Event()
@@ -224,9 +290,12 @@ class Scheduler:
             worker.TIER2_INTERVAL = tier2
             worker.TIER3_INTERVAL = tier3
             worker.TIER3_BATCH_SIZE = tier3_batch
+            worker.TIER3_INDEPENDENT = tier3_independent
 
             offset = i * self.STAGGER_SECONDS
-            self.workers.append(WorkerThread(worker, offset))
+            self.workers.append(
+                WorkerThread(worker, offset, tier3_independent=tier3_independent)
+            )
 
     def start(self):
         """Start all workers including Babylon control plane."""
@@ -500,7 +569,8 @@ def _persist_scan_snapshot(scan_data) -> bool:
                 pass
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    """The CLI surface, separate from `main` so a test can parse without running."""
     parser = argparse.ArgumentParser(
         prog="stargate-scheduler",
         description="StarGate distributed cluster scanner",
@@ -512,11 +582,25 @@ def main():
     parser.add_argument("--tier3", type=int, default=3600, help="Tier 3 interval (namespace evidence, default 3600s)")
     parser.add_argument("--batch", type=int, default=5, help="Tier 3 namespace batch size (default 5)")
     parser.add_argument(
+        "--tier3-independent",
+        action="store_true",
+        help=(
+            "Run tier 3 on its own thread instead of inside the tier-1 tick. "
+            "Cadence becomes max(--tier3, batch duration) instead of "
+            "tick duration + --tier1."
+        ),
+    )
+    parser.add_argument(
         "--no-babylon",
         action="store_true",
         help="Disable the embedded Babylon collector when a dedicated worker owns it",
     )
     parser.add_argument("--dashboard", type=int, default=60, help="Dashboard refresh interval in seconds (default 60)")
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     clusters, unknown = select_clusters(CLUSTERS, args.clusters or "")
@@ -545,6 +629,7 @@ def main():
         tier3=args.tier3,
         tier3_batch=args.batch,
         include_babylon=not args.no_babylon,
+        tier3_independent=args.tier3_independent,
     )
 
     # Handle Ctrl+C
@@ -558,7 +643,15 @@ def main():
     print(f"  Clusters: {len(clusters)}")
     print(f"  Tier 1 (nodes): every {args.tier1}s")
     print(f"  Tier 2 (pods): every {args.tier2}s")
-    print(f"  Tier 3 (namespaces): every {args.tier3}s, {args.batch}/batch")
+    tier3_shape = (
+        "own thread, cadence = max(interval, batch duration)"
+        if args.tier3_independent
+        else f"inside the tier-1 tick, so cadence = tick + {args.tier1}s"
+    )
+    print(
+        f"  Tier 3 (namespaces): every {args.tier3}s, {args.batch}/batch "
+        f"({tier3_shape})"
+    )
     print(f"  Stagger: {Scheduler.STAGGER_SECONDS}s between clusters")
     if args.api_url:
         print(f"  Persisting to: {args.api_url}")
