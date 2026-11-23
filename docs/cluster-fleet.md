@@ -113,11 +113,17 @@ per-namespace work `N·c` plus the idle gap amortised over however large a batch
 is. That has two consequences worth stating plainly, because both intuitive
 fixes disappoint in different ways.
 
-**Batch size is a weak lever.** Doubling `--batch` from 25 to 50 buys 16–22%,
-not the halving it looks like it should. `N·c` is 56–67% of the period and does
-not move at all with batch size; only the gap term shrinks. Anyone reaching for
-`--batch 50` to fix freshness will be disappointed and will have lengthened
-individual ticks while doing it.
+**Batch size is a weak lever — while `c` is 16–27 s.** Doubling `--batch` from
+25 to 50 buys 16–22%, not the halving it looks like it should. `N·c` is 56–67%
+of the period and does not move at all with batch size; only the gap term
+shrinks. Anyone reaching for `--batch 50` to fix freshness will be disappointed
+and will have lengthened individual ticks while doing it.
+
+This stops being true once `c` falls and the cycle is gated by the tier-3
+interval instead of by collection cost — see "Measured: the ceiling was real,
+and it was not the cadence", where the same change is worth ~1.37×. The
+arithmetic did not change; the regime did. A conclusion about a lever is only
+valid for the values it was computed at.
 
 **Per-namespace cost is the lever — but a smaller one than it looks.** `c`
 decomposes into ten `oc get` calls, an in-namespace evaluation, and showroom
@@ -199,6 +205,66 @@ measure is where a namespace's time actually goes — which is worth doing eithe
 way, because the 6 s baseline is the only number here that was taken under
 controlled conditions, and it disagrees with production by 4.5×.
 
+### Measured: the ceiling was real, and it was not the cadence
+
+The limit went from 1 CPU to 3 at **2026-11-23 18:55:50Z**, live, by
+`oc set resources` on the running Deployment — no image change, same digest
+`sha256:1b5a4b72…` (the row and its revert command are in
+`docs/config-log.md`; `#169` is the chart half). The measurement that follows
+is 35 minutes of `runs` after the restart, on five clusters.
+
+**The CPU ceiling was real.** Throttling went from 76% of CFS periods to 22.7%
+cumulative and **35% in a 60 s window taken mid-batch**. The in-burst number is
+the one to keep; the 11.9% read in the first minutes was a quiet-phase sample.
+
+**`c` roughly halved on every cluster** (`c = span/(n−1)` over tier-3 batches,
+split at gaps > 120 s, `n ≥ 5`; windows 55 min before and 35 min after):
+
+| Cluster | `c` before | `c` after | Batch span |
+|---|---|---|---|
+| ocpv03 | 19.7 s | 9.6 s | 467 s → 180 s |
+| ocpv06 | 31.2 s | 13.7 s | 749 s → 305 s |
+| ocpv07 | 33.8 s | 17.1 s | 783 s → 285 s |
+| ocpv08 | 32.9 s | 15.6 s | 791 s → 275 s |
+| ocpv09 | 31.2 s | 16.1 s | 748 s → 262 s |
+
+**Tier 1 came with it.** Tick period — the interval at which `scheduler` rows
+land — went from 1,045–1,084 s to **490–525 s**. That is the overrun `#165`
+records, and CPU starvation was most of it. It still is not 300 s, and cannot
+be: the loop is `tick(); sleep(300)`, so tier 1's floor is `tick_duration +
+300`. With a tick now near 200 s the floor is ~500 s; reaching 300 s means
+removing the sleep-and-add rather than making the tick cheaper.
+
+**Tier 3 barely moved, and the reason matters.** Batch start-to-start went from
+~1,090 s to 667–861 s — improvements of 1.3–1.6×, not the 2.2× that `c` gained.
+Throughput went from ~83 namespaces/h to ~125/h. ocpv07's sweep, 4.2 h before
+the change, is ~3.0 h now: still outside a 2 h window.
+
+The cadence is quantised, not continuous. A tick runs tier 3 only when
+`now - last_ns_scan >= TIER3_INTERVAL`, and the loop then sleeps 300 s, so the
+achievable cadence is a whole number of tick periods:
+
+```
+tick_period = tick_duration + 300
+cadence     = ceil(TIER3_INTERVAL / tick_period) * tick_period
+```
+
+At `TIER3_INTERVAL=600` and `tick_duration≈410`, that is one tick per batch and
+a cadence of ~710 s. Halving the tick bought tier 1 freshness; it could not buy
+tier-3 throughput, because 600 s was already under one tick period. This is the
+same shape of finding as the batch-size analysis above, one level down: the
+number that looks like the lever stops being one as soon as it gets below the
+quantum.
+
+That also retires the "batch size is a weak lever" conclusion above. It was
+computed when `c` was 16–27 s and `N·c` dominated the period. With `c` at
+9.6–17.1 s and the cycle at ~710 s, doubling the batch to 50 roughly doubles
+the batch span to ~680 s, which makes `tick_period` ~980 s and the cadence
+~980 s — about **1.37× more namespaces per hour**, and ocpv07's sweep ~2.2 h.
+That is arithmetic on measured quantities, not a measurement; it is the next
+thing worth testing, together with dropping `--tier3` to 300 so the gate stops
+skipping a tick.
+
 ## What closing the gap requires
 
 1. **Credentials**: `cluster-reader` kubeconfigs for `ocpv01`, `ocpv02`,
@@ -209,14 +275,18 @@ controlled conditions, and it disagrees with production by 4.5×.
    `#168` collapses this to a single source with `--clusters` authoritative, and
    removes the legacy alias fallback that resolves `ocpv06` to a revoked token.
    Do not add clusters by editing one of the two lists.
-3. **Capacity**: this is not free, and the first fix is resources, not code.
-   The scheduler runs five workers in one pod with a **1-CPU limit at 76%
-   throttled** ("The real limit is CPU, not code"). Tier 1 was measured at
-   760–950 s median against a 300 s target (`#165` records overruns), and tier 3
-   re-checks the busiest cluster only every 4.2 h. Adding three clusters and
-   ~330 labs, two of them CNV-heavy, would put a sixth, seventh and eighth
-   worker into a container that is already being stopped by its cgroup. Adding
-   clusters and fixing cadence are the same job, and it starts with the limit.
+3. **Capacity**: this is not free, and the first fix was resources, not code.
+   The scheduler ran five workers in one pod with a **1-CPU limit at 76%
+   throttled**; it is now at 3 CPUs / 35% in-burst throttling, which halved `c`
+   and halved the tier-1 period (see "Measured: the ceiling was real…"). Two
+   things are still true. The tier-3 cycle is gated by `TIER3_INTERVAL` and the
+   tick loop rather than by collection cost, so the busiest cluster is re-checked
+   every ~3.0 h against a 2 h window. And adding three clusters and ~330 labs,
+   two of them CNV-heavy, would put a sixth, seventh and eighth worker into that
+   same pod: 3 CPUs absorbed five workers measured at 35% throttled, which is
+   not the same as headroom for eight. Adding clusters and fixing cadence are
+   still the same job, but the limit is no longer the first thing to move —
+   the cadence gates are.
 
 Until 1–3 are done, treat any fleet-wide statement from StarGate as covering
 roughly three quarters of running labs — and note that the temporal gap
