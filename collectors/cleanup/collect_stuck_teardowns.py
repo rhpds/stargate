@@ -19,6 +19,7 @@ import json
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 logger = logging.getLogger("stargate.stuck_teardowns")
 
@@ -46,6 +47,9 @@ def _identity(spec_vars: Dict, subject_name: str) -> tuple:
     were ``sandboxes-gpte``). Those stay "unknown", which is honest, and
     ``namespace_exists`` stays None. ``unattributable_count`` exists so the
     alarm can say so instead of implying every row is a remediable lab.
+
+    The last resort is the target cluster's own API host, which 422 of the
+    unattributed subjects do record — see ``_cluster_from_api_url``.
     """
     job_vars = (spec_vars or {}).get("job_vars") or {}
     namespace = (
@@ -53,8 +57,64 @@ def _identity(spec_vars: Dict, subject_name: str) -> tuple:
         or job_vars.get("sandbox_openshift_namespace")
         or subject_name
     )
-    cluster = job_vars.get("cluster_name") or job_vars.get("sandbox_openshift_cluster")
+    cluster = (
+        job_vars.get("cluster_name")
+        or job_vars.get("sandbox_openshift_cluster")
+        or _cluster_from_api_url(job_vars)
+    )
     return namespace, cluster or "unknown"
+
+
+def _api_host(raw) -> Optional[str]:
+    """Hostname from an API URL, with or without a scheme or port."""
+    if not raw:
+        return None
+    text = str(raw).strip()
+    if not text:
+        return None
+    if "://" not in text:
+        text = "https://" + text
+    try:
+        return (urlparse(text).hostname or "").lower() or None
+    except ValueError:
+        return None
+
+
+def _cluster_from_api_url(job_vars: Dict) -> Optional[str]:
+    """Derive the target cluster from the API host the subject points at.
+
+    Measured on the live Babylon control plane on 2026-11-23 (3,558 subjects):
+    1,935 carry neither ``cluster_name`` nor ``sandbox_openshift_cluster``, and
+    422 of those do carry ``openshift_api_url`` / ``sandbox_openshift_api_url``
+    with the fleet shape ``api.<cluster>.<site>.infra.demo.redhat.com`` — 146
+    dal10, 141 dfw3, 72 wdc06, 62 dal13, 1 lon3. Those are real cluster names,
+    and 142 of them are on ocpv01/02/04, which StarGate does not scan: naming
+    them turns "we do not know" into "we know, and cannot see it", and
+    ``namespace_exists`` is None rather than the row being unattributable.
+
+    The other shapes stay unknown on purpose, because a per-lab name is not an
+    identity:
+
+    - 442 point at ``api.cluster-xxxxx.dyn.redhatworkshops.io`` — one ephemeral
+      cluster per lab. Recording those would add hundreds of one-off cluster
+      values to ``evaluations``, which is the noise this table just shed.
+    - 278 point at ``api.ocp.<id>.sandbox<N>.opentlc`` — the opentlc tenant,
+      not a cluster StarGate monitors.
+
+    A new domain fails closed (unknown) and stays visible in
+    ``unattributable_count``, which is the right way for this to break.
+    """
+    for key in ("sandbox_openshift_api_url", "openshift_api_url"):
+        host = _api_host(job_vars.get(key))
+        if not host:
+            continue
+        labels = host.split(".")
+        if len(labels) < 5 or labels[0] != "api":
+            continue
+        if not host.endswith(".infra.demo.redhat.com"):
+            continue
+        return labels[1]
+    return None
 
 
 def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None) -> Dict:
@@ -178,6 +238,9 @@ def detect_stuck_teardowns(kubeconfig: str = "", anarchy_namespaces: str = None)
         # A stuck subject we cannot place on a cluster is still stuck, but it
         # is not necessarily something StarGate can remediate — split them out
         # so the headline number is not read as "98 broken lab teardowns".
+        # "Attributable" means we know which cluster it belongs to; whether we
+        # can *see* that cluster is a separate fact, carried by
+        # `namespace_exists` being None when no kubeconfig resolves.
         "attributable_count": sum(
             1 for s in stuck if s.get("cluster") and s["cluster"] != "unknown"
         ),
