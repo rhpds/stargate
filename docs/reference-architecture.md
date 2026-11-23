@@ -38,7 +38,10 @@ infra01 (api.ocpv-infra01.dal12.infra.demo.redhat.com:6443)
 | infra01 | platform host | also scraped for control-plane state |
 
 **Resource limits**: api 1 CPU / 2Gi per pod (2 pods). Known issue: CPU
-saturation under heavy concurrent load (investigations + scans + MCP).
+saturation under heavy concurrent load (investigations + scans + MCP). The
+scheduler runs five cluster workers in one pod and was limited to 1 CPU, at
+973m utilisation and 76% of CFS periods throttled (measured 2026-11-23); the
+chart now requests 1 and limits 3.
 
 ---
 
@@ -48,7 +51,13 @@ saturation under heavy concurrent load (investigations + scans + MCP).
 |---|---|---|---|
 | AAP controllers (prod0, prod1, event0, event1) | 75s cycle | REST polling → idempotent `source_events` | 84k+ live events since Oct 12 |
 | AAP historical ETL archives | one-time replays | `cli/aap_replay` from bastion extracts (streaming, checkpointed, tar support) | 500k+ jobs replayed: partner 18k (14 mo), prod0 50k+192k archive (in progress), event0 70k (Feb→) |
-| Cluster scanner | 5m nodes / 5m pods / 5m namespace batches (150/cycle) | `oc` via scanner SA kubeconfigs | 34k evaluations/day |
+| Cluster scanner | targets 5m nodes / 15m pods / 10m namespace batches (25/cycle) | `oc` via scanner SA kubeconfigs | 34k evaluations/day |
+
+The interval is a target, not the achieved rate. One tier-3 batch costs
+tens of seconds per namespace and five workers share a single-CPU-limited pod,
+so a full sweep measured 0.5 h on ocpv03 to 4.2 h on ocpv07 (2026-11-23). See
+`docs/cluster-fleet.md` for the measurements and `docs/configuration.md` for
+the knobs.
 | Babylon control plane | 3m | worker → AnarchySubjects, ResourcePools, lab mappings | continuous |
 | Labagator | 60s cache | REST | catalog + sessions |
 | LLM gateway health | 15m | native LiteLLM `/health` (racmaas + primary) | 2.4k+ evaluations recorded |

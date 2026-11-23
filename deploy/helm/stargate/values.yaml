@@ -33,12 +33,20 @@ scanner:
   tier2: 900
   tier3: 600
   batch: 25
+  # Five cluster workers share this one pod, each spawning a
+  # `python3 -m cli.stargate` subprocess per namespace, plus the Babylon
+  # worker. At a limit of 1 the pod sat at 973m and was throttled in 76% of
+  # CFS periods, which is the leading explanation for tier 3's 0.5-4.2 h
+  # sweeps and tier 1's 760-950 s median against a 300 s target.
+  # Measured 2026-11-23 on a node with 95.5 cores allocatable and 30% CPU
+  # requests, so the headroom is real rather than borrowed. See
+  # docs/cluster-fleet.md.
   resources:
     requests:
-      cpu: 500m
+      cpu: "1"
       memory: 1Gi
     limits:
-      cpu: "1"
+      cpu: "3"
       memory: 2Gi
 
 babylonWorker:
