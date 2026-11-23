@@ -112,15 +112,27 @@ def diff_counts(baseline: Dict[str, Dict[str, Any]], current: Dict[str, int],
 
 
 def report(drift: list, api_url: str, api_key: str, cluster: str) -> int:
+    """Post drift as external evidence, attributed to the cluster it came from.
+
+    ``cluster_name`` used to hold ``replication:<sha256>`` — the credential's
+    identity in the field that means "which cluster". Every such row landed in
+    ``runs`` under a cluster that does not exist, with the real cluster buried
+    in free-text ``error_summary``, so per-cluster aggregation could not see it
+    and a reader had to parse prose to learn where it happened. The credential
+    is named in the summary (and in the baseline this check is driven from);
+    the cluster is not repeated anywhere else, so it belongs in the cluster
+    field.
+    """
     posted = 0
     for item in drift:
         payload = {
             "source": "credential-replication",
             "outcome": "fail",
             "lab_code": "(credential)",
-            "cluster_name": f"replication:{item['sha256_16']}",
+            "cluster_name": cluster,
             "error_summary": (
-                f"{item['credential'] or item['sha256_16']} grew from "
+                f"{item['credential'] or item['sha256_16']} "
+                f"(sha256:{item['sha256_16']}) grew from "
                 f"{item['baseline_copies']} to {item['live_copies']} live copies "
                 f"(+{item['increase']}) on {cluster}"
             ),
