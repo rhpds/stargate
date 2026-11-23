@@ -37,6 +37,23 @@ from cli.kubeconfigs import resolve_kubeconfig
 logger = logging.getLogger("stargate.scheduler")
 
 
+def select_clusters(registry: Dict[str, str], requested: str = "") -> tuple:
+    """Pick the clusters to start, and name the ones that did not match.
+
+    ``--clusters`` is intersected with the registry. Unknown names used to be
+    dropped without a word: the Deployment hardcoded ``--clusters ocpv05,...``
+    while ``STARGATE_CLUSTERS`` carried ``ocpv06-09``, so the intersection was
+    quietly four clusters, ``ocpv03`` was never started, and 47 live labs went
+    unscored for 18 days while the scheduler reported a healthy cycle. Returns
+    ``(selected, unknown)`` so the caller can say which names were ignored.
+    """
+    if not requested:
+        return dict(registry), []
+    names = {n.strip() for n in requested.split(",") if n.strip()}
+    unknown = sorted(names - set(registry))
+    return {k: v for k, v in registry.items() if k in names}, unknown
+
+
 class WorkerThread:
     """Wraps a ClusterWorker in a thread with offset scheduling."""
 
@@ -430,13 +447,16 @@ def main():
     parser.add_argument("--dashboard", type=int, default=60, help="Dashboard refresh interval in seconds (default 60)")
     args = parser.parse_args()
 
-    clusters = CLUSTERS
-    if args.clusters:
-        requested = set(args.clusters.split(","))
-        clusters = {k: v for k, v in CLUSTERS.items() if k in requested}
-        if not clusters:
-            print(f"No matching clusters. Available: {', '.join(CLUSTERS.keys())}", file=sys.stderr)
-            return 1
+    clusters, unknown = select_clusters(CLUSTERS, args.clusters or "")
+    if unknown:
+        print(
+            f"WARNING: --clusters names not in STARGATE_CLUSTERS, ignored: "
+            f"{', '.join(unknown)}",
+            file=sys.stderr,
+        )
+    if args.clusters and not clusters:
+        print(f"No matching clusters. Available: {', '.join(CLUSTERS.keys())}", file=sys.stderr)
+        return 1
 
     scheduler = Scheduler(
         clusters=clusters,
