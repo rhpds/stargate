@@ -2950,8 +2950,20 @@ def mcp_usage(db, hours: int = 168):
 def live_labs(db, window_hours: int = 2, limit: int = 500):
     """The current state of every lab seen in the window.
 
-    "Live" means the scanner evaluated it recently — roughly every 5-15
-    minutes. State is derived per stage from the latest outcome, so a lab that
+    "Live" means the scanner evaluated it recently, and "recently" is not a
+    constant: tier 3 re-checks a namespace in one sweep, measured 2026-11-23 as
+    0.5 h on ocpv03 and 4.2 h on ocpv07. The default window is therefore
+    *shorter* than the refresh period on four of five clusters, so the default
+    response under-reports on purpose-built clusters and carries no denominator
+    to say by how much — measured coverage of pod-bearing namespaces inside 2 h
+    was 703 of 994. Callers that need the whole scanned fleet should pass a
+    window at least as long as the slowest cluster's sweep; callers that need
+    freshness should not read a lab's absence here as evidence it is gone.
+
+    An earlier version of this docstring said "roughly every 5-15 minutes",
+    which was wrong by a factor of 3 to 16.
+
+    State is derived per stage from the latest outcome, so a lab that
     failed deployment but passed namespace is reported as failing, not ready.
 
     `ready` includes labs whose only non-pass outcome is `warn`, with
