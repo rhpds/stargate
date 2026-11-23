@@ -65,6 +65,11 @@ class WorkerThread:
         self.last_result: Optional[Dict] = None
         self.error_count = 0
         self.tick_count = 0
+        self._last_cadence_warning = 0.0
+
+    # A cadence warning is a standing condition, not an event: say it once per
+    # half hour instead of on every tick.
+    CADENCE_WARNING_INTERVAL = 1800
 
     def start(self):
         self.running = True
@@ -89,6 +94,7 @@ class WorkerThread:
         self.worker.state.last_ns_scan = time.time()
 
         while self.running:
+            started = time.time()
             try:
                 self.last_result = self.worker.tick()
                 self.tick_count += 1
@@ -105,8 +111,60 @@ class WorkerThread:
                 time.sleep(backoff)
                 continue
 
+            self._report_cadence(time.time() - started)
+
             # Sleep until next tier 1 interval
             time.sleep(self.worker.TIER1_INTERVAL)
+
+    def _report_cadence(self, tick_duration: float):
+        """Say so when a tick overruns the tier-1 interval.
+
+        The loop runs one tick, then sleeps `TIER1_INTERVAL`, so tier 1 — node
+        metrics — actually refreshes every `tick_duration + TIER1_INTERVAL`.
+        A tier-3 batch is part of that tick, and it is not cheap: measured on
+        the live scheduler, ocpv06/07 tick every ~811-847s against a configured
+        300s, a 2.7-2.8x deviation, with the startup banner still promising
+        "Tier 1 (nodes): every 300s". Nothing reported the difference, so the
+        only way to notice was to count dashboard ticks against the pod's age.
+        """
+        warn = cadence_warning(
+            self.worker.state.name,
+            tick_duration,
+            self.worker.TIER1_INTERVAL,
+            self.worker.TIER3_BATCH_SIZE,
+        )
+        if not warn:
+            return
+        now = time.time()
+        if now - self._last_cadence_warning < self.CADENCE_WARNING_INTERVAL:
+            return
+        self._last_cadence_warning = now
+        logger.warning("%s", warn)
+
+
+def cadence_warning(
+    cluster: str,
+    tick_duration: float,
+    tier1_interval: float,
+    batch_size: int = 0,
+) -> Optional[str]:
+    """Return a message when the tick loop cannot honour the tier-1 interval.
+
+    Pure so it can be tested without a thread, a cluster, or a subprocess.
+    """
+    if tier1_interval <= 0:
+        return None
+    period = tick_duration + tier1_interval
+    # 1.5x is the point where "every 5 minutes" is closer to "every 8-9", which
+    # changes what a staleness threshold means. Below that it is jitter.
+    if period <= tier1_interval * 1.5:
+        return None
+    return (
+        f"{cluster}: tick took {tick_duration:.0f}s, so tier 1 runs every "
+        f"~{period:.0f}s instead of {tier1_interval:.0f}s "
+        f"({period / tier1_interval:.1f}x). Tier 3 collection is inside this "
+        f"tick (batch of {batch_size} namespaces)."
+    )
 
 
 class Scheduler:
