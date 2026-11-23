@@ -161,13 +161,25 @@ def test_refresh_markers_identify_failed_step_without_changing_cleanup(monkeypat
     monkeypatch.setattr(shutdown, "wait", lambda seconds: shutdown.set() or True)
     monkeypatch.setattr(app, "_shutdown_event", shutdown)
     monkeypatch.setattr("time.sleep", lambda seconds: None)
-    session = Mock()
-    monkeypatch.setattr("db.database.get_session_factory", lambda: lambda: session)
+    # One fresh session per factory call: the 60 s loop opens one for the
+    # materialized-view refresh and the tier-3 freshness probe opens its own
+    # afterwards (the loop's is already closed by then). Sharing one Mock hid
+    # that distinction and made the close assertions depend on call order.
+    sessions = []
+
+    def _session_factory():
+        def make():
+            fresh = Mock()
+            sessions.append(fresh)
+            return fresh
+        return make
+
+    monkeypatch.setattr("db.database.get_session_factory", _session_factory)
     names = ("refresh_cluster_summary", "refresh_pipeline_stages", "refresh_lab_eval_summary")
     labels = ("refresh.clusters", "refresh.pipeline", "refresh.labs")
 
     def refresh(db, index):
-        assert db is session
+        assert db is sessions[0]
         if index == failed_index:
             raise RuntimeError("synthetic refresh failure")
     for index, name in enumerate(names):
@@ -179,5 +191,12 @@ def test_refresh_markers_identify_failed_step_without_changing_cleanup(monkeypat
     messages = [r.getMessage() for r in caplog.records if r.name == module.logger.name]
     assert len(messages) == (failed_index + 1) * 2
     assert any("phase=end stage=" + labels[failed_index] + " status=error" in message for message in messages)
+    session = sessions[0]
     session.rollback.assert_called_once_with()
     session.close.assert_called_once_with()
+    # The tier-3 freshness probe runs in its own session on purpose: reusing
+    # the loop's would mean reopening a session it has already closed. Exactly
+    # one extra session per cycle, closed exactly once.
+    assert len(sessions) == 2
+    for extra in sessions[1:]:
+        extra.close.assert_called_once_with()
