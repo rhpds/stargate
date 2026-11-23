@@ -138,9 +138,8 @@ is true, and the measurement is what caught it; the number is recorded wrong
 here on purpose rather than quietly dropped.
 
 Two caveats. A 20% gain puts the worst cluster at ~3.3 h against a 2 h window,
-so it narrows the gap without closing it. And the largest term — the 16–27 s of
-production `c` that is neither the gets nor the evaluation — is unexplained,
-which makes it the thing to measure next rather than a thing to optimise.
+so it narrows the gap without closing it. And the gets are not where most of
+the time goes, which is the subject of the next section.
 
 Separately, the denominator is every `sandbox-*` namespace, so on ocpv07 about
 30% of the work (111 of 370) is spent on namespaces with no pods to observe. A
@@ -156,6 +155,33 @@ labs, how many we scan at all. They are independent, and a lab can be missed
 by either or by both — so the honest combined statement is lower than either
 number alone.
 
+### The real limit is CPU, not code
+
+Measured from inside the pod, one namespace's work outside the tick is roughly
+6 s: gets 4.5–6.5 s on ocpv07, evaluation 0.5–2.8 s, showroom probe 0.7–2.2 s.
+Production `c` on the same cluster is 27.1 s. The missing factor of four is not
+mysterious — the scheduler runs with a **CPU limit of 1** while hosting five
+cluster workers, the Babylon worker and a `python3 -m cli.stargate` subprocess
+for every namespace evaluated.
+
+```
+usage_usec 9585466659   nr_periods 118206   nr_throttled 89823
+throttled_usec 88092818085              (76% of periods throttled)
+```
+
+The pod sits at 973m of a 1000m limit, on a 96-core node. It is not waiting on
+the API server; it is being stopped by its own cgroup.
+
+This is why concurrency does not help on ocpv07: there is no spare CPU to run
+the reads in parallel, so overlapping them only changes which one is throttled
+first. It is also the most likely explanation for tier 1's 760–950 s median
+against a 300 s target (`#165`), which has been treated as a scheduler bug.
+
+Raising the CPU limit is a configuration change, not a release, and is
+reversible. Whether it closes the cadence gap is testable with the measurement
+above: compare `runs`-derived batch spans before and after, no instrumentation
+needed.
+
 ## What closing the gap requires
 
 1. **Credentials**: `cluster-reader` kubeconfigs for `ocpv01`, `ocpv02`,
@@ -166,12 +192,14 @@ number alone.
    `#168` collapses this to a single source with `--clusters` authoritative, and
    removes the legacy alias fallback that resolves `ocpv06` to a revoked token.
    Do not add clusters by editing one of the two lists.
-3. **Capacity**: this is not free. Tier 1 was measured at 760–950 s median
-   against a 300 s target on the five-cluster fleet (`#165` records overruns).
-   Adding three clusters and ~330 labs, two of them CNV-heavy, makes that worse.
-   Tier 3 already re-checks the busiest cluster only every 4.2 h ("How fast
-   tier 3 re-checks a lab"), so a new cluster joins a rotation that is behind,
-   not a spare one. Adding clusters and fixing cadence are the same job.
+3. **Capacity**: this is not free, and the first fix is resources, not code.
+   The scheduler runs five workers in one pod with a **1-CPU limit at 76%
+   throttled** ("The real limit is CPU, not code"). Tier 1 was measured at
+   760–950 s median against a 300 s target (`#165` records overruns), and tier 3
+   re-checks the busiest cluster only every 4.2 h. Adding three clusters and
+   ~330 labs, two of them CNV-heavy, would put a sixth, seventh and eighth
+   worker into a container that is already being stopped by its cgroup. Adding
+   clusters and fixing cadence are the same job, and it starts with the limit.
 
 Until 1–3 are done, treat any fleet-wide statement from StarGate as covering
 roughly three quarters of running labs — and note that the temporal gap
