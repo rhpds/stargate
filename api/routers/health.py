@@ -92,8 +92,38 @@ def health(db: Session = Depends(get_db)):
     components["executor_kubeconfig"] = _check_executor_kubeconfig()
     components["sandbox_api"] = _check_sandbox_api()
 
+    # Tier-3 freshness, from the last measurement in api/tier3_freshness.py.
+    # Omitted until the first refresh so a rollout does not report "degraded"
+    # for the minute before the loop runs.
+    try:
+        from api.tier3_freshness import cached as _tier3_cached
+        tier3 = _tier3_cached()
+        clusters = tier3.get("clusters") or []
+        if clusters:
+            target = tier3.get("target_seconds") or 0
+            stale = [
+                c["cluster"] for c in clusters
+                if c.get("sweep_age_seconds") is None
+                or c["sweep_age_seconds"] > target
+            ]
+            components["tier3"] = "stale" if stale else "ok"
+            components["tier3_detail"] = {
+                "target_seconds": target,
+                "computed_at": tier3.get("computed_at"),
+                "stale_clusters": stale,
+                "clusters": clusters,
+            }
+    except Exception as e:
+        logger.debug("Tier-3 freshness status unavailable: %s", e)
+
     critical = ("api", "database")
     has_critical_error = any(components.get(k) == "error" for k in critical)
-    all_ok = all(v == "ok" for k, v in components.items() if k != "scanner_age_minutes")
+    # `tier3_detail` and the other non-status entries are payload, not health;
+    # only string components can be "ok".
+    all_ok = all(
+        v == "ok"
+        for k, v in components.items()
+        if isinstance(v, str) and k != "scanner_age_minutes"
+    )
     overall = "error" if has_critical_error else "ok" if all_ok else "degraded"
     return {"status": overall, "service": "stargate", "components": components}

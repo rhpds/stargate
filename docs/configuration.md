@@ -231,6 +231,31 @@ an explicit 4xx/5xx is an observed non-200. See
 
 ---
 
+## Tier-3 freshness
+
+### STARGATE_TIER3_FRESHNESS_TARGET_SECONDS
+
+| Property    | Value                                                       |
+|-------------|-------------------------------------------------------------|
+| Default     | `7200`                                                      |
+| Description | Warning threshold for `stargate_tier3_sweep_age_seconds`, the age of the least recently scanned *live* sandbox namespace on a cluster. The API measures it from `runs` every 60 s; `/health` reports it as `components.tier3` with per-cluster detail. |
+| When to change | Lower it to hold the fleet to a tighter sweep than two hours; raise it during a known backlog so a real regression is not lost in the noise. |
+
+The sweep age is computed per namespace, not per tick. `/health`'s
+`components.scanners` reads the five-minute cluster-scan snapshot, which only
+proves tier 1 ran — it stays green while tier 3 is wedged. A tier-3 run is the
+expensive one (full evidence for one namespace), so the stalest live namespace
+is the honest measure. "Live" is the scanner's own `all_sandbox_namespaces`
+from the latest snapshot, so a namespace destroyed by teardown stops counting
+immediately instead of pinning the minimum for a whole lookback window.
+
+A namespace with no run in the 24 h lookback is counted in
+`stargate_tier3_never_scanned` rather than folded into the age. Newly created
+labs appear there until their first sweep (log line at INFO, no page); a
+namespace that stays there is a coverage hole the sweep age cannot show.
+
+---
+
 ## CORS
 
 ### STARGATE_CORS_ORIGINS
@@ -1050,6 +1075,7 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_SLACK_WEBHOOK_URL`             | Not set                 | No          |
 | `STARGATE_COST_VCPU_HOUR`               | `0.05`                  | No          |
 | `STARGATE_INLINE_SCANNER`               | `false`                 | No          |
+| `STARGATE_TIER3_FRESHNESS_TARGET_SECONDS` | `7200`                | No          |
 | `STARGATE_API_BABYLON_COLLECTION`       | `false`                 | No          |
 | `STARGATE_API_CORPUS_MINING`             | `false`                 | No          |
 
