@@ -81,11 +81,96 @@ and its image refs are `:latest` while the live Deployments are digest-pinned,
 so a `helm upgrade` would unpin them. The live change above was made with
 `oc set resources` and is the record of what is actually running.
 
+## 2026-11-23 ~19:31 — tier-3 batch 25 → 50, and what it cost tier 1
+
+`#167`'s lever table predicted 1,181 s cadence and 2.4 h on ocpv07 from this
+change, as arithmetic on measured quantities. It was run live to replace the
+arithmetic with a measurement. The measurement agrees with the arithmetic and
+disagrees with the framing: the sweep did shorten, and the price was paid by
+tier 1, because both run inside the same loop.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| ~19:31 | `deploy/stargate-scheduler`, container `scheduler`, `args` | `--batch 25` → `50` (JSON patch on `args/12`, preceded by a `test` op so a moved index cannot silently rewrite a different flag) | After the CPU change, `c` is 9.6–18.3 s and the fixed 300 s sleep is ~40% of the cycle, which makes batch size a real lever again where it had been a weak one at `c = 16–27 s` (`#167`). Predictions: 1,181 s cadence, 2.4 h on ocpv07. | `oc patch deploy stargate-scheduler -n stargate --type=json -p '[{"op":"replace","path":"/spec/template/spec/containers/0/args/12","value":"25"}]'` |
+| ~20:25 | same | `--batch 50` → `25` | Measured below: it reaches 2.5 h, not 2 h, and takes tier 1 from 744 s to 1,218 s on ocpv07 — node metrics read once every 20 minutes against a 300 s target. It buys a freshness the target does not accept, with a cost the target does not allow. The structural fix is `#171`, not a bigger batch. | re-apply the row above |
+
+Pod `stargate-scheduler-698d54d6cc-lsfvz` on `ocp-infra01-worker01`, started
+19:31:16Z. Image, resources, and `command` untouched: same digest
+`sha256:1b5a4b72…`. The restart also reset tier-1 continuity, which is why the
+tick timestamps below begin here.
+
+Two consequences of measuring on this digest rather than on the Friday build,
+both of which bound what the numbers mean:
+
+- The rotation policy under test is the **pre-`#164`** one. `#162`–`#165` are
+  merged and not built, so the namespace-selection starvation fix is not in this
+  pod. Batch size and tick shape are unaffected; which namespaces make up a
+  batch is not.
+- `#165`'s overrun warning is not in this image either, so the log is silent
+  about cadence by construction. Every timing below is derived from `runs`, and
+  the absence of a warning in `oc logs` is not evidence that the gate found
+  nothing — the gate is not running.
+
+Measured 19:31–20:24Z, two full batches on every cluster (`runs`, batches split
+at gaps > 120 s; `c = span/(n−1)` over the completed batches only, since an
+in-flight batch drags the average down):
+
+| Cluster | batch `n` | spans | `c` | start-to-start | namespaces/h | sweep |
+|---|---|---|---|---|---|---|
+| ocpv03 | 30 (whole cluster) | 298, 275, 322, 270 | 10.4 s | 615 / 893 s | ~176 | 62 ns → 0.35 h |
+| ocpv06 | 50 | 776, 750 | 15.6 s | 1,096 s | 164 | 320 ns → 1.95 h |
+| ocpv07 | 50 | 899, 882 | 18.2 s | 1,225 s | 147 | 370 ns → 2.52 h |
+| ocpv08 | 50 | 775, 807 | 16.1 s | 1,102 s | 163 | 329 ns → 2.02 h |
+| ocpv09 | 50 | 757, 734 | 15.2 s | 1,075 s | 167 | 249 ns → 1.49 h |
+
+ocpv07 predicted 1,225 s against 1,181 s of arithmetic — close enough that the
+model holds. Four of five clusters come to roughly 2 h or better; **ocpv07 does
+not**, and it is the largest, so the one cluster that matters most is the one
+the change does not fix. ocpv03's two cadences are the interval-gate
+quantisation again: its tick period is 555 s, below `TIER3_INTERVAL=600`, so
+tier 3 skips a tick and alternates between 615 s and 893 s.
+
+The cost, and it is not a side note:
+
+| Cluster | tier-1 period, batch 25 | tier-1 period, batch 50 | vs the 300 s target |
+|---|---|---|---|
+| ocpv03 | 305 / 591 s | 635 s | 2.1× |
+| ocpv06 | ~473 s | 1,094 s | 3.6× |
+| ocpv07 | 744 s | 1,218 s | 4.1× |
+| ocpv08 | ~503 s | 1,128 s | 3.8× |
+| ocpv09 | ~487 s | 1,082 s | 3.6× |
+
+The tick that carried a batch cost the batch plus the sleep: on ocpv07 the batch
+was 918 s of work and the period came out at 1,218 s. A 50-namespace batch is
+not free; its cost moved out of tier 3's cadence and into tier 1's period, where
+nothing was watching for it.
+
+CPU pressure rose with it: **42.5% of CFS periods throttled** in a mid-batch
+60 s window (35% at batch 25), and `c` moved from 17.1 s to 18.2 s on ocpv07.
+3 CPUs absorbed batch 25 with margin; batch 50 is leaning on it.
+
+The write path survived: 390 of 390 tier-3 rows since the restart have
+`namespace = lab_code`.
+
+**What this settles.** Batch size is a lever, and it is the wrong one: it trades
+tier-3 freshness against tier-1 freshness inside a loop where tier 3 should not
+be. `#171` (`--tier3-independent`) takes the batch out of the tier-1 tick and
+takes the 300 s sleep out of the tier-3 cadence, which is the only arrangement
+in which both can meet their own targets. At the measured `c` a
+25-namespace batch is ~455 s, so `max(TIER3_INTERVAL=300, 455)` is 455 s, which
+puts ocpv07 at ~1.9 h — while tier 1 returns to ~305 s, because the sleep is
+suddenly the only thing in the tick again.
+
 ## Still owed
 
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
+- The cadence is still not fixed by anything in this file. Live args are back
+  to `--batch 25` with tier 3 inside the tier-1 tick, which is ~744 s per tick
+  on ocpv07 and a ~3.0 h sweep. `#171` (`--tier3-independent`) is the change
+  that addresses it, and it needs both the Friday build **and** the flags
+  `--tier3 300 --tier3-independent`; merging it alone changes nothing.
 - The manifests disagreed with production: `deploy/helm/stargate/values.yaml`,
   `deploy/helm/stargate/values-infra01.yaml`, and
   `deploy/agnosticv/stargate-platform/prod.yaml` all list `ocpv05` (retired — its
