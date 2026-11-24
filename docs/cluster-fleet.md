@@ -258,8 +258,8 @@ example: its tier-3 tick costs 255 s, so the tick period is 555 s, below the
 would take ocpv03 to 555 s (1.55× more) and change nothing on ocpv07, whose
 period already exceeds the gate.
 
-Which makes the levers. One of them has since been measured; the rest are still
-arithmetic on measured quantities:
+Which makes the levers. Two of them have since been measured live; the rest are
+still arithmetic on measured quantities:
 
 | Change | ocpv07 cadence | namespaces/h | 370-namespace sweep | |
 |---|---|---|---|---|
@@ -267,7 +267,8 @@ arithmetic on measured quantities:
 | `--batch 50` | **1,225 s** | **147** | **2.5 h** | measured |
 | `--tier3 300` | 744 s | 121 | 3.0 h | arithmetic |
 | tier 3 on its own thread, B=25, `--tier3 600` | 600 s | 150 | 2.5 h | arithmetic |
-| tier 3 on its own thread, B=25, `--tier3 300` | 437 s | 206 | **1.8 h** | arithmetic |
+| tier 3 on its own thread, B=25, `--tier3 300`, 3 CPU | 450 s | 175 | 2.1 h | measured |
+| tier 3 on its own thread, B=25, `--tier3 300`, 5 CPU | **419 s** | **215** | **1.72 h** | measured |
 | tier 3 on its own thread, B=50 | 892 s | 202 | **1.8 h** | arithmetic |
 
 **Batch 50 was measured on 2026-11-23 19:31–20:24Z** and the arithmetic held:
@@ -279,20 +280,99 @@ show — the batch is inside the tier-1 tick, so the tick that carried it cost
 ocpv07**. Node metrics read once every 20 minutes is not a trade this document
 can recommend. It was reverted, and `docs/config-log.md` has both rows.
 
-The fifth row is the one that matters, and it is not "remove the tick" alone:
-out of the loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at the
-current `--tier3 600` the flag buys 2.5 h and no more — 600 s becomes the new
-floor, exactly as 744 s was the old one. Lowering the interval to anything at
-or below the batch duration is what removes the floor. The last row reaches the
-same place without touching `--tier3`, which is why the two levers are
-complements rather than alternatives: `max()` picks whichever is slower.
+**The fifth and sixth rows were measured on 2026-11-23 20:59–21:25Z, and the
+fifth is why the sixth exists.** The arithmetic assumed the per-namespace cost
+would stay at the 17.1 s it was when tier 3 shared a loop with tier 1. Once tier 3 had its own thread the two ran *concurrently*, and the same
+3 CPUs throttled in 50.9% of CFS periods: `c` rose to 20.5 s, throughput came in
+at 175 ns/h, and ocpv07 sat at 2.1 h. At a 5 CPU limit throttling fell to 12.2%,
+`c` to 16.7 s, and the sweep to **1.72 h**.
 
-Two rows cross the 2 h window and both need `#171`; nothing reachable by a
-config change alone does. This is also why the "batch size is a weak lever"
+That is the general lesson this table was missing: every row here was computed
+against a per-namespace cost measured in a *different concurrency regime*, and
+the fixed resource limit is part of the model, not a constant. The flag and the
+CPU limit are one change, not two.
+
+The flag on its own is also not "remove the tick" and nothing more: out of the
+loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at `--tier3 600`
+the flag buys 2.5 h and no more — 600 s becomes the new floor, exactly as 744 s
+was the old one. Lowering the interval to at or below the batch duration is what
+removes the floor, and that is what shipped: `--tier3 300`, paired with the 5 CPU
+limit that concurrent tier 1 and tier 3 need. The last row reaches the same place
+without touching `--tier3`, which is why the two levers are complements rather
+than alternatives: `max()` picks whichever is slower.
+
+Four rows now cross the 2 h window and all four need `#171`; nothing reachable by
+a config change alone does. This is also why the "batch size is a weak lever"
 analysis above was right at `c = 16–27 s` and is not right at `c ≈ 17–18 s`: the
 fixed 300 s term is now large relative to the work, so anything that removes it
 beats anything that amortises it. Both statements are kept in this document because the
 regime, not the arithmetic, is what changed.
+
+### Measured: what the remaining 15 seconds per namespace is spent on
+
+After the 5-CPU change the scheduler sits at ~346m of its 5 CPU limit and 12%
+throttled, yet `c` stayed at 15–16 s. So the constraint had moved somewhere the
+throttle counter does not show. Measured 2026-11-23 21:30–22:02Z, from `runs`
+(median start-to-start of consecutive namespaces inside a batch) and from live
+timing in the scheduler and API pods:
+
+| Cluster | `c` | run duration | evidence rows/run | non-run remainder |
+|---|---|---|---|---|
+| ocpv03 | 9.2 s | 6.5 s | 140 | 2.7 s |
+| ocpv06 | 13.1 s | 8.9 s | — | 4.2 s |
+| ocpv07 | 15.6 s | 8.5 s | 188 | 7.1 s |
+| ocpv08 | 14.8 s | 9.5 s | — | 5.3 s |
+| ocpv09 | 13.9 s | 9.2 s | — | 4.7 s |
+
+**The run duration is not evaluation — it is the upload.** `runs.started_at` is
+set when the client POSTs the run, and `completed_at` after the last stage, so
+the "run" spans the client's evidence submission. One 55-user CNV namespace
+produces **165 evidence rows** — `namespace-ready`, `storage-clone-ready` and
+`vm-runtime-ready`, 55 objects each — and each row is its own HTTP POST. That is
+why `c` tracks namespace size: ocpv03 reads 140 rows, ocpv07 188, and the
+9.2 s-to-15.6 s spread follows them.
+
+Timed on the live path:
+
+- **11 `oc get` calls per namespace** (ten resources plus the showroom route
+  lookup): 3.4 s quiet, 4.2 s under production load. **Collapsing them into 3
+  combined calls saves only 0.8 s** (2.3 s → 1.5 s) — each `oc` invocation is
+  ~0.3 s of TLS and discovery regardless of what it fetches, and a combined call
+  costs 0.7 s because the work is still done server-side. Not a throughput lever.
+- **Evidence POST**: API-measured p50 **27 ms**, p10 16, p90 58, p99 218, max
+  497, over 18,734 requests in 5 minutes — **62/s fleet-wide**.
+- **The floor is the request, not the row**: a POST that fails validation and
+  never touches the database costs p10 9 ms, p50 23–31 ms on loopback with a
+  reused connection. So ~10 ms is the marginal cost of each evidence row and
+  ~10–20 ms is paid per request before any work happens.
+- **The database is not the constraint.** `COMMIT` measures 0.6 ms
+  (`synchronous_commit=on`, `fdatasync`), the run lookup is 0.03 ms on
+  `ix_runs_run_id`, `stages` has `ix_stages_run_id`. Commits are not an fsync
+  problem here.
+- **The API is the shared ceiling**: two replicas, each **1 CPU limit** with one
+  uvicorn process, at 704m used and **19.6% of CFS periods throttled** since
+  start (7,812 of 39,825). All five cluster workers in the scheduler post into
+  it, so a slow round for one cluster is a slow round for all of them — which is
+  what the correlated dips look like.
+
+So the cost model for ocpv07 is `4.2 s` of reads + `~9 s` of evidence uploads +
+`~2 s` of bookkeeping. Scheduler CPU was never going to move it: 346m of 5 CPUs,
+and the work it was waiting on happens in a different pod.
+
+The levers, in order of measured size:
+
+| Change | Where | Expected |
+|---|---|---|
+| Batch evidence per stage (165 POSTs → 3) | API + `cli.stargate collect-dir` | **~4–5 s off `c`**, ocpv07 15.6 s → ~11 s, sweep 1.72 h → ~1.2 h |
+| API CPU 1 → 2 per pod | `oc set resources` | removes the 19.6% throttle, not a halving — one uvicorn process per pod, so the GIL bounds it |
+| A third API replica | `oc scale` | a second and third interpreter, which is what actually scales Python request handling |
+| Collapse the 11 `oc` calls into 3 | `cli/worker.py` | 0.8 s, ~5% — measured, not worth building for throughput |
+
+The first row keeps the evidence trail exactly as it is — 165 rows still land in
+the table, in 3 requests instead of 165 — so it is a transport change, not a
+change to what is observed. The third row is a cost as well as a fix:
+165 rows/namespace across ~250 namespaces on five clusters is on the order of
+200k evidence rows per fleet sweep, into a table already at 36 GB.
 
 ## How the sweep is watched
 
@@ -369,17 +449,18 @@ that is `#178` — this PR only makes the failure visible.
    Do not add clusters by editing one of the two lists.
 3. **Capacity**: this is not free, and the first fix was resources, not code.
    The scheduler ran five workers in one pod with a **1-CPU limit at 76%
-   throttled**; it is now at 3 CPUs / 35% in-burst throttling, which halved `c`
-   and took the tier-3 tick from 1,084 s to 744 s (see "Measured: the ceiling
-   was real…"). Two things are still true. Tier-3 throughput is bounded by the
-   300 s sleep at the end of every tick and by `TIER3_INTERVAL`, not by
-   collection cost, so the busiest cluster is re-checked every ~3.0 h against a
-   2 h window. And adding three clusters and ~330 labs, two of them CNV-heavy,
-   would put a sixth, seventh and eighth worker into that same pod: 3 CPUs
-   absorbed five workers measured at 35% throttled, which is not the same as
-   headroom for eight. Adding clusters and fixing cadence are still the same
-   job, but the limit is no longer the first thing to move — the cadence gates
-   are.
+   throttled**; it is now at **5 CPUs / 12% throttled**, which took `c` from
+   33.8 s to 16.7 s and, with tier 3 on its own thread at `--tier3 300`, the
+   ocpv07 sweep from 4.2 h to 1.72 h (see "Measured: the ceiling was real…" and
+   "Measured: what the remaining 15 seconds…"). Three things are still true.
+   Scheduler CPU is no longer the constraint — it sits at ~346m of 5 CPUs while
+   waiting on the **API's** 1 CPU per replica, which is 19.6% throttled and
+   absorbs every cluster's evidence uploads; moving that is the next real lever
+   and it is a build (batched evidence) before it is a limit. Adding three
+   clusters and ~330 labs, two of them CNV-heavy, would put a sixth, seventh and
+   eighth worker into that same pod, and each new cluster adds its evidence
+   stream to the same API. Adding clusters and fixing cadence are still the same
+   job, and the API now shares the ceiling with it.
 
 Until 1–3 are done, treat any fleet-wide statement from StarGate as covering
 roughly three quarters of running labs — and note that the temporal gap

@@ -35,7 +35,12 @@ scanner:
   clusters: ocpv03,ocpv06,ocpv07,ocpv08,ocpv09
   tier1: 300
   tier2: 900
-  tier3: 600
+  # Tier 3 runs on its own thread, so the cadence is
+  # max(tier3, batch duration) rather than tick + tier1 + batch. At 600 the
+  # interval *was* the floor and ocpv07 swept in 2.5 h; at 300 it is not the
+  # floor (a 25-namespace batch at c≈17s is ~400s) and ocpv07 sweeps in 1.7 h.
+  tier3: 300
+  tier3Independent: true
   batch: 25
   # Five cluster workers share this one pod, each spawning a
   # `python3 -m cli.stargate` subprocess per namespace, plus the Babylon
@@ -45,12 +50,16 @@ scanner:
   # Measured 2026-11-23 on a node with 95.5 cores allocatable and 30% CPU
   # requests, so the headroom is real rather than borrowed. See
   # docs/cluster-fleet.md.
+  # 3 was measured with tier 3 still inside the tick, i.e. one workload at a
+  # time. Once tier 3 got its own thread the two run concurrently and the same
+  # 3 CPUs throttled in 50.9% of periods, raising per-namespace cost from 17.1s
+  # to 20.5s. At 5 it is 12.2% and 16.7s.
   resources:
     requests:
       cpu: "1"
       memory: 1Gi
     limits:
-      cpu: "3"
+      cpu: "5"
       memory: 2Gi
 
 babylonWorker:

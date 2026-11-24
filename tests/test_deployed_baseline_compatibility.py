@@ -1,6 +1,13 @@
 """A release must retain the migration lineage and review-only baseline."""
 from pathlib import Path
 
+# The revision running in production as of the last release. It has to stay on
+# the lineage — production must never be off a branch or on rewritten history —
+# but it does not have to be the head: every migration added since a release
+# makes the deployed revision a parent of one. (This asserted `in get_heads()`
+# until 2026-11-23, wrapping on the first migration after every deploy.)
+DEPLOYED_REVISION = "r9a0b1c2d3e4"
+
 
 def test_deployed_migration_revision_is_in_current_lineage():
     from alembic.config import Config
@@ -10,10 +17,13 @@ def test_deployed_migration_revision_is_in_current_lineage():
     config = Config(str(root / "alembic.ini"))
     config.set_main_option("script_location", str(root / "alembic"))
     scripts = ScriptDirectory.from_config(config)
-    deployed = scripts.get_revision("r9a0b1c2d3e4")
+    deployed = scripts.get_revision(DEPLOYED_REVISION)
     assert deployed is not None
-    assert deployed.revision in {r.revision for r in scripts.walk_revisions()}
-    assert deployed.revision in scripts.get_heads()
+    head = scripts.get_current_head()
+    lineage = {r.revision for r in scripts.iterate_revisions(head, "base")}
+    assert deployed.revision in lineage, (
+        f"{DEPLOYED_REVISION} is no longer an ancestor of head {head}"
+    )
 
 
 def test_review_ledger_and_bounded_query_helpers_are_available():

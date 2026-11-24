@@ -26,6 +26,22 @@ from db.database import Base
 
 class RunRecord(Base):
     __tablename__ = "runs"
+    __table_args__ = (
+        # The tier-3 freshness probe (api/tier3_freshness.py, #177) runs every
+        # 60 s:
+        #   SELECT namespace, max(started_at) FROM runs
+        #    WHERE namespace IN (<every live namespace>)
+        #    GROUP BY namespace
+        # No time cutoff — retention (STARGATE_RUN_RETENTION_DAYS) bounds the
+        # table instead. Without this index the planner seq-scans the whole
+        # table twice: measured 2026-11-23 at 608k rows / 323 MB, 1,501 ms,
+        # 54.5k buffers, growing linearly with the table forever. With it: 64
+        # ms, one index-only scan. (namespace, started_at) in this order,
+        # because the query probes one namespace at a time and only needs
+        # started_at ordered within it; max() then reads the last entry of
+        # each range.
+        Index('idx_runs_namespace_started_at', 'namespace', 'started_at'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     run_id = Column(String(255), unique=True, nullable=False, index=True)
