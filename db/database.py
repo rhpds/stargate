@@ -101,6 +101,36 @@ def _recorded_revision(engine) -> Optional[str]:
     return row[0] if row else None
 
 
+def _head_revision() -> Optional[str]:
+    """The latest revision on the migration chain — read from disk, no DB."""
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(_alembic_config()).get_current_head()
+
+
+def _stamp(engine, revision: str) -> None:
+    """Record ``revision`` as applied, on the engine we already hold.
+
+    Deliberately not ``command.stamp()``: that opens a second connection from
+    ``alembic/env.py``, resolved from ``STARGATE_DATABASE_URL`` rather than
+    from ``engine``. Whenever those differ — every test suite, anything that
+    injected an engine — the stamp would go somewhere other than the schema it
+    is describing. Alembic only ever reads and updates one row, so writing it
+    here is the whole of what stamping means.
+    """
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE TABLE IF NOT EXISTS alembic_version ("
+            "version_num VARCHAR(32) NOT NULL, "
+            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+        ))
+        conn.execute(text("DELETE FROM alembic_version"))
+        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES (:rev)"),
+                     {"rev": revision})
+
+
 def init_db():
     """Bring the schema to head, for both a migrated and a fresh database.
 
@@ -108,7 +138,8 @@ def init_db():
 
     A database with a recorded revision is migrated: ``alembic upgrade head``
     is the only path that applies data migrations, so it is what a release
-    uses.
+    uses. A database already at head skips it, which is the common case and
+    keeps startup from opening a second connection to do nothing.
 
     A database with no recorded revision cannot be migrated, and this is not
     a fallback that happens to be needed — it is the only thing that can
@@ -130,11 +161,14 @@ def init_db():
     from alembic import command
 
     engine = get_engine()
-    cfg = _alembic_config()
+    head = _head_revision()
+    recorded = _recorded_revision(engine)
 
-    if _recorded_revision(engine) is not None:
+    if recorded is not None:
+        if recorded == head:
+            return
         try:
-            command.upgrade(cfg, "head")
+            command.upgrade(_alembic_config(), "head")
         except Exception:
             # Loud, and deliberately not stamped: the revision is still
             # whatever it was, so the next startup retries the real
@@ -149,13 +183,31 @@ def init_db():
 
     fresh = not [t for t in inspect(engine).get_table_names() if t != "alembic_version"]
     Base.metadata.create_all(bind=engine)
-    command.stamp(cfg, "head")
+
+    if not head:
+        # No migrations on disk at all (a stripped image, a wrong alembic.ini).
+        # The schema is still correct — the models built it — but nothing can
+        # be recorded, and saying so is the only honest option.
+        logger.error("No head revision found; schema created but NOT stamped")
+        return
+
+    try:
+        _stamp(engine, head)
+    except Exception:
+        logger.error(
+            "Schema created from models but could not be stamped at %s; "
+            "the migration chain will replay on the next start and later "
+            "migrations will be skipped until this is fixed.", head,
+            exc_info=True,
+        )
+        return
+
     if fresh:
-        logger.info("Fresh database: schema created from models and stamped at head")
+        logger.info("Fresh database: schema created from models and stamped at %s", head)
     else:
         logger.warning(
             "Database has tables but no alembic_version: adopted the existing "
-            "schema as-is and stamped it at head. Any migration older than "
-            "this release was not applied and will not be applied later."
+            "schema as-is and stamped it at %s. Any migration older than this "
+            "release was not applied and will not be applied later.", head,
         )
 

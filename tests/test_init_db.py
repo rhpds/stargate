@@ -25,17 +25,28 @@ def sqlite_db(tmp_path, monkeypatch):
     """A file-backed SQLite database plus the module pointed at it.
 
     A file (not ``:memory:``) because alembic opens its own connections.
+
+    Both globals are patched through ``monkeypatch`` and restored by pytest.
+    Setting only ``_engine`` would leave ``_SessionLocal`` bound to this
+    throwaway engine for the rest of the session, and every later test that
+    opens its own session (e.g. ``engine.stargate_qa._knowledge_corpus``)
+    would then read from a different database than the test fixture wrote to.
     """
+    from sqlalchemy.orm import sessionmaker
+
     from db import database
 
     url = f"sqlite:///{tmp_path / 'fresh.db'}"
     engine = create_engine(url)
     monkeypatch.setattr(database, "DATABASE_URL", url)
     monkeypatch.setenv("STARGATE_DATABASE_URL", url)
-    previous = database._engine
-    database.set_engine(engine)
+    monkeypatch.setattr(database, "_engine", engine)
+    monkeypatch.setattr(
+        database, "_SessionLocal",
+        sessionmaker(bind=engine, autocommit=False, autoflush=False),
+    )
     yield engine
-    database._engine = previous
+    engine.dispose()
 
 
 class _Capture(logging.Handler):
@@ -72,7 +83,7 @@ def _version(engine):
         return conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
 
 
-def _head():
+def _scripts():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
     from pathlib import Path
@@ -80,7 +91,17 @@ def _head():
     root = Path(__file__).resolve().parents[1]
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
-    return ScriptDirectory.from_config(cfg).get_current_head()
+    return ScriptDirectory.from_config(cfg)
+
+
+def _head():
+    return _scripts().get_current_head()
+
+
+def _parent_of_head():
+    """A revision that is genuinely behind head, whatever history looks like."""
+    head = _head()
+    return _scripts().get_revision(head).down_revision
 
 
 def test_an_empty_database_is_created_and_stamped_at_head(sqlite_db):
@@ -123,35 +144,46 @@ def test_a_database_with_tables_but_no_version_is_adopted_and_stamped(sqlite_db,
     assert warnings and "no alembic_version" in warnings[0].getMessage()
 
 
-def test_a_versioned_database_is_upgraded_not_adopted(sqlite_db, monkeypatch):
-    """A recorded revision means real migrations run — create_all is not used."""
-    from db import database
+def test_a_versioned_database_behind_head_is_migrated_not_adopted(sqlite_db, monkeypatch):
+    """A recorded revision means alembic runs — create_all must not.
 
+    The upgrade itself is recorded rather than executed: a schema built by
+    ``create_all`` already contains the tables later migrations create, so
+    replaying a real chain against it fails on the first ``CREATE TABLE``.
+    That is exactly why an unversioned database is stamped instead of
+    migrated. The real migration path was verified against PostgreSQL 15.
+    """
+    from db import database
+    import alembic.command as command
+
+    behind = _parent_of_head()
     database.Base.metadata.create_all(bind=sqlite_db)
     with sqlite_db.begin() as conn:
         conn.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
-        conn.execute(text("INSERT INTO alembic_version VALUES ('r9a0b1c2d3e4')"))
+        conn.execute(text("INSERT INTO alembic_version VALUES (:rev)"), {"rev": behind})
 
-    calls = []
+    create_all_calls, upgrades = [], []
     monkeypatch.setattr(
         database.Base.metadata, "create_all",
-        lambda *a, **kw: calls.append("create_all"),
+        lambda *a, **kw: create_all_calls.append("create_all"),
     )
+    monkeypatch.setattr(command, "upgrade", lambda cfg, rev: upgrades.append(rev))
 
     database.init_db()
 
-    assert calls == [], "create_all must not run against a versioned database"
-    assert _version(sqlite_db) == _head()
+    assert create_all_calls == [], "create_all must not run against a versioned database"
+    assert upgrades == ["head"]
 
 
 def test_a_failed_upgrade_is_loud_and_leaves_the_revision_alone(sqlite_db, monkeypatch, db_logs):
     """Never stamp a schema you did not migrate; retry on the next start."""
     from db import database
 
+    behind = _parent_of_head()
     database.Base.metadata.create_all(bind=sqlite_db)
     with sqlite_db.begin() as conn:
         conn.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
-        conn.execute(text("INSERT INTO alembic_version VALUES ('r9a0b1c2d3e4')"))
+        conn.execute(text("INSERT INTO alembic_version VALUES (:rev)"), {"rev": behind})
 
     import alembic.command as command
 
@@ -162,6 +194,40 @@ def test_a_failed_upgrade_is_loud_and_leaves_the_revision_alone(sqlite_db, monke
 
     database.init_db()  # must not raise: the API still has to serve
 
-    assert _version(sqlite_db) == "r9a0b1c2d3e4"
+    assert _version(sqlite_db) == behind
     errors = [r for r in db_logs if r.levelname == "ERROR"]
     assert errors and "NOT applied" in errors[0].getMessage()
+
+
+def test_a_database_already_at_head_does_not_open_a_second_connection(sqlite_db, monkeypatch):
+    """The common startup path must not call alembic at all.
+
+    alembic's env.py resolves its URL from STARGATE_DATABASE_URL, which is not
+    necessarily the engine this process is serving. Nothing needs migrating
+    when the revision is already head, so nothing should connect.
+    """
+    from db import database
+    import alembic.command as command
+
+    database.init_db()
+
+    def boom(*a, **kw):
+        raise AssertionError("alembic upgrade must not run on a database at head")
+
+    monkeypatch.setattr(command, "upgrade", boom)
+    database.init_db()  # no exception
+
+
+def test_a_stamp_failure_is_loud_but_the_schema_still_serves(sqlite_db, monkeypatch, db_logs):
+    from db import database
+
+    def boom(*a, **kw):
+        raise RuntimeError("no write access to alembic_version")
+
+    monkeypatch.setattr(database, "_stamp", boom)
+
+    database.init_db()  # must not raise
+
+    assert "runs" in inspect(sqlite_db).get_table_names()
+    errors = [r for r in db_logs if r.levelname == "ERROR"]
+    assert errors and "could not be stamped" in errors[0].getMessage()
