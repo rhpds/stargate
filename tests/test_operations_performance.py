@@ -225,7 +225,7 @@ def test_runs_namespace_started_at_index_is_declared_and_roundtrips():
 
     Measured on production 2026-11-23 (608k rows, 323 MB): the probe's query
     took 1,501 ms with two parallel seq scans, every 60 s, forever. The
-    composite index brought the same query on the same data to 20.6 ms.
+    composite index brought the same query on the same data to 64 ms.
     """
     from sqlalchemy import create_engine, inspect
     from alembic.migration import MigrationContext

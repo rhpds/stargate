@@ -31,14 +31,15 @@ class RunRecord(Base):
         # 60 s:
         #   SELECT namespace, max(started_at) FROM runs
         #    WHERE namespace IN (<every live namespace>)
-        #      AND started_at >= now() - interval '24 hours'
         #    GROUP BY namespace
-        # Without this the planner seq-scans the whole table twice — measured
-        # 2026-11-23 at 608k rows / 323 MB: 1,501 ms, 54.5k buffers, and
-        # growing linearly with the table forever. With it: 20.6 ms, one
-        # index-only scan. (namespace, started_at) in this order, because the
-        # query probes one namespace at a time and only needs started_at
-        # ordered within it; max() then reads the last entry of each range.
+        # No time cutoff — retention (STARGATE_RUN_RETENTION_DAYS) bounds the
+        # table instead. Without this index the planner seq-scans the whole
+        # table twice: measured 2026-11-23 at 608k rows / 323 MB, 1,501 ms,
+        # 54.5k buffers, growing linearly with the table forever. With it: 64
+        # ms, one index-only scan. (namespace, started_at) in this order,
+        # because the query probes one namespace at a time and only needs
+        # started_at ordered within it; max() then reads the last entry of
+        # each range.
         Index('idx_runs_namespace_started_at', 'namespace', 'started_at'),
     )
 

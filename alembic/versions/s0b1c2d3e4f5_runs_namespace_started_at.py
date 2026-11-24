@@ -4,15 +4,20 @@ The probe in api/tier3_freshness.py runs every 60 s:
 
     SELECT namespace, max(started_at) FROM runs
      WHERE namespace IN (<every live namespace>)
-       AND started_at >= now() - interval '24 hours'
      GROUP BY namespace
+
+(No time cutoff: #177 dropped the original 24 h window because it made a
+lab starved for more than a day look "never scanned". Retention bounds the
+table now — STARGATE_RUN_RETENTION_DAYS, 90 days by default, which is
+also the age of the oldest surviving row in production.)
 
 `runs` had indexes on run_id, lab_code and cluster_name — nothing that
 helps this. Measured on production 2026-11-23 at 608k rows / 323 MB:
 1,501 ms per call, two parallel seq scans over the whole table, 54.5k
 buffer reads. It is a fixed 60 s cost that grows with the table, not with
 the work. With the composite index the same query, same data, same
-production connection measured 20.6 ms — one index-only scan, 10k buffers.
+production connection measured 64.0 ms — one index-only scan, 10.9k
+buffers (20.6 ms if the 24 h window is kept, for comparison).
 
 Column order is (namespace, started_at), matching the filter: the query
 visits ~923 namespaces and wants the newest started_at within each.
