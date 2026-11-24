@@ -166,23 +166,19 @@ suddenly the only thing in the tick again.
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
-- An open item: the 1.72 h sweep is **measured throughput extrapolated over a
-  full sweep**, not a completed sweep. The post-change window is 21:16–21:25Z
-  (nine minutes). Watch one full ocpv07 sweep land and confirm it matches
-  before treating the 2 h target as closed.
-- Coverage is still five clusters. `ocpv01` (dfw3, 244 labs), `ocpv02` (dfw3,
-  77) and `ocpv04` (lon3, 8) are unscanned, blocked on `cluster-reader`
-  kubeconfigs stored under the canonical names `kubeconfig-ocpv01`,
-  `kubeconfig-ocpv02`, `kubeconfig-ocpv04` in the `stargate-kubeconfigs`
-  secret. Nothing in the code needs to change for them; the kubeconfigs do not
-  exist yet.
-- The manifests now agree with production, but they got there in two steps and
-  a Helm apply between them would have hurt. `#168` corrected the cluster list
-  in `values.yaml`, `values-infra01.yaml` and
-  `deploy/agnosticv/stargate-platform/prod.yaml` (all three listed `ocpv05`,
-  which is retired, and omitted `ocpv03`). It did **not** carry the cadence:
-  until this change lands, both values files still say `tier3: 600` and have no
-  `tier3Independent`, so `helm upgrade` today would revert the live args to
-  `--tier3 600` and drop `--tier3-independent`, silently undoing the release.
-  This change is what makes the chart match what is running — `tier3: 300`,
-  `tier3Independent: true`, `cpu: 5`. Land it before any Helm apply, not after.
+- The cadence is still not fixed by anything in this file. Live args are back
+  to `--batch 25` with tier 3 inside the tier-1 tick, which is ~744 s per tick
+  on ocpv07 and a ~3.0 h sweep. `#171` (`--tier3-independent`) is the change
+  that addresses it, and it needs both the Friday build **and** the flags
+  `--tier3 300 --tier3-independent`; merging it alone changes nothing.
+- The manifests disagreed with production: `deploy/helm/stargate/values.yaml`,
+  `deploy/helm/stargate/values-infra01.yaml`, and
+  `deploy/agnosticv/stargate-platform/prod.yaml` all list `ocpv05` (retired — its
+  API host no longer resolves) and omit `ocpv03`, and they carry clusters
+  (`ocpv-infra01`, `ocpv-infra02`, `ocp-us-east-1`) that the live args do not.
+  They were not edited in this record because that does not change the running
+  deployment. `#168` corrects all of them to
+  `ocpv03,ocpv06,ocpv07,ocpv08,ocpv09`, alongside the change that makes the
+  value authoritative: `--clusters` used to be intersected with
+  `STARGATE_CLUSTERS` and unknown names were dropped silently, which is the only
+  reason a wrong list was survivable.
