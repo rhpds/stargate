@@ -946,6 +946,31 @@ def _spent(result: Optional[Dict[str, Any]]) -> float:
     return (((result or {}).get("usage") or {}).get("cost_estimate") or 0.0)
 
 
+def _price_usage(usage: Dict[str, Any]) -> Optional[float]:
+    """Attach the local price estimate to a provider usage dict, and return it.
+
+    The provider reports tokens but not money, so every consumer that wants a
+    cost has to price it. Doing that here — once, on the dict that is returned
+    to the agent — keeps the value stored on the metric row and the value the
+    agent accumulates identical. Before, the metric was priced inside a
+    `finally` and the agent's copy was not, so `_spent()` read a missing key,
+    `total_cost` stayed 0.0 and `investigations.cost_estimate` was NULL on
+    every tool-calling round, which is where the bulk of agent spend happens.
+    """
+    prompt_tokens = usage.get("prompt_tokens")
+    completion_tokens = usage.get("completion_tokens")
+    if prompt_tokens is None or completion_tokens is None:
+        return None
+    from api.llm import COST_PER_1K_PROMPT, COST_PER_1K_COMPLETION
+
+    cost = (
+        (prompt_tokens / 1000) * COST_PER_1K_PROMPT
+        + (completion_tokens / 1000) * COST_PER_1K_COMPLETION
+    )
+    usage["cost_estimate"] = cost
+    return cost
+
+
 def _run_investigation(
     namespace: str,
     cluster: str,
@@ -1242,6 +1267,7 @@ def _call_llm_with_tools(
         choices = data.get("choices", [{}])
         message = choices[0].get("message", {}) if choices else {}
         usage = data.get("usage", {}) or {}
+        _price_usage(usage)
         success = True
         return {"success": True, "message": message, "usage": usage}
     except Exception as e:
@@ -1254,15 +1280,9 @@ def _call_llm_with_tools(
             try:
                 from datetime import datetime, timezone
                 from db.models import LLMMetric
-                from api.llm import COST_PER_1K_PROMPT, COST_PER_1K_COMPLETION
                 prompt_tokens = usage.get("prompt_tokens")
                 completion_tokens = usage.get("completion_tokens")
-                cost_estimate = None
-                if prompt_tokens is not None and completion_tokens is not None:
-                    cost_estimate = (
-                        (prompt_tokens / 1000) * COST_PER_1K_PROMPT
-                        + (completion_tokens / 1000) * COST_PER_1K_COMPLETION
-                    )
+                cost_estimate = usage.get("cost_estimate")
                 metric = LLMMetric(
                     endpoint="agent-investigation-tools",
                     model=use_model,
