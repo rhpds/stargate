@@ -326,7 +326,14 @@ Verified after the rollout, not inferred: both API pods are on `89d66ee5…` wit
 0 restarts, `/health` is 200 with every component `ok` (`api`, `database`,
 `scanners`, `llm`, `executor_kubeconfig`, `sandbox_api`), `init_db()` found
 `alembic_version` already at `s0b1c2d3e4f5` and logged no migration, and the
-scheduler reports all five clusters. Freshness is inside target with
+scheduler reports all five clusters.
+
+The verdict fix was also exercised end to end on a row created *after* the
+deploy, rather than inferred from the backfill. A manual trigger on
+`sandbox-pgxxx-zt-ansiblebu` (ocpv08, `service_has_no_endpoints`) produced
+`inv-5c4c1725`: 12 iterations, verdict `TRANSIENT`, confidence 0.88,
+`evidence_sufficient: true` — the blockquote shape that used to come back
+NULL. That same run is what exposed the cost defect below. Freshness is inside target with
 `never_scanned` at zero everywhere:
 
 | Cluster | sweep age | never scanned |
@@ -369,9 +376,16 @@ dashboard:
   all, and the backfill does not invent one.
 - 810 rows still carry a null `evidence_sufficient`. Rows that already had a
   verdict were out of scope by design, so a null there stayed null.
-- `cost_estimate` remains null on every historical row. `llm_metrics` has no
-  `job_id`, so past spend cannot be attributed to past investigations; the
-  rollup is forward-only from this rollout.
+- `cost_estimate` is still NULL on **every** investigation, new ones included —
+  this release did not fix it, and the claim in `#190` that it did is wrong for
+  the path that matters. `_call_llm_with_tools` prices the `llm_metrics` row
+  inside a `finally` but returns the provider's raw `usage` dict, which carries
+  tokens and no money, so `_spent()` reads a missing key and `total_cost` stays
+  `0.0`. Verified at 23:27Z on a deliberately triggered investigation
+  (`inv-5c4c1725`, 12 iterations): 12 `llm_metrics` rows, all 12 priced, and
+  `investigations.cost_estimate` NULL. `#194` moves the pricing onto the
+  returned dict. Historical NULLs stay NULL either way — `llm_metrics` has no
+  `job_id`, so past spend cannot be attributed to past investigations.
 - `scripts/backfill_investigation_verdicts.py` advertises `--dry-run` in its
   docstring but does not implement the flag — dry run is the default (omit
   `--apply`). Found while running it; the deployed image keeps the wart.
@@ -379,6 +393,13 @@ dashboard:
   `needs_human_review`. Filling verdicts does not review anyone's judgement.
 
 ## Still owed
+
+- `STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY=25` is set in the live API env
+  but **no Python file reads it** — a repo-wide grep finds no reference. On
+  2026-11-24, 72 `auto_anomalous` investigations were created against a nominal
+  cap of 25. Either the throttle moved to a variable under another name or the
+  cap has not been enforced since a rename. It reads like a safety control, so
+  it should be either wired up or removed rather than left looking active.
 
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
