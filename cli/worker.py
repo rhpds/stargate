@@ -471,6 +471,8 @@ class ClusterWorker:
 
         persisted = 0
         dropped = 0
+        rejected_evidence = 0
+        rejected_namespaces = 0
         passed = 0
         failed = 0
         failure_classes: Dict[str, int] = {}
@@ -514,6 +516,13 @@ class ClusterWorker:
                     )
                 else:
                     persisted += 1
+                    # A stored run is not the same as stored evidence. The
+                    # rubric read what was collected, so a refusal here means
+                    # the report and the record disagree about the lab.
+                    rejected = result.get("evidence_rejected") or 0
+                    if rejected:
+                        rejected_evidence += rejected
+                        rejected_namespaces += 1
                 stage_outcomes = [r.get("outcome") for r in result.get("results", [])]
                 ns_outcome = "pass" if stage_outcomes and all(
                     outcome == "pass" for outcome in stage_outcomes
@@ -539,6 +548,13 @@ class ClusterWorker:
 
         self.state.scanned_namespaces.update(batch)
 
+        if rejected_evidence:
+            logger.warning(
+                "Tier 3: the API rejected %d evidence rows across %d of %d namespaces; "
+                "those runs are stored but under-evidenced",
+                rejected_evidence, rejected_namespaces, len(batch),
+            )
+
         # Resolve lab names from serviceUuids via Sandbox API
         if uuid_map and self.api_url:
             self._resolve_lab_names(uuid_map)
@@ -547,6 +563,7 @@ class ClusterWorker:
             "batch_size": len(batch),
             "persisted": persisted,
             "persist_failures": dropped,
+            "evidence_rejected": rejected_evidence,
             "passed": passed,
             "failed": failed,
             "failure_classes": failure_classes,
@@ -1149,6 +1166,8 @@ def run_worker(name: str, kubeconfig: str, api_url: Optional[str] = None, once: 
                 print(f"  Namespaces: {ns['skipped']}")
             else:
                 print(f"  Namespaces: {ns.get('persisted', 0)} persisted ({ns.get('passed', 0)} passed, {ns.get('failed', 0)} failed)")
+                if ns.get("evidence_rejected"):
+                    print(f"    Evidence: {ns['evidence_rejected']} rows rejected by the API")
                 if ns.get("failure_classes"):
                     for fc, count in sorted(ns["failure_classes"].items(), key=lambda x: -x[1]):
                         print(f"    {fc}: {count}")

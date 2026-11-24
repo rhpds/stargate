@@ -264,6 +264,21 @@ there is a coverage hole the sweep age cannot show. When a whole cluster
 reports no observable attempt, `stargate_tier3_sweep_age_seconds` falls back to
 the retention horizon so the series still exists.
 
+## Evidence write path
+
+### STARGATE_EVIDENCE_BATCH
+
+| Property    | Value                                                      |
+|-------------|-------------------------------------------------------------|
+| Default     | `100`                                                       |
+| Description | Evidence rows per POST when `collect-dir` persists a namespace. One stage's rows go in a single request and a single transaction (`/runs/{run_id}/stages/{stage_id}/evidence/batch`) instead of one POST per row. A 55-user CNV namespace is 165 rows (3 stages × 55 objects). Values above 500 are clamped; `0` or `1` restores the per-row path. |
+| When to change | Set `0`/`1` to fall back to one POST per row without rebuilding the scanner — for example if a proxy starts rejecting larger bodies. |
+
+Batching is a transport change only: the same rows are written and the rubric
+receives the same inputs. A batch the API cannot serve is retried row by row,
+so an API and scanner on different versions never lose a stage's evidence. See
+`docs/architecture.md` (Evidence write path).
+
 ---
 
 ## CORS
@@ -1062,6 +1077,7 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_SSL_VERIFY`                    | `true`                  | No          |
 | `STARGATE_ROUTE_PROBE`                   | `false`                 | No          |
 | `STARGATE_ROUTE_PROBE_TIMEOUT`           | `10`                    | No          |
+| `STARGATE_EVIDENCE_BATCH`                | `100`                   | No          |
 | `STARGATE_CORS_ORIGINS`                  | localhost               | Yes (prod)  |
 | `STARGATE_CLUSTERS`                      | built-in list           | No          |
 | `STARGATE_CLUSTERS_FILE`                 | Not set                 | No          |

@@ -262,9 +262,9 @@ def _cmd_collect(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id, persist_error = None, None
+    run_id, persist_error, evidence_counts = None, None, {}
     if getattr(args, "api_url", None):
-        run_id, persist_error = _persist_to_api(
+        run_id, persist_error, evidence_counts = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -286,6 +286,7 @@ def _cmd_collect(args) -> int:
             output["persisted"] = run_id is not None
             if persist_error:
                 output["persist_error"] = persist_error
+            _add_evidence_counts(output, evidence_counts)
         print(json.dumps(output, indent=2))
     elif args.out_format == "text":
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -405,7 +406,7 @@ def _cmd_collect_dir(args) -> int:
             any_failed = True
 
     # Persist to API if --api-url provided
-    run_id, persist_error = None, None
+    run_id, persist_error, evidence_counts = None, None, {}
     if getattr(args, "api_url", None):
         # The directory is a temp dir (`sg-<cluster>-<random>`), so its name is
         # not the namespace. 527,133 of 571,563 runs in the live store carry a
@@ -413,7 +414,7 @@ def _cmd_collect_dir(args) -> int:
         # that column had been reading a random string. Callers that know the
         # namespace pass it; the directory name stays as a last resort.
         namespace = getattr(args, "namespace", None) or directory.name
-        run_id, persist_error = _persist_to_api(
+        run_id, persist_error, evidence_counts = _persist_to_api(
             api_url=args.api_url,
             demo_id=args.demo_id,
             namespace=namespace,
@@ -432,6 +433,7 @@ def _cmd_collect_dir(args) -> int:
             output["persisted"] = run_id is not None
             if persist_error:
                 output["persist_error"] = persist_error
+            _add_evidence_counts(output, evidence_counts)
         print(json.dumps(output, indent=2))
     else:
         passed = sum(1 for r in results if r["outcome"] == "pass")
@@ -452,6 +454,83 @@ def _cmd_collect_dir(args) -> int:
 
 # --- API Persistence ---
 
+#: Evidence rows per POST. A 55-user CNV namespace is 165 rows (3 stages x 55
+#: objects) and each row used to be its own request; batching changes the
+#: transport only. 0 or 1 keeps the legacy one-POST-per-row path.
+_DEFAULT_EVIDENCE_BATCH = 100
+
+#: Mirrors ``api.schemas.MAX_EVIDENCE_BATCH``. Clamping here means a typo in
+#: the env var cannot produce a request the API will reject.
+_MAX_EVIDENCE_BATCH = 500
+
+
+def _evidence_batch_size() -> int:
+    """Rows per evidence request, from ``STARGATE_EVIDENCE_BATCH``.
+
+    A bad or oversized value falls back to something the API accepts rather
+    than failing the scan; the env var is a kill switch (0/1 = one POST per
+    row), not a tuning knob that should ever stop collection.
+    """
+    raw = os.environ.get("STARGATE_EVIDENCE_BATCH", "").strip()
+    if not raw:
+        return _DEFAULT_EVIDENCE_BATCH
+    try:
+        return min(max(0, int(raw)), _MAX_EVIDENCE_BATCH)
+    except ValueError:
+        return _DEFAULT_EVIDENCE_BATCH
+
+
+def _submit_evidence_rows(client, run_id: str, stage_id: str, payloads: List[Dict],
+                          batch_size: int) -> Tuple[int, int]:
+    """Submit one stage's evidence rows, returning ``(created, failed)``.
+
+    A batch that fails at the transport level — an API old enough not to have
+    the endpoint, a proxy request cap — is retried row by row, so a deploy
+    skew costs a little time instead of a stage's evidence.
+    """
+    if batch_size <= 1:
+        chunks = [payloads]
+    else:
+        chunks = [payloads[i:i + batch_size] for i in range(0, len(payloads), batch_size)]
+
+    created = failed = 0
+    for chunk in chunks:
+        if batch_size > 1:
+            resp = client.submit_evidence_batch(run_id, stage_id, chunk)
+            if not resp.get("error"):
+                created += resp.get("created", 0)
+                failed += len(resp.get("failed") or [])
+                continue
+
+        for payload in chunk:
+            one = client.submit_evidence(
+                run_id=run_id,
+                stage_id=stage_id,
+                evidence_type=payload["type"],
+                source=payload["source"],
+                observed=payload["observed"],
+                result=payload["result"],
+            )
+            if one.get("error"):
+                failed += 1
+            else:
+                created += 1
+    return created, failed
+
+
+def _add_evidence_counts(output: Dict, counts: Dict) -> None:
+    """Record how many evidence rows the API actually kept.
+
+    ``persisted`` only says a run exists. These numbers say whether the
+    evidence the rubric read is the evidence the API stored — a stage whose
+    rows were refused used to still report ``persisted: true``.
+    """
+    if not counts:
+        return
+    output["evidence_rows"] = counts.get("rows", 0)
+    output["evidence_rejected"] = counts.get("rejected", 0)
+
+
 def _persist_to_api(
     api_url: str,
     demo_id: str,
@@ -464,12 +543,16 @@ def _persist_to_api(
 ) -> Tuple[Optional[str], Optional[str]]:
     """Submit evidence and evaluations to the StarGate API.
 
-    Returns ``(run_id, error)``. Persisting used to be gated on
-    ``/health == ok``, which treated a ``degraded`` report — a stale scanner, an
-    unconfigured LLM, an unreachable sandbox-api — as "do not persist" and
-    silently discarded the whole namespace evaluation. ``_post`` already
-    returns ``{"error": ...}`` for an unreachable API, so the gate bought
-    nothing and cost data.
+    Returns ``(run_id, error, evidence_counts)`` where ``evidence_counts`` is
+    ``{"rows": stored, "rejected": refused_by_api}``. Persisting used to be
+    gated on ``/health == ok``, which treated a ``degraded`` report — a stale
+    scanner, an unconfigured LLM, an unreachable sandbox-api — as "do not
+    persist" and silently discarded the whole namespace evaluation. ``_post``
+    already returns ``{"error": ...}`` for an unreachable API, so the gate
+    bought nothing and cost data.
+
+    The counts exist because ``persisted`` only says a run exists; it does not
+    say the evidence a rubric read is the evidence the API stored.
     """
     from cli.api_client import StarGateClient
 
@@ -485,25 +568,33 @@ def _persist_to_api(
     if not run_id:
         reason = run_resp.get("error") or str(run_resp)
         print(f"  Failed to create run: {reason}", file=sys.stderr)
-        return None, reason
+        return None, reason, {}
 
     if out_format == "text":
         print(f"\n  Persisting to API ({api_url})...")
         print(f"  Run: {run_id}")
 
+    batch_size = _evidence_batch_size()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    created_evidence, failed_evidence = 0, 0
+
     for r in results:
         stage_id = r["stage_id"]
         client.start_stage(run_id, stage_id)
 
-        for ev in collected:
-            client.submit_evidence(
-                run_id=run_id,
-                stage_id=stage_id,
-                evidence_type=ev.resource_kind,
-                source=ev.source,
-                observed=ev.observed,
-                result=r["outcome"],
-            )
+        payloads = [
+            {
+                "type": ev.resource_kind,
+                "source": ev.source,
+                "observed": ev.observed,
+                "result": r["outcome"],
+                "timestamp": timestamp,
+            }
+            for ev in collected
+        ]
+        created, failed = _submit_evidence_rows(client, run_id, stage_id, payloads, batch_size)
+        created_evidence += created
+        failed_evidence += failed
 
         # Preserve the same unobserved/null criteria used by local evaluation.
         client.evaluate_stage(run_id, stage_id, evidence=normalize_evidence(stage_id, collected))
@@ -515,10 +606,18 @@ def _persist_to_api(
     )
 
     if out_format == "text":
-        print(f"  Persisted {len(results)} stages with {len(collected)} evidence items each.")
+        if failed_evidence:
+            print(
+                f"  Warning: the API rejected {failed_evidence} evidence rows.",
+                file=sys.stderr,
+            )
+        print(
+            f"  Persisted {len(results)} stages with {len(collected)} evidence items each "
+            f"({created_evidence} rows)."
+        )
         print(f"  View report: curl {api_url}/runs/{run_id}/report")
 
-    return run_id, None
+    return run_id, None, {"rows": created_evidence, "rejected": failed_evidence}
 
 
 # --- Helpers ---

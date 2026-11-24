@@ -72,6 +72,25 @@ class SubmitEvidenceRequest(BaseModel):
     raw_ref: Optional[str] = None
 
 
+#: Rows allowed in one batch request. A 55-user CNV namespace produces 165
+#: rows across 3 stages, so the cap is about bounding a single write, not about
+#: what a normal stage needs.
+MAX_EVIDENCE_BATCH = 500
+
+
+class SubmitEvidenceBatchRequest(BaseModel):
+    """A stage's evidence in one request.
+
+    The scanner posts every collected object to every stage (55 users x 3
+    stages = 165 rows per namespace) and each row used to be its own POST.
+    Batching changes the transport only: the same rows land, the rubric sees
+    exactly what it saw before. ``items`` is capped so one request cannot
+    become an unbounded write.
+    """
+
+    items: List[SubmitEvidenceRequest] = Field(..., min_length=1, max_length=MAX_EVIDENCE_BATCH)
+
+
 class EvidenceResponse(BaseModel):
     evidence_id: str
     run_id: str

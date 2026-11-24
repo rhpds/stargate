@@ -69,6 +69,27 @@ failing namespaces. For each namespace, the worker collects: namespace, pods,
 services, endpoints, routes, deployments, VMs, VMIs, DataVolumes, PVCs, and
 showroom HTTP health.
 
+#### Evidence write path
+
+One namespace evaluation writes one evidence row per collected object per stage.
+A 55-user CNV namespace is 165 rows (3 stages × 55 objects). The scanner posts a
+whole stage at a time instead of a request per row:
+
+- `POST /runs/{run_id}/stages/{stage_id}/evidence` — one row
+- `POST /runs/{run_id}/stages/{stage_id}/evidence/batch` — up to 500 rows, one
+  transaction
+
+Both paths insert the same rows and hand the rubric the same inputs; batching
+removes round trips and commits, nothing else. Measured in-process on a 165-row
+namespace: 165 requests in 450 ms became 3 requests in 40 ms, with 165 rows in
+the table either way. Production's measured per-request cost is ~27 ms (p50), so
+batching is worth roughly 4.5 s of the ~15 s a namespace takes to scan.
+
+The two halves deploy in either order. An old API answers the batch route with
+404 and the scanner falls back to one POST per row; a new API serves old scanners
+unchanged. `STARGATE_EVIDENCE_BATCH` sets rows per request (default 100); 0 or 1
+restores the per-row path without a rebuild.
+
 The Babylon worker runs every 3 minutes and collects: ResourcePool capacity
 (Poolboy), AnarchySubject provisioning state, CatalogItem counts, Workshop
 status, summit lab-to-namespace mapping, Labagator lab and session data, and

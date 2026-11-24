@@ -232,6 +232,103 @@ class TestEvidenceEndpoints:
         assert resp.json()["evidence_id"] == "ev-" + "b" * 32
 
 
+class TestEvidenceBatchEndpoint:
+    """A stage's evidence in one request — same rows, fewer round trips.
+
+    A 55-user CNV namespace is 165 rows (3 stages x 55 objects); each was its
+    own POST. Batching is a transport change: the row count the rubric reads
+    must not move.
+    """
+
+    RUN = "ev-batch-run"
+    STAGE = "namespace-ready"
+    URL = f"/runs/ev-batch-run/stages/namespace-ready/evidence/batch"
+
+    def _setup(self, client):
+        client.post("/runs", json={
+            "run_id": self.RUN,
+            "demo_id": "demo-simple-container",
+            "namespace": "ns",
+            "requested_by": "user",
+            "rubric_version": "v0.1.0",
+        })
+        client.post(f"/runs/{self.RUN}/stages/{self.STAGE}/start")
+
+    @staticmethod
+    def _items(count, prefix="user"):
+        return [
+            {
+                "type": "pod",
+                "source": "oc",
+                "observed": {"ready": True, "index": i},
+                "result": "pass",
+            }
+            for i in range(count)
+        ]
+
+    def test_batch_keeps_every_row(self, client, db):
+        """165 rows in, 165 rows in the table, and the ids are unique."""
+        from db.models import EvidenceRecord
+
+        self._setup(client)
+        resp = client.post(self.URL, json={"items": self._items(165)})
+
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["created"] == 165
+        assert body["failed"] == []
+        assert len(set(body["evidence_ids"])) == 165
+
+        rows = db.query(EvidenceRecord).filter(EvidenceRecord.run_id == self.RUN).all()
+        assert len(rows) == 165
+        assert {r.observed["index"] for r in rows} == set(range(165))
+
+    def test_batch_preserves_client_supplied_ids(self, client):
+        self._setup(client)
+        items = self._items(2)
+        items[0]["evidence_id"] = "ev-batch-client-a"
+        items[1]["evidence_id"] = "ev-batch-client-b"
+
+        resp = client.post(self.URL, json={"items": items})
+
+        assert resp.status_code == 201
+        assert resp.json()["evidence_ids"] == ["ev-batch-client-a", "ev-batch-client-b"]
+
+    def test_one_duplicate_does_not_drop_the_rest(self, client):
+        """A colliding row is reported, not fatal, and not silently lost."""
+        self._setup(client)
+        seeded = {"items": [dict(self._items(1)[0], evidence_id="ev-batch-dup")]}
+        assert client.post(self.URL, json=seeded).status_code == 201
+
+        items = [dict(self._items(1)[0], evidence_id="ev-batch-dup")]
+        items += self._items(2)
+        resp = client.post(self.URL, json={"items": items})
+
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["created"] == 2
+        assert len(body["failed"]) == 1
+        assert body["failed"][0]["evidence_id"] == "ev-batch-dup"
+
+    def test_empty_batch_is_rejected(self, client):
+        self._setup(client)
+        assert client.post(self.URL, json={"items": []}).status_code == 422
+
+    def test_oversized_batch_is_rejected(self, client):
+        from api.schemas import MAX_EVIDENCE_BATCH
+
+        self._setup(client)
+        resp = client.post(self.URL, json={"items": self._items(MAX_EVIDENCE_BATCH + 1)})
+        assert resp.status_code == 422
+
+    def test_unknown_run_is_404(self, client):
+        resp = client.post(
+            "/runs/no-such-run/stages/namespace-ready/evidence/batch",
+            json={"items": self._items(1)},
+        )
+        assert resp.status_code == 404
+
+
 class TestEvaluateEndpoints:
     def _setup(self, client):
         client.post("/runs", json={

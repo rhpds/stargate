@@ -197,11 +197,15 @@ def update_stage(
 
 # --- Evidence ---
 
-def create_evidence(db: Session, evidence: Evidence) -> Evidence:
+def _evidence_record(evidence: Evidence) -> EvidenceRecord:
+    """Build the ORM row for a domain ``Evidence``.
+
+    Shared by the single and batched inserts so the two paths cannot drift.
+    """
     resource_dict = None
     if evidence.resource:
         resource_dict = evidence.resource.dict() if hasattr(evidence.resource, 'dict') else evidence.resource.model_dump()
-    record = EvidenceRecord(
+    return EvidenceRecord(
         evidence_id=evidence.evidence_id,
         run_id=evidence.run_id,
         stage_id=evidence.stage_id,
@@ -213,10 +217,28 @@ def create_evidence(db: Session, evidence: Evidence) -> Evidence:
         timestamp=evidence.timestamp,
         raw_ref=evidence.raw_ref,
     )
+
+
+def create_evidence(db: Session, evidence: Evidence) -> Evidence:
+    record = _evidence_record(evidence)
     db.add(record)
     db.commit()
     db.refresh(record)
     return evidence
+
+
+def create_evidence_batch(db: Session, items: List[Evidence]) -> List[str]:
+    """Insert many evidence rows in one transaction.
+
+    Returns the evidence ids in input order. One commit per stage instead of
+    one per row is the whole point: the rows and the rubric are unchanged, only
+    the number of round trips and commits drops. The caller owns run/stage
+    validation and the duplicate-id fallback.
+    """
+    records = [_evidence_record(evidence) for evidence in items]
+    db.add_all(records)
+    db.commit()
+    return [record.evidence_id for record in records]
 
 
 def list_evidence_for_stage(db: Session, run_id: str, stage_id: str) -> List[Evidence]:
