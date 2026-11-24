@@ -53,13 +53,24 @@ curl -H "X-API-Key: <your-admin-key>" \
 
 # Build images and deploy
 ./scripts/deploy-infra01.sh --build
+
+# Read-only: does every cluster the scheduler is told to scan have a
+# credential, locally or in the live secret?
+./scripts/deploy-infra01.sh --verify-kubeconfigs
 ```
 
 The script performs these steps:
 
 1. Verifies cluster connection to infra01
 2. Creates the `stargate` namespace
-3. Creates the `stargate-kubeconfigs` secret from `secrets/` directory
+3. Checks that every cluster in `scanner.clusters` has a credential — a
+   local `secrets/kubeconfig-<cluster>` or that key already in
+   `stargate-kubeconfigs` — then **merges** the `secrets/kubeconfig-*` files
+   into the secret. It never deletes and recreates it: a key it does not
+   mention is left alone. A cluster with neither is a hard failure, because
+   the scanner skips a cluster it cannot read without failing, and that
+   cluster's namespaces then leave the sweep silently. `--verify-kubeconfigs`
+   reports the same thing without writing.
 4. Creates the `stargate-secrets` secret (PostgreSQL password, LiteLLM key, admin API key)
 5. Sets up OAuth
 6. Builds and pushes three container images to the internal registry (if `--build`)
