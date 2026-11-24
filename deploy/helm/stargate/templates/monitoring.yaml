@@ -1,0 +1,169 @@
+{{- if .Values.monitoring.enabled }}
+# Prometheus Operator resources. Gated because a ServiceMonitor or
+# PrometheusRule on a cluster without the CRDs fails the whole install, and
+# most clusters StarGate can be installed on have no user-workload monitoring.
+# Off in values.yaml, on in values-infra01.yaml.
+#
+# Found 2026-11-23: StarGate had been serving 356 `stargate_*` metric lines at
+# :8090/metrics, unauthenticated and correct, with **nothing scraping them**.
+# No ServiceMonitor existed in the namespace or anywhere else, and the
+# namespace lacks the `openshift.io/cluster-monitoring` label that would put it
+# in scope for cluster monitoring. User-workload monitoring was already enabled
+# (`cluster-monitoring-config`: `enableUserWorkload: true`), so the platform
+# side was ready and only these resources were missing. Every metric in
+# api/metrics.py, and the tier-3 freshness gauges in api/tier3_freshness.py,
+# were write-only.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: stargate-api
+  labels:
+    app: stargate-api
+spec:
+  # jobLabel names the Service label that becomes the `job` label, so the
+  # target is identifiable as `stargate-api` rather than the operator's
+  # default. Requires the `app: stargate-api` label on the Service itself
+  # (templates/api.yaml) — a ServiceMonitor selects Services, not pods, and
+  # the Service had no labels before this.
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: stargate-api
+  endpoints:
+    # Scrape the container port directly instead of going through the
+    # oauth-proxy. /metrics is deliberately exempt from auth (see the
+    # exemption list in api/app.py), but routing monitoring through the proxy
+    # would make an auth regression look like a monitoring outage, and would
+    # require proxy credentials in a ServiceMonitor. Port `api` exists whether
+    # or not oauth is enabled; `proxy` does not.
+    - port: api
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: stargate-alerts
+  labels:
+    app: stargate-api
+spec:
+  groups:
+    - name: stargate.availability
+      rules:
+        # "Nothing is scraping me" has to be an absent() rule: the API cannot
+        # serve a metric about the absence of its own scraper. This fires when
+        # the ServiceMonitor is removed, the selector stops matching, or
+        # user-workload monitoring is turned off — the three ways StarGate ran
+        # completely unmonitored for its entire life.
+        - alert: StarGateNotScraped
+          expr: absent(up{namespace="stargate"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: StarGate is exposing metrics that nothing is scraping
+            description: >-
+              No scrape target in the stargate namespace has reported up for 15
+              minutes. Either the ServiceMonitor was removed, the Service label
+              it selects on changed, or user-workload monitoring was disabled.
+              StarGate's own metrics cannot warn about this, so check the
+              ServiceMonitor first.
+
+        # Complementary to the rule above and deliberately separate: that one
+        # means "no series at all", this one means "the series exists and the
+        # target is failing". They have different causes and different fixes.
+        - alert: StarGateApiDown
+          expr: up{namespace="stargate"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: StarGate API is not answering scrapes
+            description: >-
+              prometheus-user-workload cannot reach the StarGate API on :8090.
+              The pod may be crash-looping, the Service may have no ready
+              endpoints, or a NetworkPolicy may be blocking the scraper (the
+              stargate-api-ingress policy allows 8090, so check whether it was
+              changed).
+
+    - name: stargate.tier3
+      rules:
+        # Inert until the tier-3 freshness gauges are deployed: prometheus
+        # exports a labelled gauge only once a series exists, so this matches
+        # nothing before then. That is acceptable for a rule whose whole job is
+        # to watch a measurement that did not exist yet — it starts working the
+        # moment api/tier3_freshness.py runs, with no rule edit.
+        #
+        # The threshold is duplicated rather than shared: Prometheus rules
+        # cannot read the pod's STARGATE_TIER3_FRESHNESS_TARGET_SECONDS. Keep
+        # monitoring.tier3StaleSeconds in step with that env var.
+        - alert: StarGateTier3SweepStale
+          expr: max by (cluster) (stargate_tier3_sweep_age_seconds) > {{ .Values.monitoring.tier3StaleSeconds }}
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: A live lab has not been swept by tier 3 for over {{ .Values.monitoring.tier3StaleSeconds }} seconds
+            description: >-
+              The stalest *live* namespace on a cluster has gone
+              stargate_tier3_sweep_age_seconds without a scan attempt. The
+              cluster is labelled on the alert. A starved namespace is invisible
+              to the aggregate scan rate — the batch stays full while one lab is
+              skipped — which is exactly why this is measured per namespace. See
+              docs/cluster-fleet.md, "How the sweep is watched".
+
+        - alert: StarGateTier3NeverScanned
+          expr: max by (cluster) (stargate_tier3_never_scanned) > {{ .Values.monitoring.tier3NeverScannedThreshold }}
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: Live labs have never been scanned by tier 3
+            description: >-
+              {{ .Values.monitoring.tier3NeverScannedThreshold }} or more
+              namespaces on a cluster have existed for an hour without a single
+              tier-3 attempt. Newly provisioned labs land here briefly by
+              design, which is why this is info and delayed an hour; sustained
+              growth means a live namespace is unreachable — most often a lab
+              that exists in the pods collector but whose cluster read fails.
+
+    - name: stargate.scanner
+      rules:
+        # The expected count is the fleet list, the same value that becomes
+        # --clusters, so adding a cluster does not need this rule edited and the
+        # rule cannot drift away from the fleet it describes.
+        - alert: StarGateClustersUnhealthy
+          expr: stargate_scanner_clusters_healthy < {{ .Values.scanner.clusters | splitList "," | len }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Fewer clusters are healthy than are in the fleet
+            description: >-
+              stargate_scanner_clusters_healthy is below
+              {{ .Values.scanner.clusters | splitList "," | len }}, the number of
+              clusters in scanner.clusters. One or more clusters are reporting
+              unhealthy from the latest tier-1 snapshot. Check /health, whose
+              per-cluster components name which one.
+
+        # A sustained 5xx rate on the evidence endpoint. Evidence writes are the
+        # bulk of the write path (one POST per object per stage), and the
+        # tier-1 snapshot has been seen to time out persisting them, so this is
+        # the write path's early warning. 0.1/s is one failure every ten
+        # seconds for ten minutes: below that it is noise against ~4k writes per
+        # sweep.
+        - alert: StarGateEvidenceWriteErrors
+          expr: sum(rate(stargate_http_requests_total{path=~".*/evidence", status=~"5.."}[5m])) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: StarGate is failing evidence writes
+            description: >-
+              More than one evidence POST in ten is returning 5xx, sustained.
+              Evidence is how a rubric result is attributed to an object; losing
+              these writes makes a lab look unevaluated rather than broken. Check
+              the API logs for statement timeouts and the stargate-postgres
+              connection count.
+{{- end }}

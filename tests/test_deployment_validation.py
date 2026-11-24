@@ -96,6 +96,72 @@ class TestHelmChart:
         assert "password: changeme" not in values
 
 
+class TestHelmMonitoring:
+    """StarGate served 356 `stargate_*` metric lines to nobody until 2026-11-23.
+
+    No ServiceMonitor existed anywhere on the cluster, and the Service had no
+    label one could have selected. These pin the four things that have to stay
+    true together, none of which fails loudly on its own: the resources are
+    gated, the Service carries the label the monitor selects, the monitor reads
+    the container port rather than the oauth proxy, and the thresholds quoted in
+    the runbook are the ones in the values.
+    """
+
+    TEMPLATES = PROJECT_DIR / "deploy" / "helm" / "stargate" / "templates"
+
+    def _values(self, name: str) -> dict:
+        return yaml.safe_load((PROJECT_DIR / "deploy" / "helm" / "stargate" / name).read_text())
+
+    def test_off_by_default_and_on_for_infra01(self):
+        # A ServiceMonitor on a cluster without the Prometheus Operator CRDs
+        # fails the entire install, so the default has to be off.
+        assert self._values("values.yaml")["monitoring"]["enabled"] is False
+        assert self._values("values-infra01.yaml")["monitoring"]["enabled"] is True
+
+    def test_templates_are_gated_on_that_value(self):
+        template = (self.TEMPLATES / "monitoring.yaml").read_text()
+        assert "{{- if .Values.monitoring.enabled }}" in template
+        assert template.rstrip().endswith("{{- end }}")
+
+    def test_servicemonitor_selects_a_label_the_service_carries(self):
+        import re
+        monitoring = (self.TEMPLATES / "monitoring.yaml").read_text()
+        api = (self.TEMPLATES / "api.yaml").read_text()
+        selected = re.search(r"matchLabels:\n\s+app: (\S+)", monitoring).group(1)
+        service = api[api.index("kind: Service"):]
+        # The label must be on the Service, not only on the pod template: a
+        # ServiceMonitor selects Services.
+        assert f"labels:\n    app: {selected}" in service
+
+    def test_scrapes_the_container_port_not_the_oauth_proxy(self):
+        monitoring = (self.TEMPLATES / "monitoring.yaml").read_text()
+        assert "- port: api" in monitoring
+        assert "port: proxy" not in monitoring, (
+            "/metrics is auth-exempt; scraping it through the proxy would make "
+            "an auth regression look like a monitoring outage"
+        )
+
+    def test_alert_thresholds_match_the_values_and_the_runbook(self):
+        monitoring = (self.TEMPLATES / "monitoring.yaml").read_text()
+        values = self._values("values.yaml")["monitoring"]
+        runbook = (PROJECT_DIR / "docs" / "runbook.md").read_text()
+        stale = values["tier3StaleSeconds"]
+        never = values["tier3NeverScannedThreshold"]
+        assert "{{ .Values.monitoring.tier3StaleSeconds }}" in monitoring
+        assert f"{{{{ .Values.monitoring.tier3NeverScannedThreshold }}}}" in monitoring
+        assert f"> {stale}`" in runbook
+        assert f"> {never}`" in runbook
+
+    def test_every_alert_is_documented(self):
+        import re
+        monitoring = (self.TEMPLATES / "monitoring.yaml").read_text()
+        runbook = (PROJECT_DIR / "docs" / "runbook.md").read_text()
+        alerts = re.findall(r"- alert: (\w+)", monitoring)
+        assert alerts, "no alerts found — the rule file or its indentation changed"
+        missing = [a for a in alerts if f"`{a}`" not in runbook]
+        assert missing == [], f"alerts with no runbook entry: {missing}"
+
+
 class TestAnsibleRole:
 
     def test_role_exists(self):
