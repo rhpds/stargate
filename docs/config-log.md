@@ -161,53 +161,6 @@ in which both can meet their own targets. At the measured `c` a
 puts ocpv07 at ~1.9 h — while tier 1 returns to ~305 s, because the sleep is
 suddenly the only thing in the tick again.
 
-## 2026-11-23 ~20:56 — the tier-3 release: a flag, and the CPU it turned out to need
-
-Out of band, approved explicitly. `#166`–`#172` merged to `main` at `b681105`
-and both images rebuilt from that tree. The point of the release was `#171`:
-tier 3 off the tier-1 tick. It works — and it needed a second config change on
-top, because taking tier 3 out of the loop turned one workload into two.
-
-| When (UTC) | Where | Change | Why | Revert |
-|---|---|---|---|---|
-| ~20:59 | `deploy/stargate-api`, container `api` | image → `stargate-api@sha256:e6745fe6…` (build `stargate-api-353`, 108 s) | `#168` touches `api/app.py` and `api/routers/admin/proof.py`, `#170` touches `api/routers/_shared.py`, `#172` touches `api/routers/integration.py`. API first, as agreed. | `oc set image deploy/stargate-api -n stargate api=image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:04cbfe6923177a07d019ce55897a133de0fe97a8e3d472f306067e2fefed1188` |
-| ~21:00 | `deploy/stargate-scheduler`, container `scheduler` | image → `stargate-scanner@sha256:c3a8c508…` (build `stargate-scanner-50`, 52 s); `args/10` `600` → `300`; `--tier3-independent` appended — **all in one JSON patch** | The flag is the release. Image and args had to move together: `--tier3-independent` is not in the previous digest, so a patch that added the flag first would have crashlooped the scheduler on an argparse error. Three `test` ops (image, `args/10`, `args/12`) ran first so a moved index could not silently rewrite the wrong flag. | `oc set image deploy/stargate-scheduler -n stargate scheduler=…stargate-scanner@sha256:1b5a4b72e1cf90d1d85f0df4ab482f5ebc6dc5c5dc57a8b1696327efccf3da78`, then delete `args[13]` and set `args/10` back to `600` |
-| 21:13 | `deploy/stargate-scheduler`, resources | limits `cpu: 3` → `5`; requests unchanged at `1` | Measured, not anticipated. See below: with tier 3 on its own thread the pod throttled in **50.9%** of CFS periods and per-namespace cost rose to 20.5 s. `#169` had measured 3 CPUs against a *serialized* workload. | `oc set resources deploy/stargate-scheduler -n stargate --limits=cpu=3 --requests=cpu=1` |
-
-Both rollouts reported success; API `/health` returned 200 on the new digest with
-all components `ok`; the scheduler banner reads
-`Tier 3 (namespaces): every 300s, 25/batch (own thread, cadence = max(interval, batch duration))`.
-
-Measured on the live scheduler, ocpv07, before and after:
-
-| | tier-1 period | throttled | `c` | ocpv07 throughput | ocpv07 sweep |
-|---|---|---|---|---|---|
-| before (tier 3 in the tick, 3 CPU) | 744 s | 35% | 17.1 s | 121 ns/h | 3.0 h |
-| flag, still 3 CPU | **303–316 s** | **50.9%** | 20.5 s | 175 ns/h | 2.1 h |
-| flag, 5 CPU | **302–310 s** | **12.2%** | 16.7 s | **215 ns/h** | **1.72 h** |
-
-Tier 1 is fixed at every step: the sleep is the only thing left in the tick. The
-middle row is the one worth keeping — the flag removed tier 3's fixed term, and
-then the two workloads competed for the same three CPUs, which cost a fifth of
-per-namespace throughput and left ocpv07 outside the 2 h window it was meant to
-enter. 5 CPUs is what made the flag deliver.
-
-Fleet after the release (measured 21:16–21:25Z, `max(TIER3_INTERVAL, batch)`):
-
-| Cluster | namespaces | ns/h | sweep |
-|---|---|---|---|
-| ocpv03 | 62 | 288 | 0.22 h |
-| ocpv06 | 320 | 285 | 1.12 h |
-| ocpv07 | 370 | 215 | **1.72 h** |
-| ocpv08 | 329 | 273 | 1.20 h |
-| ocpv09 | 249 | 277 | 0.90 h |
-
-Every cluster is inside 2 h for the first time, and tier 1 is inside 316 s.
-
-`#165`'s overrun warning is present in this image and **silent** — which is now
-the correct answer rather than the unmonitored one it was in the previous digest,
-where the gate did not exist at all.
-
 ## Still owed
 
 - A Jira or AAP note, which is where the team's change record actually lives
