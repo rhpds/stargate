@@ -178,8 +178,24 @@ not, and the same caveat applies to these two.
 |---|---|---|---|---|
 | 20:57 | builds | `stargate-api-353` → api `sha256:e6745fe6…`, `stargate-scanner-50` → scanner `sha256:c3a8c508…` | Seven merged PRs: `#166` this file for the 15:05 deploy, `#167`/`#170` fleet-inventory and snapshot completeness, `#168` one cluster registry, `#169` scheduler CPU limit in the chart, `#171` `--tier3-independent`, `#172` external-evidence attribution. | rebuild from `git archive 6e2720b` (see the 15:05 rows) |
 | 20:59 | `deploy/stargate-api` | `sha256:04cbfe69…` → `sha256:e6745fe6…`, API first; pods `stargate-api-5454bd8496-*` | API first, as at 15:05: the new image is the one that accepts what the new scanner sends. `rollout status` completed before the scanner was touched. | `oc rollout undo deploy/stargate-api -n stargate` — the previous revision is api `sha256:04cbfe69…`. The full previous digest is not recorded in this file; read it from `oc rollout history` or the `stargate-api` ImageStream before undoing, not from a truncation. |
-| ~21:10 | `deploy/stargate-scheduler`, container `scheduler` | image `sha256:1b5a4b72…` → `sha256:c3a8c508…` **and** `args` `--batch 25` (tier 3 inside the tier-1 tick) → `--tier1 300 --tier2 900 --tier3 300 --batch 25 --tier3-independent`, in one JSON patch | `#171`. Batch size was measured and rejected earlier the same day (previous section): the batch was never the problem, its *placement* in the tier-1 tick was. Tier 3 now runs on its own thread so the 300 s sleep stays in tier 1 where it belongs. Image and args in **one** patch so the flag never runs against an image that does not know it. | `oc rollout undo deploy/stargate-scheduler -n stargate` — previous revision is image `sha256:1b5a4b72…` with the pre-`#171` args |
+| 21:00 | `deploy/stargate-scheduler`, container `scheduler` | image `sha256:1b5a4b72…` → `sha256:c3a8c508…` **and** `args` `--batch 25` (tier 3 inside the tier-1 tick) → `--tier1 300 --tier2 900 --tier3 300 --batch 25 --tier3-independent`, in one JSON patch | `#171`. Batch size was measured and rejected earlier the same day (previous section): the batch was never the problem, its *placement* in the tier-1 tick was. Tier 3 now runs on its own thread so the 300 s sleep stays in tier 1 where it belongs. Image and args in **one** patch so the flag never runs against an image that does not know it. | `oc rollout undo deploy/stargate-scheduler -n stargate` — previous revision is image `sha256:1b5a4b72…` with the pre-`#171` args |
 | 21:13 | `deploy/stargate-scheduler`, container `scheduler`, `limits.cpu` | `3` → `5`; pod `stargate-scheduler-944cc98cd-zsscm` | `#169` is the chart half; the live half is this. An independent tier-3 thread reads the same cluster more often, and the 3-CPU pod was at **50.9%** of CFS periods throttled. Cumulative since the restart at 21:13: `nr_throttled` 8,414 of 63,798 `nr_periods` — **13.2%**. | `oc set resources deploy/stargate-scheduler -n stargate --limits=cpu=3 -c scheduler` |
+
+Each row leaves a ReplicaSet behind, so the times above are the deployment's own
+record rather than recollection — `oc get rs -n stargate -o
+custom-columns=…,CREATED:…,IMAGE:…,CPU:…`:
+
+| ReplicaSet | created | image | CPU limit |
+|---|---|---|---|
+| `stargate-api-5454bd8496` | 20:59:39Z | `e6745fe6…` | 1 |
+| `stargate-scheduler-599dffdfcd` | 21:00:34Z | `c3a8c508…` | **3** |
+| `stargate-scheduler-944cc98cd` | 21:13:18Z | `c3a8c508…` | **5** |
+
+The middle row is why image+args and the CPU limit are separate rows and not one
+patch: at 21:00 the flag went live on three CPUs, and 13 minutes later the limit
+changed under it. That 13-minute window is the "flag, still 3 CPU" line in the
+fleet measurements below — the configuration that throttled 50.9% of CFS periods
+— so it is recorded rather than quietly folded into one row.
 
 Flags and CPU limit are **one change**, not two. `--tier3-independent` gives the
 batch its own thread, but both threads draw on the same CFS quota: at 3 CPUs the
