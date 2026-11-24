@@ -161,24 +161,80 @@ in which both can meet their own targets. At the measured `c` a
 puts ocpv07 at ~1.9 h — while tier 1 returns to ~305 s, because the sleep is
 suddenly the only thing in the tick again.
 
+## 2026-11-23 ~20:57 — the second release of the day, and the cadence change
+
+Explicitly approved out of band ("merge and build and deploy the release"), like
+the 15:05 one above, and recorded here for the same reason: the Friday rule is
+the only reason it needs recording. `#166`–`#172` squash-merged into `main` at
+`b681105`, and both images were rebuilt from that tree as **binary** builds
+(`stargate-api-353`, `stargate-scanner-50`; `oc get build … -o json` reports
+`source.type: Binary`, i.e. `oc start-build --from-dir`). Worth stating plainly:
+OpenShift records **no git commit** for a binary build, so the link from digest
+to commit is the tree that was sent, not a recorded sha. The 15:05 entry above
+says "provably match the merge commit" — the digests are provable, the commit is
+not, and the same caveat applies to these two.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 20:57 | builds | `stargate-api-353` → api `sha256:e6745fe6…`, `stargate-scanner-50` → scanner `sha256:c3a8c508…` | Seven merged PRs: `#166` this file for the 15:05 deploy, `#167`/`#170` fleet-inventory and snapshot completeness, `#168` one cluster registry, `#169` scheduler CPU limit in the chart, `#171` `--tier3-independent`, `#172` external-evidence attribution. | rebuild from `git archive 6e2720b` (see the 15:05 rows) |
+| 20:59 | `deploy/stargate-api` | `sha256:04cbfe69…` → `sha256:e6745fe6…`, API first; pods `stargate-api-5454bd8496-*` | API first, as at 15:05: the new image is the one that accepts what the new scanner sends. `rollout status` completed before the scanner was touched. | `oc rollout undo deploy/stargate-api -n stargate` — the previous revision is api `sha256:04cbfe69…`. The full previous digest is not recorded in this file; read it from `oc rollout history` or the `stargate-api` ImageStream before undoing, not from a truncation. |
+| ~21:10 | `deploy/stargate-scheduler`, container `scheduler` | image `sha256:1b5a4b72…` → `sha256:c3a8c508…` **and** `args` `--batch 25` (tier 3 inside the tier-1 tick) → `--tier1 300 --tier2 900 --tier3 300 --batch 25 --tier3-independent`, in one JSON patch | `#171`. Batch size was measured and rejected earlier the same day (previous section): the batch was never the problem, its *placement* in the tier-1 tick was. Tier 3 now runs on its own thread so the 300 s sleep stays in tier 1 where it belongs. Image and args in **one** patch so the flag never runs against an image that does not know it. | `oc rollout undo deploy/stargate-scheduler -n stargate` — previous revision is image `sha256:1b5a4b72…` with the pre-`#171` args |
+| 21:13 | `deploy/stargate-scheduler`, container `scheduler`, `limits.cpu` | `3` → `5`; pod `stargate-scheduler-944cc98cd-zsscm` | `#169` is the chart half; the live half is this. An independent tier-3 thread reads the same cluster more often, and the 3-CPU pod was at **50.9%** of CFS periods throttled. Cumulative since the restart at 21:13: `nr_throttled` 8,414 of 63,798 `nr_periods` — **13.2%**. | `oc set resources deploy/stargate-scheduler -n stargate --limits=cpu=3 -c scheduler` |
+
+Flags and CPU limit are **one change**, not two. `--tier3-independent` gives the
+batch its own thread, but both threads draw on the same CFS quota: at 3 CPUs the
+new thread would simply take the periods tier 1 used to get, moving the
+throttling rather than removing it. The reasoning is in
+`docs/cluster-fleet.md`, "The real limit is CPU, not code" — the flag without the
+limit is not half a fix, it is a regression waiting for a busy hour.
+
+Verified after the rollout, not inferred: the running pod carries the digest
+above with 0 restarts and the args shown, and tier 1 is back inside its target
+on every cluster — median `cluster-health` tick period since the 21:13 restart,
+from `stages` joined to `runs`:
+
+| Cluster | ticks | median period |
+|---|---|---|
+| ocpv03 | 39 | 303 s |
+| ocpv06 | 39 | 305 s |
+| ocpv07 | 39 | 306 s |
+| ocpv08 | 39 | 305 s |
+| ocpv09 | 39 | 305 s |
+
+The same reading before the change was **744 s on ocpv07** and 1,218 s at batch
+50. Tier 3 also runs: 4,060 tier-3 runs since the restart, every one with
+`namespace = lab_code`, so the `#161` write-path fix survived the rebuild.
+
 ## Still owed
 
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
-- The cadence is still not fixed by anything in this file. Live args are back
-  to `--batch 25` with tier 3 inside the tier-1 tick, which is ~744 s per tick
-  on ocpv07 and a ~3.0 h sweep. `#171` (`--tier3-independent`) is the change
-  that addresses it, and it needs both the Friday build **and** the flags
-  `--tier3 300 --tier3-independent`; merging it alone changes nothing.
-- The manifests disagreed with production: `deploy/helm/stargate/values.yaml`,
-  `deploy/helm/stargate/values-infra01.yaml`, and
-  `deploy/agnosticv/stargate-platform/prod.yaml` all list `ocpv05` (retired — its
-  API host no longer resolves) and omit `ocpv03`, and they carry clusters
-  (`ocpv-infra01`, `ocpv-infra02`, `ocp-us-east-1`) that the live args do not.
-  They were not edited in this record because that does not change the running
-  deployment. `#168` corrects all of them to
-  `ocpv03,ocpv06,ocpv07,ocpv08,ocpv09`, alongside the change that makes the
-  value authoritative: `--clusters` used to be intersected with
-  `STARGATE_CLUSTERS` and unknown names were dropped silently, which is the only
-  reason a wrong list was survivable.
+- `#173` must land **before** the next Helm apply. The chart at `b681105` still
+  describes the pre-21:10 deployment, in three ways: `values.yaml` and
+  `values-infra01.yaml` set `scanner.tier3: 600` not `300`, `scanner.resources.limits.cpu`
+  is `"3"` not `"5"`, and `templates/scanner.yaml` emits no
+  `--tier3-independent` at all. An apply from the wrong commit would silently
+  revert the cadence change this section records, which is the failure mode the
+  whole document exists to prevent.
+- The cadence change is **live but not yet measured over a full sweep**. The
+  projection was ~1.9 h on ocpv07 at `c ≈ 17 s`. What the 22:45Z census found —
+  nine live namespaces 5–6 h old — is **inherited**, not caused by this change:
+  their last runs were at 13:11 and 17:03, before the 21:13 restart. Whether the
+  new arrangement clears them is the question, and the aggregate rate cannot
+  answer it, which is why the per-namespace sweep-age gauge exists
+  (`#177`, `docs/cluster-fleet.md` "How the sweep is watched"). Until that is
+  deployed and read against a full window, the projection is a projection.
+- The rotation itself still has a defect the cadence work does not touch:
+  selection is an index into a list that is rebuilt from the pods collector
+  every tier-2 tick, so a lab can be skipped while the batch stays full and the
+  rate stays flat. `#178` replaces the index with oldest-attempt-first
+  ordering.
+- The manifests used to disagree with production: `values.yaml`,
+  `values-infra01.yaml` and `deploy/agnosticv/stargate-platform/prod.yaml` all
+  listed `ocpv05` (retired — its API host no longer resolves) and omitted
+  `ocpv03`. `#168` fixed that and is in `b681105`; all three now read
+  `ocpv03,ocpv06,ocpv07,ocpv08,ocpv09`. The fleet list no longer needs editing
+  in two places to mean one thing: `--clusters` is authoritative, where it used
+  to be intersected with `STARGATE_CLUSTERS` and unknown names were dropped
+  silently — which is the only reason a wrong list was survivable.
