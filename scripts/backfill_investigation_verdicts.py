@@ -139,6 +139,8 @@ def main(argv: Optional[list] = None) -> int:
         description="Re-derive verdict/confidence/evidence for stored investigations.",
     )
     parser.add_argument("--apply", action="store_true", help="write changes (default is a dry run)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="explicit dry run; the default, and refused together with --apply")
     parser.add_argument("--limit", type=int, default=0,
                         help="examine at most N complete investigations (0 = all)")
     parser.add_argument("--batch-size", type=int, default=BATCH,
@@ -146,6 +148,9 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--backup", default="",
                         help="file for per-row rollback records (apply only; default stdout)")
     args = parser.parse_args(argv)
+
+    if args.dry_run and args.apply:
+        parser.error("--dry-run and --apply are mutually exclusive")
 
     from db.database import get_session_factory
 
