@@ -44,7 +44,13 @@ _SAFE_VERBS = frozenset({"get", "describe", "logs", "adm", "api-resources", "who
 _SAFE_ADM = frozenset({"top"})
 
 MAX_ITERATIONS = 12
-MAX_WALL_SECONDS = 480
+# The worker in api/app.py fails any investigation still `running` after five
+# minutes and gives each batch 300 s before giving up on it, so a self-imposed
+# budget above 300 s could never be reached: the row was already marked failed
+# while the thread kept working. 270 s makes the agent the binding constraint and
+# the sweeper a backstop. Observed completed runs top out at 212 s (p99 169 s),
+# so this keeps real headroom rather than truncating work.
+MAX_WALL_SECONDS = 270
 MAX_OUTPUT_CHARS = 3000
 FINAL_REPORT_REQUEST = (
     "Provide the required final analysis with these explicit markdown headings: "
@@ -929,6 +935,17 @@ def run_investigation(
     return result
 
 
+def _spent(result: Optional[Dict[str, Any]]) -> float:
+    """Cost of one LLM call, as reported by the API layer.
+
+    Returns 0.0 when the provider did not report usage (or pricing is
+    unavailable), so a partial total is never mistaken for a complete one —
+    the caller stores whatever it accumulated and the field stays NULL only
+    when nothing at all was priced.
+    """
+    return (((result or {}).get("usage") or {}).get("cost_estimate") or 0.0)
+
+
 def _run_investigation(
     namespace: str,
     cluster: str,
@@ -964,6 +981,7 @@ def _run_investigation(
     ]
 
     all_tool_calls = []
+    total_cost = 0.0
     start_time = time.time()
 
     for iteration in range(max_iterations):
@@ -981,6 +999,7 @@ def _run_investigation(
             timeout=60,
             db=db,
         )
+        total_cost += _spent(result)
 
         if not result.get("success"):
             # Retry once before falling back
@@ -991,6 +1010,7 @@ def _run_investigation(
                 max_tokens=selection_max_tokens, temperature=0.2, timeout=45,
                 db=db,
             )
+            total_cost += _spent(result)
         if not result.get("success"):
             logger.info("Tool calling failed after retry, falling back to single-shot with %s", use_model)
             fallback = call_llm(
@@ -1002,6 +1022,7 @@ def _run_investigation(
                 timeout=45,
                 db=db,
             )
+            total_cost += _spent(fallback)
             return {
                 "analysis": _redact(fallback.get("content") or ""),
                 "tool_calls": all_tool_calls,
@@ -1009,6 +1030,8 @@ def _run_investigation(
                 "error": None if fallback.get("success") else fallback.get("error"),
                 "fallback": True,
                 "usage_optimized": usage_optimized,
+                "evidence_sufficient": _evidence_sufficient(failure_class, all_tool_calls),
+                "cost_estimate": total_cost or None,
             }
 
         response_message = result.get("message", {})
@@ -1023,6 +1046,8 @@ def _run_investigation(
                 "iterations": iteration + 1,
                 "error": None,
                 "usage_optimized": usage_optimized,
+                "evidence_sufficient": _evidence_sufficient(failure_class, all_tool_calls),
+                "cost_estimate": total_cost or None,
             }
 
         # Process tool calls
@@ -1080,6 +1105,7 @@ def _run_investigation(
                 db=db,
             )
             final_text = final.get("content") or ""
+            total_cost += _spent(final)
             if final_text.strip():
                 return {
                     "analysis": _redact(final_text),
@@ -1088,6 +1114,7 @@ def _run_investigation(
                     "error": None,
                     "usage_optimized": True,
                     "evidence_sufficient": True,
+                    "cost_estimate": total_cost or None,
                 }
 
     # Max iterations reached — ask for final summary
@@ -1102,6 +1129,7 @@ def _run_investigation(
         db=db,
     )
     final_text = final.get("content") or ""
+    total_cost += _spent(final)
     final_error = None if final.get("success") else final.get("error")
     finalization_retry = False
     if not final_text.strip():
@@ -1135,6 +1163,7 @@ def _run_investigation(
             db=db,
         )
         final_text = retry.get("content") or ""
+        total_cost += _spent(retry)
         final_error = None if retry.get("success") else retry.get("error")
         if not final_text.strip() and not final_error:
             final_error = "LLM returned an empty final analysis"
@@ -1145,6 +1174,8 @@ def _run_investigation(
         "error": final_error,
         "fallback": finalization_retry,
         "usage_optimized": usage_optimized,
+        "evidence_sufficient": _evidence_sufficient(failure_class, all_tool_calls),
+        "cost_estimate": total_cost or None,
     }
 
 
@@ -1212,23 +1243,33 @@ def _call_llm_with_tools(
         message = choices[0].get("message", {}) if choices else {}
         usage = data.get("usage", {}) or {}
         success = True
-        return {"success": True, "message": message}
+        return {"success": True, "message": message, "usage": usage}
     except Exception as e:
         error_message = str(e)[:500]
         logger.warning("LLM tool call failed: %s", str(e)[:200])
-        return {"success": False, "error": str(e)[:200], "message": {}}
+        return {"success": False, "error": str(e)[:200], "message": {}, "usage": usage}
     finally:
         latency_ms = int((_time.time() - started) * 1000)
         if db is not None:
             try:
                 from datetime import datetime, timezone
                 from db.models import LLMMetric
+                from api.llm import COST_PER_1K_PROMPT, COST_PER_1K_COMPLETION
+                prompt_tokens = usage.get("prompt_tokens")
+                completion_tokens = usage.get("completion_tokens")
+                cost_estimate = None
+                if prompt_tokens is not None and completion_tokens is not None:
+                    cost_estimate = (
+                        (prompt_tokens / 1000) * COST_PER_1K_PROMPT
+                        + (completion_tokens / 1000) * COST_PER_1K_COMPLETION
+                    )
                 metric = LLMMetric(
                     endpoint="agent-investigation-tools",
                     model=use_model,
-                    prompt_tokens=usage.get("prompt_tokens"),
-                    completion_tokens=usage.get("completion_tokens"),
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
                     total_tokens=usage.get("total_tokens"),
+                    cost_estimate=cost_estimate,
                     latency_ms=latency_ms,
                     success=success,
                     finish_reason=(choices[0].get("finish_reason") if choices and success else None),

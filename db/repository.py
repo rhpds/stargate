@@ -1,5 +1,6 @@
 """Database repository — CRUD operations for StarGate persistence."""
 
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -28,6 +29,8 @@ from engine.models import (
     StageResult,
     StageStatus,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # --- Runs ---
@@ -1593,12 +1596,26 @@ def complete_investigation(
     trust_dimensions: Optional[dict] = None,
     fallback: bool = False,
     error: Optional[str] = None,
-) -> None:
+) -> bool:
+    """Persist a finished investigation. Returns True when the row was written.
+
+    A row the stuck-investigation sweeper already failed is *not* overwritten:
+    the worker thread outlives the 300 s batch timeout, so a late finalisation
+    would otherwise resurrect an `error` row as `complete` and hide the hang it
+    was failed for. The failure stands; the analysis is discarded, which is
+    honest — the run was already declared dead.
+    """
     record = db.query(InvestigationRecord).filter(
         InvestigationRecord.job_id == job_id
     ).first()
     if not record:
-        return
+        return False
+    if record.status == "error":
+        logger.warning(
+            "Discarding completed investigation %s: already failed (%s)",
+            job_id, (record.error or "no reason recorded")[:120],
+        )
+        return False
     record.status = "complete"
     record.completed_at = datetime.now(timezone.utc)
     record.analysis = analysis
@@ -1636,6 +1653,7 @@ def complete_investigation(
             _queue_investigation_action(db, record)
     except Exception:
         db.rollback()
+    return True
 
 
 def _queue_investigation_action(db: Session, record) -> Optional[int]:

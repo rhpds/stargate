@@ -985,23 +985,41 @@ def _investigation_queue_loop():
                             return rec.job_id, "error", str(e)
                         finally:
                             _db.close()
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(queued), 4)) as pool:
+                    pool = concurrent.futures.ThreadPoolExecutor(max_workers=min(len(queued), 4))
+                    try:
                         futures = {pool.submit(_run_one, r): r for r in queued}
-                        for f in concurrent.futures.as_completed(futures, timeout=300):
-                            rec = futures[f]
-                            try:
-                                job_id, status, err = f.result()
-                                if status == "ok":
-                                    logger.info("Investigation %s completed", job_id)
-                                else:
-                                    repository.fail_investigation(db, job_id, err or "unknown error")
-                                    logger.warning("Investigation %s failed: %s", job_id, err)
-                            except concurrent.futures.TimeoutError:
-                                repository.fail_investigation(db, rec.job_id, "Hard timeout: exceeded 5 minutes")
-                                logger.warning("Investigation %s hard-timed out", rec.job_id)
-                            except Exception as e:
-                                repository.fail_investigation(db, rec.job_id, str(e))
-                                logger.warning("Investigation %s exception: %s", rec.job_id, e)
+                        try:
+                            for f in concurrent.futures.as_completed(futures, timeout=300):
+                                rec = futures[f]
+                                try:
+                                    job_id, status, err = f.result()
+                                    if status == "ok":
+                                        logger.info("Investigation %s completed", job_id)
+                                    else:
+                                        repository.fail_investigation(db, job_id, err or "unknown error")
+                                        logger.warning("Investigation %s failed: %s", job_id, err)
+                                except Exception as e:
+                                    repository.fail_investigation(db, rec.job_id, str(e))
+                                    logger.warning("Investigation %s exception: %s", rec.job_id, e)
+                        except concurrent.futures.TimeoutError:
+                            # as_completed raises this from the iterator, not from
+                            # f.result(), so the per-future handler above can never
+                            # catch it. The old code let it fall through to the
+                            # outer `except Exception`, which logged at DEBUG and
+                            # left the batch's status ambiguous. Say plainly what is
+                            # still running; the stuck sweeper fails it on a later
+                            # tick if it never finishes.
+                            still_running = [r.job_id for f, r in futures.items() if not f.done()]
+                            logger.warning(
+                                "Investigation batch exceeded 300s; %d still running (%s) — "
+                                "leaving them to the stuck sweeper",
+                                len(still_running), ", ".join(still_running[:5]),
+                            )
+                    finally:
+                        # Never block the queue loop on threads that outlived the
+                        # batch timeout. They finish into complete_investigation,
+                        # which refuses to overwrite a row already failed.
+                        pool.shutdown(wait=False)
             finally:
                 _release_investigation_worker_lock(db, worker_lock)
                 db.close()

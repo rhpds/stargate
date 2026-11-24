@@ -486,6 +486,7 @@ def dashboard_investigate_start(request: Request, req: dict, db: Session = Depen
                 tool_calls=result.get("tool_calls", []),
                 iterations=result.get("iterations", 0),
                 model_used=os.environ.get("STARGATE_AGENT_MODEL", ""),
+                cost_estimate=result.get("cost_estimate"),
                 root_cause=fields.get("root_cause"),
                 remediation_suggestion=fields.get("remediation_suggestion"),
                 trust_dimensions={
