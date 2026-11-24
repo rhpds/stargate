@@ -95,6 +95,22 @@ class TestHelmChart:
         assert "password: stargate" not in values
         assert "password: changeme" not in values
 
+    def test_api_cpu_limit_clears_the_throttle(self):
+        """A one-core API limit throttled 18.5% and 14.2% of CFS periods.
+
+        Both replicas averaged 0.70 cores while every cluster's evidence
+        uploads arrived at the same API, and the slow tail of `/evaluate` is
+        requests waiting behind them. The chart is what a `helm upgrade`
+        applies, so it has to agree with the running deployment or the next
+        apply quietly puts the limit back.
+        """
+        values = yaml.safe_load(
+            (PROJECT_DIR / "deploy" / "helm" / "stargate" / "values.yaml").read_text()
+        )
+        cpu = str(values["api"]["resources"]["limits"]["cpu"])
+        cores = float(cpu[:-1]) / 1000 if cpu.endswith("m") else float(cpu)
+        assert cores >= 2, f"api limits.cpu is {cpu}; one core throttled the evidence upload"
+
 
 class TestAnsibleRole:
 
