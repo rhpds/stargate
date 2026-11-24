@@ -221,31 +221,88 @@ The same reading before the change was **744 s on ocpv07** and 1,218 s at batch
 50. Tier 3 also runs: 4,060 tier-3 runs since the restart, every one with
 `namespace = lab_code`, so the `#161` write-path fix survived the rebuild.
 
+## 2026-11-24 ~16:15 — sixteen PRs in one release, and the first scraped metrics
+
+Approved out of band again (Tuesday, not Friday), because the queue had grown to
+sixteen reviewed PRs and the freshness work is only true once deployed. All
+sixteen merged through GitHub — no direct push to `main` — and `main` is
+`c8cf85e`. Two had real conflicts, both resolved rather than force-merged:
+`#177` kept main's freshly measured 3-CPU/5-CPU rows and inserted its own
+"How the sweep is watched" after them, and `#176`/`#177` both appended a `##`
+section before `## CORS` in `docs/configuration.md`, so both survive.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 16:12 | build `stargate-api-354` | api `sha256:e6745fe6…` → `sha256:4c7781a6…` | Built from a clean `git archive c8cf85e` via `oc start-build --from-dir` (Binary source, like 353/50 — OpenShift records no commit for a binary build, so the link is the tree sent, not a stored sha). Contains `#177` freshness, `#178` oldest-first tier-3, `#181` run closing, `#183` fresh-install bootstrap, `#184` API CPU, `#185` rotation-sync refusal, `#187` argv-only pipes, `#188` docs. | rebuild from `git archive c8cf85e`; previous digest is api `e6745fe6…` (build 353) |
+| 16:15 | `deploy/stargate-api` | image → `sha256:4c7781a6…` **and** `limits.cpu` `1` → `2` (`-c api`), in one rollout; ReplicaSet `stargate-api-7864db88b` | `#184`. The 1-CPU pod was throttled in **18.5% / 14.2%** of CFS periods (two replicas) while averaging 0.70 cores, which is what pushed `/evaluate` past the scanner's 10 s client timeout and orphaned the runs `#181` now closes. API first, as always. | `oc set image deploy/stargate-api -n stargate api=…stargate-api@sha256:e6745fe6e9e9ad7d4f56269c4956271eca33fc862e9bd25a6acec4822235383d` and `oc set resources deploy/stargate-api -n stargate -c api --limits=cpu=1` |
+| 16:15 | `runs` table | `alembic_version` `r9a0b1c2d3e4` → `s0b1c2d3e4f5`; index `idx_runs_namespace_started_at` created | `#182`, applied by `init_db()` on API startup rather than by hand — the first release to use that path. Plain transactional `CREATE INDEX` (not `CONCURRENTLY`) on 627,567 rows / 323 MB; holds a SHARE lock for ~3 s, which blocks writes but not reads, and `runs` gains ~14 rows/min. The freshness probe measured 1,501 ms without it and 64.0 ms with it. | `DROP INDEX idx_runs_namespace_started_at; UPDATE alembic_version SET version_num='r9a0b1c2d3e4';` |
+| 16:18 | `deploy/stargate-scheduler` | scanner `sha256:c3a8c508…` → `sha256:c0b38474…`; ReplicaSet `stargate-scheduler-64c8778f85` | Build `stargate-scanner-51`. `args` and `limits.cpu: 5` were left untouched by the patch and verified after: `--clusters ocpv03,ocpv06,ocpv07,ocpv08,ocpv09 --api-url … --no-babylon --tier1 300 --tier2 900 --tier3 300 --batch 25 --tier3-independent`. | `oc set image deploy/stargate-scheduler -n stargate scheduler=…stargate-scanner@sha256:c3a8c508af79ace347dfdf7743a2c8dcf2ecb3d912f8115d88241a8aaa4c42eb` |
+| 16:21 | `svc/stargate-api` label, `servicemonitor/stargate-api`, `prometheusrule/stargate-alerts` | Service gained `app: stargate-api`; the two monitoring objects created | `#180`. Nothing had ever scraped StarGate: 356 `stargate_*` samples sat on `:8090/metrics` with no reader, and the cluster's `Default`/`Watchdog`/`Critical` receivers had zero integrations. Applied surgically from a digest-pinned `helm template` rather than by a full `helm upgrade`, because the release (see below) is stale. | `oc delete servicemonitor stargate-api prometheusrule stargate-alerts -n stargate` and `oc label svc stargate-api app-` |
+
+Verified after the rollout, not inferred: both API pods are on `4c7781a6…` with
+0 restarts at a 2-CPU limit, `/health` returns 200 with `tier3: ok`, the
+migration log reads `Running upgrade r9a0b1c2d3e4 -> s0b1c2d3e4f5` with no error,
+and the scheduler is on `c0b38474…` with the args and 5-CPU limit above and its
+first tier-1 tick inside 60 s. The freshness signal is live and green — sweep age
+per cluster against the 7,200 s target:
+
+| Cluster | live namespaces | never scanned | sweep age |
+|---|---|---|---|
+| ocpv03 | 35 | 0 | 366 s |
+| ocpv06 | 255 | 0 | 6,350 s |
+| ocpv07 | 248 | 6 | 6,556 s |
+| ocpv08 | 231 | 4 | ~5,900 s |
+| ocpv09 | 237 | 4 | ~5,500 s |
+
+And Prometheus now has the target: `up{job="stargate-api"}` is `1` for both
+pods from `openshift-user-workload-monitoring/user-workload`, with
+`stargate_tier3_*` labelled by cluster. The ServiceMonitor only matches because
+the Service gained the `app` label it had never carried; the old Service had
+none, so a ServiceMonitor alone would have selected nothing.
+
+Three things this release did **not** fix, stated because they are the kind that
+look fixed from a dashboard:
+
+- The 495 rows still in `running` (oldest 2026-11-19) are the accumulated leak.
+  `#181` stops new ones being orphaned; it does not sweep history. Five of them
+  are from this rollout's own 16:00Z window — an API restart cuts in-flight
+  `/evaluate` calls, which is the same failure shape at a smaller scale.
+- The Helm release `stargate` is still revision 7, status **failed**, dated
+  2026-07-17, with July values (`tier3: 3600`, a fleet that includes
+  `ocpv-infra01/02` and `ocp-us-east-1`, `:latest` images). Everything since has
+  been applied with `oc set image` / `oc set resources` / `oc patch`. A blind
+  `helm upgrade` would therefore revert this section. `values-infra01.yaml` is
+  now digest-pinned to prevent that, but the release still needs reconciling on
+  a Friday, together with `oauth.cookieSecret`, which `values-infra01.yaml` does
+  not carry even though the templates mount it.
+- `stargate-beat` and `stargate-worker` still reference api `7d3e51fc…` at 0
+  replicas. Scaling either up would run a pre-`#181`, pre-`#184` image.
+
 ## Still owed
 
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
-- `#173` must land **before** the next Helm apply. The chart at `b681105` still
-  describes the pre-21:00 deployment, in three ways: `values.yaml` and
-  `values-infra01.yaml` set `scanner.tier3: 600` not `300`, `scanner.resources.limits.cpu`
-  is `"3"` not `"5"`, and `templates/scanner.yaml` emits no
-  `--tier3-independent` at all. An apply from the wrong commit would silently
-  revert the cadence change this section records, which is the failure mode the
-  whole document exists to prevent.
-- The cadence change is **live but not yet measured over a full sweep**. The
-  projection was ~1.9 h on ocpv07 at `c ≈ 17 s`. What the 22:45Z census found —
-  nine live namespaces 5–6 h old — is **inherited**, not caused by this change:
-  their last runs were at 13:11 and 17:03, before the 21:13 restart. Whether the
-  new arrangement clears them is the question, and the aggregate rate cannot
-  answer it, which is why the per-namespace sweep-age gauge exists
-  (`#177`, `docs/cluster-fleet.md` "How the sweep is watched"). Until that is
-  deployed and read against a full window, the projection is a projection.
-- The rotation itself still has a defect the cadence work does not touch:
-  selection is an index into a list that is rebuilt from the pods collector
-  every tier-2 tick, so a lab can be skipped while the batch stays full and the
-  rate stays flat. `#178` replaces the index with oldest-attempt-first
-  ordering.
+- `#173` landed **before** the next Helm apply: it is in `c8cf85e`, and
+  `values.yaml`, `values-infra01.yaml` and the templates now agree with the live
+  deployment (`tier3: 300`, scheduler `limits.cpu: "5"`,
+  `--tier3-independent`, API `limits.cpu: "2"`, fleet `ocpv03,ocpv06–09`). The
+  chart at `b681105` described the pre-21:00 deployment in three ways; a digest
+  render from `c8cf85e` now reproduces the live args, resources and env. The
+  remaining gap is not the chart but the failed release object itself, plus
+  `oauth.cookieSecret`.
+- The cadence change is live and now measured per namespace, not by aggregate
+  rate: `stargate_tier3_sweep_age_seconds` has been scraped since 16:21Z on
+  2026-11-24, and all five clusters sit under the 7,200 s target (worst is
+  ocpv07 at 6,556 s, i.e. ~1.8 h — within the ~1.9 h projection). What is still
+  unproven is a **full** sweep window after `#178` changed selection; the
+  gauge, not this table, is what will answer that.
+- The rotation's list-index defect is fixed by `#178`, deployed 16:18Z on
+  2026-11-24: tier-3 batches now select oldest-attempt-first, so a lab cannot be
+  skipped merely because the pod list re-sorted beneath the index. Its own
+  effect is measured by the same gauge, and by `never_scanned` (currently 6/4/4
+  on ocpv07/08/09, all new labs awaiting a first sweep).
+
 - Coverage is still five clusters. `ocpv01` (dfw3, 244 labs), `ocpv02` (dfw3,
   77) and `ocpv04` (lon3, 8) are unscanned, blocked on `cluster-reader`
   kubeconfigs stored under the canonical names `kubeconfig-ocpv01`,
