@@ -68,3 +68,10 @@ routes:
 oauth:
   enabled: true
   cookieSecret: ""  # Set at install time: --set oauth.cookieSecret=$(openssl rand -hex 16)
+
+# User-workload monitoring is enabled on infra01 (`cluster-monitoring-config`:
+# `enableUserWorkload: true`), so these resources are reconciled by
+# prometheus-user-workload immediately. Nothing was scraping StarGate before
+# this — 356 stargate_* metrics were being served to nobody.
+monitoring:
+  enabled: true

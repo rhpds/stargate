@@ -177,6 +177,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: stargate-api
+  # Selected by the ServiceMonitor in monitoring.yaml (and used as the `job`
+  # label there via jobLabel). A ServiceMonitor selects Services, so this label
+  # has to live on the Service, not only on the pod template above.
+  labels:
+    app: stargate-api
 spec:
   ports:
     {{- if .Values.oauth.enabled }}

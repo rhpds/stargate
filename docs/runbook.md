@@ -698,13 +698,91 @@ if data is older than 10 minutes.
 GET /metrics
 ```
 
-Exposed metrics:
-- `http_requests_total{method, path, status}` -- Request counter
-- `http_request_duration_seconds{method, path}` -- Request latency histogram
-- `llm_calls_total{endpoint, success}` -- LLM call counter
-- `llm_call_duration_seconds{endpoint}` -- LLM call latency
-- `llm_tokens_total{endpoint, type}` -- Token usage
-- `scanner_clusters_healthy` -- Number of healthy scanner clusters
+Unauthenticated and served on the container port (`:8090`), deliberately not
+through the oauth proxy — the scraper is not a user. Metric names carry the
+`stargate_` prefix (`api/metrics.py`).
+
+- `stargate_http_requests_total{method, path, status}` — Request counter. `path`
+  is the route template (`/runs/{run_id}/stages/{stage_id}/evidence`), not the
+  resolved URL, so the cardinality is bounded.
+- `stargate_http_request_duration_seconds{method, path}` — Request latency
+  histogram
+- `stargate_llm_calls_total{endpoint, success}` — LLM call counter
+- `stargate_llm_call_duration_seconds{endpoint}` — LLM call latency
+- `stargate_llm_tokens_total{endpoint, type}` — Token usage
+- `stargate_cache_operations_total{cache, result}` — Cache hits and misses
+- `stargate_mv_refresh_duration_seconds` — Last materialized-view refresh
+- `stargate_scanner_clusters_healthy` — Healthy clusters in the latest tier-1
+  snapshot
+- `stargate_tier3_sweep_age_seconds{cluster}` — Age of the stalest **live**
+  namespace's last tier-3 attempt (see `docs/cluster-fleet.md`)
+- `stargate_tier3_never_scanned{cluster}` — Live namespaces with no tier-3
+  attempt at all
+- `stargate_tier3_live_namespaces{cluster}` — Denominator for the two above
+
+prometheus_client exports a labelled metric only once a series exists, so a
+metric with no rows yet is absent from `/metrics` rather than zero. `curl` the
+endpoint when in doubt; a missing family is not a bug.
+
+#### Scraping
+
+`deploy/helm/stargate/templates/monitoring.yaml` ships a `ServiceMonitor`
+selecting the `stargate-api` Service on port `api`, `path: /metrics`,
+`interval: 30s`. It is gated on `monitoring.enabled` — off in `values.yaml`,
+**on** in `values-infra01.yaml` — because a ServiceMonitor on a cluster without
+the Prometheus Operator CRDs fails the whole install, and those CRDs only exist
+where monitoring is enabled.
+
+The namespace does **not** need `openshift.io/cluster-monitoring: "true"`. That
+label is for *cluster* monitoring; a ServiceMonitor in a namespace is picked up
+by user-workload monitoring when `cluster-monitoring-config` sets
+`enableUserWorkload: true`, which infra01 does.
+
+Until 2026-11-23 nothing scraped StarGate at all: 356 `stargate_*` lines were
+being served to nobody, because no ServiceMonitor existed anywhere on the
+cluster and the Service had no label to select in the first place. Every metric
+in the table above was write-only, including the tier-3 freshness gauges added
+the same day. If `/metrics` looks fine but dashboards and alerts are empty,
+check `up{namespace="stargate"}` first.
+
+#### Alerts
+
+The same template ships a `PrometheusRule` (`stargate-alerts`):
+
+| Alert | Expression | For | Severity |
+|---|---|---|---|
+| `StarGateNotScraped` | `absent(up{namespace="stargate"})` | 15m | warning |
+| `StarGateApiDown` | `up{namespace="stargate"} == 0` | 5m | critical |
+| `StarGateTier3SweepStale` | `max by (cluster) (stargate_tier3_sweep_age_seconds) > 7200` | 30m | warning |
+| `StarGateTier3NeverScanned` | `max by (cluster) (stargate_tier3_never_scanned) > 5` | 1h | info |
+| `StarGateClustersUnhealthy` | `stargate_scanner_clusters_healthy < <len(scanner.clusters)>` | 15m | warning |
+| `StarGateEvidenceWriteErrors` | `sum(rate(stargate_http_requests_total{path=~".*/evidence", status=~"5.."}[5m])) > 0.1` | 10m | warning |
+
+Two of these are deliberately `absent()`/inert-shaped:
+
+- `StarGateNotScraped` is the only alert that can report its own blind spot.
+  `StarGateApiDown` cannot: if the target is gone, the series is gone, and
+  `up == 0` matches nothing. The two are complementary — *no series* versus
+  *series present and failing* — and are separate rules because they have
+  different causes.
+- `StarGateTier3SweepStale` and `StarGateTier3NeverScanned` match nothing until
+  the gauges exist, which they do not in any image built before the tier-3
+  freshness work. They start working on deploy with no rule edit.
+
+The expected cluster count in `StarGateClustersUnhealthy` is rendered from
+`scanner.clusters` — the same value that becomes `--clusters` — so adding a
+cluster does not silently move the threshold. The `7200` seconds in
+`StarGateTier3SweepStale` cannot be: Prometheus rules cannot read the pod's
+`STARGATE_TIER3_FRESHNESS_TARGET_SECONDS`. Keep `monitoring.tier3StaleSeconds`
+in step with it by hand.
+
+**Delivery is not configured.** The rules are evaluated by
+`prometheus-user-workload` and are visible in the cluster Alertmanager UI
+(`openshift-monitoring`, `alertmanager-main-*`), but its receivers (`Default`,
+`Watchdog`, `Critical`) have no integration of any kind — no Slack, webhook,
+email or PagerDuty. An alert firing today changes nothing for anyone who is not
+looking at the UI. Routing is a platform-team configuration, not something this
+chart should own.
 
 ### Scan History Timeline
 

@@ -108,3 +108,16 @@ oauth:
   enabled: false
   image: registry.redhat.io/openshift4/ose-oauth-proxy:latest
   cookieSecret: ""
+
+# Prometheus Operator resources (ServiceMonitor + PrometheusRule). Off by
+# default because a ServiceMonitor or PrometheusRule on a cluster without the
+# CRDs fails the install, and those CRDs only exist where the monitoring
+# operator has user-workload monitoring enabled. On in values-infra01.yaml.
+monitoring:
+  enabled: false
+  # Tier-3 sweep-age threshold for StarGateTier3SweepStale. Prometheus rules
+  # cannot read the pod's env, so this duplicates
+  # STARGATE_TIER3_FRESHNESS_TARGET_SECONDS (default 7200). Change both.
+  tier3StaleSeconds: 7200
+  # Live namespaces with no tier-3 attempt at all, for StarGateTier3NeverScanned.
+  tier3NeverScannedThreshold: 5
