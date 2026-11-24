@@ -258,8 +258,8 @@ example: its tier-3 tick costs 255 s, so the tick period is 555 s, below the
 would take ocpv03 to 555 s (1.55× more) and change nothing on ocpv07, whose
 period already exceeds the gate.
 
-Which makes the levers. One of them has since been measured; the rest are still
-arithmetic on measured quantities:
+Which makes the levers. Two of them have since been measured live; the rest are
+still arithmetic on measured quantities:
 
 | Change | ocpv07 cadence | namespaces/h | 370-namespace sweep | |
 |---|---|---|---|---|
@@ -267,7 +267,8 @@ arithmetic on measured quantities:
 | `--batch 50` | **1,225 s** | **147** | **2.5 h** | measured |
 | `--tier3 300` | 744 s | 121 | 3.0 h | arithmetic |
 | tier 3 on its own thread, B=25, `--tier3 600` | 600 s | 150 | 2.5 h | arithmetic |
-| tier 3 on its own thread, B=25, `--tier3 300` | 437 s | 206 | **1.8 h** | arithmetic |
+| tier 3 on its own thread, B=25, `--tier3 300`, 3 CPU | 450 s | 175 | 2.1 h | measured |
+| tier 3 on its own thread, B=25, `--tier3 300`, 5 CPU | **419 s** | **215** | **1.72 h** | measured |
 | tier 3 on its own thread, B=50 | 892 s | 202 | **1.8 h** | arithmetic |
 
 **Batch 50 was measured on 2026-11-23 19:31–20:24Z** and the arithmetic held:
@@ -279,16 +280,29 @@ show — the batch is inside the tier-1 tick, so the tick that carried it cost
 ocpv07**. Node metrics read once every 20 minutes is not a trade this document
 can recommend. It was reverted, and `docs/config-log.md` has both rows.
 
-The fifth row is the one that matters, and it is not "remove the tick" alone:
-out of the loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at the
-current `--tier3 600` the flag buys 2.5 h and no more — 600 s becomes the new
-floor, exactly as 744 s was the old one. Lowering the interval to anything at
-or below the batch duration is what removes the floor. The last row reaches the
-same place without touching `--tier3`, which is why the two levers are
-complements rather than alternatives: `max()` picks whichever is slower.
+**The fifth and sixth rows were measured on 2026-11-23 20:59–21:25Z, and the
+fifth is why the sixth exists.** The arithmetic assumed the per-namespace cost
+would stay at the 17.1 s it was when tier 3 shared a loop with tier 1. Once tier 3 had its own thread the two ran *concurrently*, and the same
+3 CPUs throttled in 50.9% of CFS periods: `c` rose to 20.5 s, throughput came in
+at 175 ns/h, and ocpv07 sat at 2.1 h. At a 5 CPU limit throttling fell to 12.2%,
+`c` to 16.7 s, and the sweep to **1.72 h**.
 
-Two rows cross the 2 h window and both need `#171`; nothing reachable by a
-config change alone does. This is also why the "batch size is a weak lever"
+That is the general lesson this table was missing: every row here was computed
+against a per-namespace cost measured in a *different concurrency regime*, and
+the fixed resource limit is part of the model, not a constant. The flag and the
+CPU limit are one change, not two.
+
+The flag on its own is also not "remove the tick" and nothing more: out of the
+loop the cadence is `max(TIER3_INTERVAL, batch_duration)`, so at `--tier3 600`
+the flag buys 2.5 h and no more — 600 s becomes the new floor, exactly as 744 s
+was the old one. Lowering the interval to at or below the batch duration is what
+removes the floor, and that is what shipped: `--tier3 300`, paired with the 5 CPU
+limit that concurrent tier 1 and tier 3 need. The last row reaches the same place
+without touching `--tier3`, which is why the two levers are complements rather
+than alternatives: `max()` picks whichever is slower.
+
+Four rows now cross the 2 h window and all four need `#171`; nothing reachable by
+a config change alone does. This is also why the "batch size is a weak lever"
 analysis above was right at `c = 16–27 s` and is not right at `c ≈ 17–18 s`: the
 fixed 300 s term is now large relative to the work, so anything that removes it
 beats anything that amortises it. Both statements are kept in this document because the
