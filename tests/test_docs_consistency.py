@@ -47,6 +47,25 @@ class TestCorpus:
         ]
         assert missing == [], f"listed in the corpus but missing: {missing}"
 
+    def test_internal_review_is_not_retrievable(self):
+        """The review enumerates unpatched weaknesses. `ask` answers from the
+        corpus, so indexing it would hand an external caller the attack list."""
+        from engine.stargate_qa import _DOC_FILES
+
+        assert "review-2026-11-23.md" not in _DOC_FILES
+
+    def test_docs_index_covers_every_top_level_doc(self):
+        """docs/README.md is the map. A doc that exists but is not on it is
+        effectively undiscoverable, which is how the config log went missing."""
+        index = (ROOT / "docs" / "README.md").read_text()
+        unlisted = sorted(
+            path.name
+            for path in (ROOT / "docs").glob("*.md")
+            if path.name not in {"README.md", "review-2026-11-23.md"}
+            and f"({path.name})" not in index
+        )
+        assert unlisted == [], f"docs not linked from docs/README.md: {unlisted}"
+
 
 def test_dockerignore_does_not_exclude_docs():
     """.dockerignore excluded docs/, so the COPY would fail and the corpus

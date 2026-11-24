@@ -13,7 +13,7 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — watches the 
 
 **The platform underneath:**
 
-- **Cluster Scanning** — the five provisioning clusters (ocpv03, ocpv06–09) on a tiered schedule (5m/15m/1h): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
+- **Cluster Scanning** — the five provisioning clusters (ocpv03, ocpv06–09) on a tiered schedule (production 5m/15m/5m): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
 - **Rubric Evaluation** — each lab namespace evaluated against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, storage-catalog-health, …)
 - **AI Classification** — unclassified failures sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for failure-class proposals
 - **Durable Investigations** — idempotent source events claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
@@ -21,7 +21,7 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — watches the 
 - **Outcome Contracts** — `provisioning-outcome/v1` and `reclamation-outcome/v1`: explicit, evidence-verified lifecycle outcomes with tri-state evidence semantics (observed/unobserved/indeterminate)
 - **Causal Chains** — symptom → evidence → diagnosis → adjudication → action → remediation → verification eval, with `missing_legs` reporting what is not yet proven
 - **Diagrams** — architecture, event workflow, identity/joins, deployment topology: [docs/diagrams.md](docs/diagrams.md)
-- **MCP Server** — 29 tools (27 query + 2 review) including natural-language `ask` (hybrid retrieval over ~290 repository documents plus live operational surfaces) at `/mcp`; any MCP-compatible agent can query the platform in plain English — including the discovery tools (`list_investigations`, `list_pending_actions`, `get_provisioning_summary`) so an agent can find what needs attention without knowing IDs first; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
+- **MCP Server** — 29 tools (27 query + 2 review) including natural-language `ask` (hybrid retrieval over the indexed docs tree, the failure taxonomy, and live operational surfaces) at `/mcp`; any MCP-compatible agent can query the platform in plain English — including the discovery tools (`list_investigations`, `list_pending_actions`, `get_provisioning_summary`) so an agent can find what needs attention without knowing IDs first; see [docs/stargate-mcp-agent-guide.md](docs/stargate-mcp-agent-guide.md)
 - **Change Correlation** — RHDP has no formal change management, so StarGate is the change record: GitHub PRs (merged + in review) and Jira tickets correlated against failure onset, path-matched to each lab's AgnosticV files
 - **Saturation Correlation** — the capacity-saturation signature (rate spike vs the cluster's own baseline + diverse symptom classes + labs failing here while passing elsewhere); validated against the documented Oct 13–14 2026 ocpv08 incident
 - **Platform Health Monitoring** — four loops watching what the platform depends on: LLM gateway model endpoints (15m), external dependencies (SSO/api.openshift.com/registry, 5m), storage headroom + OLM catalog freshness (5m), and saturation correlation. All persist as evaluations so degradation is a trend
@@ -118,7 +118,7 @@ deploy/agnosticv/stargate-platform/
 
 **Manual deploy (ad-hoc, for development only):**
 ```bash
-oc login --server=https://api.cluster.example.com:6443
+oc login --server=https://api.ocpv-infra01.dal12.infra.demo.redhat.com:6443
 ./scripts/deploy-infra01.sh --build
 ```
 
@@ -175,7 +175,7 @@ deploy/                 Helm charts, Tekton pipelines, OpenShift manifests
 engine/                 Core logic: rubric evaluation, policy, remediation, LLM,
                         known-issues rollup, capacity forecaster, review service
 events/                 Event bus and nano-agent pipeline
-failure-classes/        Failure taxonomy (111 classes, YAML — 19 sourced from the team's Confluence RCA record)
+failure-classes/        Failure taxonomy (115 classes, YAML — 19 sourced from the team's Confluence RCA record)
 frontend/               React 19 + Vite + Tailwind 4 dashboard (six-page IA, drawers)
 normalizers/            Data normalization across sources
 prompts/                LLM prompt templates (YAML)
@@ -261,8 +261,8 @@ for per-tool examples — what to ask, what each tool returns.
 - [x] **Platform health monitoring** — LLM gateway endpoints (15m), external dependencies (SSO/api/registry, 5m), storage headroom + OLM catalog freshness (5m), all persisted as evaluations.
 - [x] **Partner catalog visibility** — the breakdown the biweekly report lacked, with documented baselines.
 - [x] **Known-issues fleet rollup** — MCP `get_known_issues` + dashboard endpoint: groups investigations sharing one root cause into platform / platform-self / lab-family buckets.
-- [x] **Knowledge corpus** — 351 documents including the team's Confluence RCA record and the incident validation study.
-- [x] **Confluence mirror** — 21-page tree with idempotent sync (`scripts/confluence_sync.py`).
+- [x] **Knowledge corpus** — the indexed docs tree, the team's Confluence RCA record, and the incident validation study; `ask` retrieves from all of it.
+- [x] **Confluence mirror** — a versioned page tree with idempotent sync (`scripts/confluence_sync.py`).
 - [x] **AAP replay engine** — historical ETL archives into the platform, idempotent, historical timestamps preserved; partner channel (14 months) replayed.
 - [x] **Evidence pipeline integrity** — fixed the silent ~1.6% evidence loss to random-ID collisions (56k dropped items) and the dead run-create race; both TDD'd and verified live.
 - [x] **Data retention** — run-detail cascade (90d), GeoLux streams (60d), DB size budget with warn events; the previously unbounded 43GB database now drains.

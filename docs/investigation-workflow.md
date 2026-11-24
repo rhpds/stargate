@@ -45,9 +45,9 @@ Before the agent runs, the system claims the relevant source events:
 
 ## 3. Agent Execution
 
-The investigation agent is a Claude Sonnet instance with an 11.6KB system prompt defining it as a senior OpenShift SRE. It runs an iterative tool-calling loop — up to 12 iterations, 480 seconds max.
+The investigation agent is a Claude Sonnet instance with a system prompt defining it as a senior OpenShift SRE. It runs an iterative tool-calling loop — up to 12 iterations, 480 seconds max (6 iterations when usage-optimised).
 
-### The MCP tools (25 today; 23 read-only + 2 review)
+### The investigation agent's tools (15, all read-only)
 
 | Category | Tools |
 |---|---|
@@ -58,7 +58,7 @@ The investigation agent is a Claude Sonnet instance with an 11.6KB system prompt
 | **Configuration** | `fetch_github_file` (read AgnosticV configs from GitHub) |
 | **Intelligence** | `query_recent_changes` (GitHub PRs + Jira vs failure onset) |
 | **Correlation** | `query_cluster_saturation` (capacity signature detection) |
-| **Knowledge** | `search_knowledge` (RAG over 351 documented RCAs) |
+| **Knowledge** | `search_knowledge` (RAG over the indexed docs and RCA record) |
 | **Diagnostics** | `get_storage_diagnosis` (PVC/PV/storage state) |
 | **Catalog** | `get_labagator_info` (catalog/schedule info) |
 

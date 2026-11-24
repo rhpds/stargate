@@ -4,7 +4,7 @@
 
 StarGate is currently read-only against all four systems. To move from monitoring to execution (Phase D), we need specific permissions and integration points with each layer.
 
-> **Note (Aug 2026):** Poolboy read access has been resolved — pool data is now collected via the Babylon worker and displayed on the dashboard. Write access asks for Babylon/Anarchy/Poolboy remain open. Cluster names updated from ocp-us-east-1 to ocpv05-09.
+> **Note (Aug 2026):** Poolboy read access has been resolved — pool data is now collected via the Babylon worker and displayed on the dashboard. Write access asks for Babylon/Anarchy/Poolboy remain open. Cluster names updated to the live provisioning fleet (ocpv03, ocpv06–09); ocpv05 no longer resolves and is retired.
 
 ---
 
@@ -146,7 +146,7 @@ rules:
 
 ---
 
-### 5. COMPUTE CLUSTERS (ocpv05-09) — Write SAs
+### 5. COMPUTE CLUSTERS (ocpv03, ocpv06–09) — Write SAs
 
 **Who to ask:** Cluster admin for each compute cluster
 
@@ -192,7 +192,7 @@ oc create clusterrolebinding stargate-executor-binding \
 ```
 
 **Graduated rollout per cluster:**
-1. Start with ocpv05 only
+1. Start with ocpv06 only
 2. Dry-run for 1 week
 3. Execution with approval gate for 1 week
 4. Auto-execute (confidence > 0.9) for 1 week
@@ -208,7 +208,7 @@ oc create clusterrolebinding stargate-executor-binding \
 | GitHub token | AgnosticV repos | Repo maintainer | Medium | Zero |
 | AnarchySubject delete | ocp-us-east-1 | Babylon team | Medium (Phase D) | Medium |
 | Poolboy pool patch | ocp-us-east-1 | Poolboy admin | Low (later Phase D) | Medium-High |
-| Compute cluster write SA | ocpv05 (then others) | Cluster admins | Medium (Phase D) | Medium |
+| Compute cluster write SA | ocpv06 (then others) | Cluster admins | Medium (Phase D) | Medium |
 
 ### Order of Operations
 
@@ -217,11 +217,11 @@ oc create clusterrolebinding stargate-executor-binding \
    ↓
 2. GitHub token for AgnosticV (zero risk, better constraints)
    ↓
-3. Compute cluster write SA on ocpv05 (one cluster, Phase D start)
+3. Compute cluster write SA on ocpv06 (one cluster, Phase D start)
    ↓  dry-run → approval gate → auto-execute
 4. AnarchySubject delete on ocp-us-east-1 (cleanup stuck instances)
    ↓  dry-run → approval gate → auto-execute
-5. Remaining compute clusters (ocpv06-09)
+5. Remaining live compute clusters (ocpv03, ocpv07–09)
    ↓
 6. Poolboy pool scaling (last, highest impact)
 ```

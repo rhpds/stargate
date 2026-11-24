@@ -15,7 +15,7 @@ and ops (Victor) updates come from their owners.
 |---|---|---|
 | Every failed AAP job reduced to structured fields — failing task/play/role, normalized error (first failed event, `fatal:`/`FAILED!` preferred), bounded secret-sanitized evidence (64KB cap) | live collection, hardened Oct–Nov | 430k `source_events` |
 | Failure logs outlive AAP's ~31-day retention — bastion ETL extracts replayed idempotently, historical timestamps preserved | Nov 2 (PRs #13–#16) | 14+ months partner-channel history durable; job-id dedupe fixed a real 42,850-record double count |
-| Output is classified, not just stored — 111-class taxonomy, LLM proposals for the remainder, root-cause signature classes validated against documented incidents | ongoing; `json_decode_error` added Oct 30 | incident study: the exact Oct 21 SSO-5xx signature is now a named class |
+| Output is classified, not just stored — 115-class taxonomy, LLM proposals for the remainder, root-cause signature classes validated against documented incidents | ongoing; `json_decode_error` added Oct 30 | incident study: the exact Oct 21 SSO-5xx signature is now a named class |
 | Investigation-time log collection with citations — read-only `oc logs`, redacted, assembled into causal chains instead of raw dumps | Nov (investigation agent) | causal-chain endpoint + MCP `get_causal_chain` |
 | One root cause instead of N duplicate failures — fleet rollup with root-cause/remediation excerpts | Nov 10 (#25) | known-issues rollup live in production |
 | Captured evidence no longer silently dropped — fixed random-ID collision bug (~1.6% of evidence lost; 56k items over 4 days) | Nov 10 (#27) | zero collisions since deploy |
@@ -36,8 +36,9 @@ and ops (Victor) updates come from their owners.
 
 ## 2. MCP — first real usage observed; fixes shipped Nov 12
 
-The agent surface (`/mcp`, 15 tools + natural-language `ask` over 351+ docs,
-10 per-user keys, per-request audit with hashed key attribution):
+The agent surface (`/mcp`, 29 tools including natural-language `ask` over
+300+ docs and the failure taxonomy, per-user keys, per-request audit with
+hashed key attribution):
 
 - **First sustained external usage observed Nov 10–11**: an overnight agent
   caller (key_id `5d0ae4c9`) making tool calls nightly — found because its

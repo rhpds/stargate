@@ -33,11 +33,11 @@ StarGate (Operations + Remediation)
 
 2. **Rubric evaluator** scores each namespace against readiness rubrics (deployment-ready, storage-clone-ready, vm-runtime-ready, etc.). A failed criterion produces a failure class.
 
-3. **Failure classifier** matches event text against 81 regex patterns across 6 YAML files (k8s-events, AAP, alertmanager, infrastructure, summit, troshka). Sub-classifier refines into 30 sub-classes.
+3. **Failure classifier** matches event text against 115 patterns across 8 YAML files (k8s-events, AAP, alertmanager, infrastructure, summit, troshka, reclamation, workshop-provision). Sub-classifier refines into 30 sub-classes.
 
 4. **Attention classifier** decides if the failure warrants investigation. Four levels: stuck (failing >2h), anomalous (unusual pattern), provisioning (mid-deploy), expected (known transient). Learned suppression skips classes with 3+ TRANSIENT verdicts unless the failure persists >4h with 0 passes.
 
-5. **Investigation pipeline** runs AI-powered investigations. An LLM agent with 10 read-only tools (oc get/describe/logs, lab identity, GitHub file fetch, resolution history, pool status, storage diagnosis) iterates up to 10 times, minimum 5 tool calls. Produces:
+5. **Investigation pipeline** runs AI-powered investigations. An LLM agent with 15 read-only tools (oc get/describe/logs, lab identity, GitHub file fetch, resolution history, pool status, storage diagnosis, lifecycle and saturation queries, knowledge search) iterates up to 12 times, minimum 5 tool calls. Produces:
    - Diagnosis (what's failing and why)
    - Root Cause (specific component)
    - Remediation Strategy (code link, watch-and-wait, or escalate)
