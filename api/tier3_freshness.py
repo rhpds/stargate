@@ -16,8 +16,16 @@ namespace — so the honest freshness signal is per namespace, not per tick:
 snapshot as ``all_sandbox_namespaces``. Using that list instead of "every
 namespace we happen to find in ``runs``" is what keeps teardown churn from
 looking like scanner lag: a namespace that has been destroyed stops counting
-the moment the next snapshot lands, whereas a minimum over raw ``runs`` ages
-out old labs for a whole lookback window.
+the moment the next snapshot lands, whereas a minimum over raw ``runs`` keeps
+counting it until its last run falls out of the retention window.
+
+There is deliberately no *time* cutoff on the runs query. An earlier version
+only looked back 24 h, which made a lab swept three days ago indistinguishable
+from one that had never been touched — and dropped it out of ``sweep_age``
+entirely. That is the inversion this signal exists to avoid: the worse the
+outage, the quieter the alert. The query is bounded by run retention instead
+(see ``DEFAULT_RETENTION_DAYS``), which is a window that cannot shrink below
+the truth.
 
 The API only *reads*. The scanner owns the rotation; this module measures it,
 publishes ``stargate_tier3_*`` gauges, and warns when a sweep falls behind.
@@ -28,7 +36,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("stargate.tier3_freshness")
@@ -38,10 +46,24 @@ logger = logging.getLogger("stargate.tier3_freshness")
 #: fleet doc uses, and it is the warning threshold unless overridden.
 DEFAULT_TARGET_SECONDS = 7200
 
-#: How far back to look for a namespace's last run. Anything older than this
-#: is indistinguishable from "never scanned", which the ``never_scanned``
-#: gauge reports separately.
-LOOKBACK_HOURS = 24
+#: Runs older than this are deleted by the run-retention job
+#: (``STARGATE_RUN_RETENTION_DAYS``, default 90 — api/app.py), so the database
+#: cannot answer "when was this namespace last swept" any further back than
+#: this. It is the horizon a cluster with no observable attempt at all is
+#: measured against, and it is why a namespace swept three days ago reads as
+#: three days stale rather than as never scanned.
+DEFAULT_RETENTION_DAYS = 90
+
+
+def horizon_seconds() -> float:
+    """Oldest tier-3 attempt the retention window still lets us observe."""
+    raw = os.environ.get("STARGATE_RUN_RETENTION_DAYS", "")
+    try:
+        days = int(raw) if raw else DEFAULT_RETENTION_DAYS
+    except ValueError:
+        days = DEFAULT_RETENTION_DAYS
+    return float(max(days, 1) * 86400)
+
 
 #: Re-warn about the same cluster at most once an hour, but warn immediately
 #: on a state change (fresh -> stale, stale -> fresh).
@@ -109,11 +131,13 @@ def compute(db, scan_data, now: Optional[datetime] = None) -> List[Dict]:
         return []
 
     every = sorted({ns for names in live.values() for ns in names})
-    cutoff = now - timedelta(hours=LOOKBACK_HOURS)
+    # No lower bound on started_at, deliberately. Retention deletes runs past
+    # STARGATE_RUN_RETENTION_DAYS, so the table already cannot answer further
+    # back than that — but a *cutoff* here would mean a lab swept 25 h ago
+    # reports as never scanned, which is worse than reporting it stale.
     rows = db.query(RunRecord.namespace, func.max(RunRecord.started_at)).filter(
         RunRecord.namespace.in_(every),
         RunRecord.started_at.isnot(None),
-        RunRecord.started_at >= cutoff,
     ).group_by(RunRecord.namespace).all()
 
     last_at: Dict[str, datetime] = {}
@@ -156,12 +180,12 @@ def _publish(clusters: List[Dict]) -> None:
         cluster = c["cluster"]
         tier3_live_namespaces.labels(cluster=cluster).set(c["live"])
         tier3_never_scanned.labels(cluster=cluster).set(c["never_scanned"])
-        # A cluster with live namespaces but no run in the lookback window is
-        # infinitely stale; report the window itself so the series exists and
-        # the number is obvious rather than missing.
+        # A cluster with live namespaces but no run at all inside the retention
+        # window is at least that stale; report the horizon itself so the
+        # series exists and the number is obvious rather than missing.
         age = c["sweep_age_seconds"]
         tier3_sweep_age_seconds.labels(cluster=cluster).set(
-            age if age is not None else LOOKBACK_HOURS * 3600
+            age if age is not None else horizon_seconds()
         )
 
 
@@ -188,17 +212,19 @@ def _warn(clusters: List[Dict], target: float, now_epoch: float) -> None:
                 "Tier-3 sweep for %s is %.1f h old (target %.1f h) — "
                 "%d/%d live namespaces scanned; stalest: %s",
                 cluster,
-                (age if age is not None else LOOKBACK_HOURS * 3600) / 3600,
+                (age if age is not None else horizon_seconds()) / 3600,
                 target / 3600,
                 c["scanned"], c["live"], laggards,
             )
 
         if c["never_scanned"]:
             # Newly created labs land here until their first sweep; a lab that
-            # stays here is a coverage hole the sweep age cannot show.
+            # stays here is a coverage hole the sweep age cannot show. The
+            # horizon is retention, so "never scanned" means "no run left in
+            # the table", not "no run in the last day".
             logger.info(
-                "Tier-3 coverage %s: %d live namespace(s) never scanned in %dh: %s",
-                cluster, c["never_scanned"], LOOKBACK_HOURS,
+                "Tier-3 coverage %s: %d live namespace(s) with no run in the %d d retention window: %s",
+                cluster, c["never_scanned"], int(horizon_seconds() // 86400),
                 ", ".join(c["unseen_sample"]),
             )
 
@@ -239,5 +265,5 @@ def cached() -> Dict:
             "clusters": list(_cache["clusters"]),
             "target_seconds": _cache["target"],
             "computed_at": _cache["computed_at"],
-            "lookback_hours": LOOKBACK_HOURS,
+            "horizon_hours": int(horizon_seconds() // 3600),
         }

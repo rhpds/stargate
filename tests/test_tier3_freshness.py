@@ -83,13 +83,51 @@ class TestCompute:
         # infinitely old and hide behind the age of the ones that were.
         assert cluster["sweep_age_seconds"] <= 6 * 60
 
-    def test_runs_older_than_the_lookback_count_as_never_scanned(self, db):
-        _run(db, "sandbox-ancient", tier3_freshness.LOOKBACK_HOURS * 60 + 60)
+    def test_runs_older_than_a_day_are_stale_not_never_scanned(self, db):
+        # The inversion this module must not have: a 24 h cutoff made a lab
+        # swept three days ago look identical to one never touched, and
+        # dropped it out of sweep_age entirely — so the longer the outage, the
+        # quieter the alert. Three days old must read as three days stale.
+        _run(db, "sandbox-ancient", 3 * 24 * 60)
 
         [cluster] = tier3_freshness.compute(db, _scan("ocpv07", ["sandbox-ancient"]))
 
-        assert cluster["never_scanned"] == 1
-        assert cluster["sweep_age_seconds"] is None
+        assert cluster["never_scanned"] == 0
+        assert cluster["scanned"] == 1
+        assert 3 * 24 * 3600 - 60 <= cluster["sweep_age_seconds"] <= 3 * 24 * 3600 + 60
+
+    def test_the_stalest_namespace_sets_the_age_however_old_it_is(self, db):
+        # One recently scanned lab must not hide a long-abandoned one.
+        _run(db, "sandbox-fresh", 5)
+        _run(db, "sandbox-stale", 40 * 60)
+
+        [cluster] = tier3_freshness.compute(
+            db, _scan("ocpv07", ["sandbox-fresh", "sandbox-stale"])
+        )
+
+        assert cluster["never_scanned"] == 0
+        assert cluster["sweep_age_seconds"] >= 39 * 60
+        assert cluster["stalest"][0] == "sandbox-stale"
+
+    def test_horizon_follows_the_run_retention_window(self, monkeypatch):
+        # Retention deletes runs older than STARGATE_RUN_RETENTION_DAYS, so it
+        # is the only honest horizon; the gauge fallback and the "never
+        # scanned" wording both come from here.
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "30")
+        assert tier3_freshness.horizon_seconds() == 30 * 86400
+
+        monkeypatch.delenv("STARGATE_RUN_RETENTION_DAYS")
+        assert tier3_freshness.horizon_seconds() == (
+            tier3_freshness.DEFAULT_RETENTION_DAYS * 86400
+        )
+
+        # Junk and non-positive values must not produce a zero-byte horizon.
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "not-a-number")
+        assert tier3_freshness.horizon_seconds() == (
+            tier3_freshness.DEFAULT_RETENTION_DAYS * 86400
+        )
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "0")
+        assert tier3_freshness.horizon_seconds() == 86400
 
     def test_uses_each_clusters_own_live_set(self, db):
         _run(db, "sandbox-6", 10, cluster="ocpv06")
@@ -176,6 +214,35 @@ class TestPublishAndWarn:
             for r in caplog.records
         )
 
+    def test_a_cluster_with_no_observable_run_reports_the_horizon(self, monkeypatch):
+        # No cutoff means "never scanned" now covers only namespaces with no
+        # run row at all — but the gauge must still carry a number, and the
+        # only defensible one is the retention window, not a hardcoded 24 h.
+        from api.metrics import tier3_sweep_age_seconds
+
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "30")
+        tier3_freshness._publish([{
+            "cluster": "ocpv09", "live": 2, "scanned": 0, "never_scanned": 2,
+            "sweep_age_seconds": None, "last_scan_age_seconds": None,
+            "stalest": [], "unseen_sample": ["sandbox-a", "sandbox-b"],
+        }])
+
+        assert tier3_sweep_age_seconds.labels(cluster="ocpv09")._value.get() == 30 * 86400
+
+    def test_never_scanned_wording_names_the_retention_window(self, db, caplog, monkeypatch):
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "30")
+        _run(db, "sandbox-old", 200)
+        clusters = tier3_freshness.compute(
+            db, _scan("ocpv07", ["sandbox-old", "sandbox-new"])
+        )
+
+        with caplog.at_level("INFO", logger="stargate.tier3_freshness"):
+            tier3_freshness._warn(clusters, target=7200, now_epoch=1000.0)
+
+        coverage = [r.getMessage() for r in caplog.records if "coverage" in r.getMessage()]
+        assert coverage and "30 d retention window" in coverage[0]
+        assert "sandbox-new" in coverage[0]
+
 
 class TestTargetAndCache:
     def test_target_defaults_to_two_hours(self, monkeypatch):
@@ -245,3 +312,11 @@ class TestTargetAndCache:
         assert clusters[0]["cluster"] == "ocpv07"
         assert tier3_freshness.cached()["clusters"][0]["cluster"] == "ocpv07"
         assert tier3_freshness.cached()["target_seconds"] == 7200.0
+
+    def test_cached_reports_the_retention_horizon_not_a_lookback(self, monkeypatch):
+        monkeypatch.setenv("STARGATE_RUN_RETENTION_DAYS", "30")
+
+        snapshot = tier3_freshness.cached()
+
+        assert snapshot["horizon_hours"] == 720
+        assert "lookback_hours" not in snapshot

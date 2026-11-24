@@ -249,10 +249,20 @@ is the honest measure. "Live" is the scanner's own `all_sandbox_namespaces`
 from the latest snapshot, so a namespace destroyed by teardown stops counting
 immediately instead of pinning the minimum for a whole lookback window.
 
-A namespace with no run in the 24 h lookback is counted in
-`stargate_tier3_never_scanned` rather than folded into the age. Newly created
-labs appear there until their first sweep (log line at INFO, no page); a
-namespace that stays there is a coverage hole the sweep age cannot show.
+There is no time cutoff on the `runs` query. An earlier version only looked
+back 24 h, which made a lab swept three days ago indistinguishable from one
+that had never been touched and dropped it out of `sweep_age_seconds`
+altogether — so the longer the outage, the quieter the alert. The query is
+bounded by run retention instead (`STARGATE_RUN_RETENTION_DAYS`, default 90;
+see [Run-detail retention](#run-detail-retention) below), which cannot shrink
+below the truth.
+
+`stargate_tier3_never_scanned` therefore counts only live namespaces with **no
+run row left in the table at all** — newly created labs, which appear there
+until their first sweep (log line at INFO, no page). A namespace that stays
+there is a coverage hole the sweep age cannot show. When a whole cluster
+reports no observable attempt, `stargate_tier3_sweep_age_seconds` falls back to
+the retention horizon so the series still exists.
 
 ---
 
