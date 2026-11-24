@@ -224,3 +224,76 @@ class TestPruneStaleProviders:
 
         row = db.query(RotationSnapshot).filter_by(provider="OldName").one()
         assert (row.tickets, row.verified_live) == (0, 4)
+
+
+class TestSnapshotCompleteness:
+    """An incomplete fetch must never be read as "the epic is empty".
+
+    `upsert_tickets` deletes every ticket absent from the snapshot, so the
+    snapshot has to be known-complete before it is allowed to speak for the
+    whole epic. These are the two ways it could stop being complete without
+    anyone noticing: a page that does not say it is the last one, and a
+    result set that is genuinely empty because the query changed.
+    """
+
+    def test_empty_snapshot_keeps_stored_tickets(self, db):
+        from db.models import RotationTicket
+
+        rs.upsert_tickets(db, [_issue("A-1", "[turkeyvulture] Rotate a (AWS)")])
+        db.commit()
+
+        assert rs.upsert_tickets(db, []) == 0
+        assert [t.issue_key for t in db.query(RotationTicket).all()] == ["A-1"]
+
+    def test_page_without_is_last_raises(self, monkeypatch):
+        monkeypatch.setattr(
+            rs, "_fetch_page",
+            lambda url, auth, next_token=None: {
+                "issues": [_issue("A-1", "[turkeyvulture] Rotate a (AWS)")],
+            },
+        )
+
+        with pytest.raises(RuntimeError, match="without isLast"):
+            rs.fetch_issues("https://example.invalid", "e@example.com", "t")
+
+    def test_page_without_is_last_still_follows_the_token(self, monkeypatch):
+        """Missing `isLast` is not the same as "stop": a token means more."""
+        pages = [
+            {"issues": [_issue("A-1", "[turkeyvulture] Rotate a (AWS)")],
+             "nextPageToken": "p2"},
+            {"issues": [_issue("B-1", "[turkeyvulture] Rotate b (AWS)")],
+             "isLast": True},
+        ]
+        monkeypatch.setattr(
+            rs, "_fetch_page",
+            lambda url, auth, next_token=None: pages[0] if next_token is None else pages[1],
+        )
+
+        keys = [i["key"] for i in rs.fetch_issues(
+            "https://example.invalid", "e@example.com", "t")]
+        assert keys == ["A-1", "B-1"]
+
+    def test_sync_with_no_issues_keeps_today_s_rows(self, db, monkeypatch):
+        from datetime import datetime, timezone
+
+        from db.models import RotationSnapshot, RotationTicket
+
+        today = datetime.now(timezone.utc).date()
+        rs.upsert_tickets(db, [_issue("A-1", "[turkeyvulture] Rotate a (AWS)")])
+        db.add(RotationSnapshot(
+            snapshot_date=today, provider="AWS", tickets=1, closed=0,
+            in_progress=0, new=1, unassigned=0, verified_live=0,
+            live_locations=0, untracked_live=0,
+            synced_at=datetime.now(timezone.utc)))
+        db.commit()
+
+        monkeypatch.setenv("STARGATE_JIRA_URL", "https://example.invalid")
+        monkeypatch.setenv("STARGATE_JIRA_EMAIL", "e@example.com")
+        monkeypatch.setenv("STARGATE_JIRA_TOKEN", "t")
+        monkeypatch.setattr(rs, "fetch_issues", lambda *a, **k: [])
+
+        result = rs.sync(db)
+
+        assert result["status"] == "empty"
+        assert db.query(RotationTicket).count() == 1
+        assert db.query(RotationSnapshot).count() == 1
