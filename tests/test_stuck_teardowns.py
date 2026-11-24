@@ -317,3 +317,72 @@ class TestSubjectIdentity:
         assert unknown["cluster"] == "unknown"
         # An unknown cluster must not be queried, so existence stays unobserved.
         assert unknown["namespace_exists"] is None
+
+
+class TestClusterFromApiUrl:
+    """The API host is the last resort for a subject's target cluster.
+
+    Measured 2026-11-23: 1,935 of 3,558 subjects carry no cluster key, and 422
+    of those carry an API URL with the fleet host shape. Naming those is what
+    turns `cluster: "unknown"` into a check that can actually run — or, for
+    ocpv01/02/04, into a visible gap instead of an invisible one.
+    """
+
+    def _run(self, tmp_path, job_vars, age_h=10):
+        ts = (datetime.now(timezone.utc) - timedelta(hours=age_h)).isoformat().replace("+00:00", "Z")
+        item = {
+            "metadata": {"name": "subj", "creationTimestamp": ts, "deletionTimestamp": ts},
+            "status": {"state": "destroying"},
+            "spec": {"vars": {"job_vars": job_vars}},
+        }
+        kc = tmp_path / "kubeconfig-executor"
+        kc.write_text("{}")
+        with patch.object(collector.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = json.dumps({"items": [item]})
+            return collector.detect_stuck_teardowns(kubeconfig=str(kc))
+
+    def test_fleet_api_url_gives_the_cluster(self, tmp_path):
+        result = self._run(tmp_path, {
+            "sandbox_openshift_namespace": "sandbox-abc-ocp4-cluster",
+            "sandbox_openshift_api_url": "https://api.ocpv07.wdc06.infra.demo.redhat.com:6443",
+        })
+        assert result["stuck"][0]["cluster"] == "ocpv07"
+        assert result["attributable_count"] == 1
+
+    def test_scheme_less_url_is_read(self, tmp_path):
+        result = self._run(tmp_path, {
+            "openshift_api_url": "api.ocpv06.dal10.infra.demo.redhat.com:6443",
+        })
+        assert result["stuck"][0]["cluster"] == "ocpv06"
+
+    def test_unscanned_fleet_cluster_is_named_but_unobserved(self, tmp_path):
+        """ocpv01 is a real cluster we have no kubeconfig for: attribute the
+        row, record that existence was not observed, and do not query."""
+        result = self._run(tmp_path, {
+            "openshift_api_url": "https://api.ocpv01.dfw3.infra.demo.redhat.com:6443",
+        })
+        entry = result["stuck"][0]
+        assert entry["cluster"] == "ocpv01"
+        assert entry["namespace_exists"] is None
+
+    def test_ephemeral_host_is_not_a_cluster_identity(self, tmp_path):
+        """One ephemeral cluster per lab; naming them would refill
+        `evaluations` with hundreds of one-off cluster values."""
+        result = self._run(tmp_path, {
+            "openshift_api_url": "https://api.cluster-mg96m.dyn.redhatworkshops.io:6443",
+        })
+        assert result["stuck"][0]["cluster"] == "unknown"
+
+    def test_other_tenant_host_is_not_our_cluster(self, tmp_path):
+        result = self._run(tmp_path, {
+            "openshift_api_url": "https://api.ocp.8mvft.sandbox3312.opentlc:6443",
+        })
+        assert result["stuck"][0]["cluster"] == "unknown"
+
+    def test_explicit_cluster_key_still_wins(self, tmp_path):
+        result = self._run(tmp_path, {
+            "sandbox_openshift_cluster": "ocpv09",
+            "sandbox_openshift_api_url": "https://api.ocpv07.wdc06.infra.demo.redhat.com:6443",
+        })
+        assert result["stuck"][0]["cluster"] == "ocpv09"
