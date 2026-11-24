@@ -4,9 +4,91 @@ import logging
 import os
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("stargate.oc_runner")
+
+
+# Characters that mean something to a shell. No caller of this module runs a
+# shell, but a caller that *validates* a command string and then executes it as
+# argv must still refuse these: `oc get pods; curl …` is a single argv list
+# whose last three words are harmless, and refusing to notice that is how a
+# read-only console stops being read-only. Rejecting them also keeps a
+# rejection honest — the string was never going to be what the caller meant.
+SHELL_METACHARACTERS = (";", "&", "`", "$", "<", ">", "\\", "\n", "\r")
+
+# Filters that a read-only pipeline may be piped into. Deliberately no `sed`
+# and no `awk`: they are the two filters that can write a file or call
+# `system()`, and `sort -o FILE` is excluded below for the same reason.
+READ_ONLY_PIPE_COMMANDS = frozenset(
+    {"grep", "head", "tail", "wc", "sort", "uniq", "cut", "tr", "column"}
+)
+
+# Per-command flags that turn a filter into a writer. `sort -o FILE` would let
+# a path described as read-only overwrite a file — including the kubeconfig the
+# same command is authenticating with.
+FILTER_BLOCKED_FLAGS = {"sort": frozenset({"-o", "--output"})}
+
+
+def has_shell_metacharacters(text: str) -> bool:
+    """True when `text` contains anything a shell would interpret."""
+    return any(character in text for character in SHELL_METACHARACTERS)
+
+
+def split_pipeline(command: str) -> List[List[str]]:
+    """Split `oc get pods | grep nginx` into argv stages.
+
+    An empty stage (a leading, trailing or doubled `|`) makes the whole thing
+    invalid and returns `[]`, so callers reject rather than guess.
+    """
+    stages: List[List[str]] = []
+    for raw in command.split("|"):
+        argv = raw.split()
+        if not argv:
+            return []
+        stages.append(argv)
+    return stages
+
+
+def run_pipeline(
+    stages: List[List[str]],
+    kubeconfig: str = "",
+    timeout: int = 30,
+) -> Tuple[str, str, int]:
+    """Run argv stages with no shell, feeding each stdout into the next stdin.
+
+    Returns `(stdout, stderr, returncode)`: the failing stage's if one fails,
+    otherwise the last stage's. `timeout` applies per stage — a five-stage
+    pipeline can take five times as long as one command, and the alternative
+    (one budget for the chain) kills a `grep` that is waiting for `oc logs`
+    rather than the `oc logs` itself.
+
+    A pipe used to mean `subprocess.run(cmd, shell=True)`. That made every
+    allowlist check advisory: the shell re-parsed the same string, so a `;` or
+    `$(…)` that survived validation became a second command.
+    """
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
+
+    data: Optional[str] = None
+    stderr = ""
+    for argv in stages:
+        result = subprocess.run(
+            argv,
+            input=data,
+            stdin=None if data is not None else subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+        if result.returncode != 0:
+            return result.stdout, result.stderr, result.returncode
+        data = result.stdout
+        stderr = result.stderr
+    return data or "", stderr, 0
+
 
 
 def run_oc(args: List[str], kubeconfig: str = "", timeout: int = 30) -> str:

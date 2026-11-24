@@ -219,8 +219,11 @@ currently reach nobody (the known operational gap).
 - **MCP**: read + review only; no execution, no cluster access through MCP.
 - **API keys**: constant-time comparison, per-key rate limit, hashed audit
   attribution.
-- **oc command validation**: `_validate_k8s_name()` allowlist; read-only verbs
-  enforced for agent tools.
+- **oc command validation**: commands are tokenised and run as argv with no
+  shell (`engine/oc_runner.py:run_pipeline`); read-only verbs enforced for
+  agent tools and the diagnostics console, pipes restricted to filters that
+  cannot write a file, shell metacharacters refused. `_validate_k8s_name()`
+  constrains names substituted into executor argv.
 - **Removed Nov 16**: the DeepField integration (bidirectional) — internal product; its incidents were 94% of the approval queue and the calibration study proved its scores non-predictive. Historical rows preserved for the adjudication backtest
   (not StarGate's, but in-ecosystem); stargate-api CPU saturation under load.
 

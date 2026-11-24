@@ -226,9 +226,23 @@ class TestToolOcRead:
 
     @patch("subprocess.run")
     @patch("os.path.exists", return_value=True)
-    def test_pipe_uses_shell(self, mock_exists, mock_run):
+    def test_a_pipe_runs_argv_stages_without_a_shell(self, mock_exists, mock_run):
+        """A pipe used to select `shell=True`, which made the verb check advisory.
+
+        `oc get pods | grep nginx; curl …` passed validation on its first
+        segment and then handed the whole string — semicolon included — to
+        `/bin/sh`. The pipe still works; it is two argv stages now, and the
+        first one's stdout becomes the second one's stdin.
+        """
         mock_run.return_value = MagicMock(returncode=0, stdout="nginx", stderr="")
         from engine.investigation_agent import tool_oc_read
-        tool_oc_read("oc get pods -n test | grep nginx", "ocpv05", "/tmp/kc")
-        call_args = mock_run.call_args
-        assert call_args[1]["shell"] is True
+
+        result = tool_oc_read("oc get pods -n test | grep nginx", "ocpv05", "/tmp/kc")
+
+        assert result == "nginx"
+        assert [call.args[0] for call in mock_run.call_args_list] == [
+            ["oc", "get", "pods", "-n", "test"],
+            ["grep", "nginx"],
+        ]
+        assert all("shell" not in call.kwargs for call in mock_run.call_args_list)
+        assert mock_run.call_args_list[1].kwargs["input"] == "nginx"

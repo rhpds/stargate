@@ -29,6 +29,14 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional
 
+from engine.oc_runner import (
+    FILTER_BLOCKED_FLAGS,
+    READ_ONLY_PIPE_COMMANDS,
+    has_shell_metacharacters,
+    run_pipeline,
+    split_pipeline,
+)
+
 logger = logging.getLogger("stargate.agent")
 
 # Read-only oc verbs — NEVER add write verbs here
@@ -316,17 +324,33 @@ def _redact(text: str) -> str:
 
 
 def _is_safe_oc(cmd: str) -> bool:
-    """Validate that an oc command is strictly read-only."""
-    parts = cmd.strip().split()
-    if not parts or parts[0] != "oc":
+    """Validate that an oc command is strictly read-only.
+
+    The command is proposed by the model and can be steered by anything in the
+    cluster output it just read, so the string is tokenised and metacharacters
+    are refused outright: `oc get pods; curl …` starts with an allowed verb and
+    is not a read-only command.
+    """
+    if not cmd or has_shell_metacharacters(cmd):
         return False
-    if len(parts) < 2:
+    stages = split_pipeline(cmd)
+    if not stages:
+        return False
+    parts = stages[0]
+    if parts[0] != "oc" or len(parts) < 2:
         return False
     verb = parts[1]
     if verb not in _SAFE_VERBS:
         return False
     if verb == "adm" and (len(parts) < 3 or parts[2] not in _SAFE_ADM):
         return False
+    for stage in stages[1:]:
+        name = stage[0]
+        if name not in READ_ONLY_PIPE_COMMANDS:
+            return False
+        for flag in FILTER_BLOCKED_FLAGS.get(name, ()):
+            if flag in stage:
+                return False
     return True
 
 
@@ -342,14 +366,10 @@ def tool_oc_read(command: str, cluster: str, kubeconfig_dir: str) -> str:
         return "ERROR: No kubeconfig available for this cluster"
 
     try:
-        use_shell = "|" in command
-        r = subprocess.run(
-            command if use_shell else command.split(),
-            capture_output=True, text=True, timeout=10,
-            shell=use_shell,
-            env={**os.environ, "KUBECONFIG": kubeconfig},
+        stdout, stderr, returncode = run_pipeline(
+            split_pipeline(command), kubeconfig=kubeconfig, timeout=10
         )
-        output = r.stdout.strip() if r.returncode == 0 else f"ERROR (exit {r.returncode}): {r.stderr.strip()}"
+        output = stdout.strip() if returncode == 0 else f"ERROR (exit {returncode}): {stderr.strip()}"
         output = _redact(output)
         if len(output) > MAX_OUTPUT_CHARS:
             output = output[:MAX_OUTPUT_CHARS] + "\n... (truncated)"
