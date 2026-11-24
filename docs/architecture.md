@@ -284,8 +284,11 @@ stargate-platform/
   constraints/
     agnosticv_loader.py AgnosticV constraint loading
   rubrics/
-    platform/           11 stage rubrics (YAML)
-    build/              Build pipeline rubrics
+    platform/           13 stage rubrics (YAML)
+    build/              Build pipeline rubrics (TDD contract/e2e/integration/unit)
+    llm-quality/        Classification, integration, remediation quality rubrics
+    remediation-proof/  Proof rubrics per development discipline
+    proof-pipeline/     Proof pipeline stage definitions
   prompts/
     classify.yaml       LLM failure classification prompt
     remediation.yaml    LLM remediation prompt
