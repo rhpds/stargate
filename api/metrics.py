@@ -61,3 +61,25 @@ scanner_clusters_healthy = Gauge(
     "stargate_scanner_clusters_healthy",
     "Number of healthy clusters from last scan",
 )
+
+# Tier-3 freshness is per namespace, not per tick: the cluster-scan snapshot
+# that drives `scanner_clusters_healthy` is refreshed every five minutes and
+# stays fresh while tier 3 is wedged. See api/tier3_freshness.py for how these
+# are derived from `runs`.
+tier3_sweep_age_seconds = Gauge(
+    "stargate_tier3_sweep_age_seconds",
+    "Age of the least recently scanned live sandbox namespace, per cluster",
+    ["cluster"],
+)
+
+tier3_never_scanned = Gauge(
+    "stargate_tier3_never_scanned",
+    "Live sandbox namespaces with no tier-3 run in the lookback window",
+    ["cluster"],
+)
+
+tier3_live_namespaces = Gauge(
+    "stargate_tier3_live_namespaces",
+    "Live sandbox namespaces the scanner is rotating through",
+    ["cluster"],
+)

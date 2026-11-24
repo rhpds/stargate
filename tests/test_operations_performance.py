@@ -218,3 +218,74 @@ def test_postgres_migration_uses_concurrent_autocommit_and_refuses_invalid_index
     with pytest.raises(RuntimeError, match="invalid or mismatched"):
         migration.upgrade()
     operation.create_index.assert_not_called()
+
+
+def test_runs_namespace_started_at_index_is_declared_and_roundtrips():
+    """`runs` had no index on either column the tier-3 probe filters on.
+
+    Measured on production 2026-11-23 (608k rows, 323 MB): the probe's query
+    took 1,501 ms with two parallel seq scans, every 60 s, forever. The
+    composite index brought the same query on the same data to 64 ms.
+    """
+    from sqlalchemy import create_engine, inspect
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from db.models import RunRecord
+
+    path = Path("alembic/versions/s0b1c2d3e4f5_runs_namespace_started_at.py")
+    spec = importlib.util.spec_from_file_location("runs_index_migration", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    declared = {i.name: [c.name for c in i.columns] for i in RunRecord.__table__.indexes}
+    assert declared["idx_runs_namespace_started_at"] == ["namespace", "started_at"]
+    assert migration.revision == "s0b1c2d3e4f5"
+    assert migration._INDEX == "idx_runs_namespace_started_at"
+    assert migration._COLUMNS == ["namespace", "started_at"]
+
+    engine = create_engine("sqlite://")
+    with engine.connect() as conn:
+        conn.exec_driver_sql(
+            "CREATE TABLE runs (id INTEGER PRIMARY KEY, namespace TEXT NOT NULL, "
+            "started_at DATETIME)"
+        )
+        with Operations.context(MigrationContext.configure(conn)):
+            migration.upgrade()
+            migration.upgrade()  # if_not_exists: a rerun is a no-op, not an error
+            indexes = {i["name"]: i["column_names"] for i in inspect(conn).get_indexes("runs")}
+            assert indexes["idx_runs_namespace_started_at"] == ["namespace", "started_at"]
+            migration.downgrade()
+            assert "idx_runs_namespace_started_at" not in {
+                i["name"] for i in inspect(conn).get_indexes("runs")
+            }
+    engine.dispose()
+
+
+def test_runs_index_is_ordered_for_the_probe_not_for_a_time_range(monkeypatch):
+    """Column order is the whole point, so it gets its own assertion.
+
+    The probe filters an IN-list of ~923 namespaces and takes max(started_at)
+    inside each. Leading with started_at would make it a range scan followed by
+    a sort of the entire 24 h window; leading with namespace turns it into 923
+    short index ranges whose last entry is the answer.
+    """
+    from db.models import RunRecord
+
+    index = next(i for i in RunRecord.__table__.indexes
+                 if i.name == "idx_runs_namespace_started_at")
+    assert [c.name for c in index.columns] == ["namespace", "started_at"]
+
+    path = Path("alembic/versions/s0b1c2d3e4f5_runs_namespace_started_at.py")
+    spec = importlib.util.spec_from_file_location("runs_index_pg", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    operation = MagicMock()
+    operation.get_bind.return_value.dialect.name = "postgresql"
+    monkeypatch.setattr(migration, "op", operation)
+    migration.upgrade()
+    operation.execute.assert_called_once_with("SET LOCAL statement_timeout = 0")
+    operation.create_index.assert_called_once_with(
+        "idx_runs_namespace_started_at", "runs", ["namespace", "started_at"],
+        if_not_exists=True,
+    )

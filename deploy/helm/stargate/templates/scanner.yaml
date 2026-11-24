@@ -31,7 +31,7 @@ spec:
           command: ["python3", "-m", "cli.scheduler", "--clusters", {{ .Values.scanner.clusters | quote }},
                     "--api-url", {{ .Values.scanner.apiUrl | quote }}, "--no-babylon",
                     "--tier1", {{ .Values.scanner.tier1 | quote }}, "--tier2", {{ .Values.scanner.tier2 | quote }},
-                    "--tier3", {{ .Values.scanner.tier3 | quote }}, "--batch", {{ .Values.scanner.batch | quote }}]
+                    "--tier3", {{ .Values.scanner.tier3 | quote }}, "--batch", {{ .Values.scanner.batch | quote }}{{ if .Values.scanner.tier3Independent }}, "--tier3-independent"{{ end }}]
           env:
             - name: STARGATE_ADMIN_API_KEY
               valueFrom:

@@ -29,7 +29,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set
 
 from cli.kubeconfigs import SECRETS_DIR, resolve_kubeconfig
 from db.lab_identity import is_lab_namespace
@@ -123,8 +123,11 @@ class ClusterState:
     failing_namespaces: Set[str] = field(default_factory=set)
     scanned_namespaces: Set[str] = field(default_factory=set)
     all_sandbox_namespaces: List[str] = field(default_factory=list)
-    ns_rotation_index: int = 0
-    failing_rotation_index: int = 0
+    # ns -> epoch of the last *attempted* collection. This is what tier 3
+    # orders by; it replaces the rotation indices, which were positions in a
+    # list that is re-sorted under them every tier-2 tick. See
+    # `select_namespace_batch`.
+    last_scanned_at: Dict[str, float] = field(default_factory=dict)
     scan_count: int = 0
     ns_outcomes: Dict[str, str] = field(default_factory=dict)
     storage_catalog_data: Optional[Dict] = None
@@ -134,77 +137,68 @@ def select_namespace_batch(
     failing: Iterable[str],
     healthy: Iterable[str],
     batch_size: int,
-    ns_index: int = 0,
-    failing_index: int = 0,
-) -> Tuple[List[str], int, int]:
-    """Choose the namespaces for one tier-3 batch.
+    last_scanned: Optional[Dict[str, float]] = None,
+) -> List[str]:
+    """Choose the namespaces for one tier-3 batch: oldest attempt first.
 
-    Failing namespaces go first because they are the ones worth watching, but
-    they must be *rotated* rather than taken from the front of a sorted list.
-    The previous selection did ``failing[:batch_size // 2]`` and then drew the
-    remainder from ``healthy``, which excluded every failing namespace by
-    definition. Any cluster whose failing set was larger than half the batch
-    therefore had namespaces in neither list: sorted past the cutoff of one,
-    filtered out of the other, and never collected again for as long as they
-    stayed broken. The fleet that needs the most attention was the least
-    observed, and nothing in the log said so.
+    Selection used to be an index into a *sorted* list, advanced by however
+    many names were taken each tick. That is stable only while the list is.
+    It is not: ``all_sandbox_namespaces`` is rebuilt from the pods collector
+    every tier-2 tick while labs are created and destroyed, so the item at
+    index *i* changes between ticks. A lab unlucky enough to keep landing on
+    the wrong side of the cursor is skipped indefinitely, and nothing in the
+    aggregate scan rate shows it — measured 2026-11-23 22:45Z, nine live
+    namespaces were 5–6 h old on clusters whose throughput implied a one-hour
+    sweep (docs/cluster-fleet.md).
 
-    Returns ``(batch, next_ns_index, next_failing_index)``.
+    Ordering by the attempt timestamp instead of by position removes the
+    whole class: the next batch is the least recently attempted namespaces,
+    whatever the list did in between. Namespaces never attempted sort first
+    (``0.0``), so a newly provisioned lab is picked up on the next tick.
 
-    Invariants, which the tests pin:
+    Failing namespaces still take up to half the batch — they are the ones
+    worth watching more often — and the rest go to the oldest of the
+    remainder. The caller is responsible for stamping every attempted
+    namespace into ``last_scanned``, including attempts that failed: the
+    rotation is over attempts, not successes, or a permanently broken lab
+    would be retried every tick and crowd out everything else.
 
-    - every failing namespace is reachable within ``ceil(len(failing) / cap)``
-      consecutive ticks, where ``cap = batch_size // 2``;
-    - the healthy list keeps its caller-supplied order and rotates from
-      ``ns_index``, so coverage is even rather than front-loaded;
+    Returns the batch. Invariants, which the tests pin:
+
+    - a namespace attempted longer ago is always selected first;
     - a batch is ``batch_size`` long whenever the two lists together hold that
-      many namespaces — a cluster that is entirely failing still fills its
-      batch instead of shrinking to ``cap``.
+      many namespaces — a cluster that is entirely failing still fills it;
+    - the selection does not depend on list order or on set iteration order.
     """
     if batch_size <= 0:
-        return [], ns_index, failing_index
+        return []
 
-    failing_sorted = sorted(set(failing))
-    failing_set = set(failing_sorted)
-    healthy_ordered = [ns for ns in healthy if ns not in failing_set]
+    last = last_scanned or {}
+    failing_set = set(failing)
+    failing_ordered = sorted(failing_set, key=lambda ns: (last.get(ns, 0.0), ns))
+    healthy_ordered = sorted(
+        (ns for ns in healthy if ns not in failing_set),
+        key=lambda ns: (last.get(ns, 0.0), ns),
+    )
 
-    # Up to half the batch is reserved for the failing set; the rest rotates
-    # through everything else. Never reserve more than there is to reserve.
-    cap = max(1, batch_size // 2) if failing_sorted else 0
+    # Up to half the batch is reserved for the failing set; the rest goes to
+    # the oldest of everything else. Never reserve more than there is.
+    cap = max(1, batch_size // 2) if failing_ordered else 0
+    batch = failing_ordered[:cap]
+    batch += healthy_ordered[: batch_size - len(batch)]
 
-    batch: List[str] = []
-    next_failing = failing_index
-    if failing_sorted:
-        take = min(cap, len(failing_sorted))
-        for i in range(take):
-            batch.append(failing_sorted[(failing_index + i) % len(failing_sorted)])
-        next_failing = (failing_index + take) % len(failing_sorted)
+    # Fewer healthy namespaces than slots (or none at all): keep taking the
+    # oldest of the failing set instead of emitting a short batch.
+    if len(batch) < batch_size:
+        taken = set(batch)
+        for ns in failing_ordered + healthy_ordered:
+            if len(batch) >= batch_size:
+                break
+            if ns not in taken:
+                batch.append(ns)
+                taken.add(ns)
 
-    next_ns = ns_index
-    remaining = batch_size - len(batch)
-    if healthy_ordered and remaining > 0:
-        take = min(remaining, len(healthy_ordered))
-        for i in range(take):
-            batch.append(healthy_ordered[(ns_index + i) % len(healthy_ordered)])
-        next_ns = (ns_index + take) % len(healthy_ordered)
-        remaining -= take
-
-    # Fewer healthy namespaces than slots (or none at all): keep walking the
-    # failing rotation instead of emitting a short batch.
-    if remaining > 0 and failing_sorted:
-        seen = 0
-        cursor = next_failing
-        while remaining > 0 and seen < len(failing_sorted):
-            ns = failing_sorted[cursor % len(failing_sorted)]
-            cursor += 1
-            seen += 1
-            if ns in batch:
-                continue
-            batch.append(ns)
-            remaining -= 1
-        next_failing = cursor % len(failing_sorted)
-
-    return batch, next_ns, next_failing
+    return batch
 
 
 class ClusterWorker:
@@ -405,6 +399,15 @@ class ClusterWorker:
             self.state.pod_status = current_status
             self.state.failing_namespaces = failing_ns
             self.state.all_sandbox_namespaces = sorted(sandbox_ns)
+            # Drop attempt stamps for namespaces that no longer exist. Without
+            # this the dict grows with every lab the fleet has ever run; the
+            # set is rebuilt here from the pods collector, so this is the one
+            # place that knows what is live.
+            self.state.last_scanned_at = {
+                ns: stamp
+                for ns, stamp in self.state.last_scanned_at.items()
+                if ns in sandbox_ns
+            }
 
             compute_nodes = self.state.node_data.get("compute_nodes", 1) or 1
 
@@ -455,17 +458,15 @@ class ClusterWorker:
         if not self.api_url:
             return {"skipped": "no api_url configured"}
 
-        # Priority: scan failing namespaces first, then rotate through healthy
-        # ones. Both lists rotate — see select_namespace_batch for why taking
-        # the failing set off the front of a sorted list starved the rest.
-        batch, self.state.ns_rotation_index, self.state.failing_rotation_index = (
-            select_namespace_batch(
-                self.state.failing_namespaces,
-                self.state.all_sandbox_namespaces,
-                self.TIER3_BATCH_SIZE,
-                ns_index=self.state.ns_rotation_index,
-                failing_index=self.state.failing_rotation_index,
-            )
+        # Priority: scan failing namespaces first, then the namespaces that
+        # have waited longest. Ordering is by attempt time, not by an index
+        # into the list — see select_namespace_batch for the starvation this
+        # replaced.
+        batch = select_namespace_batch(
+            self.state.failing_namespaces,
+            self.state.all_sandbox_namespaces,
+            self.TIER3_BATCH_SIZE,
+            self.state.last_scanned_at,
         )
 
         persisted = 0
@@ -496,6 +497,11 @@ class ClusterWorker:
             # LabMapping is for *enrichment* (owner, catalog item); it must not
             # decide who the evidence belongs to.
             result = self._collect_namespace(ns, lab_code=ns)
+            # Stamp the attempt, success or failure. The rotation orders by
+            # this, so a namespace whose collection keeps failing is retried
+            # when it is the oldest — not every tick, which would crowd out
+            # everything else.
+            self.state.last_scanned_at[ns] = time.time()
             if result:
                 if result.get("service_uuid"):
                     uuid_map[result["service_uuid"]] = ns

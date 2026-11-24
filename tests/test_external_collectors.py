@@ -164,7 +164,7 @@ class TestWorkerTiers:
         assert state.last_pod_scan == 0
         assert state.last_ns_scan == 0
         assert len(state.failing_namespaces) == 0
-        assert state.ns_rotation_index == 0
+        assert state.last_scanned_at == {}
 
 
 class TestDemoTypeDetection:
