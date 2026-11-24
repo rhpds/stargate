@@ -354,8 +354,8 @@ the labs that got picked; it cannot see labs that did not, which is precisely
 the failure a rotating index can produce (the index is a position in a list
 that is re-sorted every tier-2 tick while labs are created and destroyed
 beneath it). The gauge makes this visible; selecting batches by *oldest
-last-scan* rather than by rotation index is the follow-up that would make it
-not happen. That change is not in `#177`.
+last-scan* rather than by rotation index is what would make it not happen, and
+that is `#178` — this PR only makes the failure visible.
 
 ## What closing the gap requires
 
