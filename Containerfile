@@ -38,6 +38,7 @@ COPY docs/ docs/
 COPY integrations/ integrations/
 COPY celery_app.py .
 COPY tasks/ tasks/
+COPY scripts/ scripts/
 COPY evidence-schemas/ evidence-schemas/
 COPY cli/ cli/
 COPY alembic.ini .
