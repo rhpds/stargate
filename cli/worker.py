@@ -976,6 +976,7 @@ class ClusterWorker:
                         raise
                 time.sleep(0.25 * (2 ** attempt))
 
+        created = False
         try:
             run_id = f"{run_prefix}-{self.state.name}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-%f')}"
             body = json.dumps({
@@ -992,6 +993,7 @@ class ClusterWorker:
                 headers=self._api_headers(),
             )
             send(req)
+            created = True
 
             req = urllib_req.Request(
                 f"{self.api_url}/runs/{run_id}/stages/{stage_id}/start",
@@ -1041,6 +1043,29 @@ class ClusterWorker:
             send(req)
         except Exception as e:
             logger.warning("Failed to persist %s evaluation: %s", stage_id, e)
+            if created:
+                # The run exists and will never be evaluated. Leaving it
+                # `running` is worse than closing it wrongly: an open run is
+                # indistinguishable from a scan in flight, and it poisons MTTR
+                # and duration queries — the exact failure `/complete` was added
+                # to fix (541,317 of 551,765 production runs were open). The API
+                # accepts only `completed` or `failed`, so this says `failed`
+                # and the log line above keeps the distinction a human needs.
+                #
+                # One attempt, no retry: this is already the failure path, and a
+                # second slow call here would block the cluster loop again.
+                try:
+                    req = urllib_req.Request(
+                        f"{self.api_url}/runs/{run_id}/complete",
+                        data=json.dumps({"status": "failed"}).encode(),
+                        headers=self._api_headers(),
+                    )
+                    urllib_req.urlopen(req, timeout=10)
+                except Exception as close_exc:
+                    logger.warning(
+                        "Could not close run %s after a failed persist: %s",
+                        run_id, close_exc,
+                    )
 
     def persist_cluster_health(self):
         """Persist cluster-health evaluation from Tier 1 node data."""
