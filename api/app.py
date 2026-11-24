@@ -1524,6 +1524,7 @@ def _mv_refresh_loop():
                     pass
                 db.close()
 
+        scans: list = []
         try:
             scans = _load_latest_scan()
             if scans:
@@ -1537,6 +1538,15 @@ def _mv_refresh_loop():
                     scanner_clusters_healthy.set(healthy)
         except Exception as e:
             logger.debug(f"Scanner health check failed: {e}")
+
+        # Tier-3 freshness is measured from `runs`, not from the snapshot the
+        # block above reads: the snapshot only proves tier 1 ticked. Keep this
+        # in its own session and its own try — the loop's session is closed.
+        try:
+            from api import tier3_freshness
+            tier3_freshness.refresh(scans)
+        except Exception as e:
+            logger.debug(f"Tier-3 freshness check failed: {e}")
 
         _cleanup_scan_history()
         _shutdown_event.wait(60)

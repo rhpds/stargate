@@ -231,6 +231,41 @@ an explicit 4xx/5xx is an observed non-200. See
 
 ---
 
+## Tier-3 freshness
+
+### STARGATE_TIER3_FRESHNESS_TARGET_SECONDS
+
+| Property    | Value                                                       |
+|-------------|-------------------------------------------------------------|
+| Default     | `7200`                                                      |
+| Description | Warning threshold for `stargate_tier3_sweep_age_seconds`, the age of the least recently scanned *live* sandbox namespace on a cluster. The API measures it from `runs` every 60 s; `/health` reports it as `components.tier3` with per-cluster detail. |
+| When to change | Lower it to hold the fleet to a tighter sweep than two hours; raise it during a known backlog so a real regression is not lost in the noise. |
+
+The sweep age is computed per namespace, not per tick. `/health`'s
+`components.scanners` reads the five-minute cluster-scan snapshot, which only
+proves tier 1 ran — it stays green while tier 3 is wedged. A tier-3 run is the
+expensive one (full evidence for one namespace), so the stalest live namespace
+is the honest measure. "Live" is the scanner's own `all_sandbox_namespaces`
+from the latest snapshot, so a namespace destroyed by teardown stops counting
+immediately instead of pinning the minimum for a whole lookback window.
+
+There is no time cutoff on the `runs` query. An earlier version only looked
+back 24 h, which made a lab swept three days ago indistinguishable from one
+that had never been touched and dropped it out of `sweep_age_seconds`
+altogether — so the longer the outage, the quieter the alert. The query is
+bounded by run retention instead (`STARGATE_RUN_RETENTION_DAYS`, default 90;
+see [Run-detail retention](#run-detail-retention) below), which cannot shrink
+below the truth.
+
+`stargate_tier3_never_scanned` therefore counts only live namespaces with **no
+run row left in the table at all** — newly created labs, which appear there
+until their first sweep (log line at INFO, no page). A namespace that stays
+there is a coverage hole the sweep age cannot show. When a whole cluster
+reports no observable attempt, `stargate_tier3_sweep_age_seconds` falls back to
+the retention horizon so the series still exists.
+
+---
+
 ## CORS
 
 ### STARGATE_CORS_ORIGINS
@@ -1050,6 +1085,7 @@ Example: `secrets/kubeconfig-executor`
 | `STARGATE_SLACK_WEBHOOK_URL`             | Not set                 | No          |
 | `STARGATE_COST_VCPU_HOUR`               | `0.05`                  | No          |
 | `STARGATE_INLINE_SCANNER`               | `false`                 | No          |
+| `STARGATE_TIER3_FRESHNESS_TARGET_SECONDS` | `7200`                | No          |
 | `STARGATE_API_BABYLON_COLLECTION`       | `false`                 | No          |
 | `STARGATE_API_CORPUS_MINING`             | `false`                 | No          |
 

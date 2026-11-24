@@ -374,6 +374,69 @@ change to what is observed. The third row is a cost as well as a fix:
 165 rows/namespace across ~250 namespaces on five clusters is on the order of
 200k evidence rows per fleet sweep, into a table already at 36 GB.
 
+## How the sweep is watched
+
+Everything above measures the sweep, so something has to measure the
+measurement. Until `#177` nothing did: `/health`'s `components.scanners` reads
+the cluster-scan snapshot the scheduler writes every five minutes, which proves
+tier 1 ticked. A scanner that keeps ticking while tier 3 alone stalls — its
+thread dies, or the rotation stops advancing — stays green on that signal
+indefinitely.
+
+`api/tier3_freshness.py` derives the sweep age from `runs` instead, once a
+minute:
+
+```
+sweep_age(cluster) = now − last tier-3 run of the stalest *live* namespace
+```
+
+"Live" is the scanner's own `all_sandbox_namespaces` from the latest snapshot,
+not every namespace in `runs`. That distinction is the whole metric: a
+namespace destroyed by teardown leaves the live set within five minutes,
+whereas a minimum over raw `runs` keeps counting it until its last run falls
+out of retention, and reports teardown churn as scanner lag.
+
+The query has **no time cutoff**, on purpose. The first version of `#177` looked
+back 24 h, which inverted the alert it exists to raise: a lab swept three days
+ago became indistinguishable from one never touched, dropped out of
+`sweep_age_seconds`, and silenced the warning exactly when the outage was
+worst. The query is bounded by run retention (`STARGATE_RUN_RETENTION_DAYS`,
+default 90 days) instead — a window that cannot be shorter than the truth. So
+`stargate_tier3_never_scanned` now means what it says: no run row left in the
+table at all, i.e. a lab that has never been swept. Newly created labs appear
+there until their first sweep.
+
+The gauges are `stargate_tier3_sweep_age_seconds`,
+`stargate_tier3_never_scanned` and `stargate_tier3_live_namespaces`, labelled by
+cluster; `/health` carries the same numbers as `components.tier3` and names the
+stale clusters. The warning threshold is `STARGATE_TIER3_FRESHNESS_TARGET_SECONDS`,
+default two hours.
+
+**It found something the first time it was pointed at production data.**
+Measured directly against `runs` at 2026-11-23 22:45Z — before the gauge was
+deployed — five clusters, 853 live namespaces:
+
+| Cluster | live | never scanned | over 2 h | stalest |
+|---|---|---|---|---|
+| ocpv03 | 28 | 0 | 0 | 6 min |
+| ocpv06 | 223 | 4 | 3 | 5.7 h |
+| ocpv07 | 211 | 2 | 3 | 5.7 h |
+| ocpv08 | 211 | 2 | 1 | 5.7 h |
+| ocpv09 | 180 | 2 | 2 | 5.1 h |
+
+The rate figures in this document — 212 namespaces/h on 211 live labs — imply a
+one-hour sweep, and at the *median* that is what the fleet does. Per namespace
+it is not: nine labs sat five to six hours old while their cluster was
+otherwise current. The ten "never scanned" namespaces are not a hole of the
+same kind — each first appeared in a snapshot between 21:49Z and 22:34Z, which
+is what a new lab looks like before its first sweep. A rate is an average over
+the labs that got picked; it cannot see labs that did not, which is precisely
+the failure a rotating index can produce (the index is a position in a list
+that is re-sorted every tier-2 tick while labs are created and destroyed
+beneath it). The gauge makes this visible; selecting batches by *oldest
+last-scan* rather than by rotation index is what would make it not happen, and
+that is `#178` — this PR only makes the failure visible.
+
 ## What closing the gap requires
 
 1. **Credentials**: `cluster-reader` kubeconfigs for `ocpv01`, `ocpv02`,
