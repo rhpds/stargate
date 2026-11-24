@@ -60,6 +60,60 @@ def test_empty_analysis_has_no_quality_claims():
     }
 
 
+# The next three shapes are taken from stored investigations whose verdict was
+# NULL: the enum was present in every one, just not adjacent to the word
+# "Verdict". 1,257 of 2,800 rows (45%) carried a null verdict for this reason.
+
+
+def test_extracts_blockquote_verdict_under_a_heading():
+    analysis = """
+### 5. Owner
+lab-owner
+
+### 6. Verdict
+
+> **TRANSIENT**
+
+The namespace was cleanly reclaimed.
+
+### 7. Confidence
+90
+"""
+
+    fields = _extract_structured_fields(analysis)
+
+    assert fields["verdict"] == "TRANSIENT"
+
+
+def test_extracts_verdict_from_a_table_row():
+    analysis = """
+| Field | Value |
+|---|---|
+| Verdict | ACTIONABLE |
+| Confidence | 70 |
+"""
+
+    assert _extract_structured_fields(analysis)["verdict"] == "ACTIONABLE"
+
+
+def test_extracts_verdict_bolded_on_the_next_line():
+    analysis = """
+**Verdict**
+**ACTIONABLE**
+"""
+
+    assert _extract_structured_fields(analysis)["verdict"] == "ACTIONABLE"
+
+
+def test_prose_does_not_invent_a_verdict():
+    analysis = """
+### 2. Root Cause
+The failure looks transient in nature, but it is actionable information for the team.
+"""
+
+    assert _extract_structured_fields(analysis)["verdict"] is None
+
+
 def test_usage_canary_assignment_is_stable(monkeypatch):
     from engine.investigation_agent import _usage_optimization_enabled
 

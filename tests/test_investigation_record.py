@@ -131,3 +131,30 @@ class TestInvestigationQueries:
         link_investigation_to_resolution(db, investigation_id=1, resolution_id=42)
         rec = get_investigation(db, "inv-link01")
         assert rec.resolved_by_id == 42
+
+    def test_complete_refuses_to_overwrite_a_failed_row(self, db):
+        """A thread that outlives the batch timeout must not resurrect the row
+        the stuck sweeper already failed — the hang is the finding."""
+        from db.repository import (
+            complete_investigation, create_investigation, fail_investigation,
+            get_investigation, start_investigation,
+        )
+        create_investigation(db, job_id="inv-late01", lab_code="ns1",
+                             cluster="c1", failure_class="fc1")
+        start_investigation(db, "inv-late01")
+        fail_investigation(db, "inv-late01", "Stuck: exceeded 5 minute wall time")
+
+        written = complete_investigation(db, "inv-late01", analysis="late result")
+
+        assert written is False
+        rec = get_investigation(db, "inv-late01")
+        assert rec.status == "error"
+        assert rec.analysis is None
+
+    def test_complete_stores_cost_estimate(self, db):
+        from db.repository import complete_investigation, create_investigation, get_investigation
+        create_investigation(db, job_id="inv-cost01", lab_code="ns1",
+                             cluster="c1", failure_class="fc1")
+        assert complete_investigation(db, "inv-cost01", analysis="done",
+                                      cost_estimate=0.0173) is True
+        assert get_investigation(db, "inv-cost01").cost_estimate == 0.0173

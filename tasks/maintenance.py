@@ -225,6 +225,7 @@ def _run_single_investigation(record, db):
         tool_calls=result.get("tool_calls", []),
         iterations=result.get("iterations", 0),
         model_used=model_used,
+        cost_estimate=result.get("cost_estimate"),
         root_cause=fields.get("root_cause"),
         remediation_suggestion=fields.get("remediation_suggestion"),
         trust_dimensions={
@@ -281,9 +282,34 @@ def _extract_structured_fields(analysis: str) -> dict:
             r'\n\s*(?:Verdict|Confidence|Owner|Shadow Remediation)\s*[:\n]',
             remediation, flags=_re.IGNORECASE
         )[0].strip()
+    # The agent renders the verdict in several shapes, and only one of them puts
+    # the enum next to the word: "**Verdict**: ACTIONABLE", a table row
+    # "| Verdict | TRANSIENT |", or — most commonly — a heading followed by a
+    # blockquote:
+    #
+    #     ### 6. Verdict
+    #
+    #     > **TRANSIENT**
+    #
+    # The old pattern required the enum to follow "Verdict" through nothing but
+    # `[:\s*]`, so the `>` form, the `|` form and a bolded value on the next
+    # line all produced NULL — 45% of stored investigations had no verdict at
+    # all, which silently disabled verdict-based suppression and tri-state
+    # reporting. Search the Verdict section for the enum instead of requiring
+    # adjacency.
     verdict = None
-
-    v_match = re.search(r'(?:verdict|Verdict)[:\s*]*\*?\*?(TRANSIENT|ACTIONABLE|UNKNOWN)\*?\*?', analysis, re.IGNORECASE)
+    verdict_scope = section(r"Verdict")
+    v_match = re.search(r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope or "")
+    if not v_match:
+        # Models occasionally lowercase the enum inside the section; the section
+        # is narrow enough that this cannot pick up prose from elsewhere.
+        v_match = re.search(
+            r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope or "", re.IGNORECASE
+        )
+    if not v_match:
+        # Last resort: a document with no Verdict heading. Case-sensitive so a
+        # sentence like "this looks transient" cannot invent a verdict.
+        v_match = re.search(r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", analysis)
     if v_match:
         verdict = v_match.group(1).upper()
 
