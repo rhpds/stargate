@@ -4,7 +4,7 @@ Step-by-step event flows through the platform — what happens, in what order,
 and where the data lands. Anyone on the RHDP team should be able to trace
 any workload's lifecycle from this doc.
 
-For agent/MCP access, see [mcp-agent-guide.md](mcp-agent-guide.md).
+For agent/MCP access, see [stargate-mcp-agent-guide.md](stargate-mcp-agent-guide.md).
 
 ---
 
@@ -33,11 +33,11 @@ Full diagrams, including the architecture and data model:
 
 | Step | What happens | Data lands in |
 |------|-------------|---------------|
-| 1. Scan | Scanner workers poll 8 clusters (cluster-05–09, infra01, infra02, us-east-1) on tiered schedules | `evidence` table via API |
+| 1. Scan | Scanner workers poll the five provisioning clusters (ocpv03, ocpv06–09) on tiered schedules | `evidence` table via API |
 | 2. Evaluate | Rubric evaluator checks evidence against stage criteria (tri-state: pass/fail/indeterminate) | `evaluations` table |
 | 3. Classify | Unclassified failures go to the LLM (quality-gated) or regex taxonomy | `proposed_classifications` table |
 | 4. Investigate | Attention classifier triggers Sonnet agent for anomalous namespaces | `investigations` table |
-| 5. Diagnose | Agent collects evidence via 10 read-only tools, produces root_cause + remediation_suggestion | `investigations.root_cause`, `.remediation_suggestion` |
+| 5. Diagnose | Agent collects evidence via 15 read-only tools, produces root_cause + remediation_suggestion | `investigations.root_cause`, `.remediation_suggestion` |
 | 6. Adjudicate | Blind reviewers + judge evaluate the diagnosis (gated, runs when enabled) | `adjudications` table |
 | 7. Queue | ACTIONABLE investigations queue a human-review action with catalog candidates + lineage | `pending_actions` table |
 | 8. Precheck | GeoLux classifies the proposed action against constraints (safe/unsafe/unknown) | `pending_actions.parameters.geolux_check` |
@@ -272,8 +272,8 @@ GET /dashboard/causal-chain?investigation_id=N
 │ Any Agent  │────▶│ StarGate MCP     │────▶│ Platform    │
 │ (Cursor,   │     │ Server           │     │ Data        │
 │ Claude,    │     │                  │     │             │
-│ custom)    │     │ 8 query tools    │     │ - episodes  │
-│            │     │ + ask (RAG)      │     │ - evals     │
+│ custom)    │     │ 27 query tools   │     │ - episodes  │
+│            │     │ (incl. ask/RAG)  │     │ - evals     │
 │            │     │ + review_diagnosis│    │ - chains    │
 │            │     │ + comment_action │     │ - taxonomy  │
 └────────────┘     │                  │     │ - proofs    │
@@ -283,12 +283,13 @@ GET /dashboard/causal-chain?investigation_id=N
                    └──────────────────┘     └─────────────┘
 ```
 
-**25 tools total**: 23 read-only query tools, `ask` (natural-language RAG),
-`get_cluster_saturation` (capacity correlation), `get_recent_changes`
-(GitHub PRs + Jira change correlation), `get_known_issues` (fleet-level
-rollup of investigations sharing one root cause), and 2 review tools
-(diagnosis review + action comments). Review tools record opinions only —
-no execution, no cluster access, no remediation.
+**29 tools total**: 27 read-only query tools — including `ask`
+(natural-language RAG), `get_cluster_saturation` (capacity correlation),
+`get_recent_changes` (GitHub PRs + Jira change correlation), and
+`get_known_issues` (fleet-level rollup of investigations sharing one root
+cause) — plus 2 review tools (diagnosis review + action comments). Review
+tools record opinions only — no execution, no cluster access, no
+remediation.
 
 The **investigation agent** (separate from MCP) has 15 tools including
 `query_recent_changes`, `query_cluster_saturation`, and `search_knowledge`

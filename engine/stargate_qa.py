@@ -30,10 +30,18 @@ logger = logging.getLogger("stargate.qa")
 
 # Documents worth indexing for RAG (operational knowledge). Each is split
 # into sections so long docs don't lose their tail to the character cap.
+#
+# Deliberately excluded: `review-2026-11-23.md`. It enumerates unpatched
+# weaknesses and must not be retrievable through the public `ask` surface.
 _DOC_FILES = (
     "workflows.md",
     "stargate-mcp-agent-guide.md",
+    "mcp-tool-cookbook.md",
     "architecture.md",
+    "configuration.md",
+    "config-management.md",
+    "config-log.md",
+    "cluster-fleet.md",
     "evidence-observation-semantics.md",
     "runbook.md",
     "summary-refresh-release.md",

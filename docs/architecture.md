@@ -6,15 +6,18 @@ StarGate is a centralized validation layer for the Red Hat Demo Platform (RHDP).
 It continuously collects evidence from live OpenShift clusters, evaluates that
 evidence against YAML-defined rubrics, classifies failures, generates
 provisioning recommendations via a policy engine, and surfaces the results
-through a React dashboard and REST API. An LLM (configurable via
-`STARGATE_LLM_MODEL`, default Granite 3.2 8B, routed through LiteLLM) provides
+through a React dashboard and REST API. An LLM (routed through LiteLLM) provides
 failure classification and executive summaries when deterministic rules are
-insufficient.
+insufficient. `STARGATE_LLM_MODEL` defaults to Granite 3.2 8B for local
+development; production routes classification to `llama-scout-17b`, `ask`
+synthesis to `qwen3-14b`, and investigations to a Sonnet-class model.
 
-The system monitors 5+ scanner clusters (cluster-05-09 by default, configurable via
-`STARGATE_CLUSTERS`) from a deployment on cluster-infra-1 and
+The system monitors five provisioning clusters (`ocpv03`, `ocpv06`–`ocpv09` by
+default, configurable via `STARGATE_CLUSTERS`) from a deployment on infra01 and
 integrates with the Babylon control plane (Poolboy, Anarchy, AgnosticV),
 Labagator, and Demolition to produce a unified view of lab readiness.
+Infrastructure clusters (infra01, infra02, ocp-us-east-1) are deliberately not
+scanned; the gap detectors query them directly instead.
 
 ---
 
@@ -23,7 +26,7 @@ Labagator, and Demolition to produce a unified view of lab readiness.
 ```mermaid
 flowchart TB
   subgraph Sources["Sources — read-only"]
-    C["5 OpenShift clusters<br/>ocpv05–ocpv09"]
+    C["5 OpenShift clusters<br/>ocpv03, ocpv06–09"]
     A["4 AAP controllers"]
     J["Jira · GitHub · Labagator"]
     B["Babylon / Anarchy · Sandbox API"]
@@ -40,7 +43,7 @@ flowchart TB
   end
   subgraph Surfaces["Surfaces"]
     REST["REST API"]
-    MCP["MCP server (28 tools)"]
+    MCP["MCP server (29 tools)"]
     UI["React dashboard"]
   end
   Sources --> COLL --> API --> DB
@@ -60,14 +63,17 @@ Scanners run on a tiered schedule against each cluster via `oc` commands:
 | Tier | Interval | What                              | API calls |
 |------|----------|-----------------------------------|-----------|
 | 1    | 5 min    | Node metrics (`oc adm top nodes`) | 1         |
-| 2    | 5 min    | Pod delta scan (`oc get pods -A`) | 1         |
+| 2    | 15 min   | Pod delta scan (`oc get pods -A`) | 1         |
 | 3    | 5 min    | Namespace evidence (rotated batch) | 10+       |
 
-Workers stagger by 30 seconds so they never hit the API server simultaneously.
-Tier 3 rotates through sandbox namespaces in batches (default 150), prioritizing
-failing namespaces. For each namespace, the worker collects: namespace, pods,
-services, endpoints, routes, deployments, VMs, VMIs, DataVolumes, PVCs, and
-showroom HTTP health.
+Intervals are per deployment (`--tier1`, `--tier2`, `--tier3`); production runs
+300 s / 900 s / 300 s. Workers stagger by 30 seconds so they never hit the API
+server simultaneously. Tier 3 rotates through sandbox namespaces in batches
+(production: 25), selecting the namespaces with the oldest attempt first.
+Failing namespaces keep up to half a batch so a persistent failure is retried
+without starving fresh coverage. For each namespace, the worker collects:
+namespace, pods, services, endpoints, routes, deployments, VMs, VMIs,
+DataVolumes, PVCs, and showroom HTTP health.
 
 The Babylon worker runs every 3 minutes and collects: ResourcePool capacity
 (Poolboy), AnarchySubject provisioning state, CatalogItem counts, Workshop
@@ -110,7 +116,7 @@ Evidence for each namespace is evaluated against YAML rubrics in
 `rubrics/platform/`. Each rubric defines entry criteria, exit criteria, failure
 classes, and allowed remediations.
 
-**Pipeline stages** (11 total):
+**Pipeline stages** (13 total):
 
 1. `cluster-health` -- Node CPU, memory, alerts
 2. `run-created` -- Run exists, demo ID valid
@@ -123,6 +129,8 @@ classes, and allowed remediations.
 9. `smoke-test-ready` -- Smoke test pass criteria
 10. `showroom-healthy` -- Showroom pod, route reachable, content loaded
 11. `model-endpoint-ready` -- InferenceService ready, latency acceptable
+12. `storage-catalog-health` -- Catalog storage classes and snapshot sources healthy
+13. `destroy-complete` -- Teardown finished with no leaked resources
 
 Outcomes: `pass`, `warn`, `fail`. Failed evaluations are classified into
 specific failure classes (e.g., `showroom_not_reachable`, `namespace_missing`,
@@ -213,10 +221,12 @@ stargate-platform/
     metrics.py          Prometheus metrics
     schemas.py          Pydantic request/response schemas
     routers/
-      admin/            Admin package (6 sub-routers: scheduler, llm,
-                        approval, proof, monitoring, analytics)
-      dashboard/        Dashboard package (7 sub-routers: deployments,
-                        infra, ops, classification, llm, remediation, views)
+      admin/            Admin package (9 modules: scheduler, llm, approval,
+                        proof, monitoring, analytics, precision, functional,
+                        stateless_pilot)
+      dashboard/        Dashboard package (9 routers: deployments, infra, ops,
+                        classification, llm, remediation, rotation,
+                        credentials, views)
       health.py         /health and /metrics
       integration.py    External evidence, HITL feedback, lab status
       runs.py           Run lifecycle: create, start stage, evidence, evaluate
@@ -231,18 +241,23 @@ stargate-platform/
     feedback_loop.py    Signal-Decision-Action-Verify-Learn cycle
     action_simulator.py Simulated action state transforms
     rollback.py         Rollback capture and restore
-    oc_runner.py        Shared oc command runner (run_oc, run_oc_traced, run_oc_stdin)
+    oc_runner.py        Shared oc command runner (has_shell_metacharacters,
+                        split_pipeline, run_pipeline, run_oc, run_oc_traced,
+                        run_oc_stdin); pipes run as argv stages, never a shell
     namespace.py        Sandbox namespace parsing (extract_catalog_item, extract_guid)
   cli/
     scan.py             One-shot cluster scanner
     worker.py           Per-cluster evidence worker (tiered)
     scheduler.py        Multi-cluster scheduler with staggered offsets
     babylon_worker.py   Babylon control plane collector
+    aap_replay.py       Replay AAP job history into the database
+    replay.py           Replay Kafka topics for testing
+    kubeconfigs.py      Kubeconfig resolution and validation
     stargate.py         CLI entry point
     api_client.py       HTTP client for API persistence
   db/
     database.py         SQLAlchemy engine, session, init
-    models.py           ORM models (28 tables)
+    models.py           ORM models (42 tables and views)
     repository.py       Data access layer
   events/
     bus.py              Event bus with nanoagent pipeline
@@ -251,13 +266,21 @@ stargate-platform/
     consumers.py        Log consumer
   collectors/
     openshift/          Pod, node, namespace collectors
+    aap/                AAP controller job and event data
     babylon/            AnarchySubject state
     poolboy/            ResourcePool capacity
     labagator/          Lab and session data
     demolition/         Smoke test results
     showroom/           Showroom health checks
+    sandbox_api/        Sandbox API health
     cluster_scheduler/  Cluster scheduling data
     tekton/             Pipeline run state
+    zerotouch/          Zero-touch provisioning signals
+    cleanup/            Reclamation and teardown evidence
+    credential_health.py Rotation credential freshness
+    dependency_health.py Upstream dependency probes
+    llm_health.py       LLM endpoint health
+    rotation_sync.py    Rotation data synchronisation
   constraints/
     agnosticv_loader.py AgnosticV constraint loading
   rubrics/
@@ -306,10 +329,9 @@ apply simulated actions, evaluate after-state, verify resolution.
 
 ### Deployment Target
 
-- **Cluster**: cluster-infra-1 (Dallas 12 datacenter)
+- **Cluster**: infra01 (Dallas 12 / `dal12`)
 - **Namespace**: `stargate`
-- **URL**: `https://stargate.apps.cluster.example.com`
-- **API**: `https://YOUR-STARGATE-API-ROUTE
+- **URL**: `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com`
 - **Internal registry**: `image-registry.openshift-image-registry.svc:5000/stargate`
 
 ### Scanner Clusters
@@ -353,7 +375,7 @@ the scanner cannot enumerate the fleet.
 
 ### Test Namespace
 
-- **Cluster**: cluster-infra-1
+- **Cluster**: infra01
 - **Namespace**: `stargate-test`
 - **Service Account**: `stargate-executor`
 - **Role**: `stargate-executor-role` (namespace-scoped write for Phase C)
@@ -366,6 +388,8 @@ managed by Alembic migrations and include:
 - `runs`, `stages`, `evidence` -- Run lifecycle
 - `evaluations` -- Rubric evaluation results
 - `investigations` -- AI investigation records
+- `adjudications` -- Blind-review adjudication records
+- `known_issues` -- Fleet-level rollups of investigations sharing a root cause
 - `source_events` -- Idempotent sanitized external failure ledger
 - `investigation_source_events` -- Diagnosis claims and covered-event links
 - `notification_deliveries` -- Deduplicated Slack delivery attempts
@@ -388,6 +412,12 @@ managed by Alembic migrations and include:
 - `provisioning_snapshots` -- Provisioning state snapshots
 - `aap_job_metrics` -- AAP job statistics
 - `sandbox_api_metrics` -- Sandbox API health metrics
+- `capacity_forecasts` -- Advisory capacity projections
+- `rotation_snapshots` -- Rotation page snapshots
+- `rotation_tickets` -- Rotation ticket tracking
+- `rotation_credentials` -- Rotation credential freshness metadata
+- `precision_digests` -- Stored failure-precision digests
+- `mcp_calls` -- Durable MCP usage audit (per key, tool, method)
 - `receipts` -- Phase gate structured receipts
 - `mv_cluster_summary` -- Materialized view: cluster health
 - `mv_pipeline_stages` -- Materialized view: stage pass rates
@@ -400,7 +430,7 @@ Materialized views are refreshed every 60 seconds by a background thread.
 
 ### LLM
 
-- **Model**: Configurable via `STARGATE_LLM_MODEL` (default: Granite 3.2 8B Instruct)
+- **Model**: Configurable via `STARGATE_LLM_MODEL` (default: Granite 3.2 8B Instruct for local development). Production routes classification to `llama-scout-17b`, `ask` synthesis to `qwen3-14b`, and investigations to a Sonnet-class model.
 - **Proxy**: LiteLLM (configurable via `STARGATE_LLM_URL`)
 - **Circuit breaker**: 5 failures = 60s cooldown
 
@@ -429,7 +459,7 @@ automated actions:
 
 ### Phase C: Test Namespace
 
-- Execute real `oc` commands against `stargate-test` namespace on cluster-infra-1.
+- Execute real `oc` commands against `stargate-test` namespace on infra01.
 - Use the `stargate-executor` service account with namespace-scoped write.
 - Verify rollback: capture state, delete, restore.
 - **Gate**: Real create/scale/delete and rollback verified.
@@ -470,10 +500,13 @@ recommendations for operator visibility.
 | Image                 | Containerfile            | Contents                          |
 |-----------------------|--------------------------|-----------------------------------|
 | stargate-api          | Containerfile            | API server (uvicorn on :8090)     |
-| stargate-combined     | Containerfile.combined   | API + scanner + frontend (single) |
 | stargate-scanner      | Containerfile.scanner    | Scanner CLI + oc binary           |
+| stargate-combined     | Containerfile.combined   | API + scanner + frontend (single) |
 | stargate-frontend     | Containerfile.frontend   | React dev server (node:22-alpine) |
 
-The combined image is a multi-stage build: Node 22 Alpine for frontend, UBI9
-Python 3.11 for the backend, with the `oc` client baked in. Production
-deployment uses this combined image.
+Production on infra01 runs three separate images — `stargate-api`,
+`stargate-scanner`, and the PostgreSQL StatefulSet — built by Tekton and
+deployed by digest. The combined image (`Containerfile.combined`) is a
+multi-stage convenience build for single-container demos: Node 22 Alpine for
+the frontend, UBI9 Python 3.11 for the backend, with the `oc` client baked in.
+It is not the production image.

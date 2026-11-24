@@ -79,7 +79,7 @@ source_events / scans
       │
       ▼
 ┌─ deterministic classification ─────────────────────────────┐
-│  111-class taxonomy (failure-classes/*.yaml):              │
+│  115-class taxonomy (failure-classes/*.yaml):              │
 │  regex patterns, severity, team, remediation guidance      │
 │  19 classes sourced from the team's Confluence RCA record  │
 └──────────────┬─────────────────────────────────────────────┘
@@ -152,10 +152,11 @@ source_events / scans
 | `remediations` | executed remediations | **0** |
 | Pool snapshots, scan snapshots, receipts | monitoring state | rotating |
 
-**Knowledge corpus (filesystem)**: 351 documents — 111-class taxonomy,
-team Confluence RCA record (43 files), workflows, architecture, runbook,
-incident validation study. Serves the `ask` MCP tool (qwen3-14b synthesis,
-3-tier retrieval).
+**Knowledge corpus (filesystem)**: the indexed docs tree — workflows,
+architecture, configuration, runbook, the team Confluence RCA record, and
+the incident validation study — plus the 115-class taxonomy. Long docs are
+split into sections per call. Serves the `ask` MCP tool (qwen3-14b
+synthesis, 3-tier retrieval).
 
 ---
 
@@ -177,7 +178,7 @@ incident validation study. Serves the `ask` MCP tool (qwen3-14b synthesis,
 | Property | Value |
 |---|---|
 | Endpoint | `https://stargate-api.apps.ocpv-infra01.../mcp` (stateless HTTP) |
-| Tools | 15 (13 query + 2 review) + `ask` RAG |
+| Tools | 29 (27 query + 2 review), including the `ask` RAG tool |
 | Auth | per-user API keys; rate limit 60/min/key |
 | Audit | `mcp request: method tool key_id` per request (fixed Nov 3 — was silently dead) |
 | Usage | first sustained external tool calls observed Nov 10–11 (overnight agent, key_id 5d0ae4c9); eval-query timeout fix ships Nov 14 |

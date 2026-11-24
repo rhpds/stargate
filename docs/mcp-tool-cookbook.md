@@ -28,6 +28,11 @@ I actually ask?"*
 | "What needs reviewing right now?" | `list_investigations` (the unreviewed queue) |
 | "What's waiting for approval?" | `list_pending_actions` |
 | "Are provisions succeeding fleet-wide?" | `get_provisioning_summary` |
+| "What is running right now?" | `get_live_labs` |
+| "Did every planned seat appear?" | `get_session_coverage` |
+| "Tell me the whole story of one lab" | `get_lab_story` |
+| "Who is using this MCP surface?" | `get_mcp_usage` |
+| "What will an upcoming event need?" | `get_event_forecast` |
 | Anything else, in plain English | `ask` |
 
 **The workhorse pattern** for investigating one workload:
@@ -420,7 +425,7 @@ capacity) or an existing namespace after a destroy-complete episode
 
 **What it does:** The complete failure-classification taxonomy: every
 class with its detection patterns, severity, source catalog, and
-category. This is the same data the classifier uses — 111 classes.
+category. This is the same data the classifier uses — 115 classes.
 
 **Ask things like:**
 - "Get the full failure taxonomy"
@@ -783,13 +788,18 @@ you:  "Did sandbox-<guid>-<lab> leak anything?"
   key ID; knowledge entries show who confirmed them
 
 
-### 14. The fleet-analysis tools (added Nov 2026)
+### The discovery and fleet-analysis tools (added Nov 2026)
 
-Five of these answer questions the platform could not answer before; two close
+These answer questions the platform could not answer before; several close
 reproduction gaps. All read-only.
 
 | Tool | What it answers |
 |---|---|
+| `get_live_labs(window_hours=2, limit=200)` | What is running now: every lab seen in the window with state (`ready` / `failing` / `unknown`), failure class, owner, catalog item, cluster, family, age, idle time, and fleet totals. `ready` includes labs that passed every required criterion but tripped an optional one — they are flagged `degraded` with the warning stages. |
+| `get_session_coverage(hours_back=6, hours_ahead=6)` | Planned seats vs reality for scheduled sessions: sandboxes provisioned, ready, failing or unknown, and seats that never appeared. Shape 1 only (one sandbox per attendee); multi-user labs show as one namespace. |
+| `get_lab_story(lab, hours=168)` | One lab's whole loop as a single object: signal and state, latest classification (stage, class, failing criterion), the causal chain with per-leg truth and missing legs, the pending action (or absence), and confirmed knowledge (or absence). Use this for an end-to-end walkthrough; `get_lab_session` is the narrower environment timeline. |
+| `get_mcp_usage(hours=168)` | Who has used this MCP surface: calls per key (with labels when configured), per tool, per method, and per day. Built from the durable `mcp_calls` audit record, not container logs. |
+| `get_event_forecast(days=90)` | Event-grouped capacity demand (Summit/RH1 scale): per upcoming event, per day — sessions, cohort bound, summed bound, and peak concurrent attendance. Demand is bounded, not pointed; compare against `get_capacity_forecast`'s supply evidence. |
 | `get_failure_precision(hours=24)` | Which failure classes are noisy: volume, labs, and the share that self-resolved. A class that mostly self-resolves is flapping or measuring the wrong thing. |
 | `get_recovery_time(hours=24)` | First fail → next pass per class: median, p90, max, and `unrecovered`. Zero is never reported as fast. |
 | `get_fleet_divergence(hours=24, min_sample=5)` | A lab family passing on one cluster and failing on another: per-cluster pass rates and the gap. Requires a ≥50-point gap and ≥5 evaluations per cluster, so it does not fire on noise. |

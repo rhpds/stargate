@@ -41,7 +41,7 @@ flowchart TB
 
   subgraph Surfaces["Surfaces"]
     REST["REST API"]
-    MCP["MCP server<br/>28 tools"]
+    MCP["MCP server<br/>29 tools"]
     UI["React dashboard<br/>incl. Rotation"]
   end
 

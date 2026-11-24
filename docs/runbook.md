@@ -2,15 +2,18 @@
 
 ## URLs
 
-| Service    | URL                                                                       |
-|------------|---------------------------------------------------------------------------|
-| Dashboard  | `https://stargate.apps.cluster.example.com`         |
-| API        | `https://YOUR-STARGATE-API-ROUTE     |
-| Health     | `https://YOUR-STARGATE-API-ROUTE |
-| Metrics    | `https://YOUR-STARGATE-API-ROUTE |
-| API Docs   | `https://YOUR-STARGATE-API-ROUTE   |
-| ReDoc      | `https://YOUR-STARGATE-API-ROUTE  |
-| Console    | `https://console-openshift-console.apps.cluster.example.com` |
+Production runs on `infra01`; the routes are set at deploy time
+(`--set routes.api=... --set routes.frontend=...`).
+
+| Service    | URL |
+|------------|-----|
+| API        | `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com` |
+| Health     | `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/health` |
+| Metrics    | `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/metrics` |
+| API Docs   | `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/docs` |
+| ReDoc      | `https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/redoc` |
+| Dashboard  | set by `routes.frontend` (demo: `https://stargate-demo-stargate.apps.ocpv-infra01.dal12.infra.demo.redhat.com/`) |
+| Console    | `https://console-openshift-console.apps.ocpv-infra01.dal12.infra.demo.redhat.com` |
 
 ---
 
@@ -31,7 +34,7 @@ Usage:
 
 ```bash
 curl -H "X-API-Key: <your-admin-key>" \
-  -X POST https://YOUR-STARGATE-API-ROUTE
+  -X POST https://stargate-api.apps.ocpv-infra01.dal12.infra.demo.redhat.com/admin/dry-run
 ```
 
 ---

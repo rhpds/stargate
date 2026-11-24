@@ -5,8 +5,13 @@
 | Document | Description |
 |----------|-------------|
 | [Architecture](architecture.md) | System design, component interactions, data flow |
+| [Reference Architecture](reference-architecture.md) | What is running in production today (as-is, dated) |
+| [Diagrams](diagrams.md) | Architecture, event workflow, identity/joins, deployment topology |
 | [Configuration](configuration.md) | Environment variables, tuning, deployment options |
+| [Config Management](config-management.md) | The lighter path for config changes that are not releases |
+| [Config Log](config-log.md) | Record of every config change, with why and how to revert |
 | [Runbook](runbook.md) | Operational procedures, troubleshooting, common tasks |
+| [Cluster Fleet](cluster-fleet.md) | The measured provisioning fleet, the scan gap, and the method |
 | [Workflows](workflows.md) | Step-through event flow diagrams (scan → evaluate → investigate → review) |
 | [Investigation Workflow](investigation-workflow.md) | The durable investigation lifecycle, budgets, and claim semantics |
 | [Production Plan](stargate-production-plan.md) | Deployment architecture, scaling, monitoring |
@@ -40,10 +45,21 @@
 | Document | Description |
 |----------|-------------|
 | [GTM Strategy](gtm-strategy.md) | Go-to-market positioning, target users, rollout |
+| [Pitch Kit](pitch-kit.md) | The 5-minute demo narrative and the numbers behind it |
 | [Babylon Integration](post-summit-babylon-integration.md) | Babylon/Poolboy control plane integration |
 | [Integration Findings](integration-findings.md) | Data source join reliability, gap analysis |
 | [Evidence Observation Semantics](evidence-observation-semantics.md) | The tri-state evidence contract: observed / unobserved / indeterminate |
 | [Taxonomy Registry Gap](taxonomy-registry-gap.md) | Proposed: one generated failure-class registry, enforced in CI (proposal) |
+
+## Rotation page
+
+| Document | Description |
+|----------|-------------|
+| [Rotation Contract](rotation-page/CONTRACT.md) | What the rotation page promises and what it refuses to claim |
+| [Rotation Method](rotation-page/METHOD.md) | How rotation state is derived |
+| [Rotation Rubric](rotation-page/RUBRIC.md) | Scoring rules for rotation credentials and tickets |
+| [Rotation Daily Audit](rotation-page/DAILY-AUDIT.md) | The daily rotation check |
+| [Rotation Evidence](rotation-page/EVIDENCE.md) | Evidence requirements for rotation claims |
 
 ## Point-in-time reports
 
@@ -51,6 +67,5 @@
 |----------|-------------|
 | [Incident Validation (Oct 2026)](incident-validation-2026-10.md) | Retrospective accuracy audit: detection 4/4, attribution gaps quantified |
 | [Status Update (Nov 2026)](status-update-2026-11.md) | The November platform status |
-
-Older point-in-time reports, resolved integration asks, and historical scan
-data are in [archive/](archive/).
+| [Summary Refresh Release](summary-refresh-release.md) | The summary-refresh release procedure and writer handoff |
+| [Handoff (19 Nov 2026)](handoff-2026-11-19.md) | One page of context for whoever picks the platform up next |
