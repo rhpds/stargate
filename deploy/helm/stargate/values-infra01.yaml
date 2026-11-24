@@ -1,7 +1,14 @@
 # Production values for ocpv-infra01 deployment
+#
+# Images are pinned by digest, not tag. The live Deployments were pinned with
+# `oc set image` long before this file knew it, so a chart-supplied `:latest`
+# re-resolved both images to whatever the tag held when the template was
+# rendered. api and scanner below are the 2026-11-24 out-of-band release, both
+# built from a clean `git archive c8cf85e`; frontend and babylonWorker were not
+# rebuilt and are pinned to the digests already running.
 
 api:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api:latest
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:4c7781a692eb32cdcf7be3c95c1ec8990c3dbf8fa9232cd048a406c9c538f8da
   replicas: 2
   env:
     STARGATE_SSL_VERIFY: "false"
@@ -22,7 +29,7 @@ api:
     STARGATE_GATE_TREND_DETECTION: "false"
 
 scanner:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner@sha256:c0b38474b874792cc8438682e35dfc91bf884f20f7f444a58fcfd0a2c744a518
   apiUrl: http://stargate-api:8090
   sandboxApiUrl: http://sandbox-api.babylon-sandbox-api.svc:8080
   labagatorUrl: http://labagator-backend.labagator-prod.svc:8080/api/v1
@@ -41,7 +48,7 @@ scanner:
   batch: 25
 
 babylonWorker:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner:latest
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner@sha256:945cc2f3bab73d1d563c4e52739d4f72d1f66a89e8ea9070613a495c72c1f895
   interval: 180
   resources:
     requests:
@@ -52,7 +59,7 @@ babylonWorker:
       memory: 2Gi
 
 frontend:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-frontend:latest
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-frontend@sha256:1eb636578963e31eb5cfe21adfd7eb43d1c0b27728fca8eb3e9596c3946cf8f6
   replicas: 1
 
 postgres:
