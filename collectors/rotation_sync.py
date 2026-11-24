@@ -233,19 +233,34 @@ def upsert_tickets(db, issues: List[Dict[str, Any]], now: Optional[datetime] = N
 
     Replaces the previous pull: the epic is the universe, so a ticket that
     vanished from the search is removed rather than left stale on the page.
+
+    That is only sound when the snapshot is known to be complete, which is
+    `sync()`'s job and not this function's: it refuses an unterminated Jira
+    walk, and it returns before this is reached when the result set is empty.
+    The empty case is repeated here anyway, because deleting the table is not
+    something a caller should be able to trigger by passing `[]`.
     """
     from db.models import RotationTicket
 
     rows = [_ticket_row(issue) for issue in issues if _is_child(issue)]
     keys = [row["issue_key"] for row in rows]
-    existing = {}
-    if keys:
-        existing = {
-            ticket.issue_key: ticket
-            for ticket in db.query(RotationTicket)
-            .filter(RotationTicket.issue_key.in_(keys))
-            .all()
-        }
+    if not keys:
+        # An empty snapshot is not evidence that the epic is empty. It is what
+        # a JQL edit, a permission change or a bad page looks like, and the
+        # previous behaviour — delete everything not in `keys` — turned each of
+        # those into a wipe of the only history this table holds.
+        logger.warning(
+            "Rotation sync: snapshot contains no child tickets; keeping %d stored "
+            "tickets instead of deleting them",
+            db.query(RotationTicket).count(),
+        )
+        return 0
+    existing = {
+        ticket.issue_key: ticket
+        for ticket in db.query(RotationTicket)
+        .filter(RotationTicket.issue_key.in_(keys))
+        .all()
+    }
 
     for row in rows:
         ticket = existing.get(row["issue_key"])
@@ -258,12 +273,9 @@ def upsert_tickets(db, issues: List[Dict[str, Any]], now: Optional[datetime] = N
         ticket.assignee = row["assignee"]
         ticket.synced_at = now or datetime.now(timezone.utc)
 
-    if keys:
-        db.query(RotationTicket).filter(~RotationTicket.issue_key.in_(keys)).delete(
-            synchronize_session=False
-        )
-    else:
-        db.query(RotationTicket).delete()
+    db.query(RotationTicket).filter(~RotationTicket.issue_key.in_(keys)).delete(
+        synchronize_session=False
+    )
     return len(rows)
 
 
@@ -331,11 +343,20 @@ def fetch_issues(
     while True:
         page = _fetch_page(url, auth, next_token)
         issues.extend(page.get("issues") or [])
-        if page.get("isLast", True):
+        if page.get("isLast") is True:
             break
+        # Only an explicit `isLast: true` ends the result set. The default used
+        # to be True, so a response that omitted the field — a Jira API change,
+        # a proxy that strips unknown keys, a truncated body — turned page 1
+        # into "the whole epic" and the caller deleted every ticket it had not
+        # seen. Nothing downstream can tell a one-page result from a complete
+        # one, so an unterminated walk has to fail instead of returning.
         next_token = page.get("nextPageToken")
         if not next_token:
-            break
+            raise RuntimeError(
+                "Jira pagination ended without isLast: refusing to treat a "
+                "possibly partial result as a complete snapshot"
+            )
         # A server that repeats a token would loop forever. Found live once:
         # the token was computed but never sent, so page 1 repeated endlessly.
         if next_token in seen_tokens:
@@ -369,8 +390,16 @@ def sync(db) -> Dict[str, Any]:
     jql = os.environ.get("STARGATE_ROTATION_JQL", DEFAULT_JQL)
 
     issues = fetch_issues(base_url, email, token, jql)
-    rows = aggregate_issues(issues)
     today = datetime.now(timezone.utc).date()
+    if not issues:
+        # Covered by upsert_tickets too, but the daily snapshot rows have the
+        # same problem: prune_stale_providers with no providers would drop
+        # today's counters and every provider would read zero until Jira
+        # answers again.
+        logger.warning("Rotation sync: Jira returned no issues; keeping stored history")
+        return {"status": "empty", "providers": 0, "issues": 0, "date": str(today)}
+
+    rows = aggregate_issues(issues)
     now = datetime.now(timezone.utc)
     upsert_tickets(db, issues, now)
 
