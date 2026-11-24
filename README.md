@@ -13,7 +13,7 @@ Continuous operations platform for Red Hat Demo Platform (RHDP) — watches the 
 
 **The platform underneath:**
 
-- **Cluster Scanning** — the five provisioning clusters (ocpv03, ocpv06–09) on a tiered schedule (5m/15m/1h): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
+- **Cluster Scanning** — the five provisioning clusters (ocpv03, ocpv06–09) on a tiered schedule (production 5m/15m/5m): node health, pod failures, VM status, namespace readiness. Infrastructure clusters (infra01/02, ocp-us-east-1) are deliberately excluded from the scan path — they're not provisioning clusters; the gap detectors query them directly instead
 - **Rubric Evaluation** — each lab namespace evaluated against a pipeline of readiness rubrics (cluster-health, namespace-ready, deployment-ready, VM-runtime, showroom-healthy, storage-catalog-health, …)
 - **AI Classification** — unclassified failures sent to a qualified LLM (llama-scout-17b via LiteLLM, 91.7% on the frozen qualification set) for failure-class proposals
 - **Durable Investigations** — idempotent source events claimed, diagnosed, reviewed, and linked to every failure covered by a representative investigation
