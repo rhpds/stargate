@@ -277,6 +277,11 @@ def test_tier3_summary_reports_rejected_evidence():
         failing_rotation_index=0,
         scanned_namespaces=set(),
         ns_outcomes={},
+        # `_tier3_namespaces` orders its batch by attempt time (#178), so it
+        # reads this even though nothing else in this test needs it. The
+        # rotation indices above are what that PR replaced; they stay because
+        # this fixture has to work on either side of it.
+        last_scanned_at={},
     )
     worker._collect_namespace = lambda ns, lab_code=None: {
         "persisted": True,
