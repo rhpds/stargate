@@ -14,6 +14,13 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db import repository
+from engine.oc_runner import (
+    FILTER_BLOCKED_FLAGS,
+    READ_ONLY_PIPE_COMMANDS,
+    has_shell_metacharacters,
+    run_pipeline,
+    split_pipeline,
+)
 from api.schemas import PlaybookRunRequest
 from api.constants import is_ecosystem_ns as _is_ecosystem_ns
 from api.routers._shared import (
@@ -760,33 +767,46 @@ _SAFE_OC_VERBS = frozenset({"get", "describe", "logs", "status", "whoami", "vers
 _BLOCKED_FLAGS = frozenset({"--force", "--grace-period=0", "-f", "--filename", "--dry-run=none"})
 _SAFE_ADM_SUBCOMMANDS = frozenset({"top", "node-logs", "inspect", "must-gather"})
 
-_SAFE_PIPE_COMMANDS = {"grep", "head", "tail", "wc", "sort", "uniq", "cut", "awk", "sed", "tr", "column"}
-
 
 def _is_safe_command(cmd: str) -> bool:
-    """Only allow read-only oc commands, optionally piped to safe filters."""
-    segments = [s.strip() for s in cmd.split("|")]
+    """Only allow read-only oc commands, optionally piped to safe filters.
 
-    parts = segments[0].split()
-    if not parts or parts[0] != "oc":
+    The string is tokenised once, here, and executed as argv — no shell ever
+    re-parses it. That is why metacharacters are rejected rather than escaped:
+    `oc get pods; curl …` passes any check that only looks at the first verb,
+    and used to reach `/bin/sh` unchanged because a pipe in the string was all
+    it took to select `shell=True`.
+    """
+    if not cmd or has_shell_metacharacters(cmd):
+        return False
+
+    stages = split_pipeline(cmd)
+    if not stages:
+        return False
+
+    parts = stages[0]
+    if parts[0] != "oc":
         return False
     verb = parts[1] if len(parts) > 1 else ""
     if verb not in _SAFE_OC_VERBS:
         return False
-    if verb == "adm":
-        adm_sub = parts[2] if len(parts) > 2 else ""
-        if adm_sub not in _SAFE_ADM_SUBCOMMANDS:
-            return False
-    for flag in _BLOCKED_FLAGS:
-        if flag in parts:
-            return False
+    if verb == "adm" and (len(parts) < 3 or parts[2] not in _SAFE_ADM_SUBCOMMANDS):
+        return False
 
-    for seg in segments[1:]:
-        seg_parts = seg.split()
-        if not seg_parts:
+    # Checked on every stage, not just oc's: `-f` anywhere in a pipeline is a
+    # file read, whichever command is reading it.
+    for stage in stages:
+        for flag in _BLOCKED_FLAGS:
+            if flag in stage:
+                return False
+
+    for stage in stages[1:]:
+        name = stage[0]
+        if name not in READ_ONLY_PIPE_COMMANDS:
             return False
-        if seg_parts[0] not in _SAFE_PIPE_COMMANDS:
-            return False
+        for flag in FILTER_BLOCKED_FLAGS.get(name, ()):
+            if flag in stage:
+                return False
 
     return True
 
@@ -868,16 +888,10 @@ def _run_diagnostic_commands(
             continue
 
         try:
-            use_shell = "|" in cmd
-            r = subprocess.run(
-                cmd if use_shell else cmd.split(),
-                capture_output=True,
-                text=True,
-                timeout=timeout_per_cmd,
-                shell=use_shell,
-                env={**os.environ, "KUBECONFIG": kubeconfig},
+            stdout, stderr, returncode = run_pipeline(
+                split_pipeline(cmd), kubeconfig=kubeconfig, timeout=timeout_per_cmd
             )
-            output = r.stdout.strip() if r.returncode == 0 else f"ERROR: {r.stderr.strip()}"
+            output = stdout.strip() if returncode == 0 else f"ERROR: {stderr.strip()}"
             output = _redact_sensitive(output)
             if len(output) > 2000:
                 output = output[:2000] + "\n... (truncated)"
@@ -1262,19 +1276,13 @@ def run_diagnostic_command(request: Request, req: dict, _auth=Depends(require_ad
         raise HTTPException(status_code=503, detail="No kubeconfig available for this cluster")
 
     try:
-        use_shell = "|" in resolved
-        r = subprocess.run(
-            resolved if use_shell else resolved.split(),
-            capture_output=True,
-            text=True,
-            timeout=15,
-            shell=use_shell,
-            env={**os.environ, "KUBECONFIG": kubeconfig},
+        stdout, stderr, returncode = run_pipeline(
+            split_pipeline(resolved), kubeconfig=kubeconfig, timeout=15
         )
         return {
             "command": resolved,
-            "output": _redact_sensitive(r.stdout.strip() if r.returncode == 0 else r.stderr.strip()),
-            "exit_code": r.returncode,
+            "output": _redact_sensitive(stdout.strip() if returncode == 0 else stderr.strip()),
+            "exit_code": returncode,
             "cluster": cluster,
             "namespace": namespace,
         }

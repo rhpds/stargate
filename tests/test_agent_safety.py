@@ -183,14 +183,17 @@ class TestAgentSafety:
     # -- Edge cases --
 
     def test_refuses_pipe_injection_in_verb_check(self):
-        """Pipe in oc command should not bypass verb check."""
-        # The verb is still 'get' so this is technically safe from verb check
-        # but we verify the verb extraction works
+        """A pipe must not launder the second command past the verb check.
+
+        The old validator looked at the first segment only and execution chose
+        `shell=True` whenever the string contained `|`, so everything after
+        the pipe was the shell's problem. Both halves are checked now.
+        """
         assert _is_safe_oc("oc get pods -n test")
-        # But a pipe with a write command after oc get should still pass
-        # because _is_safe_oc only checks the first verb
-        # The actual execution safety comes from tool_oc_read
-        assert _is_safe_oc("oc get pods -n test")
+        assert _is_safe_oc("oc get pods -n test | grep Running")
+        assert not _is_safe_oc("oc get pods -n test | sh")
+        assert not _is_safe_oc("oc get pods -n test | xargs rm")
+        assert not _is_safe_oc("oc get pods -n test; rm -rf /")
 
     def test_refuses_oc_exec(self):
         """oc exec must be refused — it can run arbitrary commands."""
