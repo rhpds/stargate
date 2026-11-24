@@ -227,7 +227,7 @@ The same reading before the change was **744 s on ocpv07** and 1,218 s at batch
   (`docs/config-management.md`, "What counts as a release"). This file is the
   repo-side copy, not a replacement.
 - `#173` must land **before** the next Helm apply. The chart at `b681105` still
-  describes the pre-21:10 deployment, in three ways: `values.yaml` and
+  describes the pre-21:00 deployment, in three ways: `values.yaml` and
   `values-infra01.yaml` set `scanner.tier3: 600` not `300`, `scanner.resources.limits.cpu`
   is `"3"` not `"5"`, and `templates/scanner.yaml` emits no
   `--tier3-independent` at all. An apply from the wrong commit would silently
@@ -246,6 +246,12 @@ The same reading before the change was **744 s on ocpv07** and 1,218 s at batch
   every tier-2 tick, so a lab can be skipped while the batch stays full and the
   rate stays flat. `#178` replaces the index with oldest-attempt-first
   ordering.
+- Coverage is still five clusters. `ocpv01` (dfw3, 244 labs), `ocpv02` (dfw3,
+  77) and `ocpv04` (lon3, 8) are unscanned, blocked on `cluster-reader`
+  kubeconfigs stored under the canonical names `kubeconfig-ocpv01`,
+  `kubeconfig-ocpv02`, `kubeconfig-ocpv04` in the `stargate-kubeconfigs`
+  secret. Nothing in the code needs to change for them; the kubeconfigs do not
+  exist yet.
 - The manifests used to disagree with production: `values.yaml`,
   `values-infra01.yaml` and `deploy/agnosticv/stargate-platform/prod.yaml` all
   listed `ocpv05` (retired — its API host no longer resolves) and omitted
