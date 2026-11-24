@@ -6,8 +6,15 @@ api:
     requests:
       cpu: 500m
       memory: 1Gi
+    # One core was the limit on both production replicas and they throttled
+    # 18.5% and 14.2% of CFS periods while averaging 0.70 cores each: the
+    # evidence uploads from every cluster arrive here, and the requests
+    # waiting behind them are the slow end of /evaluate. See
+    # docs/config-log.md. Raising the limit is not a halving of latency —
+    # there is one uvicorn process per pod, so the GIL bounds a single
+    # request — but the throttle goes away, which is what the 10 s tail is.
     limits:
-      cpu: "1"
+      cpu: "2"
       memory: 2Gi
   env:
     STARGATE_DATABASE_URL: ""  # Set via Helm --set or template referencing secrets
