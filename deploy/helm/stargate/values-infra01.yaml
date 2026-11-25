@@ -8,7 +8,7 @@
 # not rebuilt and are pinned to the digests already running.
 
 api:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:89d66ee518cef0bed2d556de2599dbcd5e9a843d63f902bf95f1ac7f529bcaa0
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:34660f01a9446482526e1ca5492f425615bd362aaf07112ee365afbbb0576bf4
   replicas: 2
   env:
     STARGATE_SSL_VERIFY: "false"
