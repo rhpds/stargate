@@ -471,6 +471,62 @@ This does not fix:
 - The human-review backlog is unchanged: 2,876 `unreviewed`, 279
   `needs_human_review`. A verdict is not a review.
 
+## 2026-11-25 ~20:20 — five credential literals moved into `stargate-secrets`
+
+Not a release: no image was built and the digest is still `34660f01…`, but the
+Deployment rolled once, because env values sourced from a Secret are only read
+when a container starts.
+
+The API carried 51 env vars, five of them literal credentials — the GeoLux key,
+the AAP event-0 password, the 16-key additional-key list, the two read-only
+keys, and the LLM health targets list, which embeds a provider `sk-` key. Those
+values sat in the Deployment spec and in the pod template of every ReplicaSet in
+its history, readable by anyone with read access to a ReplicaSet in the
+namespace.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 20:18 | `secret/stargate-secrets` | five keys added — `geolux-api-key`, `aap-event0-pass`, `additional-api-keys`, `readonly-api-keys`, `llm-health-targets` — 6 keys → 11, the six existing untouched | Values copied from the live Deployment, never retyped, then compared back by SHA-256 in the Secret and again inside the pod. No key name collided. | `oc patch secret stargate-secrets --type json -p '[{"op":"remove","path":"/data/geolux-api-key"},{"op":"remove","path":"/data/aap-event0-pass"},{"op":"remove","path":"/data/additional-api-keys"},{"op":"remove","path":"/data/readonly-api-keys"},{"op":"remove","path":"/data/llm-health-targets"}]'` |
+| 20:20 | `deploy/stargate-api`, container `api`, `env` | those five switched from `value:` to `valueFrom.secretKeyRef`; revision 559 → 560, ReplicaSet `stargate-api-547bd94b75` | A strategic merge alone is rejected — it keeps `value` next to `valueFrom` (`may not be specified when value is not empty`) — so the patch clears `value` explicitly and was server-dry-run first. | `oc rollout undo deploy/stargate-api --to-revision=559` (restores the literals), then remove the five Secret keys above |
+
+`STARGATE_DATABASE_URL` was left as it was, deliberately. Its value is
+`postgresql://stargate:$(POSTGRES_PASSWORD)@stargate-postgres:5432/stargate` —
+not a literal credential, but a reference the kubelet expands from the
+secret-backed `POSTGRES_PASSWORD` declared before it. Copying the resolved URL
+into the Secret would write the database password under a second key, make
+rotation a two-key operation, and reduce no exposure. The ordering constraint
+behind "no pod starts without a DB URL" is already met: `POSTGRES_PASSWORD` is
+env index 10, `STARGATE_DATABASE_URL` index 11.
+
+Verified after the rollout, not inferred: 51 env vars still present; none of the
+five has a `value`; the in-pod SHA-256 of each equals the Secret's
+(`41ae8b0d5ab7`, `9fe681937388`, `3208c2a222c6`, `eb75120a5c57`,
+`117a0b514c3d`); 2/2 pods with the `api` and `oauth-proxy` containers and the
+2 CPU / 2 Gi limits intact; `/health` 200 with every component `ok`, `tier3`
+included. Auth semantics are unchanged, checked in-process rather than by
+guessing at HTTP codes: the admin key is valid, a bogus key is not, both
+read-only keys are valid **and** flagged read-only, and all 16 additional keys
+are valid. (An earlier probe reported 403 for "the read-only key" only because
+that variable holds two comma-separated keys and the raw joined string is not
+itself a key.)
+
+What this does **not** do:
+
+- The five literals still exist in the ten retired ReplicaSets (rev 550–559, all
+  at 0 replicas); only rev 560's template is clean. They were not deleted,
+  because they are the rollback anchors. Rotating the five credentials is what
+  retires those copies — until rotation, they are still readable in the
+  namespace's ReplicaSet history.
+- One pod (`7r5hl`) was `OOMKilled` at 20:22Z, `exitCode 137`, at the 2 Gi
+  limit, while `/admin/llm/metrics` was read with the admin key. The request
+  returned 200 first, and the other replica on the same spec did not restart,
+  so the env change is not the cause. It was not reproduced on purpose: doing so
+  kills a live API pod. The metrics aggregation exceeding the API's memory limit
+  deserves its own fix.
+- The rollout cuts in-flight `/evaluate` calls. None were in flight —
+  `investigations` had 0 rows in `running` at the time — and the 500 stale
+  `running` runs are the pre-existing leak, not new.
+
 ## Still owed
 
 - `STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY=25` is set in the live API env
