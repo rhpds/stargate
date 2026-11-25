@@ -1,5 +1,6 @@
 """Opt-in stage diagnostics must be bounded, payload-free, and fail-open."""
 import importlib
+import threading
 from contextlib import contextmanager
 
 import pytest
@@ -7,6 +8,25 @@ import pytest
 
 def diagnostics():
     return importlib.import_module("engine.runtime_diagnostics")
+
+
+def records_here(caplog, module):
+    """Diagnostic records emitted by the calling thread only.
+
+    ``on_startup`` starts the materialized-view refresh loop as a daemon
+    thread. A test that builds a ``TestClient`` fires that startup without a
+    matching shutdown, so the loop outlives the test and keeps logging into
+    this logger — including while these assertions run. Its cadence is a 60 s
+    wait, which lands inside a ~60 s full-suite run, so the failure appeared
+    only in CI and only sometimes: the leaked thread stole ``sessions[0]`` and
+    the test's own first stage aborted on the identity assert.
+
+    The tests below are about the stages *they* drive, so they read only their
+    own thread's records.
+    """
+    current = threading.get_ident()
+    return [r for r in caplog.records
+            if r.name == module.logger.name and r.thread == current]
 
 
 def test_disabled_stage_does_not_sample_or_log(monkeypatch):
@@ -35,7 +55,7 @@ def test_stage_logs_start_end_wall_thread_cpu_and_rss(monkeypatch, caplog):
     with caplog.at_level("INFO", logger=module.logger.name):
         with module.diagnostic_stage("refresh.clusters"):
             pass
-    records = [r for r in caplog.records if r.name == module.logger.name]
+    records = records_here(caplog, module)
     assert len(records) == 2
     assert "phase=begin stage=refresh.clusters" in records[0].getMessage()
     message = records[1].getMessage()
@@ -142,7 +162,7 @@ def test_warm_cache_stage_markers_cover_owned_sessions(monkeypatch, caplog, fail
     monkeypatch.setattr("api.routers.dashboard.dashboard_summit", summit)
     with caplog.at_level("INFO", logger=module.logger.name):
         app._warm_caches()
-    messages = [r.getMessage() for r in caplog.records if r.name == module.logger.name]
+    messages = [r.getMessage() for r in records_here(caplog, module)]
     assert len(messages) == 8
     for label in ("warm.inventory", "warm.aap_collection", "warm.aap_ingestion", "warm.summit"):
         assert any("phase=begin stage=" + label in message for message in messages)
@@ -152,7 +172,6 @@ def test_warm_cache_stage_markers_cover_owned_sessions(monkeypatch, caplog, fail
 
 @pytest.mark.parametrize("failed_index", [0, 1, 2])
 def test_refresh_markers_identify_failed_step_without_changing_cleanup(monkeypatch, caplog, failed_index):
-    import threading
     from unittest.mock import Mock
     app = importlib.import_module("api.app")
     module = diagnostics()
@@ -165,12 +184,20 @@ def test_refresh_markers_identify_failed_step_without_changing_cleanup(monkeypat
     # materialized-view refresh and the tier-3 freshness probe opens its own
     # afterwards (the loop's is already closed by then). Sharing one Mock hid
     # that distinction and made the close assertions depend on call order.
+    #
+    # Sessions opened by another thread are not this test's sessions. A leaked
+    # refresh-loop thread calls this factory too, and if its session landed in
+    # `sessions` first it became `sessions[0]`, so the identity assert below
+    # failed on the test's own first stage and the whole test collapsed to one
+    # stage's markers.
+    caller = threading.get_ident()
     sessions = []
 
     def _session_factory():
         def make():
             fresh = Mock()
-            sessions.append(fresh)
+            if threading.get_ident() == caller:
+                sessions.append(fresh)
             return fresh
         return make
 
@@ -188,7 +215,7 @@ def test_refresh_markers_identify_failed_step_without_changing_cleanup(monkeypat
     monkeypatch.setattr(app, "_cleanup_scan_history", lambda: None)
     with caplog.at_level("INFO", logger=module.logger.name):
         app._mv_refresh_loop()
-    messages = [r.getMessage() for r in caplog.records if r.name == module.logger.name]
+    messages = [r.getMessage() for r in records_here(caplog, module)]
     assert len(messages) == (failed_index + 1) * 2
     assert any("phase=end stage=" + labels[failed_index] + " status=error" in message for message in messages)
     session = sessions[0]
