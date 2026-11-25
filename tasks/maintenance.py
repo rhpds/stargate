@@ -257,11 +257,33 @@ def _run_single_investigation(record, db):
         logger.debug("Failed to emit investigation.completed event: %s", e)
 
 
+_ADJUDICATION_HEADER = "### Model adjudication"
+
+
+def _strip_adjudication_summary(analysis: str) -> str:
+    """Remove the appended model-adjudication block before parsing.
+
+    ``run_investigation`` appends a review summary to the analysis — lines like
+    "Blind reviewer 2: ACTIONABLE (75% model confidence)" and the judge's
+    rationale. Those are reviewer *opinions*, not the investigating agent's
+    verdict, and they sit after the report with no Verdict heading. Reading
+    them as report text invented a verdict for 48 stored investigations, so the
+    block is dropped before any field is parsed.
+    """
+    if not analysis:
+        return analysis
+    index = analysis.find(_ADJUDICATION_HEADER)
+    return analysis[:index].rstrip() if index != -1 else analysis
+
+
 def _extract_structured_fields(analysis: str) -> dict:
     """Extract quality fields from common markdown heading variants."""
     import re
     if not analysis:
         return {"root_cause": None, "remediation_suggestion": None, "verdict": None, "confidence": None}
+
+    # The adjudication summary is reviewer output, not the report; never parse it.
+    analysis = _strip_adjudication_summary(analysis)
 
     # Allow emoji and other unicode decoration between the section number
     # and the heading text (the Sonnet agent produces "### 2. 🔍 Root Cause").
@@ -272,6 +294,10 @@ def _extract_structured_fields(analysis: str) -> dict:
         match = re.search((heading % name) + r"(.+?)" + next_heading, analysis, re.IGNORECASE | re.DOTALL)
         value = match.group(1).strip() if match else None
         return value[:limit] if value and limit else value
+
+    def sections(name: str):
+        pattern = (heading % name) + r"(.+?)" + next_heading
+        return [m.group(1) for m in re.finditer(pattern, analysis, re.IGNORECASE | re.DOTALL)]
 
     root_cause = section(r"Root Cause", 500)
     remediation = section(r"(?:Recommended |Shadow )?Remediation(?: Strategy)?", 2000)
@@ -297,21 +323,34 @@ def _extract_structured_fields(analysis: str) -> dict:
     # all, which silently disabled verdict-based suppression and tri-state
     # reporting. Search the Verdict section for the enum instead of requiring
     # adjacency.
+    #
+    # There is deliberately no document-wide fallback. An earlier version
+    # scanned the whole analysis for a bare enum, "case-sensitive so prose
+    # cannot invent a verdict" — but prose does write ACTIONABLE in upper case:
+    # "the underlying teardown_stuck pattern is ACTIONABLE", "the PVC is
+    # primary — ACTIONABLE". All 50 stored investigations that had a verdict but
+    # no Verdict section traced back to that scan or to the adjudication block,
+    # so it recovered no real verdict and invented 50. A report that does not
+    # state a verdict has no verdict.
+    #
+    # The heading itself is matched case-insensitively, so an earlier lower-case
+    # mention can match first and end before the real heading — a YAML
+    # `verdict: complete` key inside a remediation snippet does exactly that.
+    # Consider every candidate and take the first that states an enum; one that
+    # does not name a verdict says nothing.
     verdict = None
-    verdict_scope = section(r"Verdict")
-    v_match = re.search(r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope or "")
-    if not v_match:
-        # Models occasionally lowercase the enum inside the section; the section
-        # is narrow enough that this cannot pick up prose from elsewhere.
-        v_match = re.search(
-            r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope or "", re.IGNORECASE
-        )
-    if not v_match:
-        # Last resort: a document with no Verdict heading. Case-sensitive so a
-        # sentence like "this looks transient" cannot invent a verdict.
-        v_match = re.search(r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", analysis)
-    if v_match:
-        verdict = v_match.group(1).upper()
+    for verdict_scope in sections(r"Verdict"):
+        v_match = re.search(r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope)
+        if not v_match:
+            # Models occasionally lowercase the enum inside the section; the
+            # section is narrow enough that this cannot pick up prose from
+            # elsewhere.
+            v_match = re.search(
+                r"\b(TRANSIENT|ACTIONABLE|UNKNOWN)\b", verdict_scope, re.IGNORECASE
+            )
+        if v_match:
+            verdict = v_match.group(1).upper()
+            break
 
     confidence = None
     c_match = re.search(
