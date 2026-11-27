@@ -163,3 +163,13 @@ class TestApplySemantics:
 
         assert report["examined"] == 2
         assert report["changed"] == 2
+
+    def test_dry_run_flag_is_explicit_and_refuses_apply(self):
+        """The docstring promised --dry-run long before the parser had it."""
+        import pytest
+
+        from scripts.backfill_investigation_verdicts import main
+
+        with pytest.raises(SystemExit) as exc:
+            main(["--dry-run", "--apply"])
+        assert exc.value.code == 2
