@@ -513,7 +513,9 @@ itself a key.)
 What this does **not** do:
 
 - The five literals still exist in the ten retired ReplicaSets (rev 550–559, all
-  at 0 replicas); only rev 560's template is clean. They were not deleted,
+  at 0 replicas); only rev 560's `api` container is clean — its `oauth-proxy`
+  sidecar still carried all five, which is corrected under 2026-11-27 below.
+  They were not deleted,
   because they are the rollback anchors. Rotating the five credentials is what
   retires those copies — until rotation, they are still readable in the
   namespace's ReplicaSet history.
@@ -526,6 +528,48 @@ What this does **not** do:
 - The rollout cuts in-flight `/evaluate` calls. None were in flight —
   `investigations` had 0 rows in `running` at the time — and the 500 stale
   `running` runs are the pre-existing leak, not new.
+
+## 2026-11-27 ~19:32 — the sidecar the credential migration missed
+
+This corrects the 25 Nov entry above, which claimed rev 560's template was
+clean. It was clean for the `api` container only.
+
+`oc set env` selects **every** container in the pod when `--containers` is not
+given. Every env var ever set on this Deployment out of band therefore landed
+twice: once in `api`, once in `oauth-proxy`. The 25 Nov migration then patched
+only the `api` container, so all five credentials — GeoLux key, AAP event-0
+password, the additional-key list, the two read-only keys, the LLM health
+targets — remained as plaintext `value:` literals in the sidecar, in rev 560's
+template and in all nine retired ReplicaSets. The proxy never read any of them;
+it needs only its args.
+
+Not a release: no image was built, the digest is still `34660f01…`.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 19:31 | `deploy/stargate-api`, container `oauth-proxy`, `env` | all 32 vars removed (`env: []`) via JSON patch; revision 560 → 561, ReplicaSet `stargate-api-75b6c5f9dd` | The proxy substitutes no env into its args (checked: zero `$(…)` references), so the vars were dead weight and pure exposure. Removing them is smaller than converting them to refs. Server-dry-run first, with `test` ops pinning container index 1 to `oauth-proxy` and env index 0 to `STARGATE_AAP_EVENT0_PASS` so the patch could not land on the wrong container. | `oc rollout undo deploy/stargate-api --to-revision=560` (restores the literals) |
+
+Verified after the rollout, from the new ReplicaSet's template rather than from
+the patch: sidecar `env` is empty; `api` still has 51 vars, 11 of them
+`secretKeyRef`; sidecar args are the same 9, `--skip-auth-regex=^/mcp` included;
+sidecar resources still 50m/64Mi → 100m/128Mi; `api` still 2 CPU / 2 Gi and
+digest `34660f01…`; 2/2 pods, 0 restarts. `/health` inside the pod reports
+`ok` — the route returns the oauth login page for `/health`, so the in-pod call
+is the only real check. `/mcp` returns 401 rather than a redirect, which is the
+`skip-auth-regex` still working; a normal path still goes to the proxy.
+
+What this does **not** do:
+
+- The five values remain in rev 560's ReplicaSet and the nine before it, all at
+  0 replicas. Rev 561 is the first template in the Deployment's history with no
+  credential literal in either container. Rotation is what retires the rest.
+- During this session a credential diff printed four of these values into the
+  terminal transcript (the AAP password, one additional key, the GeoLux key,
+  and the start of a read-only key) before the output was narrowed to
+  name-and-kind only. They were already exposed in the ReplicaSet history, so
+  this widened the audience rather than creating the exposure — but it means
+  rotation of these five is no longer optional, and the transcript should be
+  treated as secret material.
 
 ## Still owed
 
