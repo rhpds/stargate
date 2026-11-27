@@ -18,6 +18,53 @@ def _tool_call(name: str) -> dict:
     }
 
 
+def test_tool_call_usage_comes_back_priced(monkeypatch):
+    """The provider reports tokens, not money; the agent must still get a cost.
+
+    Regression: `_call_llm_with_tools` priced the metric row inside a
+    `finally` but returned the provider's raw usage dict, which has no
+    `cost_estimate` key. `_spent()` therefore read None, `total_cost` stayed
+    0.0, and `investigations.cost_estimate` was NULL on every tool-calling
+    round — the path that carries the bulk of agent spend. This exercises the
+    real function, so the mock cannot hide the gap again.
+    """
+    import io
+    import json
+
+    import api.llm
+    import engine.investigation_agent as agent
+
+    monkeypatch.setattr(
+        api.llm, "LLM_URL", "http://litellm.invalid/v1/chat/completions",
+    )
+
+    body = json.dumps({
+        "choices": [{
+            "message": {"role": "assistant", "content": None},
+            "finish_reason": "stop",
+        }],
+        "usage": {"prompt_tokens": 11340, "completion_tokens": 342},
+    }).encode()
+
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda req, timeout=None, context=None: _Resp(body),
+    )
+
+    result = agent._call_llm_with_tools(messages=[], tools=[], model="m", db=None)
+
+    assert result["success"] is True
+    assert result["usage"]["cost_estimate"] > 0
+    assert agent._spent(result) > 0
+
+
 def test_accumulates_cost_across_tool_and_final_calls(monkeypatch):
     import api.llm
     import engine.investigation_agent as agent
