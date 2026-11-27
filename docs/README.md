@@ -10,6 +10,7 @@
 | [Configuration](configuration.md) | Environment variables, tuning, deployment options |
 | [Config Management](config-management.md) | The lighter path for config changes that are not releases |
 | [Config Log](config-log.md) | Record of every config change, with why and how to revert |
+| [Helm Reconciliation](helm-reconciliation.md) | Why the production Helm release is not the source of truth, and what closing that gap would cost |
 | [Runbook](runbook.md) | Operational procedures, troubleshooting, common tasks |
 | [Cluster Fleet](cluster-fleet.md) | The measured provisioning fleet, the scan gap, and the method |
 | [Workflows](workflows.md) | Step-through event flow diagrams (scan → evaluate → investigate → review) |
