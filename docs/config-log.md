@@ -392,6 +392,85 @@ dashboard:
 - The human-review backlog is untouched: 2,876 `unreviewed` and 279
   `needs_human_review`. Filling verdicts does not review anyone's judgement.
 
+## 2026-11-25 — the writer fixed, and 50 verdicts it had already invented
+
+Two more out-of-band API releases (Wednesday), approved, both on `main` =
+`3d3ef9f`. No scanner image changed, because no scanner code changed: verdicts
+are written by the API's own code, on whichever pod finishes the investigation.
+
+`#190` fixed the extractor's *shape* problem — `### 6. Verdict`, a blank line, a
+blockquote. It did not fix the *invention* problem. The same extractor fell
+through to a bare-enum scan, and the agent's appended adjudication summary
+carries its own classification line, so the last resort collected that instead
+of nothing. Replayed over the 2,456 stored verdicts (2,818 complete
+investigations), 50 could not be substantiated from the report at all: 48 lifted
+from that appended block and 2 from upper-case prose adjectives ("the PVC is
+primary — ACTIONABLE"; ids `2957` and `2867`). `#196` deletes the last resort
+and strips the adjudication summary before section scanning, and now requires a
+verdict-shaped body rather than a nearby mention — two real verdicts (`id=293`,
+`id=2945`) were nearly dropped because a lower-case YAML `verdict:` key shadowed
+the actual heading.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 01:05 → 01:07 | build `stargate-api-356` (104 s) | api `sha256:89d66ee5…` → `sha256:c5d396cb…` | `#194`. `_call_llm_with_tools` priced each call in a `finally` to fill `llm_metrics`, but returned the provider's raw `usage` dict, which carries tokens and no money, so `_spent()` read a missing key and `total_cost` stayed `0.0` — on the tool-calling path, which is most of the spend. The fix prices the dict once before returning it; the `finally` reads the value back instead of recomputing. | rebuild from `git archive 115b0d3`; previous digest is api `89d66ee5…` (build 355) |
+| 01:07 | `deploy/stargate-api` | revision 557 → 558, ReplicaSet `stargate-api-6c44665f79`; `limits.cpu: 2` and the `oauth-proxy` sidecar (100m/128Mi) left untouched | `#194`, API only. | `oc set image deploy/stargate-api -n stargate api=…stargate-api@sha256:89d66ee518cef0bed2d556de2599dbcd5e9a843d63f902bf95f1ac7f529bcaa0` |
+| 20:12 → 20:14 | build `stargate-api-357` (111 s) | api `sha256:c5d396cb…` → `sha256:34660f01…` | `#196`, the verdict extractor. Built from a clean `git archive a227222` via `oc start-build --from-dir`; the digest proves the tree sent, not a stored sha, as with every binary build here. | rebuild from `git archive a227222`; previous digest is api `c5d396cb…` (build 356) |
+| 20:14 | `deploy/stargate-api` | revision 558 → 559, ReplicaSet `stargate-api-66ffcdc4bb`; `limits.cpu: 2`, memory 2Gi and the sidecar untouched | `#196`. | `oc set image deploy/stargate-api -n stargate api=…stargate-api@sha256:c5d396cbb3c30d848355371e34ff18ea32f11189803d42b17b4b0930e7b26fb9` |
+| 20:15 | `investigations.trust_dimensions` | 50 rows: `verdict` `ACTIONABLE` → `null`. Rollback record 50 lines, md5 `aa58f20afb65aea5369c8c460a74df83`, copied out of the pod because `/tmp` dies with it | `#197`. A stored verdict the report does not state is wrong in a way a dashboard cannot see: it feeds learned suppression, the tri-state report and the Slack transient filter. Null is exactly what the writer stores for a verdict-less investigation, so the schema stays uniform. | replay the 50-line JSONL; each line carries `id`, `job_id`, `before`, `after` |
+
+The repair is deliberately narrow. Only a row with **no** verdict is examined;
+only `verdict` is written; a row whose report states a different verdict is
+reported and never rewritten (that is not a call a script should make). It
+re-derives with the deployed parser rather than a copy, and refuses to run on an
+image that predates the fix, which is what caught the deployed `#197` script
+lacking the `--dry-run` flag its docstring promised — amended before it ran
+(`670dc524…`, byte-identical to `a16a9b9`). Dry run first: 50 predicted, 0
+disagreements, and the list was identical to the independently derived 50.
+
+| Verdict | before | after | Δ |
+|---|---|---|---|
+| TRANSIENT | 1,504 | 1,504 | 0 |
+| ACTIONABLE | 914 | 864 | −50 |
+| UNKNOWN | 39 | 39 | 0 |
+| null | 367 | 417 | +50 |
+
+All 50 were `ACTIONABLE`, all 50 already had `confidence = null` and
+`evidence_sufficient = true`, and `usage_optimized` split 21/29 — every one of
+those fields was read back against the rollback record and is unchanged. A
+second `--apply` reported `0 written`, so the repair is idempotent rather than
+merely finished.
+
+`#194`'s cost fix was proved on a deliberately triggered investigation rather
+than inferred: `inv-5e0ae4cc`, 2 iterations, `cost_estimate = 0.048723` where
+the same window had been NULL for every row. Seven complete investigations carry
+a cost, all created after 01:07Z. That is the whole population and it stays
+small: `llm_metrics` has no `job_id`, so past spend cannot be attributed to past
+investigations and those NULLs stay NULL. `inv-5e0ae4cc` happens to also be one
+of the 50 repaired — its verdict came from the adjudication block under rev 558,
+so the row that proved the cost fix also carried the defect that `#196` closed
+an hour later.
+
+Verified after the rollout, not inferred: rev 559 is 2/2 ready with 0 restarts,
+`/health` is 200 with every component `ok`, the pod's `tasks/maintenance.py`
+contains `_strip_adjudication_summary` and no last-resort scan, the scheduler is
+still revision 64 on `8b2b3860…` with its args and 5-CPU limit, and the database
+arithmetic closes — 2,824 complete, 2,407 with a verdict, 417 without.
+
+This does not fix:
+
+- 417 complete investigations still have no verdict: the 367 that never had one
+  plus the 50 just nulled. The repair changes what the system believes, not what
+  the agent said; those reports are still verdict-less.
+- `#192`, `#193`, `#194`, `#195`, `#196` and `#197` are all still open, and
+  `main` is still `3d3ef9f`. The running images come from branch commits.
+- `values-infra01.yaml` is repinned here to the live pair (api `34660f01…`,
+  scanner `8b2b3860…`), so the chart no longer describes a release the fleet is
+  not running. The Helm release object itself is still revision 7, **failed**,
+  dated 2026-07-17 — Friday's work, together with `oauth.cookieSecret`.
+- The human-review backlog is unchanged: 2,876 `unreviewed`, 279
+  `needs_human_review`. A verdict is not a review.
+
 ## Still owed
 
 - `STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY=25` is set in the live API env
