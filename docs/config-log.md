@@ -278,7 +278,128 @@ look fixed from a dashboard:
 - `stargate-beat` and `stargate-worker` still reference api `7d3e51fc…` at 0
   replicas. Scaling either up would run a pre-`#181`, pre-`#184` image.
 
+## 2026-11-24 ~22:50 — the investigation feedback loop, and a verdict backfill
+
+Approved out of band again (Tuesday, not Friday). `main` is `3d3ef9f`. This
+release carries `#190` and `#191`: `#190` fixes verdict extraction, rolls
+`cost_estimate` into the run detail, adds `evidence_sufficient` to
+`trust_dimensions`, and closes the timeout race between `as_completed` and the
+stuck sweeper; `#191` adds `scripts/backfill_investigation_verdicts.py` and the
+`COPY scripts/ scripts/` line the image needs to ship it.
+
+The defect being repaired is narrow and worth stating exactly. The agent's
+dominant output shape is
+
+```
+### 6. Verdict
+
+> **TRANSIENT**
+```
+
+and the old extractor required the verdict word to be adjacent to "Verdict" via
+`[:\s*]`, which the blank line and blockquote defeat. 563 of 848 null-verdict
+rows mention "verdict" in that blockquote form; only 34 matched the old regex.
+Everything downstream of the verdict — learned suppression (three `TRANSIENT`),
+tri-state reporting, the Slack transient filter — was blind for those rows.
+
+| When (UTC) | Where | Change | Why | Revert |
+|---|---|---|---|---|
+| 22:48 | builds `stargate-api-355`, `stargate-scanner-52` | api `sha256:4c7781a6…` → `sha256:89d66ee5…` (102 s); scanner `sha256:c0b38474…` → `sha256:8b2b3860…` (52 s) | Both from a clean `git archive 3d3ef9f` via `oc start-build --from-dir` (Binary source, as with 353/50 — no commit is recorded for a binary build, so the digest proves the tree sent, not a stored sha). | rebuild from `git archive 3d3ef9f`; previous digests api `4c7781a6…` (355's predecessor) and scanner `c0b38474…` |
+| 22:50 | `deploy/stargate-api` | image → `sha256:89d66ee5…`, revision 556 → 557, ReplicaSet `stargate-api-68cf8c67cb`; `limits.cpu: 2` and the `oauth-proxy` sidecar (100m/128Mi) left untouched | `#190` + `#191`. API first, as always. | `oc set image deploy/stargate-api -n stargate api=…stargate-api@sha256:4c7781a692eb32cdcf7be3c95c1ec8990c3dbf8fa9232cd048a406c9c538f8da` |
+| 22:51 | `deploy/stargate-scheduler` | scanner `sha256:c0b38474…` → `sha256:8b2b3860…`, revision 63 → 64 | Build 52. `args` and `limits.cpu: 5` were not part of the patch and were verified after. | `oc set image deploy/stargate-scheduler -n stargate scheduler=…stargate-scanner@sha256:c0b38474b874792cc8438682e35dfc91bf884f20f7f444a58fcfd0a2c744a518` |
+| 22:52 | `investigations.trust_dimensions` | 1,100 rows written (899 `verdict`, 979 `evidence_sufficient`, 0 `confidence`); rollback record `/tmp/verdicts.jsonl`, 1,100 lines, md5 `a9261778debacb85d3b902f024025482` | `#191`, run inside the new API pod (the image is the only place the script exists). Data-only: no workload restarted, no schema touched. | replay the rollback JSONL; each line carries `id`, `job_id`, `before`, `after` |
+
+The backfill is deliberately narrow: only rows with **no** verdict are examined
+at all, a populated field is never overwritten, and a row whose analysis
+contains no verdict stays null. Dry run first (1,100 changes predicted), then
+`--apply`, then `--apply` again, which reported `0 changed` — idempotent. The
+arithmetic closes on a single run:
+
+| Verdict | before | after | Δ |
+|---|---|---|---|
+| TRANSIENT | 822 | 1,502 | +680 |
+| ACTIONABLE | 704 | 913 | +209 |
+| UNKNOWN | 29 | 39 | +10 |
+| null | 1,261 | 362 | −899 |
+
+Verified after the rollout, not inferred: both API pods are on `89d66ee5…` with
+0 restarts, `/health` is 200 with every component `ok` (`api`, `database`,
+`scanners`, `llm`, `executor_kubeconfig`, `sandbox_api`), `init_db()` found
+`alembic_version` already at `s0b1c2d3e4f5` and logged no migration, and the
+scheduler reports all five clusters.
+
+The verdict fix was also exercised end to end on a row created *after* the
+deploy, rather than inferred from the backfill. A manual trigger on
+`sandbox-pgxxx-zt-ansiblebu` (ocpv08, `service_has_no_endpoints`) produced
+`inv-5c4c1725`: 12 iterations, verdict `TRANSIENT`, confidence 0.88,
+`evidence_sufficient: true` — the blockquote shape that used to come back
+NULL. That same run is what exposed the cost defect below. Freshness is inside target with
+`never_scanned` at zero everywhere:
+
+| Cluster | sweep age | never scanned |
+|---|---|---|
+| ocpv03 | 274 s | 0 |
+| ocpv06 | 2,889 s | 0 |
+| ocpv07 | 2,898 s | 0 |
+| ocpv08 | 2,494 s | 0 |
+| ocpv09 | 2,690 s | 0 |
+
+**Why this shipped at 22:50 and not at 18:00.** It was ready to build four
+hours earlier and could not be. A `compute` MachineConfigPool rollout rebooted
+worker01 and worker02; both came back with `currentConfig == desiredConfig` and
+then stopped answering (`virt-handler is not responsive`, CNV marking them
+unresponsive). The single-replica image registry lived on worker01, and its
+`ReadWriteOnce` ceph volume was pinned by `VolumeAttachment csi-f7a1973…`, so
+the registry lost all endpoints and every pull cluster-wide failed with
+`dial tcp 172.30.2.235:5000: i/o timeout` — 111 pods not Running, including
+`stargate-scheduler`, `stargate-babylon-worker`, `stargate-demo` and the second
+API replica. A binary build pushes into that registry, so building was not
+possible either.
+
+The recovery was **not** anything done here. The registry mounted the same PVC
+on worker00 at ~21:16Z and pulls resumed; worker02 returned at 22:36:15Z and
+worker01 at 22:38:36Z. Scan cadence shows the gap plainly: the 17:00Z bucket
+has 190 runs instead of the usual 340–410, then nothing until 21:15Z (220),
+then back to 407/409/400. The lesson is recorded because it contradicts what
+was believed at the time: an RBD volume held by a dead node **can** be released
+without a manual `oc delete volumeattachment`, and the registry did not need a
+node to come back first — it needed the kubelet to be declared gone long enough.
+The scheduled deploy overlapped the return of the nodes, so once both were back
+the new API pods were scheduled onto worker01 and worker02 — the two nodes that
+had been dead an hour earlier — at 22:50:21Z.
+
+What this release does **not** fix, stated because it looks fixed from a
+dashboard:
+
+- 362 complete investigations still have no verdict. They are not a parser
+  failure this time — their stored `analysis` contains no verdict section at
+  all, and the backfill does not invent one.
+- 810 rows still carry a null `evidence_sufficient`. Rows that already had a
+  verdict were out of scope by design, so a null there stayed null.
+- `cost_estimate` is still NULL on **every** investigation, new ones included —
+  this release did not fix it, and the claim in `#190` that it did is wrong for
+  the path that matters. `_call_llm_with_tools` prices the `llm_metrics` row
+  inside a `finally` but returns the provider's raw `usage` dict, which carries
+  tokens and no money, so `_spent()` reads a missing key and `total_cost` stays
+  `0.0`. Verified at 23:27Z on a deliberately triggered investigation
+  (`inv-5c4c1725`, 12 iterations): 12 `llm_metrics` rows, all 12 priced, and
+  `investigations.cost_estimate` NULL. `#194` moves the pricing onto the
+  returned dict. Historical NULLs stay NULL either way — `llm_metrics` has no
+  `job_id`, so past spend cannot be attributed to past investigations.
+- `scripts/backfill_investigation_verdicts.py` advertises `--dry-run` in its
+  docstring but does not implement the flag — dry run is the default (omit
+  `--apply`). Found while running it; the deployed image keeps the wart.
+- The human-review backlog is untouched: 2,876 `unreviewed` and 279
+  `needs_human_review`. Filling verdicts does not review anyone's judgement.
+
 ## Still owed
+
+- `STARGATE_INVESTIGATE_MAX_ANOMALOUS_PER_DAY=25` is set in the live API env
+  but **no Python file reads it** — a repo-wide grep finds no reference. On
+  2026-11-24, 72 `auto_anomalous` investigations were created against a nominal
+  cap of 25. Either the throttle moved to a variable under another name or the
+  cap has not been enforced since a rename. It reads like a safety control, so
+  it should be either wired up or removed rather than left looking active.
 
 - A Jira or AAP note, which is where the team's change record actually lives
   (`docs/config-management.md`, "What counts as a release"). This file is the

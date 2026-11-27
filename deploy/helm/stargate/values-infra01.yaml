@@ -3,12 +3,12 @@
 # Images are pinned by digest, not tag. The live Deployments were pinned with
 # `oc set image` long before this file knew it, so a chart-supplied `:latest`
 # re-resolved both images to whatever the tag held when the template was
-# rendered. api and scanner below are the 2026-11-24 out-of-band release, both
-# built from a clean `git archive c8cf85e`; frontend and babylonWorker were not
-# rebuilt and are pinned to the digests already running.
+# rendered. api and scanner below are the 2026-11-24 ~22:50 out-of-band release,
+# both built from a clean `git archive 3d3ef9f`; frontend and babylonWorker were
+# not rebuilt and are pinned to the digests already running.
 
 api:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:4c7781a692eb32cdcf7be3c95c1ec8990c3dbf8fa9232cd048a406c9c538f8da
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-api@sha256:89d66ee518cef0bed2d556de2599dbcd5e9a843d63f902bf95f1ac7f529bcaa0
   replicas: 2
   env:
     STARGATE_SSL_VERIFY: "false"
@@ -29,7 +29,7 @@ api:
     STARGATE_GATE_TREND_DETECTION: "false"
 
 scanner:
-  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner@sha256:c0b38474b874792cc8438682e35dfc91bf884f20f7f444a58fcfd0a2c744a518
+  image: image-registry.openshift-image-registry.svc:5000/stargate/stargate-scanner@sha256:8b2b3860772cdec22397362ee8d9c4a0f284d083fa253553b7847b7ef870c03a
   apiUrl: http://stargate-api:8090
   sandboxApiUrl: http://sandbox-api.babylon-sandbox-api.svc:8080
   labagatorUrl: http://labagator-backend.labagator-prod.svc:8080/api/v1
